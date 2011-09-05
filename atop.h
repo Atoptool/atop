@@ -65,6 +65,7 @@ extern unsigned long    interval;
 extern unsigned long	sampcnt;
 extern char      	screen;
 extern int      	linelen;
+extern char      	acctreason;
 extern char		deviatonly;
 extern char		rawname[];
 extern char		rawreadflag;

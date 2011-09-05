@@ -313,7 +313,7 @@ unsigned long	interval = 10;
 unsigned long 	sampcnt;
 char		screen;
 int		linelen  = 80;
-char		acctactive;	/* accounting active (boolean)		*/
+char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
 unsigned int	begintime, endtime;
@@ -631,7 +631,7 @@ main(int argc, char *argv[])
 	** switch-on the process-accounting mechanism to register the
 	** (remaining) resource-usage by processes which have finished
 	*/
-	acctswon();
+	acctreason = acctswon();
 
 	/*
 	** determine properties (like speed) of all interfaces

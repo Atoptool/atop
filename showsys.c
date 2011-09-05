@@ -381,9 +381,22 @@ sysprt_PRCNNEXIT(void *notused, void *q)
         }
         else
         {
-                return "#exit      ?";
+		switch (acctreason)
+		{
+		   case 1:
+                	return "no  acctread";
+		   case 2:
+                	return "no  acctwant";
+		   case 3:
+                	return "no  acctsema";
+		   case 4:
+                	return "no acctmkdir";
+		   case 5:
+                	return "no rootprivs";
+		   default:
+                	return "no  procacct";
+		}
         }
-        return buf;
 }
 
 sys_printdef syspdef_PRCNNEXIT =

@@ -516,9 +516,9 @@ Whether this key is active or not can be seen in the header line.
 .B l
 Limit the number of system level lines for the counters per-cpu,
 the active disks and the network interfaces.
-By default lines are shown of all cpu's, disks and network interfaces
+By default lines are shown of all CPUs, disks and network interfaces
 which have been active during the last interval.
-Limiting these lines can be useful on systems with huge number cpu's,
+Limiting these lines can be useful on systems with huge number CPUs,
 disks or interfaces in order to be able to run
 .I atop
 on a screen/window with e.g. only 24 lines.
@@ -682,7 +682,7 @@ The system level information consists of the following output lines:
 .PP
 .TP 5
 .B PRC
-Process level totals.
+Process and thread level totals.
 .br
 This line contains the total cpu time consumed 
 in system mode (`sys') and in user mode (`user'),
@@ -692,7 +692,9 @@ the total number of threads present at this moment in state `running' (`#trun'),
 the number of zombie processes (`#zombie'),
 the number of clone system calls (`clones'), and
 the number of processes that ended during the interval
-(`#exit', which shows `?' if process accounting is not used).
+(`#exit') when process accounting is used. Instead of `#exit` the last
+column may give the reason why process accounting could not be used
+(e.g. `no acctread`, `no rootprivs`, ...).
 .br
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -701,11 +703,11 @@ only a relevant subset is shown.
 .B CPU
 CPU utilization.
 .br
-At least one line is shown for the total occupation of all CPU's together.
+At least one line is shown for the total occupation of all CPUs together.
 .br
 In case of a multi-processor system, an additional line is shown
 for every individual processor (with `cpu' in lower case),
-sorted on activity. Inactive cpu's will not be shown by default.
+sorted on activity. Inactive CPUs will not be shown by default.
 The lines showing the per-cpu occupation contain the cpu number in
 the last field.
 
@@ -762,7 +764,7 @@ or that are waiting for disk I/O. These figures are averaged over
 1 (`avg1'), 5 (`avg5') and 15 (`avg15') minutes.
 .br
 Furthermore the number of context switches (`csw'), the number
-of serviced interrupts (`intr') and the number of available cpu's are shown.
+of serviced interrupts (`intr') and the number of available CPUs are shown.
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -777,7 +779,7 @@ the amount of memory in use as page cache (`cache'),
 the amount of memory within the page cache that has to be flushed to disk
 (`dirty'),
 the amount of memory used for filesystem meta data (`buff') and the amount of
-memory being used for kernel malloc's (`slab' - always 0 for kernel 2.4).
+memory being used for kernel mallocs (`slab' - always 0 for kernel 2.4).
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -1361,7 +1363,7 @@ their data to the cache, while the physical write accesses are done later on
 by kernel daemons like pdflush.
 Note that the number read- and write accesses are not separately maintained
 in the standard process accounting record.
-This means that only one value is given for read's and write's in case a
+This means that only one value is given for reads and writes in case a
 process has finished during the last interval. 
 However when the kernel patch `acct' is installed, these values will be
 shown separately.
@@ -1426,15 +1428,15 @@ The subsequent fields of each output-line depend on the label:
 Subsequent fields:
 total number of clock-ticks per second for this machine,
 number of processors,
-consumption for all CPU's in system mode (clock-ticks),
-consumption for all CPU's in user mode (clock-ticks),
-consumption for all CPU's in user mode for niced processes (clock-ticks),
-consumption for all CPU's in idle mode (clock-ticks),
-consumption for all CPU's in wait mode (clock-ticks),
-consumption for all CPU's in irq mode (clock-ticks),
-consumption for all CPU's in softirq mode (clock-ticks),
-consumption for all CPU's in steal mode (clock-ticks), and
-consumption for all CPU's in guest mode (clock-ticks).
+consumption for all CPUs in system mode (clock-ticks),
+consumption for all CPUs in user mode (clock-ticks),
+consumption for all CPUs in user mode for niced processes (clock-ticks),
+consumption for all CPUs in idle mode (clock-ticks),
+consumption for all CPUs in wait mode (clock-ticks),
+consumption for all CPUs in irq mode (clock-ticks),
+consumption for all CPUs in softirq mode (clock-ticks),
+consumption for all CPUs in steal mode (clock-ticks), and
+consumption for all CPUs in guest mode (clock-ticks).
 .TP 9
 .B cpu
 Subsequent fields:

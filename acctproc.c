@@ -180,6 +180,14 @@ struct sembuf	semclaim = {0, -1, SEM_UNDO},
 
 /*
 ** switch on the process-accounting mechanism
+**
+** return value:
+**    0 -     activated (success)
+**    1 - not activated: unreadable accounting file
+**    2 - not activated: empty environment variable ATOPACCT
+**    3 - not activated: no access to semaphore group
+**    4 - not activated: impossible to create own accounting file
+**    5 - not activated: no root privileges
 */
 int
 acctswon(void)
@@ -209,32 +217,23 @@ acctswon(void)
 			seteuid( getuid() );	/* drop setuid-root privs */
 
 			if ( (acctfd = open(ep, O_RDONLY) ) == -1)
-			{
-				perror("open account-file");
-				fprintf(stderr,
-			                "warning: no process exit detection\n");
-				sleep(3);
-				return 0;
-			}
+				return 1;
 
 			if ( !acctvers(acctfd) )
 			{
-				fprintf(stderr,
-               				"warning: no process exit detection\n");
-				sleep(3);
 				(void) close(acctfd);
-				return 0;
+				return 1;
 			}
 
 			supportflags |= ACCTACTIVE;
-			return 1;
+			return 0;
 		}
 		else
 		{
 			/*
 			** no contents
 			*/
-			return 0;
+			return 2;
 		}
 	}
 
@@ -275,27 +274,16 @@ acctswon(void)
 					*/
 					if ( (acctfd = open(pacctadm[i].name,
 							    O_RDONLY) ) == -1)
-					{
-						perror("open account-file");
-						fprintf(stderr,
-					                "warning: no process "
-							"exit detection\n");
-						sleep(3);
-						return 0;
-					}
+						return 1;
 
 					if ( !acctvers(acctfd) )
 					{
-						fprintf(stderr,
-	                				"warning: no process "
-						        "exit detection\n");
-						sleep(3);
 						(void) close(acctfd);
-						return 0;
+						return 1;
 					}
 
 					supportflags |= ACCTACTIVE;
-					return 1;
+					return 0;
 				}
 			}
 		}
@@ -318,12 +306,7 @@ acctswon(void)
 	** check if we got access to the semaphore-group
 	*/
 	if (semid == -1)
-	{
-		perror("open semaphore-group");
-		fprintf(stderr, "warning: no process exit detection\n");
-		sleep(3);
-		return 0;
-	}
+		return 3;
 
 	/*
 	** the semaphore-group is opened now; claim exclusive rights
@@ -355,14 +338,8 @@ acctswon(void)
 				/*
 				** persistent failure
 				*/
-				fprintf(stderr,
-					"warning: no process exit detection "
-				        "(can not create directory %s)\n",
-						ACCTDIR);
-
 				(void) semop(semid, &semrelse, 1);
-				sleep(3);
-				return 0;
+				return 4;
 			}
 		}
 
@@ -376,20 +353,11 @@ acctswon(void)
 		*/
 		if ( acct(ACCTDIR "/" ACCTFILE) < 0)
 		{
-			perror("activate process accounting");
-			fprintf(stderr, "warning: no process exit detection");
-
-			if (errno == EPERM)
-				fprintf(stderr, " (not superuser)!\n");
-			else
-				fprintf(stderr, "!\n");
-
 			(void) unlink(ACCTDIR "/" ACCTFILE);
 			(void) rmdir(ACCTDIR);
 			(void) semop(semid, &semrelse, 1);
 
-			sleep(3);
-			return 0;
+			return 5;
 		}
 	}
 
@@ -399,17 +367,12 @@ acctswon(void)
 	*/
 	if ( (acctfd = open(ACCTDIR "/" ACCTFILE, O_RDONLY) ) < 0)
 	{
-		perror("open account-file");
-		fprintf(stderr, "warning: no process exit detection!\n");
-
 		(void) acct(0);
 		(void) unlink(ACCTDIR "/" ACCTFILE);
 		(void) rmdir(ACCTDIR);
 
 		(void) semop(semid, &semrelse, 1);
-
-		sleep(3);
-		return 0;
+		return 1;
 	}
 
 	/*
@@ -439,7 +402,7 @@ acctswon(void)
 	acctvers(acctfd);
 
 	supportflags |= ACCTACTIVE;
-	return 1;
+	return 0;
 }
 
 /*
@@ -452,7 +415,7 @@ acctvers(int fd)
 	struct acct 	tmprec;
 
 	/*
-	** read first record from accouting file to verify
+	** read first record from accounting file to verify
 	** the second byte (always contains version number)
 	*/
 	if ( read(fd, &tmprec, sizeof tmprec) < sizeof tmprec)
