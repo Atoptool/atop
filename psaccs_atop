@@ -1,0 +1,42 @@
+# Logrotate file to take action before psacct is rotated
+/var/log/atop/dummy_before {
+    missingok
+    daily
+    rotate 1
+    ifempty
+    create 0600 root root
+    postrotate
+	# check if process accounting is installed
+	#
+	if [ -e /etc/logrotate.d/psacct ]
+	then
+	    # check if process accounting is actually in use
+	    #
+	    ACCTFILE=`awk '$2 == "{" {print $1}' /etc/logrotate.d/psacct`
+
+	    if [ -f "$ACCTFILE" ]
+	    then
+	        ACCTSIZE1=`ls -l "$ACCTFILE" | awk '{print $5}'`
+	        ACCTSIZE2=`ls -l "$ACCTFILE" | awk '{print $5}'`
+
+	        if [ $ACCTSIZE1 -lt $ACCTSIZE2 ]
+	        then
+	            # stop atop daemon before accounting file
+	            # is rotated
+	            #
+	            PIDFILE=/var/run/atop.pid
+
+	            if [ -e $PIDFILE ] && \
+	                   ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	            then
+			kill -USR1 `cat $PIDFILE` # take final sample
+			sleep 3
+	                kill -TERM `cat $PIDFILE`
+	                rm $PIDFILE
+			sleep 1
+	            fi
+	        fi
+	    fi
+	fi
+    endscript
+}

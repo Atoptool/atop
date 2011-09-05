@@ -1,0 +1,2 @@
+# start atop daily at midnight
+0 0 * * * root /etc/atop/atop.daily

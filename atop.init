@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# atop		This shell script takes care of initializing atop
+#
+# chkconfig: 2345 85 15
+# description:	Atop is a system and process activity monitor
+#
+
+# Check existance of binaries 
+[ -f /usr/bin/atop ] || exit 0
+
+PIDFILE=/var/run/atop.pid
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+	# Check if atop runs already
+	#
+	if [ -e $PIDFILE ] && ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	then
+		:
+	else
+		# Start atop
+		/etc/atop/atop.daily
+	fi
+	;;
+
+  stop)
+	# Check if atop runs
+	#
+	if [ -e $PIDFILE ] && ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	then
+		kill -USR2 `cat $PIDFILE`	# final sample and terminate
+
+		CNT=0
+
+		while ps -p `cat $PIDFILE` > /dev/null
+		do
+			let CNT+=1
+
+			if [ $CNT -gt 5 ]
+			then
+				break;
+			fi
+
+			sleep 1
+		done
+
+		rm $PIDFILE
+	fi
+	;;
+
+  status)
+	;;
+
+  reload)
+	/etc/atop/atop.daily
+	;;
+
+  restart)
+	/etc/atop/atop.daily
+	;;
+
+  *)
+	echo "Usage: $0 [start|stop|status|reload|restart]"
+	exit 1
+esac
+
+exit $RETVAL

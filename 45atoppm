@@ -1,0 +1,73 @@
+#!/bin/sh
+
+. "${PM_FUNCTIONS}"
+
+LOGPATH=/var/log/atop
+BINPATH=/usr/bin
+PIDFILE=/var/run/atop.pid
+INTERVAL=600		# interval 10 minutes
+CURDAY=`date +%Y%m%d`	# current date in same format
+
+# If the system suspends, one final sample will be taken for the logfile
+#
+suspend_atop()
+{
+	if [ -e $PIDFILE ] && ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	then
+		kill -USR2 `cat $PIDFILE`	# final sample and terminate
+
+		CNT=0
+
+		while ps -p `cat $PIDFILE` > /dev/null
+		do
+			let CNT+=1
+
+			if [ $CNT -gt 5 ]
+			then
+				break;
+			fi
+
+			sleep 1
+		done
+	fi
+}
+
+# If the system resumes, a new atop will be started (similar to boot)
+#
+resume_atop()
+{
+	# in case atop is running, stop it
+	#
+	if [ -e $PIDFILE ] && ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	then
+		kill -TERM `cat $PIDFILE`
+		rm $PIDFILE
+		sleep 1
+	fi
+
+	# start atop
+	#
+	$BINPATH/atop -a -w $LOGPATH/atop_$CURDAY $INTERVAL \
+					 > $LOGPATH/daily.log 2>&1 &
+	echo $! > $PIDFILE
+	
+	# delete logfiles older than four weeks
+	#
+	(
+	 	sleep 3;
+		find $LOGPATH -name 'atop_*' -mtime +28 -exec rm {} \;
+	)&
+
+	exit 0
+}
+
+case "$1" in
+	hibernate|suspend)
+		suspend_atop
+		;;
+	thaw|resume)
+		resume_atop
+		;;
+	*) 	exit $NA
+		;;
+esac

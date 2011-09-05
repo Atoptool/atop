@@ -1,0 +1,24 @@
+# Logrotate file to take action after psacct is rotated
+/var/log/atop/dummy_after {
+    missingok
+    daily
+    rotate 1
+    ifempty
+    create 0600 root root
+    postrotate
+	if [ -e /etc/logrotate.d/psacct ]
+	then
+	    # if the atop daemon does not run, restart it after
+	    # accounting file is rotated
+	    PIDFILE=/var/run/atop.pid
+
+	    if [ -e $PIDFILE ] && \
+			ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+	    then
+	        :
+	    else
+	        /etc/atop/atop.daily
+	    fi
+	fi
+    endscript
+}     
