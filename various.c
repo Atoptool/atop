@@ -111,6 +111,7 @@ static const char rcsid[] = "$Id: various.c,v 1.21 2010/11/12 06:16:16 gerlof Ex
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -562,4 +563,30 @@ cleanstop(exitcode)
 	acctswoff();
 	(vis.show_end)();
 	exit(exitcode);
+}
+
+/*
+** drop the root privileges that might be obtained via setuid-bit
+**
+** this action may only fail with errno EPERM (normal situation when
+** atop has not been started with setuid-root privs); when this
+** action fails with EAGAIN or ENOMEM, atop should not continue
+** without root privs being dropped...
+*/
+int
+droprootprivs(void)
+{
+	if (seteuid( getuid() ) == -1 && errno != EPERM)
+		return 0;	/* false */
+	else
+		return 1;	/* true  */
+}
+
+/*
+** regain the root privileges that might be dropped earlier
+*/
+void
+regainrootprivs(void)
+{
+	seteuid(0);
 }

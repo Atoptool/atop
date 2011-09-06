@@ -145,3 +145,6 @@ char 		*getstrvers(void);
 unsigned short 	getnumvers(void);
 void		cleanstop(int);
 void		prusage(char *);
+
+int		droprootprivs(void);
+void		regainrootprivs(void);

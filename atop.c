@@ -430,7 +430,11 @@ main(int argc, char *argv[])
 	** the root-priviliges are dropped by switching effective user-id
 	** to real user-id (security reasons)
 	*/
-	seteuid ( getuid() );
+        if (! droprootprivs() )
+	{
+		fprintf(stderr, "not possible to drop root privs\n");
+                exit(42);
+	}
 
 	/*
 	** preserve command arguments to allow restart of other version
@@ -607,7 +611,7 @@ main(int argc, char *argv[])
 	** regain the root-priviliges that we dropped at the beginning
 	** to do some priviliged work
 	*/
-	seteuid(0);
+	regainrootprivs();
 
 	/*
 	** lock ATOP in memory to get reliable samples (also when
@@ -643,7 +647,8 @@ main(int argc, char *argv[])
 	** need to keep running under root-priviliges, so switch
 	** effective user-id to real user-id
 	*/
-	seteuid( getuid() );
+        if (! droprootprivs() )
+		cleanstop(42);
 
 	/*
 	** start the engine now .....

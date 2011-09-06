@@ -343,7 +343,7 @@ atopsar(int argc, char *argv[])
 	** regain the root-priviliges that we dropped at the beginning
 	** to do some priviliged work now
 	*/
-        seteuid(0);
+        regainrootprivs();
 
 	/*
 	** lock in memory to get reliable samples (also when
@@ -372,7 +372,8 @@ atopsar(int argc, char *argv[])
 	** need to keep running under root-privileges, so switch
 	** effective user-id to real user-id
 	*/
-	seteuid ( getuid() );
+	if (! droprootprivs() )
+		cleanstop(42);
 
 	/*
 	** start live reporting

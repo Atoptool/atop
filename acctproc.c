@@ -214,7 +214,8 @@ acctswon(void)
 			/*
 			** open active account file with the specified name
 			*/
-			seteuid( getuid() );	/* drop setuid-root privs */
+			if (! droprootprivs() )
+				cleanstop(42);
 
 			if ( (acctfd = open(ep, O_RDONLY) ) == -1)
 				return 1;
@@ -509,11 +510,14 @@ acctswoff(void)
 				/*
 				** remove the directory and file
 				*/
-				seteuid(0);	/* get root privs again */
+				regainrootprivs(); /* get root privs again */
 
 				(void) acct(0);
 				(void) unlink(ACCTDIR "/" ACCTFILE);
 				(void) rmdir(ACCTDIR);
+
+				if (! droprootprivs() )
+					cleanstop(42);
 			}
 		}
 

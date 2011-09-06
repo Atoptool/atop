@@ -765,11 +765,12 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 			** take care that interface properties are
 			** corrected for future samples
 			*/
-                        seteuid(0);		/* get root privileges      */
+                        regainrootprivs();	/* get root privileges      */
 
 		        initifprop();		/* refresh interface info   */
 
-                        seteuid( getuid() );	/* release root privileges  */
+			if (! droprootprivs())  /* drop setuid-root privs   */
+				cleanstop(42);
 
 			for (j=0; cur->intf.intf[j].name[0]; j++)
 			{

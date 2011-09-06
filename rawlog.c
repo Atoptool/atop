@@ -948,9 +948,14 @@ try_other_version(int majorversion, int minorversion)
 
 	/*
 	** be absolutely sure not to pass setuid-root privileges
-	** to the loaded program
+	** to the loaded program; errno EAGAIN and ENOMEM are not
+	** acceptable!
 	*/
-	setresuid(getuid(), getuid(), getuid());
+	if ( setresuid(getuid(), getuid(), getuid()) == -1 && errno != EPERM)
+	{
+		fprintf(stderr, "not possible to drop root-privileges!\n");
+		exit(1);
+	}
 
 	/*
  	** load alternative executable image
