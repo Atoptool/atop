@@ -1,0 +1,150 @@
+if [ `id -u` -ne 0 ]
+then
+	echo You should run this script as superuser >&2
+	exit 1
+fi
+
+VERSION=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
+
+if [ "$VERSION" = master ]
+then
+	echo Not allowed to distribute the MASTER version >&2
+	exit 2
+fi
+
+# Make new version.c file
+#
+rm -f version.c
+
+if ./mkversion
+then
+	:
+else
+	echo Not possible to generate version.c >&2
+	exit 3
+fi
+
+############################################################################
+# Generate new executables
+############################################################################
+make clean
+
+if make
+then
+	:
+else
+	echo Programs can not be compiled
+	exit 1
+fi
+
+############################################################################
+# Prepare a directory for distribution under /tmp
+# and copy all required stuff 
+############################################################################
+rm -r          		/tmp/atop 2> /dev/null
+
+mkdir          		/tmp/atop
+cp *.[ch]		/tmp/atop
+cp Makefile    		/tmp/atop
+cp README		/tmp/atop
+cp COPYING		/tmp/atop
+cp ChangeLog		/tmp/atop
+cp AUTHOR		/tmp/atop
+cp atop      		/tmp/atop
+cp atop.daily  		/tmp/atop
+cp atop.cron  		/tmp/atop
+cp atop.init  		/tmp/atop
+cp psaccs_atop 		/tmp/atop
+cp psaccu_atop 		/tmp/atop
+cp 45atoppm  		/tmp/atop
+cp -r man      		/tmp/atop
+
+############################################################################
+# All files copied.
+# Make a compressed tar-archive.
+############################################################################
+#
+ORIGDIR=`pwd`
+
+cd /tmp
+
+rm -rf		atop-$VERSION     2> /dev/null
+mv atop		atop-$VERSION
+
+rm -f		atop-$VERSION.tar 2> /dev/null
+tar         cvf atop-$VERSION.tar atop-$VERSION
+rm -rf		atop-$VERSION     2> /dev/null
+
+rm -f           atop-$VERSION.tar.gz 2> /dev/null
+gzip            atop-$VERSION.tar
+
+############################################################################
+# Make an RPM-distribution
+############################################################################
+if [ -d /usr/src/redhat/SOURCES ]
+then
+	cp atop-$VERSION.tar.gz /usr/src/redhat/SOURCES
+fi
+
+if [ -d /usr/src/RPM/SOURCES ]
+then
+	cp atop-$VERSION.tar.gz /usr/src/RPM/SOURCES
+fi
+
+if [ -d /root/rpmbuild/SOURCES ]
+then
+	cp atop-$VERSION.tar.gz /root/rpmbuild/SOURCES
+fi
+
+cd $ORIGDIR
+
+sed "s/XVERSX/$VERSION/g" atop.spec > /tmp/atop-$VERSION.spec
+
+cd /tmp
+
+if rpmbuild -ba atop-$VERSION.spec #  > /dev/null
+then
+	if [ -d /usr/src/redhat/SOURCES ]
+	then
+		cp /usr/src/redhat/RPMS/i386/atop-$VERSION-*.i386.rpm /tmp
+		cp /usr/src/redhat/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+	fi
+
+	if [ -d /usr/src/RPM/SOURCES ]
+	then
+		cp /usr/src/RPM/RPMS/i386/atop-$VERSION-*.i386.rpm /tmp
+		cp /usr/src/RPM/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+	fi
+
+	if [ -d /root/rpmbuild/SOURCES ]
+	then
+		cp /root/rpmbuild/RPMS/x86_64/atop-$VERSION-*.x86_64.rpm /tmp
+		cp /root/rpmbuild/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+	fi
+
+	echo
+	echo /tmp/atop-$VERSION-*.x86_64.rpm ready
+	echo /tmp/atop-$VERSION-*.src.rpm  ready
+fi
+
+echo
+echo /tmp/atop-$VERSION.tar.gz ready
+
+############################################################################
+# Make compressed tar-archives for the kernel-patches
+############################################################################
+echo
+cd /tmp
+
+ls $ORIGDIR/atoppatch/01patch* | sed 's/.*01patch-//' | sed 's/_.*//' |
+				sort | uniq | while read KVERS
+do
+	rm -rf atoppatch-kernel-$KVERS  2> /dev/null
+	mkdir  atoppatch-kernel-$KVERS
+
+	cp $ORIGDIR/atoppatch/*$KVERS*     atoppatch-kernel-$KVERS
+	cp $ORIGDIR/atoppatch/README.patch atoppatch-kernel-$KVERS
+	tar -czf atoppatch-kernel-$KVERS.tar.gz atoppatch-kernel-$KVERS
+	rm -rf atoppatch-kernel-$KVERS  2> /dev/null
+	echo /tmp/atoppatch-kernel-$KVERS.tar.gz ready
+done
