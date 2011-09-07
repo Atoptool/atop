@@ -64,9 +64,9 @@ typedef struct {
  * structure for system print-list
 */
 typedef struct {
-        char *configname;                       // name as used to 
-                                                // config print line
-        char* (*doconvert)(void *, void *);     // pointer to conv function
+        char *configname;                          // name as used to 
+                                                   // config print line
+        char* (*doconvert)(void *, void *, int, int *); // ptr to convert func
 } sys_printdef;
 
 

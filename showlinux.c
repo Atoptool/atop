@@ -761,7 +761,7 @@ totalcap(struct syscap *psc, struct sstat *sstat, struct pstat *pstat, int nact)
 ** calculate cumulative system- and user-time for all active processes
 */
 void
-pricumproc(struct pstat *pstat, struct sstat *sstat, 
+pricumproc(struct pstat *pstat, struct sstat *sstat, int usecolors,
            int nact, int nproc, int ntrun, int ntslpi, int ntslpu, int nzomb,
            int nexit, int avgval, int nsecs)
 {
@@ -950,8 +950,8 @@ pricumproc(struct pstat *pstat, struct sstat *sstat,
         extra.avgval	= avgval;
         extra.nsecs	= nsecs;
 
-        move(1,0);
-        showsysline(sysprcline, sstat, &extra, "PRC", 0, 0);
+        move(1, 0);
+        showsysline(sysprcline, sstat, &extra, "PRC", usecolors, 0);
 }
 
 void
@@ -1458,8 +1458,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         count_t         busy;
         unsigned int    badness, highbadness=0;
 
-        extra.nsecs=nsecs;
-        extra.avgval=avgval;
+        extra.nsecs	= nsecs;
+        extra.avgval	= avgval;
+
         /*
         ** CPU statistics
         */
@@ -1491,7 +1492,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         if (extra.percputot == 0)
                 extra.percputot = 1;          /* avoid divide-by-zero */
 
-        move(curline, 0);
+	if (screen)
+ 	       move(curline, 0);
+
         showsysline(allcpuline, sstat, &extra, "CPU", usecolors, badness);
         curline++;
 
@@ -1539,7 +1542,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
                         move(curline, 0);
                         showsysline(indivcpuline, sstat, &extra, "cpu",
-				usecolors, badness);
+							usecolors, badness);
                         curline++;
                         lin++;
                 }
@@ -1548,7 +1551,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         /*
         ** other CPU-related statistics
         */
-        move(curline, 0);
+	if (screen)
+   	     move(curline, 0);
+
         showsysline(cplline, sstat, &extra, "CPL", 0, 0);
         curline++;
 
@@ -1571,7 +1576,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 *highorderp = MSORTMEM;
         }
 
-        move(curline, 0);
+	if (screen)
+	        move(curline, 0);
+
         showsysline(memline, sstat, &extra, "MEM", usecolors, badness);
         curline++;
 
@@ -1596,10 +1603,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 *highorderp = MSORTMEM;
         }
 
-        if (sstat->mem.commitlim && sstat->mem.committed > sstat->mem.commitlim)
-                 badness = 100;         /* force colored output */
+	if (screen)
+        	move(curline, 0);
 
-        move(curline, 0);
         showsysline(swpline, sstat, &extra, "SWP", usecolors, badness);
         curline++;
 
@@ -1636,7 +1642,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                     pagbadness && almostcrit && badness < almostcrit)
                         badness = almostcrit;
 
-                move(curline, 0);
+		if (screen)
+                	move(curline, 0);
+
                 showsysline(pagline, sstat, &extra,"PAG", usecolors, badness);
                 curline++;
         }
@@ -1658,15 +1666,17 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         /*
         ** NET statistics
         */
-        if (sstat->net.tcp.InSegs             || 
+        if (sstat->net.tcp.InSegs             ||
             sstat->net.tcp.OutSegs            ||
-            sstat->net.udpv4.InDatagrams      || 
+            sstat->net.udpv4.InDatagrams      ||
             sstat->net.udpv6.Udp6InDatagrams  ||
-            sstat->net.udpv4.OutDatagrams     || 
+            sstat->net.udpv4.OutDatagrams     ||
             sstat->net.udpv6.Udp6OutDatagrams ||
             fixedhead )
         {
-                move(curline, 0);
+		if (screen)
+                	move(curline, 0);
+
                 showsysline(nettransportline, sstat, &extra, "NET", 0, 0);
                 curline++;
         }
@@ -1677,7 +1687,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
             sstat->net.ipv6.Ip6OutRequests ||
             fixedhead )
         {
-                move(curline, 0);
+		if (screen)
+                	move(curline, 0);
+
                 showsysline(netnetline, sstat, &extra, "NET", 0, 0);
                 curline++;
         }
@@ -1733,7 +1745,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 *highorderp = MSORTNET;
                         }
 
-                        move(curline, 0);
+			if (screen)
+                		move(curline, 0);
                         showsysline(netinterfaceline, sstat, &extra, 
                                       "NET", usecolors, badness);
                         curline++;
@@ -1750,7 +1763,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 #if     HTTPSTATS
         if (sstat->www.accesses > 1 || fixedhead )
         {
-                move(curline, 0);
+		if (screen)
+               		move(curline, 0);
+
                 printg("WWW | reqs  %s | totKB %s | byt/rq %s | iwork %s |"
                        " bwork %s |",
                         val2valstr(sstat->www.accesses,  format1, 6,

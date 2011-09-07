@@ -97,8 +97,8 @@ struct selection {
 ** general function prototypes
 */
 void	totalcap   (struct syscap *, struct sstat *, struct pstat *, int);
-void	pricumproc (struct pstat *,  struct sstat *, int, int, int, int, 
-             				   	int, int, int, int, int);
+void	pricumproc (struct pstat *,  struct sstat *, int, int, int, int,
+						int, int, int, int, int, int);
 
 void	showgenproc(struct pstat *, double, int, int);
 void	showmemproc(struct pstat *, double, int, int);

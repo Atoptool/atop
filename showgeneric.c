@@ -526,7 +526,6 @@ generic_samp(time_t curtime, int nsecs,
 	*/
 	totalcap(&syscap, sstat, pstat, nact);
 
-
 	/*
 	** sort per-cpu       		statistics on busy percentage
 	** sort per-logical-volume      statistics on busy percentage
@@ -610,8 +609,9 @@ generic_samp(time_t curtime, int nsecs,
 		/*
 		** print cumulative system- and user-time for all processes
 		*/
-		pricumproc(pstat, sstat, nact, nproc, ntrun, ntslpi, ntslpu,
-					nzomb, nexit, avgval, nsecs);
+		pricumproc(pstat, sstat, usecolors, nact, nproc,
+			ntrun, ntslpi, ntslpu, nzomb, nexit, avgval, nsecs);
+
 		curline=2;
 
 		/*
@@ -698,6 +698,7 @@ generic_samp(time_t curtime, int nsecs,
 				{
 					if (usecolors)
 						attron(COLOR_PAIR(COLORLOW));
+
 					attron(A_BLINK);
 
 					printg("%*s", (COLS-45)/2, " ");
