@@ -661,6 +661,7 @@ acctphotoproc(struct pstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp (acctrec_atop.ac_majflt);
 			api->mem.vmem   = acctexp (acctrec_atop.ac_mem);
 			api->mem.rmem   = acctexp (acctrec_atop.ac_rss);
+			api->mem.swap   = 0;
 			api->dsk.rio    = acctexp (acctrec_atop.ac_bread);
 			api->dsk.wio    = acctexp (acctrec_atop.ac_bwrite);
 			api->dsk.rsz    = acctexp2(acctrec_atop.ac_dskrsz);

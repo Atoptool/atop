@@ -614,6 +614,24 @@ proc_printdef procprt_RSIZE =
    { " RSIZE", "RSIZE", procprt_RSIZE_a, procprt_RSIZE_e, 6 };
 /***************************************************************/
 char *
+procprt_SWAPSZ_a(struct pstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2memstr(curstat->mem.swap*1024, buf, KBFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_SWAPSZ_e(struct pstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_SWAPSZ = 
+   { "SWAPSZ", "SWAPSZ", procprt_SWAPSZ_a, procprt_SWAPSZ_e, 6 };
+/***************************************************************/
+char *
 procprt_CMD_a(struct pstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];

@@ -305,7 +305,7 @@ fillproc(struct pstat *curproc)
 			ruid, euid, suid, fsuid, rgid, egid, sgid, fsgid,
 			curcpu, nthreads, sleepavg;
 	count_t		utime, stime, starttime;
-	count_t		minflt, majflt, size, rss, nswap,
+	count_t		minflt, majflt, size, rss, nswap, kswap,
 			startcode, endcode,
 			dskrio=0, dskwio=0, dskrsz=0, dskwsz=0, dskcwsz=0,
 			tcpsnd=0, tcprcv=0, tcpssz=0, tcprsz=0,
@@ -394,6 +394,12 @@ fillproc(struct pstat *curproc)
 			sscanf(line, "Threads: %d", &nthreads);
 			break;
 		}
+
+		if (memcmp(line, "VmSwap:", 7)==0)
+		{
+			sscanf(line, "VmSwap: %lld", &kswap);
+			break;
+		}
 	}
 
 	fclose(fp);
@@ -473,6 +479,7 @@ fillproc(struct pstat *curproc)
 	curproc->mem.vgrow    = 0;	/* calculated later */
 	curproc->mem.rgrow    = 0;	/* calculated later */
 	curproc->mem.shtext   = (endcode-startcode)/1024;
+	curproc->mem.swap     = kswap;
 
 	curproc->dsk.rio      = dskrio;
 	curproc->dsk.rsz      = dskrsz;

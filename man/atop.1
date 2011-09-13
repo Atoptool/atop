@@ -1211,6 +1211,10 @@ The start time of the process.
 The saved user-id of the process.
 .PP
 .TP 9
+.B SWAPSZ
+The swap space consumed by this process (or user).
+.PP
+.TP 9
 .B SYSCPU
 CPU time consumption of this process in system mode (kernel mode), usually
 due to system call handling.
@@ -1563,8 +1567,9 @@ resident memory size (Kbytes),
 shared text memory size (Kbytes),
 virtual memory growth (Kbytes),
 resident memory growth (Kbytes),
-number of minor page faults, and
-number of major page faults.
+number of minor page faults,
+number of major page faults, and
+swap space used (Kbytes).
 .TP 9
 .B PRD
 For every process one line is shown.

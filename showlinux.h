@@ -241,6 +241,7 @@ extern proc_printdef procprt_MAJFLT;
 extern proc_printdef procprt_VSTEXT;
 extern proc_printdef procprt_VSIZE;
 extern proc_printdef procprt_RSIZE;
+extern proc_printdef procprt_SWAPSZ;
 extern proc_printdef procprt_CMD;
 extern proc_printdef procprt_RUID;
 extern proc_printdef procprt_EUID;

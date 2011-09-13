@@ -454,6 +454,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_VSTEXT,
 	&procprt_VSIZE,
 	&procprt_RSIZE,
+	&procprt_SWAPSZ,
 	&procprt_CMD,
 	&procprt_RUID,
 	&procprt_EUID,
@@ -1171,7 +1172,7 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 
                 make_proc_prints(memprocs, MAXITEMS, 
                         "PID:10 MINFLT:2 MAJFLT:3 VSTEXT:4 "
-                        "VSIZE:5 RSIZE:6 VGROW:7 RGROW:8 RUID:1 EUID:0 "
+                        "VSIZE:5 RSIZE:6 VGROW:7 RGROW:8 SWAPSZ:4 RUID:1 EUID:0 "
                         "SORTITEM:9 CMD:10", 
                         "built-in memprocs");
 
@@ -1200,12 +1201,12 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 
                 make_proc_prints(totusers, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 "
-                        "RSIZE:8 RDDSK:7 WRDSK:7 RNET:6 SNET:6 "
+                        "RSIZE:8 SWAPSZ:5 RDDSK:7 WRDSK:7 RNET:6 SNET:6 "
                         "SORTITEM:10 RUID:10", 
                         "built-in totusers");
 
                 make_proc_prints(totprocs, MAXITEMS, 
-                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8"
+                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 SWAPSZ:5 "
                         "RSIZE:8 RDDSK:7 WRDSK:7 RNET:6 SNET:6" 
                         "SORTITEM:10 CMD:10", 
                         "built-in totprocs");

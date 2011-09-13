@@ -90,7 +90,8 @@ struct pstat {
 		count_t	rmem;		/* resident memory (Kb)		*/
 		count_t vgrow;		/* virtual  growth (Kb)    	*/
 		count_t rgrow;		/* resident growth (Kb)     	*/
-		count_t	cfuture[4];	/* reserved for future use	*/
+		count_t swap;		/* swap space used (Kb)     	*/
+		count_t	cfuture[3];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/

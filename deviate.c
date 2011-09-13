@@ -342,6 +342,7 @@ deviatproc(struct pstat *aproc, int npresent,
 		devstat->mem.rmem   = curstat->mem.rmem;
 		devstat->mem.vgrow  = curstat->mem.vmem   - prestat.mem.vmem;
 		devstat->mem.rgrow  = curstat->mem.rmem   - prestat.mem.rmem;
+		devstat->mem.swap   = curstat->mem.swap;
 
 		devstat->mem.minflt = 
 			subcount(curstat->mem.minflt, prestat.mem.minflt);
