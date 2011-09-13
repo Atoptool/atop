@@ -1074,7 +1074,7 @@ sysprt_SWPCOMMITLIM(void *p, void *notused, int badness, int *color)
         val2memstr(sstat->mem.commitlim   * pagesize, buf+6, MBFORMAT, 0, 0);
 
 	if (sstat->mem.commitlim && sstat->mem.committed > sstat->mem.commitlim)
-		*color = COLORMED;
+		*color = COLORLOW;
 
         return buf;
 }
@@ -1286,6 +1286,8 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
         static char	buf[16]="avio  ";
         double 		tim= as->iotot ? 
                      	 (double)(as->perdsk[as->index].io_ms) / as->iotot : 0;
+
+	*color = -1;
 
         if (tim > 100.0)
         {
