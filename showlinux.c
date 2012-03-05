@@ -454,6 +454,9 @@ proc_printdef *allprocpdefs[]=
 	&procprt_VSTEXT,
 	&procprt_VSIZE,
 	&procprt_RSIZE,
+	&procprt_VSLIBS,
+	&procprt_VDATA,
+	&procprt_VSTACK,
 	&procprt_SWAPSZ,
 	&procprt_CMD,
 	&procprt_RUID,
@@ -1171,8 +1174,9 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                 }
 
                 make_proc_prints(memprocs, MAXITEMS, 
-                        "PID:10 MINFLT:2 MAJFLT:3 VSTEXT:4 "
-                        "VSIZE:5 RSIZE:6 VGROW:7 RGROW:8 SWAPSZ:4 RUID:1 EUID:0 "
+                        "PID:10 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
+			"VDATA:3 VSTACK:3 VSIZE:5 RSIZE:6 "
+                        "VGROW:7 RGROW:8 SWAPSZ:4 RUID:1 EUID:0 "
                         "SORTITEM:9 CMD:10", 
                         "built-in memprocs");
 

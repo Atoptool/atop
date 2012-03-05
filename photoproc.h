@@ -85,13 +85,15 @@ struct pstat {
 	struct mem {
 		count_t	minflt;		/* number of page-reclaims 	*/
 		count_t	majflt;		/* number of page-faults 	*/
-		count_t	shtext;		/* text     memory (Kb)         */
-		count_t	vmem;		/* virtual  memory (Kb)		*/
-		count_t	rmem;		/* resident memory (Kb)		*/
-		count_t vgrow;		/* virtual  growth (Kb)    	*/
-		count_t rgrow;		/* resident growth (Kb)     	*/
-		count_t swap;		/* swap space used (Kb)     	*/
-		count_t	cfuture[3];	/* reserved for future use	*/
+		count_t	vexec;		/* virtmem execfile (Kb)        */
+		count_t	vmem;		/* virtual  memory  (Kb)	*/
+		count_t	rmem;		/* resident memory  (Kb)	*/
+		count_t vgrow;		/* virtual  growth  (Kb)    	*/
+		count_t rgrow;		/* resident growth  (Kb)     	*/
+		count_t vdata;		/* virtmem data     (Kb)     	*/
+		count_t vstack;		/* virtmem stack    (Kb)     	*/
+		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
+		count_t vswap;		/* swap space used  (Kb)     	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/

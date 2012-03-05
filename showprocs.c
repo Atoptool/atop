@@ -564,7 +564,7 @@ procprt_VSTEXT_a(struct pstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.shtext*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vexec*1024, buf, KBFORMAT, 0, 0);
         return buf;
 }
 
@@ -614,11 +614,65 @@ proc_printdef procprt_RSIZE =
    { " RSIZE", "RSIZE", procprt_RSIZE_a, procprt_RSIZE_e, 6 };
 /***************************************************************/
 char *
+procprt_VSLIBS_a(struct pstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2memstr(curstat->mem.vlibs*1024, buf, KBFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_VSLIBS_e(struct pstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_VSLIBS = 
+   { "VSLIBS", "VSLIBS", procprt_VSLIBS_a, procprt_VSLIBS_e, 6 };
+/***************************************************************/
+char *
+procprt_VDATA_a(struct pstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2memstr(curstat->mem.vdata*1024, buf, KBFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_VDATA_e(struct pstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_VDATA = 
+   { " VDATA", "VDATA", procprt_VDATA_a, procprt_VDATA_e, 6 };
+/***************************************************************/
+char *
+procprt_VSTACK_a(struct pstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2memstr(curstat->mem.vstack*1024, buf, KBFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_VSTACK_e(struct pstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_VSTACK = 
+   { "VSTACK", "VSTACK", procprt_VSTACK_a, procprt_VSTACK_e, 6 };
+/***************************************************************/
+char *
 procprt_SWAPSZ_a(struct pstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.swap*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vswap*1024, buf, KBFORMAT, 0, 0);
         return buf;
 }
 

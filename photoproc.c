@@ -152,8 +152,8 @@ static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof 
 #define	SCANSTAT 	"%c   %d   %*d  %*d  %*d  %*d  "	\
 			"%*d  %lld %*d  %lld %*d  %lld "	\
 			"%lld %*d  %*d  %d   %d   %*d  "	\
-			"%*d  %lld %lld %lld %*d  %lld "	\
-			"%lld %*d  %*d  %*d  %*d  %*d  " 	\
+			"%*d  %lld %lld %lld %*d  %*d  "	\
+			"%*d  %*d  %*d  %*d  %*d  %*d  " 	\
 			"%*d  %*d  %*d  %lld %*d  %*d  "	\
 			"%d   %d   %d "
 
@@ -305,8 +305,8 @@ fillproc(struct pstat *curproc)
 			ruid, euid, suid, fsuid, rgid, egid, sgid, fsgid,
 			curcpu, nthreads, sleepavg;
 	count_t		utime, stime, starttime;
-	count_t		minflt, majflt, size, rss, nswap, kswap,
-			startcode, endcode,
+	count_t		minflt, majflt, size, rss, nswap, kswap, kdata, kstack,
+			kexec, klib,
 			dskrio=0, dskwio=0, dskrsz=0, dskwsz=0, dskcwsz=0,
 			tcpsnd=0, tcprcv=0, tcpssz=0, tcprsz=0,
 			udpsnd=0, udprcv=0, udpssz=0, udprsz=0,
@@ -341,7 +341,7 @@ fillproc(struct pstat *curproc)
 	nr = sscanf(cmdtail+2, SCANSTAT,
 		&state,    &ppid,      &minflt,    &majflt,
 		&utime,    &stime,     &prio,      &nice,    &starttime,
-		&size,     &rss,       &startcode, &endcode, &nswap,
+		&size,     &rss,       &nswap,
 		&curcpu,   &rtprio,    &policy);
 
 	if ( fgets(line, sizeof line, fp) != NULL)
@@ -392,14 +392,41 @@ fillproc(struct pstat *curproc)
 		if (memcmp(line, "Threads:", 8)==0)
 		{
 			sscanf(line, "Threads: %d", &nthreads);
-			break;
+			continue;
+		}
+
+		if (memcmp(line, "VmData:", 7)==0)
+		{
+			sscanf(line, "VmData: %lld", &kdata);
+			continue;
+		}
+
+		if (memcmp(line, "VmStk:", 6)==0)
+		{
+			sscanf(line, "VmStk: %lld", &kstack);
+			continue;
+		}
+
+		if (memcmp(line, "VmExe:", 6)==0)
+		{
+			sscanf(line, "VmExe: %lld", &kexec);
+			continue;
+		}
+
+		if (memcmp(line, "VmLib:", 6)==0)
+		{
+			sscanf(line, "VmLib: %lld", &klib);
+			continue;
 		}
 
 		if (memcmp(line, "VmSwap:", 7)==0)
 		{
 			sscanf(line, "VmSwap: %lld", &kswap);
-			break;
+			continue;
 		}
+
+		if (memcmp(line, "SigQ:", 5)==0)
+			break;
 	}
 
 	fclose(fp);
@@ -478,8 +505,11 @@ fillproc(struct pstat *curproc)
 	curproc->mem.rmem     = rss  * (pagesize/1024);
 	curproc->mem.vgrow    = 0;	/* calculated later */
 	curproc->mem.rgrow    = 0;	/* calculated later */
-	curproc->mem.shtext   = (endcode-startcode)/1024;
-	curproc->mem.swap     = kswap;
+	curproc->mem.vexec    = kexec;
+	curproc->mem.vdata    = kdata;
+	curproc->mem.vstack   = kstack;
+	curproc->mem.vlibs    = klib;
+	curproc->mem.vswap    = kswap;
 
 	curproc->dsk.rio      = dskrio;
 	curproc->dsk.rsz      = dskrsz;

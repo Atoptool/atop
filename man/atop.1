@@ -1320,6 +1320,11 @@ CPU time consumption of this process in user mode, due to processing the
 own program text.
 .PP
 .TP 9
+.B VDATA
+The virtual memory size of the private data used by this process
+(including heap and shared library data).
+.PP
+.TP 9
 .B VGROW 
 The amount of virtual memory that the process has grown during the last
 interval. A virtual growth can be caused by e.g. issueing a malloc()
@@ -1345,8 +1350,17 @@ However when the kernel patch `acct' is installed, this value will be
 shown.
 .PP
 .TP 9
+.B VSLIBS
+The virtual memory size of the (shared) text of all shared libraries used
+by this process.
+.PP
+.TP 9
+.B VSTACK
+The virtual memory size of the (private) stack used by this process
+.PP
+.TP 9
 .B VSTEXT
-The virtual memory size used by the shared text of this process.
+The virtual memory size of the (shared) text of the executable program.
 .PP
 .TP 9
 .B WRDSK 
@@ -1568,7 +1582,10 @@ shared text memory size (Kbytes),
 virtual memory growth (Kbytes),
 resident memory growth (Kbytes),
 number of minor page faults,
-number of major page faults, and
+number of major page faults,
+virtual library exec size (Kbytes),
+virtual data size (Kbytes),
+virtual stack size (Kbytes), and
 swap space used (Kbytes).
 .TP 9
 .B PRD

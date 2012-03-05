@@ -1643,7 +1643,10 @@ cumusers(struct pstat *curprocs, struct pstat *curusers, int numprocs)
 		{
 			curusers->mem.rmem   += curprocs->mem.rmem;
 			curusers->mem.vmem   += curprocs->mem.vmem;
-			curusers->mem.swap   += curprocs->mem.swap;
+			curusers->mem.vlibs  += curprocs->mem.vlibs;
+			curusers->mem.vdata  += curprocs->mem.vdata;
+			curusers->mem.vstack += curprocs->mem.vstack;
+			curusers->mem.vswap  += curprocs->mem.vswap;
 			curusers->mem.rgrow  += curprocs->mem.rgrow;
 			curusers->mem.vgrow  += curprocs->mem.vgrow;
 		}
@@ -1710,7 +1713,10 @@ cumprocs(struct pstat *curprocs, struct pstat *curprogs, int numprocs)
 		{
 			curprogs->mem.rmem   += curprocs->mem.rmem;
 			curprogs->mem.vmem   += curprocs->mem.vmem;
-			curprogs->mem.swap   += curprocs->mem.swap;
+			curprogs->mem.vlibs  += curprocs->mem.vlibs;
+			curprogs->mem.vdata  += curprocs->mem.vdata;
+			curprogs->mem.vstack += curprocs->mem.vstack;
+			curprogs->mem.vswap  += curprocs->mem.vswap;
 			curprogs->mem.rgrow  += curprocs->mem.rgrow;
 			curprogs->mem.vgrow  += curprocs->mem.vgrow;
 		}

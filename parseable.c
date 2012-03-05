@@ -570,7 +570,7 @@ print_PRM(char *hp, struct sstat *ss, struct pstat *ps, int nact)
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
+		printf("%s %d (%s) %c %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
@@ -578,12 +578,15 @@ print_PRM(char *hp, struct sstat *ss, struct pstat *ps, int nact)
 				pagesize,
 				ps->mem.vmem,
 				ps->mem.rmem,
-				ps->mem.shtext,
+				ps->mem.vexec,
 				ps->mem.vgrow,
 				ps->mem.rgrow,
 				ps->mem.minflt,
 				ps->mem.majflt,
-				ps->mem.swap);
+				ps->mem.vlibs,
+				ps->mem.vdata,
+				ps->mem.vstack,
+				ps->mem.vswap);
 	}
 }
 

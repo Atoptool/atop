@@ -337,12 +337,15 @@ deviatproc(struct pstat *aproc, int npresent,
 		devstat->dsk.cwsz   =
 			subcount(curstat->dsk.cwsz, prestat.dsk.cwsz);
 
-		devstat->mem.shtext = curstat->mem.shtext;
+		devstat->mem.vexec  = curstat->mem.vexec;
 		devstat->mem.vmem   = curstat->mem.vmem;
 		devstat->mem.rmem   = curstat->mem.rmem;
 		devstat->mem.vgrow  = curstat->mem.vmem   - prestat.mem.vmem;
 		devstat->mem.rgrow  = curstat->mem.rmem   - prestat.mem.rmem;
-		devstat->mem.swap   = curstat->mem.swap;
+		devstat->mem.vdata  = curstat->mem.vdata;
+		devstat->mem.vstack = curstat->mem.vstack;
+		devstat->mem.vlibs  = curstat->mem.vlibs;
+		devstat->mem.vswap  = curstat->mem.vswap;
 
 		devstat->mem.minflt = 
 			subcount(curstat->mem.minflt, prestat.mem.minflt);
@@ -505,7 +508,7 @@ deviatproc(struct pstat *aproc, int npresent,
 		devstat->cpu.utime  = curstat->cpu.utime  - prestat.cpu.utime;
 		devstat->mem.minflt = curstat->mem.minflt - prestat.mem.minflt;
 		devstat->mem.majflt = curstat->mem.majflt - prestat.mem.majflt;
-		devstat->mem.shtext = 0;
+		devstat->mem.vexec  = 0;
 
 		/*
 		** due to the strange exponent-type storage of values
