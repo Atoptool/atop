@@ -24,6 +24,7 @@ case "$1" in
 		# Start atop
 		/etc/atop/atop.daily
 	fi
+	touch /var/lock/subsys/atop
 	;;
 
   stop)
@@ -49,6 +50,7 @@ case "$1" in
 
 		rm $PIDFILE
 	fi
+	rm /var/lock/subsys/atop
 	;;
 
   status)
