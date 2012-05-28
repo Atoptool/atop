@@ -413,6 +413,8 @@ sys_printdef syspdef_PRCNZOMBIE =
 char *
 sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color) 
 {
+	static char firstcall = 1;
+
         extraparam *as=q;
         static char buf[15]="#exit     ";
         if (supportflags & ACCTACTIVE)
@@ -422,7 +424,15 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
         }
         else
         {
-		*color = COLORLOW;
+		if (firstcall)
+		{
+			*color = COLORHIGH;
+			firstcall = 0;
+		}
+		else
+		{
+			*color = COLORLOW;
+		}
 
 		switch (acctreason)
 		{
