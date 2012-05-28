@@ -325,6 +325,14 @@ photosyst(struct sstat *si)
 			{
 				i = atoi(&nam[3]);
 
+				if (i >= MAXCPU)
+				{
+					fprintf(stderr,
+						"cpu %s exceeds maximum of %d\n",
+						nam, MAXCPU);
+					continue;
+				}
+
 				si->cpu.cpu[i].cpunr	= i;
 				si->cpu.cpu[i].utime	= cnts[0];
 				si->cpu.cpu[i].ntime	= cnts[1];

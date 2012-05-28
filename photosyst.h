@@ -24,11 +24,12 @@
 #include "netstats.h"
 
 #define	MAXCPU		512
-#define	MAXDSK		256
-#define	MAXLVM		256
+#define	MAXDSK		512
+#define	MAXLVM		512
 #define	MAXMDD		128
+#define	MAXINTF		128
+
 #define	MAXDKNAM	32
-#define	MAXINTF		32
 
 /************************************************************************/
 
