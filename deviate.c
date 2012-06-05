@@ -190,20 +190,24 @@ static const char rcsid[] = "$Id: deviate.c,v 1.45 2010/10/23 14:02:03 gerlof Ex
 
 #define	MAX32BITVAL	0x100000000LL
 
+static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
+							char, count_t);
+
 /*
 ** calculate the process-activity during the last sample
 */
 int
-deviatproc(struct pstat *aproc, int npresent,
-           struct pstat *eproc, int nexit, int deviatonly,
-	   struct pstat *dproc, struct sstat *dstat,
-           int *ntrun, int *ntslpi, int *ntslpu, int *nzombie)
+deviatproc(struct tstat *aproc, int npresent,
+           struct tstat *eproc, int nexit, int deviatonly,
+	   struct tstat *dproc, struct sstat *dstat, int *nactproc,
+           int *totproc, int *totrun, int *totslpi, int *totslpu, int *nzombie)
 {
 	register int		c, d;
-	register struct pstat	*curstat, *devstat;
-	struct pstat		prestat;
+	register struct tstat	*curstat, *devstat, *procstat = 0;
+	struct tstat		prestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
+	char			procsaved = 1;
 
 	/*
 	** needed for sanity check later on...
@@ -215,7 +219,7 @@ deviatproc(struct pstat *aproc, int npresent,
 			  dstat->cpu.all.guest;
 
 	/*
-	** make new list of all processes in the process-database;
+	** make new list of all tasks in the process-database;
 	** after handling all processes, the left-overs
 	** should have disappeared since the previous sample
 	*/
@@ -224,155 +228,119 @@ deviatproc(struct pstat *aproc, int npresent,
 	/*
 	** calculate deviations per present process
 	*/
-	*ntrun=*ntslpi=*ntslpu=*nzombie= 0;
+	*totproc=*totrun=*totslpi=*totslpu=*nzombie= 0;
 
-	for (c=0, d=0; c < npresent; c++)
+	for (c=0, d=0, *nactproc=0; c < npresent; c++)
 	{
-		char	newproc = 0;
+		char	newtask = 0;
 
 		curstat = aproc+c;
 
-		if (curstat->gen.state == 'Z')
+		if (curstat->gen.isproc)
 		{
-			(*nzombie)++;
-		}
-		else
-		{
-			*ntrun	+= curstat->gen.nthrrun;
-			*ntslpi	+= curstat->gen.nthrslpi;
-			*ntslpu	+= curstat->gen.nthrslpu;
+			(*totproc)++;
+
+			if (curstat->gen.state == 'Z')
+			{
+				(*nzombie)++;
+			}
+			else
+			{
+				*totrun		+= curstat->gen.nthrrun;
+				*totslpi	+= curstat->gen.nthrslpi;
+				*totslpu	+= curstat->gen.nthrslpu;
+			}
 		}
 
 		/*
-		** get previous figures from process-database
+		** get previous figures from task-database
 		*/
-		if ( pdb_getproc(curstat->gen.pid, curstat->gen.btime, &pinfo))
+		if ( pdb_gettask(curstat->gen.pid, curstat->gen.isproc,
+		                 curstat->gen.btime, &pinfo))
 		{
 			/*
-			** process already present during the previous sample;
-			** check differences with previous sample
+			** task already present during the previous sample;
+			** if no differences with previous sample, skip task
+			** unless all tasks have to be shown
+			**
+			** it might be that a process appears to have no
+			** differences while one its threads has differences;
+			** than the process will be inserted as well
 			*/
-			if (deviatonly && memcmp(curstat, &pinfo->pstat, 
-					           sizeof(struct pstat)) == EQ)
+			if (deviatonly && memcmp(curstat, &pinfo->tstat, 
+					           sizeof(struct tstat)) == EQ)
+			{
+				/* remember last unsaved process */
+				if (curstat->gen.isproc)
+				{
+					procstat  = curstat;
+					procsaved = 0;
+				}
+
 				continue;
+			}
 
 			/*
-			** differences detected, so the process was active,
+			** differences detected, so the task was active,
 		        ** or its status or memory-occupation has changed;
 			** save stats from previous sample (to use for
 			** further calculations) and store new statistics
-			** in process-database
+			** in task-database
 			*/
-			prestat 	= pinfo->pstat;	/* save old	*/
-			pinfo->pstat 	= *curstat;	/* overwrite	*/
+			prestat 	= pinfo->tstat;	/* save old	*/
+			pinfo->tstat 	= *curstat;	/* overwrite	*/
 		}
 		else
 		{
 			/*
-			** new process which must have been started during
+			** new task which must have been started during
 			** last interval
 			*/
 			memset(&prestat, 0, sizeof(prestat));
 
 			/*
-			** create new process
+			** create new task
 			*/
-			pdb_newproc(&pinfo);
+			pdb_newtask(&pinfo);
 
-			pinfo->pstat = *curstat;
+			pinfo->tstat = *curstat;
 
 			/*
-			** add new process to process-database
+			** add new task to task-database
 			*/
-			pdb_addproc( curstat->gen.pid, pinfo);
+			pdb_addtask(curstat->gen.pid, pinfo);
 
-			newproc = 1;
+			newtask = 1;
 		}
 
 		/*
-		** now do the calculations
+		** active task found; do the difference calculations
 		*/
+		if (curstat->gen.isproc)
+		{
+			procsaved = 1;
+			(*nactproc)++;
+		}
+		else
+		{
+			/*
+			** active thread: check if related process registered
+			*/
+			if (!procsaved)
+			{
+				devstat = dproc+d;
+				calcdiff(devstat, procstat, procstat, 0,
+								totusedcpu);
+				procsaved = 1;
+				(*nactproc)++;
+				d++;
+			}
+		}
+
 		devstat = dproc+d;
 
-		devstat->gen        = curstat->gen;
 
-		if (newproc)
-			devstat->gen.excode |= ~(INT_MAX);
-
-		devstat->cpu.nice     = curstat->cpu.nice;
-		devstat->cpu.prio     = curstat->cpu.prio;
-		devstat->cpu.rtprio   = curstat->cpu.rtprio;
-		devstat->cpu.policy   = curstat->cpu.policy;
-		devstat->cpu.curcpu   = curstat->cpu.curcpu;
-		devstat->cpu.sleepavg = curstat->cpu.sleepavg;
-
-		devstat->cpu.stime  = 
-			subcount(curstat->cpu.stime, prestat.cpu.stime);
-		devstat->cpu.utime  =
-			subcount(curstat->cpu.utime, prestat.cpu.utime);
-
-		/*
-		** sometimes particular kernel versions supply a smaller
-		** amount for consumed CPU-ticks than a previous sample;
-		** with unsigned calculations this results in 497 days of
-		** CPU-consumption so a sanity-check is needed here...
-		*/
-		if (devstat->cpu.stime > totusedcpu)
-			devstat->cpu.stime = 1;
-
-		if (devstat->cpu.utime > totusedcpu)
-			devstat->cpu.utime = 1;
-
-		/*
-		** do further calculations
-		*/
-		devstat->dsk.rio    =
-			subcount(curstat->dsk.rio, prestat.dsk.rio);
-		devstat->dsk.rsz    =
-			subcount(curstat->dsk.rsz, prestat.dsk.rsz);
-		devstat->dsk.wio    =
-			subcount(curstat->dsk.wio, prestat.dsk.wio);
-		devstat->dsk.wsz    =
-			subcount(curstat->dsk.wsz, prestat.dsk.wsz);
-		devstat->dsk.cwsz   =
-			subcount(curstat->dsk.cwsz, prestat.dsk.cwsz);
-
-		devstat->mem.vexec  = curstat->mem.vexec;
-		devstat->mem.vmem   = curstat->mem.vmem;
-		devstat->mem.rmem   = curstat->mem.rmem;
-		devstat->mem.vgrow  = curstat->mem.vmem   - prestat.mem.vmem;
-		devstat->mem.rgrow  = curstat->mem.rmem   - prestat.mem.rmem;
-		devstat->mem.vdata  = curstat->mem.vdata;
-		devstat->mem.vstack = curstat->mem.vstack;
-		devstat->mem.vlibs  = curstat->mem.vlibs;
-		devstat->mem.vswap  = curstat->mem.vswap;
-
-		devstat->mem.minflt = 
-			subcount(curstat->mem.minflt, prestat.mem.minflt);
-		devstat->mem.majflt =
-			subcount(curstat->mem.majflt, prestat.mem.majflt);
-
-		devstat->net.tcpsnd =
-			subcount(curstat->net.tcpsnd, prestat.net.tcpsnd);
-		devstat->net.tcpssz =
-			subcount(curstat->net.tcpssz, prestat.net.tcpssz);
-		devstat->net.tcprcv =
-			subcount(curstat->net.tcprcv, prestat.net.tcprcv);
-		devstat->net.tcprsz =
-			subcount(curstat->net.tcprsz, prestat.net.tcprsz);
-		devstat->net.udpsnd =
-			subcount(curstat->net.udpsnd, prestat.net.udpsnd);
-		devstat->net.udpssz =
-			subcount(curstat->net.udpssz, prestat.net.udpssz);
-		devstat->net.udprcv =
-			subcount(curstat->net.udprcv, prestat.net.udprcv);
-		devstat->net.udprsz =
-			subcount(curstat->net.udprsz, prestat.net.udprsz);
-		devstat->net.rawsnd =
-			subcount(curstat->net.rawsnd, prestat.net.rawsnd);
-		devstat->net.rawrcv =
-			subcount(curstat->net.rawrcv, prestat.net.rawrcv);
-
+		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
 		d++;
 	}
 
@@ -391,9 +359,9 @@ deviatproc(struct pstat *aproc, int npresent,
 
 		if (curstat->gen.pid)	/* acctrecord contains pid? */
 		{
-			if ( pdb_getproc(curstat->gen.pid,
+			if ( pdb_gettask(curstat->gen.pid, 1,
 			                 curstat->gen.btime, &pinfo))
-					prestat = pinfo->pstat;
+					prestat = pinfo->tstat;
 				else
 					memset(&prestat, 0, sizeof(prestat));
 		}
@@ -414,7 +382,7 @@ deviatproc(struct pstat *aproc, int npresent,
 				** against this exited one
 				*/
 				if ( pdb_srchresidue(curstat, &pinfo) )
-					prestat = pinfo->pstat;
+					prestat = pinfo->tstat;
 				else
 					memset(&prestat, 0, sizeof(prestat));
 		 	}
@@ -553,9 +521,10 @@ deviatproc(struct pstat *aproc, int npresent,
 		}
 
 		d++;
+		(*nactproc)++;
 
 		if (prestat.gen.pid > 0)
-			pdb_delproc(prestat.gen.pid);
+			pdb_deltask(prestat.gen.pid, prestat.gen.isproc);
 	}
 
 	/*
@@ -564,6 +533,94 @@ deviatproc(struct pstat *aproc, int npresent,
 	pdb_cleanresidue();
 
 	return d;
+}
+
+/*
+** calculate the differences between the current sample and
+** the previous sample for a task
+*/
+static void
+calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
+	                                      char newtask, count_t totusedcpu)
+{
+	devstat->gen          = curstat->gen;
+
+	if (newtask)
+		devstat->gen.excode |= ~(INT_MAX);
+
+	devstat->cpu.nice     = curstat->cpu.nice;
+	devstat->cpu.prio     = curstat->cpu.prio;
+	devstat->cpu.rtprio   = curstat->cpu.rtprio;
+	devstat->cpu.policy   = curstat->cpu.policy;
+	devstat->cpu.curcpu   = curstat->cpu.curcpu;
+	devstat->cpu.sleepavg = curstat->cpu.sleepavg;
+
+	devstat->cpu.stime  = 
+		subcount(curstat->cpu.stime, prestat->cpu.stime);
+	devstat->cpu.utime  =
+		subcount(curstat->cpu.utime, prestat->cpu.utime);
+
+	/*
+	** particular kernel versions sometimes supply a smaller
+	** amount for consumed CPU-ticks than a previous sample;
+	** with unsigned calculations this results in 497 days of
+	** CPU-consumption so a sanity-check is needed here...
+	*/
+	if (devstat->cpu.stime > totusedcpu)
+		devstat->cpu.stime = 1;
+
+	if (devstat->cpu.utime > totusedcpu)
+		devstat->cpu.utime = 1;
+
+	/*
+	** do further calculations
+	*/
+	devstat->dsk.rio    =
+		subcount(curstat->dsk.rio, prestat->dsk.rio);
+	devstat->dsk.rsz    =
+		subcount(curstat->dsk.rsz, prestat->dsk.rsz);
+	devstat->dsk.wio    =
+		subcount(curstat->dsk.wio, prestat->dsk.wio);
+	devstat->dsk.wsz    =
+		subcount(curstat->dsk.wsz, prestat->dsk.wsz);
+	devstat->dsk.cwsz   =
+		subcount(curstat->dsk.cwsz, prestat->dsk.cwsz);
+
+	devstat->mem.vexec  = curstat->mem.vexec;
+	devstat->mem.vmem   = curstat->mem.vmem;
+	devstat->mem.rmem   = curstat->mem.rmem;
+	devstat->mem.vgrow  = curstat->mem.vmem   - prestat->mem.vmem;
+	devstat->mem.rgrow  = curstat->mem.rmem   - prestat->mem.rmem;
+	devstat->mem.vdata  = curstat->mem.vdata;
+	devstat->mem.vstack = curstat->mem.vstack;
+	devstat->mem.vlibs  = curstat->mem.vlibs;
+	devstat->mem.vswap  = curstat->mem.vswap;
+
+	devstat->mem.minflt = 
+		subcount(curstat->mem.minflt, prestat->mem.minflt);
+	devstat->mem.majflt =
+		subcount(curstat->mem.majflt, prestat->mem.majflt);
+
+	devstat->net.tcpsnd =
+		subcount(curstat->net.tcpsnd, prestat->net.tcpsnd);
+	devstat->net.tcpssz =
+		subcount(curstat->net.tcpssz, prestat->net.tcpssz);
+	devstat->net.tcprcv =
+		subcount(curstat->net.tcprcv, prestat->net.tcprcv);
+	devstat->net.tcprsz =
+		subcount(curstat->net.tcprsz, prestat->net.tcprsz);
+	devstat->net.udpsnd =
+		subcount(curstat->net.udpsnd, prestat->net.udpsnd);
+	devstat->net.udpssz =
+		subcount(curstat->net.udpssz, prestat->net.udpssz);
+	devstat->net.udprcv =
+		subcount(curstat->net.udprcv, prestat->net.udprcv);
+	devstat->net.udprsz =
+		subcount(curstat->net.udprsz, prestat->net.udprsz);
+	devstat->net.rawsnd =
+		subcount(curstat->net.rawsnd, prestat->net.rawsnd);
+	devstat->net.rawrcv =
+		subcount(curstat->net.rawrcv, prestat->net.rawrcv);
 }
 
 /*

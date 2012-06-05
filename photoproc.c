@@ -2,7 +2,7 @@
 ** ATOP - System & Process Monitor 
 ** 
 ** The program 'atop' offers the possibility to view the activity of
-** the system on system-level as well as process-level.
+** the system on system-level as well as process-/thread-level.
 ** 
 ** This source-file contains functions to read the process-administration
 ** of every running process from kernel-space and extract the required
@@ -69,7 +69,7 @@
 ** Implementation of patch-recognition for disk and network-statistics.
 **
 ** Revision 1.21  2004/09/23 09:07:49  gerlof
-** Solved segmentation fault by checking pval.
+** Solved segmentation fault by checking tval.
 **
 ** Revision 1.20  2004/09/08 06:01:01  gerlof
 ** Correct the priority of a process by adding 100 (the kernel
@@ -152,29 +152,33 @@ static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof 
 #define	SCANSTAT 	"%c   %d   %*d  %*d  %*d  %*d  "	\
 			"%*d  %lld %*d  %lld %*d  %lld "	\
 			"%lld %*d  %*d  %d   %d   %*d  "	\
-			"%*d  %lld %lld %lld %*d  %*d  "	\
+			"%*d  %ld %lld %lld %*d  %*d  "	\
 			"%*d  %*d  %*d  %*d  %*d  %*d  " 	\
-			"%*d  %*d  %*d  %lld %*d  %*d  "	\
+			"%*d  %*d  %*d  %*d  %*d  %*d  "	\
 			"%d   %d   %d "
 
 /* ATOP-extension line of /proc/pid/stat */
 #define ATOPSTAT	"%lld %llu %lld %llu %lld %llu %lld %llu "	\
 			"%lld %llu %lld %llu %lld %lld"
 
-static int	fillproc(struct pstat *);
+static int	procstat(struct tstat *, time_t, char);
+static int	procstatus(struct tstat *);
+static int	procio(struct tstat *);
+static void	proccmd(struct tstat *);
 
 int
-photoproc(struct pstat *proclist, int maxproc)
+photoproc(struct tstat *tasklist, int maxtask)
 {
 	static int	firstcall = 1;
+	static time_t	bootepoch;
 
-	register struct pstat	*curproc;
+	register struct tstat	*curtask;
 
 	FILE		*fp;
 	DIR		*dirp;
 	struct dirent	*entp;
 	char		origdir[1024];
-	int		nr, i, nthreads, pval=0;
+	int		tval=0;
 
 	/*
 	** one-time initialization stuff
@@ -183,7 +187,7 @@ photoproc(struct pstat *proclist, int maxproc)
 	{
 		/*
 		** check if this kernel is patched for additional
-		** per-process counters
+		** per-task counters
 		*/
 		if ( (fp = fopen("/proc/1/stat", "r")) )
 		{
@@ -202,7 +206,7 @@ photoproc(struct pstat *proclist, int maxproc)
 		}
 
 		/*
-		** check if this kernel offers io-statistics per process
+		** check if this kernel offers io-statistics per task
 		*/
 		if ( !(supportflags & PATCHSTAT) )
 		{
@@ -214,6 +218,11 @@ photoproc(struct pstat *proclist, int maxproc)
 			}
 		}
 
+		/*
+ 		** find epoch time of boot moment
+		*/
+		bootepoch = getboot();
+
 		firstcall = 0;
 	}
 
@@ -224,7 +233,7 @@ photoproc(struct pstat *proclist, int maxproc)
 	chdir("/proc");
 	dirp = opendir(".");
 
-	while ( (entp = readdir(dirp)) && pval < maxproc )
+	while ( (entp = readdir(dirp)) && tval < maxtask )
 	{
 		/*
 		** skip non-numerical names
@@ -239,382 +248,113 @@ photoproc(struct pstat *proclist, int maxproc)
 			continue;
 
 		/*
-		** call fillproc to open the required files and gather
-		** the process' info
+ 		** gather process-level information
 		*/
-		curproc	= proclist+pval;
+		curtask	= tasklist+tval;
 
-		if ( (nthreads = fillproc(curproc)) == 0 )
+		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
 		{
 			chdir("..");
 			continue;
 		}
 
-		pval++;
+		if ( !procstatus(curtask) )	    /* from /proc/pid/status  */
+		{
+			chdir("..");
+			continue;
+		}
+
+		if ( !procio(curtask) )		    /* from /proc/pid/io      */
+		{
+			chdir("..");
+			continue;
+		}
+
+		proccmd(curtask);		    /* from /proc/pid/cmdline */
+
+		tval++;		/* increment for process-level info */
 
 		/*
-		** store the full command line; the command-line may contain:
-		**    - null-bytes as a separator between the arguments
-		**    - newlines (e.g. arguments for awk or sed)
-		**    - tabs (e.g. arguments for awk or sed)
-		** these special bytes will be converted to spaces
+ 		** if needed (when number of threads is larger than 0):
+		**   read and fill new entries with thread-level info
 		*/
-		memset(curproc->gen.cmdline, 0, CMDLEN+1);
-
-		if ( (fp = fopen("cmdline", "r")) != NULL)
+		if (curtask->gen.nthr > 1)
 		{
-			register char *p = curproc->gen.cmdline;
+			DIR		*dirtask;
+			struct dirent	*tent;
 
-			nr = fread(p, 1, CMDLEN, fp);
-			fclose(fp);
-
-			if (nr >= 0)	/* anything read ? */
+			curtask->gen.nthrrun  = 0;
+			curtask->gen.nthrslpi = 0;
+			curtask->gen.nthrslpu = 0;
+			
+			/*
+			** open underlying task directory
+			*/
+			if ( chdir("task") == 0 )
 			{
-				for (i=0; i < nr-1; i++, p++)
+				dirtask = opendir(".");
+	
+				while ((tent=readdir(dirtask)) && tval<maxtask)
 				{
-					switch (*p)
+					struct tstat *curthr = tasklist+tval;
+
+					/*
+					** change to the thread's subdirectory
+					*/
+					if ( tent->d_name[0] == '.'  ||
+					     chdir(tent->d_name) != 0 )
+						continue;
+
+					if ( !procstat(curthr, bootepoch, 0))
 					{
-					   case '\0':
-					   case '\n':
-					   case '\t':
-						*p = ' ';
+						chdir("..");
+						continue;
 					}
+			
+					if ( !procstatus(curthr) )
+					{
+						chdir("..");
+						continue;
+					}
+
+					if ( !procio(curthr) )
+					{
+						chdir("..");
+						continue;
+					}
+
+					switch (curthr->gen.state)
+					{
+	   		   		   case 'R':
+						curtask->gen.nthrrun  += 1;
+						break;
+	   		   		   case 'S':
+						curtask->gen.nthrslpi += 1;
+						break;
+	   		   		   case 'D':
+						curtask->gen.nthrslpu += 1;
+						break;
+					}
+
+					curthr->gen.nthr = 1;
+
+					tval++;	    /* increment thread-level */
+					chdir("..");	/* leave thread's dir */
 				}
+
+				closedir(dirtask);
+				chdir("..");	/* leave "task" directory */
 			}
 		}
 
-		chdir("..");
+		chdir("..");	/* leave process-level directry */
 	}
 
 	closedir(dirp);
 
 	chdir(origdir);
 
-	return pval;
-}
-
-static int
-fillproc(struct pstat *curproc)
-{
-	static time_t	bootepoch;
-	FILE		*fp;
-	int		nr;
-	char		line[4096], *cmdhead, *cmdtail;
-	char		command[64], state;
-	int		pid, ppid, prio, policy, rtprio, nice,
-			ruid, euid, suid, fsuid, rgid, egid, sgid, fsgid,
-			curcpu, nthreads, sleepavg;
-	count_t		utime, stime, starttime;
-	count_t		minflt, majflt, size, rss, nswap, kswap, kdata, kstack,
-			kexec, klib,
-			dskrio=0, dskwio=0, dskrsz=0, dskwsz=0, dskcwsz=0,
-			tcpsnd=0, tcprcv=0, tcpssz=0, tcprsz=0,
-			udpsnd=0, udprcv=0, udpssz=0, udprsz=0,
-			rawsnd=0, rawrcv=0;
-
-	if (bootepoch == 0)
-		bootepoch = getboot();
-
-	/*
-	** open file "stat" and obtain required info
-	*/
-	if ( (fp = fopen("stat", "r")) == NULL)
-		return 0;
-
-	if (fgets(line, sizeof line, fp) == NULL)
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	sscanf(line, "%d", &pid);		/* fetch pid */
-
-	cmdhead = strchr (line, '(');		/* fetch commandname */
-	cmdtail = strrchr(line, ')');
-	if ( (nr = cmdtail-cmdhead-1) > sizeof command)
-		nr = sizeof command;
-	memcpy(command, cmdhead+1, nr);
-	memset(&command[nr], 0, sizeof command - nr);
-
-	rtprio = policy = 0;
-
-	nr = sscanf(cmdtail+2, SCANSTAT,
-		&state,    &ppid,      &minflt,    &majflt,
-		&utime,    &stime,     &prio,      &nice,    &starttime,
-		&size,     &rss,       &nswap,
-		&curcpu,   &rtprio,    &policy);
-
-	if ( fgets(line, sizeof line, fp) != NULL)
-	{
-		sscanf(line, ATOPSTAT,
-			&dskrio, &dskrsz, &dskwio, &dskwsz,
-			&tcpsnd, &tcpssz, &tcprcv, &tcprsz,
-			&udpsnd, &udpssz, &udprcv, &udprsz,
-			&rawsnd, &rawrcv);
-	}
-
-	fclose(fp);
-
-	if (nr < 14)		/* parsing succeeded ? */
-		return 0;
-
-	/*
-	** open file "status" and obtain required info
-	*/
-	if ( (fp = fopen("status", "r")) == NULL)
-		return 0;
-
-	nthreads = 1;		/* for compat with 2.4 */
-	sleepavg = 0;		/* for compat with 2.4 */
-
-	while (fgets(line, sizeof line, fp))
-	{
-		if (memcmp(line, "SleepAVG:", 9)==0)
-		{
-			sscanf(line, "SleepAVG: %d%%", &sleepavg);
-			continue;
-		}
-
-		if (memcmp(line, "Uid:", 4)==0)
-		{
-			sscanf(line, "Uid: %d %d %d %d",
-				&ruid, &euid, &suid, &fsuid);
-			continue;
-		}
-
-		if (memcmp(line, "Gid:", 4)==0)
-		{
-			sscanf(line, "Gid: %d %d %d %d",
-				&rgid, &egid, &sgid, &fsgid);
-			continue;
-		}
-
-		if (memcmp(line, "Threads:", 8)==0)
-		{
-			sscanf(line, "Threads: %d", &nthreads);
-			continue;
-		}
-
-		if (memcmp(line, "VmData:", 7)==0)
-		{
-			sscanf(line, "VmData: %lld", &kdata);
-			continue;
-		}
-
-		if (memcmp(line, "VmStk:", 6)==0)
-		{
-			sscanf(line, "VmStk: %lld", &kstack);
-			continue;
-		}
-
-		if (memcmp(line, "VmExe:", 6)==0)
-		{
-			sscanf(line, "VmExe: %lld", &kexec);
-			continue;
-		}
-
-		if (memcmp(line, "VmLib:", 6)==0)
-		{
-			sscanf(line, "VmLib: %lld", &klib);
-			continue;
-		}
-
-		if (memcmp(line, "VmSwap:", 7)==0)
-		{
-			sscanf(line, "VmSwap: %lld", &kswap);
-			continue;
-		}
-
-		if (memcmp(line, "SigQ:", 5)==0)
-			break;
-	}
-
-	fclose(fp);
-
-	/*
-	** open file "io" (>= 2.6.20) and obtain required info
-	*/
-#define	IO_READ		"read_bytes:"
-#define	IO_WRITE	"write_bytes:"
-#define	IO_CWRITE	"cancelled_write_bytes:"
-
-	if ((supportflags & IOSTAT) && (fp = fopen("io", "r")) )
-	{
-		while (fgets(line, sizeof line, fp))
-		{
-			if (memcmp(line, IO_READ, sizeof IO_READ -1) == 0)
-			{
-				sscanf(line, "%*s %llu", &dskrsz);
-				dskrsz /= 512;		/* in sectors     */
-				dskrio  = dskrsz;	/* enable sorting */
-				continue;
-			}
-
-			if (memcmp(line, IO_WRITE, sizeof IO_WRITE -1) == 0)
-			{
-				sscanf(line, "%*s %llu", &dskwsz);
-				dskwsz /= 512;		/* in sectors     */
-				dskwio  = dskwsz;	/* enable sorting */
-				continue;
-			}
-
-			if (memcmp(line, IO_CWRITE, sizeof IO_CWRITE -1) == 0)
-			{
-				sscanf(line, "%*s %llu", &dskcwsz);
-				dskcwsz /= 512;		/* in sectors     */
-				continue;
-			}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** store required info in process-structure
-	*/
-	curproc->gen.pid      = pid;
-	curproc->gen.ppid     = ppid;
-	curproc->gen.ruid     = ruid;
-	curproc->gen.euid     = euid;
-	curproc->gen.suid     = suid;
-	curproc->gen.fsuid    = fsuid;
-	curproc->gen.rgid     = rgid;
-	curproc->gen.egid     = egid;
-	curproc->gen.sgid     = sgid;
-	curproc->gen.fsgid    = fsgid;
-	curproc->gen.nthr     = nthreads;
-	curproc->gen.state    = state;
-
-	strncpy(curproc->gen.name, command, PNAMLEN);
-	curproc->gen.name[PNAMLEN] = 0;
-
-	curproc->gen.excode   = 0;
-	curproc->gen.btime    = starttime/hertz+bootepoch;
-	curproc->cpu.utime    = utime;
-	curproc->cpu.stime    = stime;
-	curproc->cpu.nice     = nice;
-	curproc->cpu.prio     = prio + 100; /* was subtracted by kernel */
-	curproc->cpu.rtprio   = rtprio;
-	curproc->cpu.policy   = policy;
-	curproc->cpu.curcpu   = curcpu;
-	curproc->cpu.sleepavg = sleepavg;
-
-	curproc->mem.minflt   = minflt;
-	curproc->mem.majflt   = majflt;
-	curproc->mem.vmem     = size / 1024;
-	curproc->mem.rmem     = rss  * (pagesize/1024);
-	curproc->mem.vgrow    = 0;	/* calculated later */
-	curproc->mem.rgrow    = 0;	/* calculated later */
-	curproc->mem.vexec    = kexec;
-	curproc->mem.vdata    = kdata;
-	curproc->mem.vstack   = kstack;
-	curproc->mem.vlibs    = klib;
-	curproc->mem.vswap    = kswap;
-
-	curproc->dsk.rio      = dskrio;
-	curproc->dsk.rsz      = dskrsz;
-	curproc->dsk.wio      = dskwio;
-	curproc->dsk.wsz      = dskwsz;
-	curproc->dsk.cwsz     = dskcwsz;
-	curproc->net.tcpsnd   = tcpsnd;
-	curproc->net.tcpssz   = tcpssz;
-	curproc->net.tcprcv   = tcprcv;
-	curproc->net.tcprsz   = tcprsz;
-	curproc->net.udpsnd   = udpsnd;
-	curproc->net.udpssz   = udpssz;
-	curproc->net.udprcv   = udprcv;
-	curproc->net.udprsz   = udprsz;
-	curproc->net.rawsnd   = rawsnd;
-	curproc->net.rawrcv   = rawrcv;
-
-	/*
-	** check the state of every individual thread
-	*/
-	if (nthreads > 1)
-	{
-		DIR		*dirt;
-		struct dirent	*tent;
-		FILE		*tstat;
-		char		tpath[128];
-
-		/*
-		** open underlying task directory
-		*/
-		if ( chdir("task") == 0 )
-		{
-			dirt = opendir(".");
-
-			while ( (tent = readdir(dirt)) )
-			{
-				/*
-				** check if valid thread directory underneath
-				*/
-				if (!isdigit(tent->d_name[0]))
-					continue;
-
-				/*
-				** open stat-file of thread
-				*/
-				snprintf(tpath, sizeof tpath,
-						"%s/stat", tent->d_name);
-
-				if ( (tstat = fopen(tpath, "r")) == NULL)
-					continue;
-
-				/*
-				** read (first) line from file
-				*/
-				if (fgets(line, sizeof line, tstat) == NULL)
-				{
-					fclose(tstat);	/* failed */
-					continue;
-				}
-
-				/*
-				** fetch required info from thread
-				*/
-				cmdtail = strrchr(line, ')');
-
-				nr = sscanf(cmdtail+2, "%c", &state);
-
-				fclose(tstat);
-
-				switch (state)
-				{
-				   case 'R':
-					curproc->gen.nthrrun++;
-					break;
-				   case 'S':
-					curproc->gen.nthrslpi++;
-					break;
-				   case 'D':
-					curproc->gen.nthrslpu++;
-					break;
-				}
-			}
-
-			closedir(dirt);
-
-			chdir("..");
-		}
-	}
-	else
-	{
-		switch (state)
-		{
-		   case 'R':
-			curproc->gen.nthrrun  = 1;
-			break;
-		   case 'S':
-			curproc->gen.nthrslpi = 1;
-			break;
-		   case 'D':
-			curproc->gen.nthrslpu = 1;
-			break;
-		}
-	}
-
-	return nthreads;
+	return tval;
 }
 
 /*
@@ -646,4 +386,288 @@ countprocs(void)
 	chdir(origdir);
 
 	return nr;
+}
+
+/*
+** open file "stat" and obtain required info
+*/
+static int
+procstat(struct tstat *curtask, time_t bootepoch, char isproc)
+{
+	FILE	*fp;
+	int	nr;
+	char	line[4096], *cmdhead, *cmdtail;
+
+	if ( (fp = fopen("stat", "r")) == NULL)
+		return 0;
+
+	if (fgets(line, sizeof line, fp) == NULL)
+	{
+		fclose(fp);
+		return 0;
+	}
+
+	/*
+    	** fetch command name
+	*/
+	cmdhead = strchr (line, '(');
+	cmdtail = strrchr(line, ')');
+	if ( (nr = cmdtail-cmdhead-1) > PNAMLEN)
+		nr = PNAMLEN;
+
+	memcpy(curtask->gen.name, cmdhead+1, nr);
+	*(curtask->gen.name+nr) = 0;
+
+	/*
+  	** fetch other values
+  	*/
+	curtask->gen.isproc = isproc;
+	curtask->cpu.rtprio  = 0;
+	curtask->cpu.policy  = 0;
+	curtask->gen.excode  = 0;
+
+	sscanf(line, "%d", &(curtask->gen.pid));  /* fetch pid */
+
+	nr = sscanf(cmdtail+2, SCANSTAT,
+		&(curtask->gen.state), 	&(curtask->gen.ppid),
+		&(curtask->mem.minflt),	&(curtask->mem.majflt),
+		&(curtask->cpu.utime),	&(curtask->cpu.stime),
+		&(curtask->cpu.prio),	&(curtask->cpu.nice),
+		&(curtask->gen.btime),
+		&(curtask->mem.vmem),	&(curtask->mem.rmem),
+		&(curtask->cpu.curcpu),	&(curtask->cpu.rtprio),
+		&(curtask->cpu.policy));
+
+	if (nr < 12)		/* parsing failed? */
+	{
+		fclose(fp);
+		return 0;
+	}
+
+	/*
+ 	** normalization
+	*/
+	curtask->gen.btime   = curtask->gen.btime/hertz+bootepoch;
+	curtask->cpu.prio   += 100; 	/* was subtracted by kernel */
+	curtask->mem.vmem   /= 1024;
+	curtask->mem.rmem   *= pagesize/1024;
+
+	/*
+ 	** second line present for patched kernel?
+	*/
+	if ( fgets(line, sizeof line, fp) != NULL)
+	{
+		sscanf(line, ATOPSTAT,
+			&(curtask->dsk.rio),	&(curtask->dsk.rsz),
+			&(curtask->dsk.wio),	&(curtask->dsk.wsz),
+			&(curtask->net.tcpsnd),	&(curtask->net.tcpssz),
+			&(curtask->net.tcprcv),	&(curtask->net.tcprsz),
+			&(curtask->net.udpsnd),	&(curtask->net.udpssz),
+			&(curtask->net.udprcv),	&(curtask->net.udprsz),
+			&(curtask->net.rawsnd),	&(curtask->net.rawrcv));
+	}
+
+	fclose(fp);
+
+	switch (curtask->gen.state)
+	{
+  	   case 'R':
+		curtask->gen.nthrrun  = 1;
+		break;
+  	   case 'S':
+		curtask->gen.nthrslpi = 1;
+		break;
+  	   case 'D':
+		curtask->gen.nthrslpu = 1;
+		break;
+	}
+
+	return 1;
+}
+
+/*
+** open file "status" and obtain required info
+*/
+static int
+procstatus(struct tstat *curtask)
+{
+	FILE	*fp;
+	char	line[4096];
+
+	if ( (fp = fopen("status", "r")) == NULL)
+		return 0;
+
+	curtask->gen.nthr     = 1;	/* for compat with 2.4 */
+	curtask->cpu.sleepavg = 0;	/* for compat with 2.4 */
+	curtask->mem.vgrow    = 0;	/* calculated later */
+	curtask->mem.rgrow    = 0;	/* calculated later */
+
+	while (fgets(line, sizeof line, fp))
+	{
+		if (memcmp(line, "Tgid:", 5) ==0)
+		{
+			sscanf(line, "Tgid: %d", &(curtask->gen.tgid));
+			continue;
+		}
+
+		if (memcmp(line, "Pid:", 4) ==0)
+		{
+			sscanf(line, "Pid: %d", &(curtask->gen.pid));
+			continue;
+		}
+
+		if (memcmp(line, "SleepAVG:", 9)==0)
+		{
+			sscanf(line, "SleepAVG: %d%%",
+				&(curtask->cpu.sleepavg));
+			continue;
+		}
+
+		if (memcmp(line, "Uid:", 4)==0)
+		{
+			sscanf(line, "Uid: %d %d %d %d",
+				&(curtask->gen.ruid), &(curtask->gen.euid),
+				&(curtask->gen.suid), &(curtask->gen.fsuid));
+			continue;
+		}
+
+		if (memcmp(line, "Gid:", 4)==0)
+		{
+			sscanf(line, "Gid: %d %d %d %d",
+				&(curtask->gen.rgid), &(curtask->gen.egid),
+				&(curtask->gen.sgid), &(curtask->gen.fsgid));
+			continue;
+		}
+
+		if (memcmp(line, "Threads:", 8)==0)
+		{
+			sscanf(line, "Threads: %d", &(curtask->gen.nthr));
+			continue;
+		}
+
+		if (memcmp(line, "VmData:", 7)==0)
+		{
+			sscanf(line, "VmData: %lld", &(curtask->mem.vdata));
+			continue;
+		}
+
+		if (memcmp(line, "VmStk:", 6)==0)
+		{
+			sscanf(line, "VmStk: %lld", &(curtask->mem.vstack));
+			continue;
+		}
+
+		if (memcmp(line, "VmExe:", 6)==0)
+		{
+			sscanf(line, "VmExe: %lld", &(curtask->mem.vexec));
+			continue;
+		}
+
+		if (memcmp(line, "VmLib:", 6)==0)
+		{
+			sscanf(line, "VmLib: %lld", &(curtask->mem.vlibs));
+			continue;
+		}
+
+		if (memcmp(line, "VmSwap:", 7)==0)
+		{
+			sscanf(line, "VmSwap: %lld", &(curtask->mem.vswap));
+			continue;
+		}
+
+		if (memcmp(line, "SigQ:", 5)==0)
+			break;
+	}
+
+	fclose(fp);
+	return 1;
+}
+
+/*
+** open file "io" (>= 2.6.20) and obtain required info
+*/
+#define	IO_READ		"read_bytes:"
+#define	IO_WRITE	"write_bytes:"
+#define	IO_CWRITE	"cancelled_write_bytes:"
+static int
+procio(struct tstat *curtask)
+{
+	FILE	*fp;
+	char	line[4096];
+	count_t	dskrsz, dskwsz, dskcwsz;
+
+	if ((supportflags & IOSTAT) && (fp = fopen("io", "r")) )
+	{
+		while (fgets(line, sizeof line, fp))
+		{
+			if (memcmp(line, IO_READ, sizeof IO_READ -1) == 0)
+			{
+				sscanf(line, "%*s %llu", &dskrsz);
+				dskrsz /= 512;		/* in sectors     */
+				continue;
+			}
+
+			if (memcmp(line, IO_WRITE, sizeof IO_WRITE -1) == 0)
+			{
+				sscanf(line, "%*s %llu", &dskwsz);
+				dskwsz /= 512;		/* in sectors     */
+				continue;
+			}
+
+			if (memcmp(line, IO_CWRITE, sizeof IO_CWRITE -1) == 0)
+			{
+				sscanf(line, "%*s %llu", &dskcwsz);
+				dskcwsz /= 512;		/* in sectors     */
+				continue;
+			}
+		}
+
+		fclose(fp);
+
+		curtask->dsk.rsz	= dskrsz;
+		curtask->dsk.rio	= dskrsz;	/* to enable sorting */
+		curtask->dsk.wsz	= dskwsz;
+		curtask->dsk.wio	= dskwsz;	/* to enable sorting */
+		curtask->dsk.cwsz	= dskcwsz;
+	}
+
+	return 1;
+}
+
+/*
+** store the full command line; the command-line may contain:
+**    - null-bytes as a separator between the arguments
+**    - newlines (e.g. arguments for awk or sed)
+**    - tabs (e.g. arguments for awk or sed)
+** these special bytes will be converted to spaces
+*/
+static void
+proccmd(struct tstat *curtask)
+{
+	FILE		*fp;
+	register int 	i, nr;
+
+	memset(curtask->gen.cmdline, 0, CMDLEN+1);
+
+	if ( (fp = fopen("cmdline", "r")) != NULL)
+	{
+		register char *p = curtask->gen.cmdline;
+
+		nr = fread(p, 1, CMDLEN, fp);
+		fclose(fp);
+
+		if (nr >= 0)	/* anything read ? */
+		{
+			for (i=0; i < nr-1; i++, p++)
+			{
+				switch (*p)
+				{
+				   case '\0':
+				   case '\n':
+				   case '\t':
+					*p = ' ';
+				}
+			}
+		}
+	}
 }

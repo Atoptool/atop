@@ -412,6 +412,10 @@ Request for help information (also the key 'h' can be pressed).
 Request for version information (version number and date).
 .PP
 .TP 5
+.B y
+Show individual threads within a process (toggle).
+.PP
+.TP 5
 .B x
 Suppress colors to highlight critical resources (toggle).
 .br
@@ -951,7 +955,7 @@ for this resource on system level.
 .PP
 .TP 9
 .B CPUNR
-The identification of the CPU the main thread of the process is running on
+The identification of the CPU the (main) thread is running on
 or has recently been running on.  
 .PP
 .TP 9
@@ -1148,7 +1152,7 @@ The real user-id under which the process executes.
 .PP
 .TP 9
 .B S
-The current state of the main thread of the process: `R' for running
+The current state of the (main) thread: `R' for running
 (currently processing or in the runqueue), `S' for sleeping interruptible
 (wait for an event to occur), 
 `D' for sleeping non-interruptible, `Z' for zombie (waiting to be synchronized
@@ -1253,7 +1257,7 @@ shown when a process has finished during the last interval.
 Total number of threads within this process.
 All related threads are contained in a thread group, represented by
 .I atop
-as one line.
+as one line or as a separate line when the 'y' key (or -y flag) is active.
 
 On Linux 2.4 systems it is hardly possible to determine
 which threads (i.e. processes) are related to the same thread group.
@@ -1547,8 +1551,8 @@ duplex mode (0=half, 1=full).
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), state,
-real uid, real gid, TGID (same as PID),
+PID (unique ID of task), name (between brackets), state,
+real uid, real gid, TGID (group number of related tasks/threads),
 total number of threads,
 exit code, start time (epoch),
 full command line (between brackets), PPID,
@@ -1557,7 +1561,7 @@ number of threads in state 'interruptible sleeping' (S),
 number of threads in state 'uninterruptible sleeping' (D),
 effective uid, effective gid,
 saved uid, saved gid,
-filesystem uid, filesystem gid, and elapsed time (hertz).
+filesystem uid, filesystem gid, elapsed time (hertz) and is_process (y/n).
 .TP 9
 .B PRC
 For every process one line is shown.
@@ -1568,7 +1572,8 @@ total number of clock-ticks per second for this machine,
 CPU-consumption in user mode (clockticks),
 CPU-consumption in system mode (clockticks),
 nice value, priority, realtime priority,
-scheduling policy, current CPU, and sleep average.
+scheduling policy, current CPU, sleep average,
+TGID (group number of related tasks/threads) and is_process (y/n).
 .TP 9
 .B PRM
 For every process one line is shown.
@@ -1585,8 +1590,9 @@ number of minor page faults,
 number of major page faults,
 virtual library exec size (Kbytes),
 virtual data size (Kbytes),
-virtual stack size (Kbytes), and
-swap space used (Kbytes).
+virtual stack size (Kbytes),
+swap space used (Kbytes),
+TGID (group number of related tasks/threads) and is_process (y/n).
 .TP 9
 .B PRD
 For every process one line is shown.
@@ -1598,8 +1604,9 @@ standard io statistics used ('y' or 'n'),
 number of reads on disk,
 cumulative number of sectors read,
 number of writes on disk, 
-cumulative number of sectors written, and
-cancelled number of written sectors.
+cumulative number of sectors written,
+cancelled number of written sectors,
+TGID (group number of related tasks/threads) and is_process (y/n).
 .br
 If the kernel patch is not installed and the standard I/O statistics
 (>= 2.6.20) are not used, the disk I/O counters per process are not relevant.
@@ -1622,8 +1629,9 @@ number of UDP-packets transmitted,
 cumulative size of UDP-packets transmitted,
 number of UDP-packets received,
 cumulative size of UDP-packets transmitted,
-number of raw packets transmitted, and
-number of raw packets received.
+number of raw packets transmitted,
+number of raw packets received,
+TGID (group number of related tasks/threads) and is_process (y/n).
 .br
 If the kernel patch is not installed, the network I/O counters
 per process are not relevant.

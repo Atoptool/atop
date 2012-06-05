@@ -14,7 +14,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2012 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -90,7 +90,7 @@ static struct pinfo	presidue;
 ** search process database for the given PID
 */
 int
-pdb_getproc(int pid, time_t btime, struct pinfo **pinfopp)
+pdb_gettask(int pid, char isproc, time_t btime, struct pinfo **pinfopp)
 {
 	register struct pinfo	*pp;
 
@@ -105,7 +105,9 @@ pdb_getproc(int pid, time_t btime, struct pinfo **pinfopp)
 		** if this is required PID, unchain it from the RESIDUE-list
 		** and return info
 		*/
-		if (pp->pstat.gen.pid == pid && pp->pstat.gen.btime == btime)
+		if (pp->tstat.gen.pid    == pid    && 
+		    pp->tstat.gen.isproc == isproc &&
+		    pp->tstat.gen.btime  == btime    )
 		{
 			if (pp->prnext)		/* if part of RESIDUE-list   */
 			{
@@ -134,7 +136,7 @@ pdb_getproc(int pid, time_t btime, struct pinfo **pinfopp)
 ** add new process-info structure to the process database
 */
 void
-pdb_addproc(int pid, struct pinfo *pinfop)
+pdb_addtask(int pid, struct pinfo *pinfop)
 {
 	register int i	= pid&(NPHASH-1);
 
@@ -146,7 +148,7 @@ pdb_addproc(int pid, struct pinfo *pinfop)
 ** delete a process from the process database
 */
 int
-pdb_delproc(int pid)
+pdb_deltask(int pid, char isproc)
 {
 	register struct pinfo	*pp, *ppp;
 
@@ -155,7 +157,7 @@ pdb_delproc(int pid)
 	/*
 	** check first entry in hash Q
 	*/
-	if (pp->pstat.gen.pid == pid)
+	if (pp->tstat.gen.pid == pid && pp->tstat.gen.isproc == isproc)
 	{
 		phash[pid&(NPHASH-1)] = pp->phnext;
 
@@ -185,7 +187,7 @@ pdb_delproc(int pid)
 		** if this is wanted PID, unchain it from the RESIDUE-list
 		** and return info
 		*/
-		if (pp->pstat.gen.pid == pid)
+		if (pp->tstat.gen.pid == pid && pp->tstat.gen.isproc == isproc)
 		{
 			ppp->phnext = pp->phnext;
 
@@ -214,7 +216,7 @@ pdb_delproc(int pid)
 ** create and initialize process-info
 */
 int
-pdb_newproc(struct pinfo **pinfopp)
+pdb_newtask(struct pinfo **pinfopp)
 {
 	*pinfopp = calloc(1, sizeof(struct pinfo));
 	return(1);
@@ -223,7 +225,7 @@ pdb_newproc(struct pinfo **pinfopp)
 
 /*
 ** Chain all process-info structures into the RESIDUE-list;
-** every process-info struct which is referenced later on by pdb_getproc(),
+** every process-info struct which is referenced later on by pdb_gettask(),
 ** will be removed from this list again. After that, the remaining
 ** (unreferred) process-info structs can be easily discovered and
 ** eventually removed.
@@ -278,6 +280,7 @@ pdb_cleanresidue(void)
 {
 	register struct pinfo	*pr;
 	register int		pid;
+        char			isproc;
 
 	/*
 	** start at RESIDUE-list anchor and delete all entries
@@ -286,11 +289,12 @@ pdb_cleanresidue(void)
 
 	while (pr != &presidue)
 	{
-		pid = pr->pstat.gen.pid;
+		pid    = pr->tstat.gen.pid;
+		isproc = pr->tstat.gen.isproc;
 
 		pr  = pr->prnext;	/* MUST be done before deletion */
 
-		pdb_delproc(pid);
+		pdb_deltask(pid, isproc);
 	}
 
 	return(1);
@@ -301,7 +305,7 @@ pdb_cleanresidue(void)
 ** given process-info, for which the PID is not known
 */
 int
-pdb_srchresidue(struct pstat *pstatp, struct pinfo **pinfopp)
+pdb_srchresidue(struct tstat *tstatp, struct pinfo **pinfopp)
 {
 	register struct pinfo	*pr, *prmin=NULL;
 	register long		btimediff;
@@ -317,9 +321,9 @@ pdb_srchresidue(struct pstat *pstatp, struct pinfo **pinfopp)
 		/*
 		** check if this entry matches searched info
 		*/
-		if ( 	pr->pstat.gen.ruid   == pstatp->gen.ruid	&& 
-			pr->pstat.gen.rgid   == pstatp->gen.rgid	&& 
-			strcmp(pr->pstat.gen.name, pstatp->gen.name) == EQ  )
+		if ( 	pr->tstat.gen.ruid   == tstatp->gen.ruid	&& 
+			pr->tstat.gen.rgid   == tstatp->gen.rgid	&& 
+			strcmp(pr->tstat.gen.name, tstatp->gen.name) == EQ  )
 		{
 			/*
 			** check if the start-time of the process is exactly
@@ -331,7 +335,7 @@ pdb_srchresidue(struct pstat *pstatp, struct pinfo **pinfopp)
 			** we don't find the exact match, we will check later
 			** on if we found an almost-exact match
 			*/
-			btimediff = pr->pstat.gen.btime - pstatp->gen.btime;
+			btimediff = pr->tstat.gen.btime - tstatp->gen.btime;
 
 			if (btimediff == 0)	/* gotcha !! */
 			{

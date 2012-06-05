@@ -37,7 +37,7 @@
 
 typedef	long long	count_t;
 
-struct pstat;
+struct tstat;
 struct sstat;
 
 /* 
@@ -47,8 +47,9 @@ struct sstat;
 #define RRLAST  0x0002
 
 struct visualize {
-	char	(*show_samp)  (time_t, int, struct sstat *, struct pstat *,
-				int, int, int, int, int, int, int, char);
+	char	(*show_samp)  (time_t, int,
+	                struct sstat *, struct tstat *, struct tstat **,
+			int, int, int, int, int, int, int, int, int, char);
 	void	(*show_error) (const char *, ...);
 	void	(*show_end)   (void);
 	void	(*show_usage) (void);
@@ -67,6 +68,8 @@ extern char      	screen;
 extern int      	linelen;
 extern char      	acctreason;
 extern char		deviatonly;
+extern char		usecolors;
+extern char		threadview;
 extern char		rawname[];
 extern char		rawreadflag;
 extern unsigned int	begintime, endtime;
@@ -101,8 +104,9 @@ extern int		almostcrit;
 /*
 ** structure containing the start-addresses of functions for visualization
 */
-char		generic_samp (time_t, int, struct sstat *, struct pstat *,
-		             int, int, int, int, int, int, int, char);
+char		generic_samp (time_t, int,
+		            struct sstat *, struct tstat *, struct tstat **,
+		            int, int, int, int, int, int, int, int, int, char);
 void		generic_error(const char *, ...);
 void		generic_end  (void);
 void		generic_usage(void);
@@ -135,8 +139,9 @@ int		intfcompar(const void *, const void *);
 
 count_t		subcount(count_t, count_t);
 void  		rawread(void);
-char		rawwrite(time_t, int, struct sstat *, struct pstat *,
-		                       int, int, int, int, int, int, int, char);
+char		rawwrite(time_t, int, struct sstat *, struct tstat *,
+			struct tstat **, int, int, int, int, int, int,
+			int, int, int, char);
 
 int 		numeric(char *);
 void		getalarm(int);

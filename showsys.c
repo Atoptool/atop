@@ -100,7 +100,7 @@ static const char rcsid[] = "XXXXXX";
 ** colors if needed 
 */
 static int
-syscolorlabel(char *labeltext, int usecolors, unsigned int badness)
+syscolorlabel(char *labeltext, unsigned int badness)
 {
         if (screen)
         {
@@ -173,7 +173,7 @@ addblanks(double *charslackused, double *charslackover)
  */
 void showsysline(sys_printpair* elemptr, 
                  struct sstat* sstat, extraparam *extra,
-                 char *labeltext, int usecolors, unsigned int badness)
+                 char *labeltext, unsigned int badness)
 {
         sys_printdef    *curelem;
         int maxw = screen ? COLS : linelen;
@@ -185,7 +185,7 @@ void showsysline(sys_printpair* elemptr,
         /* how items will fit on one line? */
         int avail = (maxw-5)/15;
 
-        syscolorlabel(labeltext, usecolors, badness);
+        syscolorlabel(labeltext, badness);
 
         /* count number of items */
         sys_printpair newelems[40];     // MURPHY

@@ -569,10 +569,10 @@ acctprocnt(void)
 ** which are written since the previous cycle
 */
 int
-acctphotoproc(struct pstat *accproc, int nrprocs)
+acctphotoproc(struct tstat *accproc, int nrprocs)
 {
 	register int 		nrexit;
-	register struct pstat 	*api;
+	register struct tstat 	*api;
 	struct acct 		acctrec;
 	struct acct_v3 		acctrec_v3;
 	struct acct_atop	acctrec_atop;
@@ -599,6 +599,9 @@ acctphotoproc(struct pstat *accproc, int nrprocs)
 			*/
 			api->gen.state  = 'E';
 			api->gen.nthr   = 1;
+			api->gen.isproc = 1;
+			api->gen.pid    = 0;
+			api->gen.tgid   = 0;
 			api->gen.ppid   = 0;
 			api->gen.excode = acctrec.ac_exitcode;
 			api->gen.ruid   = acctrec.ac_uid16;
@@ -623,8 +626,10 @@ acctphotoproc(struct pstat *accproc, int nrprocs)
 			*/
 			api->gen.state  = 'E';
 			api->gen.pid    = acctrec_v3.ac_pid;
+			api->gen.tgid   = acctrec_v3.ac_pid;
 			api->gen.ppid   = acctrec_v3.ac_ppid;
 			api->gen.nthr   = 1;
+			api->gen.isproc = 1;
 			api->gen.excode = acctrec_v3.ac_exitcode;
 			api->gen.ruid   = acctrec_v3.ac_uid;
 			api->gen.rgid   = acctrec_v3.ac_gid;
@@ -648,8 +653,10 @@ acctphotoproc(struct pstat *accproc, int nrprocs)
 			*/
 			api->gen.state  = 'E';
 			api->gen.pid    = acctrec_atop.ac_pid;
+			api->gen.tgid   = acctrec_atop.ac_pid;
 			api->gen.ppid   = acctrec_atop.ac_ppid;
 			api->gen.nthr   = 1;
+			api->gen.isproc = 1;
 			api->gen.excode = acctrec_atop.ac_exitcode;
 			api->gen.ruid   = acctrec_atop.ac_uid;
 			api->gen.rgid   = acctrec_atop.ac_gid;

@@ -47,6 +47,7 @@ struct selection {
 #define	COLORLOW	2
 #define	COLORMED	3
 #define	COLORHIGH	4
+#define	COLORTHR	5
 
 /*
 ** list with keystrokes/flags
@@ -69,6 +70,7 @@ struct selection {
 #define	MSORTNET	'N'
 #define	MSORTAUTO	'A'
 
+#define	MTHREAD		'y'
 #define	MCOLORS		'x'
 #define	MSYSFIXED	'f'
 #define	MSYSLIMIT	'l'
@@ -96,22 +98,22 @@ struct selection {
 /*
 ** general function prototypes
 */
-void	totalcap   (struct syscap *, struct sstat *, struct pstat *, int);
-void	pricumproc (struct pstat *,  struct sstat *, int, int, int, int,
-						int, int, int, int, int, int);
+void	totalcap   (struct syscap *, struct sstat *, struct tstat **, int);
+void	pricumproc (struct sstat *,  struct tstat **, int, int, int,
+					int, int, int, int, int, int, int);
 
-void	showgenproc(struct pstat *, double, int, int);
-void	showmemproc(struct pstat *, double, int, int);
-void	showdskproc(struct pstat *, double, int, int);
-void	shownetproc(struct pstat *, double, int, int);
-void	showvarproc(struct pstat *, double, int, int);
-void	showschproc(struct pstat *, double, int, int);
-void	showtotproc(struct pstat *, double, int, int);
-void	showcmdproc(struct pstat *, double, int, int);
+void	showgenproc(struct tstat *, double, int, int);
+void	showmemproc(struct tstat *, double, int, int);
+void	showdskproc(struct tstat *, double, int, int);
+void	shownetproc(struct tstat *, double, int, int);
+void	showvarproc(struct tstat *, double, int, int);
+void	showschproc(struct tstat *, double, int, int);
+void	showtotproc(struct tstat *, double, int, int);
+void	showcmdproc(struct tstat *, double, int, int);
 
 void	printg     (const char *, ...);
-int	prisyst(struct sstat  *, int, int, int, int, int, char *,
+int	prisyst(struct sstat  *, int, int, int, int, char *,
                 int, int, int, int, int);
-int	priproc(struct pstat  *, int, int, int, int, int, char, char,
-	        struct syscap *, struct selection *, int, int);
+int	priproc(struct tstat  **, int, int, int, int, int, char, char,
+	        struct syscap *, int, int);
 void	priphead(int, int, char, char, char);

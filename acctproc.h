@@ -24,7 +24,7 @@
 int 	acctswon(void);
 void	acctswoff(void);
 int 	acctprocnt(void);
-int 	acctphotoproc(struct pstat *, int);
+int 	acctphotoproc(struct tstat *, int);
 
 /*
 ** alternative layout of accounting record if kernel-patch

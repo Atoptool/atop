@@ -71,7 +71,6 @@ static const char rcsid[] = "$Id: atopsar.c,v 1.28 2010/11/26 06:19:43 gerlof Ex
 */
 static unsigned int 	nsamples = 9999999;
 static char		stampalways;
-static char		usecolors = 't';
 static char		usemarkers;
 static char		allresources;
 static int		numreports;
@@ -106,8 +105,9 @@ static char 		coloron;       /* boolean: colors active now      */
 static void	engine(void);
 static void	pratopsaruse(char *);
 static void	reportlive(time_t, int, struct sstat *);
-static char	reportraw (time_t, int, struct sstat *, struct pstat *,
-				int, int, int, int, int, int, int, char);
+static char	reportraw (time_t, int,
+		           struct sstat *, struct tstat *, struct tstat **,
+		           int, int, int, int, int, int, int, int, int, char);
 static void	reportheader(struct utsname *, time_t);
 static time_t	daylimit(time_t);
 
@@ -117,6 +117,8 @@ atopsar(int argc, char *argv[])
 	register int	i, c;
 	struct rlimit	rlim;
 	char		*p, *flaglist;
+
+	usecolors = 't';
 
 	/* 
 	** interpret command-line arguments & flags 
@@ -524,7 +526,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 			*/
 			printf("%s  ", convtime(curtime, timebuf));
 	
-			if ( !(pridef[i].priline)(ss, (struct pstat *)0, 0,
+			if ( !(pridef[i].priline)(ss, (struct tstat *)0, 0,
 				numsecs, numsecs*hertz, hertz,
 				osvers, osrel, ossub,
 				stampalways ? timebuf : "        ",
@@ -593,7 +595,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 		*/
 		printf("%s  ", convtime(curtime, timebuf));
 	
-		if ( !(rv = (pridef[i].priline)(ss, (struct pstat *)0, 0,
+		if ( !(rv = (pridef[i].priline)(ss, (struct tstat *)0, 0,
 					numsecs, numsecs*hertz, hertz,
 					osvers, osrel, ossub, 
 		                        stampalways ? timebuf : "        ",
@@ -637,9 +639,10 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 */
 static char
 reportraw(time_t curtime, int numsecs,
-         	struct sstat *ss, struct pstat *ps,
-         	int nlist, int npresent, int ntrun, int ntslpi, int ntslpu,
-		int nzombie, int nexit, char flags)
+         	struct sstat *ss, struct tstat *ts, struct tstat **proclist,
+         	int ndeviat, int ntask, int nactproc,
+		int totproc, int totrun, int totslpi, int totslpu, int totzomb,
+		int nexit, char flags)
 {
 	static char		firstcall = 1;
 	char			timebuf[16], datebuf[16];
@@ -738,7 +741,7 @@ reportraw(time_t curtime, int numsecs,
 			printf("%s  ", convtime(lasttime, timebuf));
 
 			rv = (pridef[prinow].priline)(&totsyst,
-				(struct pstat *)0, 0,
+				(struct tstat *)0, 0,
 				totalsec, totalsec*hertz, hertz,
 			        osvers, osrel, ossub,
 		                stampalways ? timebuf : "        ",
@@ -789,11 +792,12 @@ reportraw(time_t curtime, int numsecs,
 	{
 		printf("%s  ", convtime(curtime, timebuf));
 
-		rv = (pridef[prinow].priline) (ss, ps, npresent+nexit,
+		rv = (pridef[prinow].priline) (ss, ts, proclist, nactproc,
 				numsecs, numsecs*hertz, hertz,
 				osvers, osrel, ossub,
 	               		stampalways ? timebuf : "        ",
-				nlist, ntrun, ntslpi, ntslpu, nexit, nzombie);
+				ndeviat, totrun, totslpi, totslpu,
+				nexit, totzomb);
 
 		if (rv == 0)
 		{
@@ -829,11 +833,11 @@ reportraw(time_t curtime, int numsecs,
 		** contains the log-restart indicator
 		*/
 		lasttime   = curtime;
-		lastnpres  = npresent;
-		lastntrun  = ntrun;
-		lastntslpi = ntslpi;
-		lastntslpu = ntslpu;
-		lastnzomb  = nzombie;
+		lastnpres  = totproc;
+		lastntrun  = totrun;
+		lastntslpi = totslpi;
+		lastntslpu = totslpu;
+		lastnzomb  = totzomb;
 
 		/*
 		** print line only if needed
@@ -846,12 +850,12 @@ reportraw(time_t curtime, int numsecs,
 			printf("%s  ", convtime(curtime, timebuf));
 
 			rv = (pridef[prinow].priline) (&totsyst,
-					(struct pstat *)0, 0,
+					(struct tstat *)0, 0,
 					totalsec, totalsec*hertz, hertz,
 					osvers, osrel, ossub,
 					stampalways ? timebuf : "        ",
-					nlist, ntrun, ntslpi, ntslpu,
-					totalexit, nzombie);
+					ndeviat, totrun, totslpi, totslpu,
+					totalexit, totzomb);
 
 			if (rv == 0)
 			{
@@ -1124,7 +1128,7 @@ cpuhead(int osvers, int osrel, int ossub)
 }
 
 static int
-cpuline(struct sstat *ss, struct pstat *ps, int nproc,
+cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1226,7 +1230,7 @@ prochead(int osvers, int osrel, int ossub)
 }
 
 static int
-procline(struct sstat *ss, struct pstat *ps, int nproc,
+procline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1250,7 +1254,7 @@ taskhead(int osvers, int osrel, int ossub)
 }
 
 static int
-taskline(struct sstat *ss, struct pstat *ps, int nproc,
+taskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1261,7 +1265,7 @@ taskline(struct sstat *ss, struct pstat *ps, int nproc,
 		return 0;
 	}
 
-	if (ps)		/* process statistics available */
+	if (ts)		/* process statistics available */
 	{
 		printf("%8.2lf %7.2lf  %7d %7d    %6d %7d %7d\n",
 			(double)ss->cpu.nprocs / deltasec,
@@ -1290,7 +1294,7 @@ memhead(int osvers, int osrel, int ossub)
 }
 
 static int
-memline(struct sstat *ss, struct pstat *ps, int nproc,
+memline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1340,7 +1344,7 @@ swaphead(int osvers, int osrel, int ossub)
 }
 
 static int
-swapline(struct sstat *ss, struct pstat *ps, int nproc,
+swapline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1496,7 +1500,7 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 }
 
 static int
-lvmline(struct sstat *ss, struct pstat *ps, int nproc,
+lvmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1505,7 +1509,7 @@ lvmline(struct sstat *ss, struct pstat *ps, int nproc,
 }
 
 static int
-mddline(struct sstat *ss, struct pstat *ps, int nproc,
+mddline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1514,7 +1518,7 @@ mddline(struct sstat *ss, struct pstat *ps, int nproc,
 }
 
 static int
-dskline(struct sstat *ss, struct pstat *ps, int nproc,
+dskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1533,7 +1537,7 @@ ifhead(int osvers, int osrel, int ossub)
 }
 
 static int
-ifline(struct sstat *ss, struct pstat *ps, int nproc,
+ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1639,7 +1643,7 @@ IFhead(int osvers, int osrel, int ossub)
 }
 
 static int
-IFline(struct sstat *ss, struct pstat *ps, int nproc,
+IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1694,7 +1698,7 @@ ipv4head(int osvers, int osrel, int ossub)
 }
 
 static int
-ipv4line(struct sstat *ss, struct pstat *ps, int nproc,
+ipv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1717,7 +1721,7 @@ IPv4head(int osvers, int osrel, int ossub)
 }
 
 static int
-IPv4line(struct sstat *ss, struct pstat *ps, int nproc,
+IPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1746,7 +1750,7 @@ icmpv4head(int osvers, int osrel, int ossub)
 }
 
 static int
-icmpv4line(struct sstat *ss, struct pstat *ps, int nproc,
+icmpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1769,7 +1773,7 @@ ICMPv4head(int osvers, int osrel, int ossub)
 }
 
 static int
-ICMPv4line(struct sstat *ss, struct pstat *ps, int nproc,
+ICMPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1800,7 +1804,7 @@ udpv4head(int osvers, int osrel, int ossub)
 }
 
 static int
-udpv4line(struct sstat *ss, struct pstat *ps, int nproc,
+udpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1824,7 +1828,7 @@ ipv6head(int osvers, int osrel, int ossub)
 }
 
 static int
-ipv6line(struct sstat *ss, struct pstat *ps, int nproc,
+ipv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1848,7 +1852,7 @@ IPv6head(int osvers, int osrel, int ossub)
 }
 
 static int
-IPv6line(struct sstat *ss, struct pstat *ps, int nproc,
+IPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1877,7 +1881,7 @@ icmpv6head(int osvers, int osrel, int ossub)
 }
 
 static int
-icmpv6line(struct sstat *ss, struct pstat *ps, int nproc,
+icmpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1902,7 +1906,7 @@ ICMPv6head(int osvers, int osrel, int ossub)
 }
 
 static int
-ICMPv6line(struct sstat *ss, struct pstat *ps, int nproc,
+ICMPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1932,7 +1936,7 @@ udpv6head(int osvers, int osrel, int ossub)
 }
 
 static int
-udpv6line(struct sstat *ss, struct pstat *ps, int nproc,
+udpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1956,7 +1960,7 @@ tcphead(int osvers, int osrel, int ossub)
 }
 
 static int
-tcpline(struct sstat *ss, struct pstat *ps, int nproc,
+tcpline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -1978,7 +1982,7 @@ TCPhead(int osvers, int osrel, int ossub)
 }
 
 static int
-TCPline(struct sstat *ss, struct pstat *ps, int nproc,
+TCPline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -2001,7 +2005,7 @@ httphead(int osvers, int osrel, int ossub)
 }
 
 static int
-httpline(struct sstat *ss, struct pstat *ps, int nproc,
+httpline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -2029,14 +2033,14 @@ topchead(int osvers, int osrel, int ossub)
 }
 
 static int
-topcline(struct sstat *ss, struct pstat *ps, int nproc,
+topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	count_t		availcpu;
+	count_t	availcpu;
 
-	if (!ps)
+	if (!ts)
 	{
 		printf("report not available.....\n");
 		return 0;
@@ -2045,7 +2049,7 @@ topcline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** sort process list in cpu order
 	*/
-	qsort(ps, ppres, sizeof(struct pstat), compcpu);
+	qsort(ps, nactproc, sizeof(struct tstat *), compcpu);
 
 	availcpu  = ss->cpu.all.stime + ss->cpu.all.utime +
 	            ss->cpu.all.ntime + ss->cpu.all.itime +
@@ -2060,12 +2064,12 @@ topcline(struct sstat *ss, struct pstat *ps, int nproc,
 
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",
-		(ps+0)->gen.pid, (ps+0)->gen.name,
-		(double)((ps+0)->cpu.stime + (ps+0)->cpu.utime)*100.0/availcpu,
-		(ps+1)->gen.pid, (ps+1)->gen.name,
-		(double)((ps+1)->cpu.stime + (ps+1)->cpu.utime)*100.0/availcpu,
-		(ps+2)->gen.pid, (ps+2)->gen.name,
-		(double)((ps+2)->cpu.stime + (ps+2)->cpu.utime)*100.0/availcpu);
+	      (ps[0])->gen.pid, (ps[0])->gen.name,
+	      (double)((ps[0])->cpu.stime + (ps[0])->cpu.utime)*100.0/availcpu,
+	      (ps[1])->gen.pid, (ps[1])->gen.name,
+	      (double)((ps[1])->cpu.stime + (ps[1])->cpu.utime)*100.0/availcpu,
+	      (ps[2])->gen.pid, (ps[2])->gen.name,
+	      (double)((ps[2])->cpu.stime + (ps[2])->cpu.utime)*100.0/availcpu);
 
 	return 1;
 }
@@ -2081,14 +2085,14 @@ topmhead(int osvers, int osrel, int ossub)
 }
 
 static int
-topmline(struct sstat *ss, struct pstat *ps, int nproc,
+topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
 	count_t		availmem;
 
-	if (!ps)
+	if (!ts)
 	{
 		printf("report not available.....\n");
 		return 0;
@@ -2097,18 +2101,18 @@ topmline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** sort process list in memory order
 	*/
-	qsort(ps, ppres, sizeof(struct pstat), compmem);
+	qsort(ps, nactproc, sizeof(struct tstat *), compmem);
 
 	availmem  = ss->mem.physmem * pagesize/1024;
 
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",
-		(ps+0)->gen.pid, (ps+0)->gen.name,
-		(double)(ps+0)->mem.rmem * 100.0 / availmem,
-		(ps+1)->gen.pid, (ps+1)->gen.name,
-		(double)(ps+1)->mem.rmem * 100.0 / availmem,
-		(ps+2)->gen.pid, (ps+2)->gen.name,
-		(double)(ps+2)->mem.rmem * 100.0 / availmem);
+		(ps[0])->gen.pid, (ps[0])->gen.name,
+		(double)(ps[0])->mem.rmem * 100.0 / availmem,
+		(ps[1])->gen.pid, (ps[1])->gen.name,
+		(double)(ps[1])->mem.rmem * 100.0 / availmem,
+		(ps[2])->gen.pid, (ps[2])->gen.name,
+		(double)(ps[2])->mem.rmem * 100.0 / availmem);
 
 	return 1;
 }
@@ -2124,7 +2128,7 @@ topdhead(int osvers, int osrel, int ossub)
 }
 
 static int
-topdline(struct sstat *ss, struct pstat *ps, int nproc,
+topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -2132,7 +2136,7 @@ topdline(struct sstat *ss, struct pstat *ps, int nproc,
 	int		i;
 	count_t		availdsk;
 
-	if (!ps)
+	if (!ts)
 	{
 		printf("report not available.....\n");
 		return 0;
@@ -2147,9 +2151,9 @@ topdline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** determine total disk accesses for all processes
 	*/
-	for (i=0, availdsk=0; i < nproc; i++)
+	for (i=0, availdsk=0; i < nactproc; i++)
 	{
-		availdsk += (ps+i)->dsk.rio + (ps+i)->dsk.wio;
+		availdsk += (ps[i])->dsk.rio + (ps[i])->dsk.wio;
 	}
 
 	if (availdsk == 0)
@@ -2158,16 +2162,16 @@ topdline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** sort process list in disk order
 	*/
-	qsort(ps, ppres, sizeof(struct pstat), compdsk);
+	qsort(ps, nactproc, sizeof(struct tstat *), compdsk);
 
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",
-		(ps+0)->gen.pid, (ps+0)->gen.name,
-	     	(double)((ps+0)->dsk.rio+(ps+0)->dsk.wio) *100.0/availdsk,
-		(ps+1)->gen.pid, (ps+1)->gen.name,
-		(double)((ps+1)->dsk.rio+(ps+1)->dsk.wio) *100.0/availdsk,
-		(ps+2)->gen.pid, (ps+2)->gen.name,
-		(double)((ps+2)->dsk.rio+(ps+2)->dsk.wio) *100.0/availdsk);
+		(ps[0])->gen.pid, (ps[0])->gen.name,
+	     	(double)((ps[0])->dsk.rio+(ps[0])->dsk.wio) *100.0/availdsk,
+		(ps[1])->gen.pid, (ps[1])->gen.name,
+		(double)((ps[1])->dsk.rio+(ps[1])->dsk.wio) *100.0/availdsk,
+		(ps[2])->gen.pid, (ps[2])->gen.name,
+		(double)((ps[2])->dsk.rio+(ps[2])->dsk.wio) *100.0/availdsk);
 
 	return 1;
 }
@@ -2183,7 +2187,7 @@ topnhead(int osvers, int osrel, int ossub)
 }
 
 static int
-topnline(struct sstat *ss, struct pstat *ps, int nproc,
+topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         time_t deltasec, time_t deltatic, time_t hz,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
@@ -2191,7 +2195,7 @@ topnline(struct sstat *ss, struct pstat *ps, int nproc,
 	int		i;
 	count_t		availnet;
 
-	if (!ps)
+	if (!ts)
 	{
 		printf("report not available.....\n");
 		return 0;
@@ -2206,11 +2210,11 @@ topnline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** determine total network accesses for all processes
 	*/
-	for (i=0, availnet=0; i < nproc; i++)
+	for (i=0, availnet=0; i < nactproc; i++)
 	{
-		availnet += (ps+i)->net.tcpsnd + (ps+i)->net.tcprcv +
-		            (ps+i)->net.udpsnd + (ps+i)->net.udprcv +
-		            (ps+i)->net.rawsnd + (ps+i)->net.rawrcv;
+		availnet += (*ps+i)->net.tcpsnd + (*ps+i)->net.tcprcv +
+		            (*ps+i)->net.udpsnd + (*ps+i)->net.udprcv +
+		            (*ps+i)->net.rawsnd + (*ps+i)->net.rawrcv;
 	}
 
 	if (availnet == 0)
@@ -2219,24 +2223,24 @@ topnline(struct sstat *ss, struct pstat *ps, int nproc,
 	/*
 	** sort process list in network order
 	*/
-	qsort(ps, ppres, sizeof(struct pstat), compnet);
+	qsort(*ps, nactproc, sizeof(struct tstat *), compnet);
 
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",
-		(ps+0)->gen.pid, (ps+0)->gen.name,
-		(double)((ps+0)->net.tcpsnd + (ps+0)->net.tcprcv +
-		         (ps+0)->net.udpsnd + (ps+0)->net.udprcv +
-		         (ps+0)->net.rawsnd + (ps+0)->net.rawrcv)
+		(ps[0])->gen.pid, (ps[0])->gen.name,
+		(double)((ps[0])->net.tcpsnd + (ps[0])->net.tcprcv +
+		         (ps[0])->net.udpsnd + (ps[0])->net.udprcv +
+		         (ps[0])->net.rawsnd + (ps[0])->net.rawrcv)
 							* 100.0 / availnet,
-		(ps+1)->gen.pid, (ps+1)->gen.name,
-		(double)((ps+1)->net.tcpsnd + (ps+1)->net.tcprcv +
-		         (ps+1)->net.udpsnd + (ps+1)->net.udprcv +
-		         (ps+1)->net.rawsnd + (ps+1)->net.rawrcv)
+		(ps[1])->gen.pid, (ps[1])->gen.name,
+		(double)((ps[1])->net.tcpsnd + (ps[1])->net.tcprcv +
+		         (ps[1])->net.udpsnd + (ps[1])->net.udprcv +
+		         (ps[1])->net.rawsnd + (ps[1])->net.rawrcv)
 							* 100.0 / availnet,
-		(ps+2)->gen.pid, (ps+2)->gen.name,
-		(double)((ps+2)->net.tcpsnd + (ps+2)->net.tcprcv +
-		         (ps+2)->net.udpsnd + (ps+2)->net.udprcv +
-		         (ps+2)->net.rawsnd + (ps+2)->net.rawrcv)
+		(ps[2])->gen.pid, (ps[2])->gen.name,
+		(double)((ps[2])->net.tcpsnd + (ps[2])->net.tcprcv +
+		         (ps[2])->net.udpsnd + (ps[2])->net.udprcv +
+		         (ps[2])->net.rawsnd + (ps[2])->net.rawrcv)
 							* 100.0 / availnet);
 
 	return 1;
