@@ -112,6 +112,7 @@ static const char rcsid[] = "$Id: various.c,v 1.21 2010/11/12 06:16:16 gerlof Ex
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -552,6 +553,30 @@ getboot(void)
 	}
 
 	return boottime;
+}
+
+/*
+** generic pointer verification after malloc
+*/
+void
+ptrverify(const void *ptr, const char *errormsg, ...)
+{
+	va_list args;
+
+        va_start(args, errormsg);
+
+	if (!ptr)
+	{
+		acctswoff();
+		if (vis.show_end)
+			(vis.show_end)();
+
+        	va_list args;
+		fprintf(stderr, errormsg, args);
+        	va_end  (args);
+
+		exit(13);
+	}
 }
 
 /*

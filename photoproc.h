@@ -128,7 +128,6 @@ struct pinfo {
 int		pdb_gettask(int, char, time_t, struct pinfo **);
 void		pdb_addtask(int, struct pinfo *);
 int		pdb_deltask(int, char);
-int		pdb_newtask(struct pinfo **);
 int		pdb_makeresidue(void);
 int		pdb_cleanresidue(void);
 int		pdb_srchresidue(struct tstat *, struct pinfo **);

@@ -274,11 +274,9 @@ rawwrite(time_t curtime, int numsecs,
 
 	testcompval(rv, "compress");
 
-	if ( (pcompbuf = malloc(pcomplen)) == NULL)
-	{
-		perror("atop malloc");
-		cleanstop(7);
-	}
+	pcompbuf = malloc(pcomplen);
+
+	ptrverify(pcompbuf, "Malloc failed for compression buffer\n");
 
 	rv = compress(pcompbuf, &pcomplen, (Byte *)ts, (unsigned long)pcomplen);
 
@@ -532,6 +530,9 @@ rawread(void)
 		** make a string existing of y's to compare with
 		*/
 		py = malloc(len+1);
+
+		ptrverify(py, "Malloc failed for 'yes' sequence\n");
+
 		memset(py, 'y', len);
 		*(py+len) = '\0';
 
@@ -656,11 +657,9 @@ rawread(void)
 	/*
 	** allocate a list for backtracking of rawrecord-offsets
 	*/
-	if ( (offlist = malloc(sizeof(off_t) * OFFCHUNK)) == NULL)
-	{
-		perror("atop/atopsar malloc");
-		cleanstop(7);
-	}
+	offlist = malloc(sizeof(off_t) * OFFCHUNK);
+
+	ptrverify(offlist, "Malloc failed for backtrack list\n");
 
 	offsize = OFFCHUNK;
 
@@ -687,12 +686,11 @@ rawread(void)
 
 			if ( ++offcur >= offsize )
 			{
-				if ( (offlist = realloc(offlist,
-				     (offsize+OFFCHUNK)*sizeof(off_t))) ==NULL)
-				{
-					perror("atop/atopsar realloc");
-					cleanstop(7);
-				}
+				offlist = realloc(offlist,
+				             (offsize+OFFCHUNK)*sizeof(off_t));
+
+				ptrverify(offlist,
+				        "Realloc failed for backtrack list\n");
 
 				offsize+= OFFCHUNK;
 			}
@@ -728,23 +726,20 @@ rawread(void)
 			** allocate space, read compressed process-level
 			** statistics and decompress
 			*/
-			if ( (devtstat =
-			       malloc(sizeof(struct tstat) * rr.ndeviat))==NULL)
-			{
-				perror("atop/atopsar malloc");
-				cleanstop(7);
-			}
+			devtstat = malloc(sizeof(struct tstat) * rr.ndeviat);
 
-			if ( (devpstat =
-			       malloc(sizeof(struct tstat *) * rr.nactproc))
-									==NULL)
-			{
-				perror("atop/atopsar malloc");
-				cleanstop(7);
-			}
+			ptrverify(devtstat,
+			          "Malloc failed for %d stored tasks\n",
+			          rr.ndeviat);
+
+			devpstat = malloc(sizeof(struct tstat *) * rr.nactproc);
+
+			ptrverify(devpstat,
+			          "Malloc failed for %d stored processes\n",
+			          rr.nactproc);
 
 			if ( !getrawtstat(rawfd, devtstat,
-					rr.pcomplen, rr.ndeviat) )
+						rr.pcomplen, rr.ndeviat) )
 				cleanstop(7);
 
 			/*
@@ -834,10 +829,8 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 	int		rv;
 
 	if ( (compbuf = malloc(complen)) == NULL)
-	{
-		perror("atop/atopsar malloc");
-		cleanstop(7);
-	}
+
+	ptrverify(compbuf, "Malloc failed for reading compressed sysstats\n");
 
 	if ( read(rawfd, compbuf, complen) < complen)
 		return 0;
@@ -861,11 +854,9 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 	unsigned long	uncomplen = sizeof(struct tstat) * ndeviat;
 	int		rv;
 
-	if ( (compbuf = malloc(complen)) == NULL)
-	{
-		perror("atop/atopsar malloc");
-		cleanstop(7);
-	}
+	compbuf = malloc(complen);
+
+	ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
 
 	if ( read(rawfd, compbuf, complen) < complen)
 		return 0;

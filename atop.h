@@ -148,6 +148,7 @@ void		getalarm(int);
 time_t		getboot(void);
 char 		*getstrvers(void);
 unsigned short 	getnumvers(void);
+void		ptrverify(const void *, const char *, ...);
 void		cleanstop(int);
 void		prusage(char *);
 

@@ -130,6 +130,8 @@ atopsar(int argc, char *argv[])
 		*/
 		flaglist = malloc(pricnt+32);
 
+		ptrverify(flaglist, "Malloc failed for %d flags\n", pricnt+32);
+
 		for (i=0; i < pricnt; i++)
 			flaglist[i] = pridef[i].flag;
 
@@ -408,6 +410,10 @@ engine(void)
 	cursstat = calloc(1, sizeof(struct sstat));
 	presstat = calloc(1, sizeof(struct sstat));
 	devsstat = calloc(1, sizeof(struct sstat));
+
+	ptrverify(cursstat,  "Malloc failed for current sysstats\n");
+	ptrverify(presstat,  "Malloc failed for prev    sysstats\n");
+	ptrverify(devsstat,  "Malloc failed for deviate sysstats\n");
 
 	/*
 	** install the signal-handler for ALARM and SIGUSR1 (both triggers

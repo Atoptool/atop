@@ -703,14 +703,13 @@ engine(void)
 	presstat = calloc(1, sizeof(struct sstat));
 	devsstat = calloc(1, sizeof(struct sstat));
 
-	curplen = countprocs() * 3 / 2;		/* add 50% for threads */
-	curpact = calloc(curplen, sizeof(struct tstat));
+	curplen  = countprocs() * 3 / 2;	/* add 50% for threads */
+	curpact  = calloc(curplen, sizeof(struct tstat));
 
-	if (!cursstat || !presstat || !devsstat || !curpact)
-	{
-		fprintf(stderr, "unexpected calloc-failure...\n");
-		cleanstop(1);
-	}
+	ptrverify(cursstat, "Malloc failed for current sysstats\n");
+	ptrverify(presstat, "Malloc failed for prev    sysstats\n");
+	ptrverify(devsstat, "Malloc failed for deviate sysstats\n");
+	ptrverify(curpact,  "Malloc failed for %d procstats\n", curplen);
 
 	/*
 	** install the signal-handler for ALARM, USR1 and USR2 (triggers
@@ -814,6 +813,10 @@ engine(void)
 
 			curpact = realloc(curpact,
 					curplen * sizeof(struct tstat));
+
+			ptrverify(curpact,
+			          "Realloc failed for %d tasks\n", curplen);
+
 			memset(curpact, 0, curplen * sizeof(struct tstat));
 		}
 
@@ -827,6 +830,11 @@ engine(void)
 		if (nexit > 0)	
 		{
 			curpexit = malloc(  nexit * sizeof(struct tstat));
+
+			ptrverify(curpexit,
+			          "Malloc failed for %d exited processes\n",
+			          nexit);
+
 			memset(curpexit, 0, nexit * sizeof(struct tstat));
 
 			acctphotoproc(curpexit, nexit);
@@ -839,6 +847,9 @@ engine(void)
 		*/
 		devtstat = malloc((ntask+nexit) * sizeof(struct tstat));
 
+		ptrverify(devtstat, "Malloc failed for %d modified processes\n",
+			          				ntask+nexit);
+
 		ndeviat = deviatproc(curpact, ntask, curpexit, nexit,
 				deviatonly, devtstat, devsstat, &nactproc,
 				&totproc, &totrun, &totslpi, &totslpu, 
@@ -849,6 +860,9 @@ engine(void)
 		** in the task list
 		*/
        		devpstat = malloc(sizeof (struct tstat *) * nactproc);
+
+		ptrverify(devpstat, "Malloc failed for %d process ptrs\n",
+			          				nactproc);
 
 		for (i=0, j=0; i < ndeviat; i++)
 		{

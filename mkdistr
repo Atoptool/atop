@@ -50,7 +50,7 @@ cp README		/tmp/atop
 cp COPYING		/tmp/atop
 cp ChangeLog		/tmp/atop
 cp AUTHOR		/tmp/atop
-cp atop      		/tmp/atop
+# cp atop      		/tmp/atop
 cp atop.daily  		/tmp/atop
 cp atop.cron  		/tmp/atop
 cp atop.init  		/tmp/atop

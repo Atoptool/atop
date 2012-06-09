@@ -299,9 +299,11 @@ deviatproc(struct tstat *aproc, int npresent,
 			memset(&prestat, 0, sizeof(prestat));
 
 			/*
-			** create new task
+			** create new task struct
 			*/
-			pdb_newtask(&pinfo);
+			pinfo = calloc(1, sizeof(struct pinfo));
+
+			ptrverify(pinfo, "Malloc failed for new pinfo\n");
 
 			pinfo->tstat = *curstat;
 

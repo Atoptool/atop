@@ -624,6 +624,11 @@ generic_samp(time_t curtime, int nsecs,
 			tucumlist = calloc(sizeof(struct tstat),    nactproc);
 			ucumlist  = malloc(sizeof(struct tstat *) * nactproc);
 
+			ptrverify(tucumlist,
+			        "Malloc failed for %d ucum procs\n", nactproc);
+			ptrverify(ucumlist,
+			        "Malloc failed for %d ucum ptrs\n",  nactproc);
+
 			for (i=0; i < nactproc; i++)	/* fill pointers */
 				ucumlist[i] = tucumlist+i;
 
@@ -653,6 +658,11 @@ generic_samp(time_t curtime, int nsecs,
 			tpcumlist = calloc(sizeof(struct tstat),    nactproc);
 			pcumlist  = malloc(sizeof(struct tstat *) * nactproc);
 
+			ptrverify(tpcumlist,
+			        "Malloc failed for %d pcum procs\n", nactproc);
+			ptrverify(pcumlist,
+			        "Malloc failed for %d pcum ptrs\n",  nactproc);
+
 			for (i=0; i < nactproc; i++)	/* fill pointers */
 				pcumlist[i] = tpcumlist+i;
 
@@ -679,8 +689,14 @@ generic_samp(time_t curtime, int nsecs,
 			** create new (worst case) pointer list if needed
 			*/
 			if (!sellist)
+			{
 				sellist = malloc(sizeof(struct tstat *)
 								* nactproc);
+
+				ptrverify(sellist,
+				          "Malloc failed for %d select ptrs\n",
+				          nactproc);
+			}
 
 			for (i=nsel=0; i < nactproc; i++)
 			{
@@ -744,7 +760,13 @@ generic_samp(time_t curtime, int nsecs,
 				if (!tsklist)
 				{
 					tsklist = malloc(sizeof(struct tstat *)
-								     * ndeviat);					zipagain = 1;
+								    * ndeviat);
+
+					ptrverify(tsklist,
+				             "Malloc failed for %d taskptrs\n",
+				             ndeviat);
+
+					zipagain = 1;
 				}
 
 				if (zipagain)

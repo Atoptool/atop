@@ -213,17 +213,6 @@ pdb_deltask(int pid, char isproc)
 }
 
 /*
-** create and initialize process-info
-*/
-int
-pdb_newtask(struct pinfo **pinfopp)
-{
-	*pinfopp = calloc(1, sizeof(struct pinfo));
-	return(1);
-}
-
-
-/*
 ** Chain all process-info structures into the RESIDUE-list;
 ** every process-info struct which is referenced later on by pdb_gettask(),
 ** will be removed from this list again. After that, the remaining
