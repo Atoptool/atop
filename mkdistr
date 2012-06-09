@@ -1,10 +1,11 @@
-if [ `id -u` -ne 0 ]
-then
-	echo You should run this script as superuser >&2
-	exit 1
-fi
+# if [ `id -u` -ne 0 ]
+# then
+# 	echo You should run this script as superuser >&2
+# 	exit 1
+# fi
 
-VERSION=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
+VERSION=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/-.*//')
+RELEASE=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/.*-//')
 
 if [ "$VERSION" = master ]
 then
@@ -41,42 +42,49 @@ fi
 # Prepare a directory for distribution under /tmp
 # and copy all required stuff 
 ############################################################################
-rm -r          		/tmp/atop 2> /dev/null
+rm -r          		/tmp/atop-$VERSION 2> /dev/null
 
-mkdir          		/tmp/atop
-cp *.[ch]		/tmp/atop
-cp Makefile    		/tmp/atop
-cp README		/tmp/atop
-cp COPYING		/tmp/atop
-cp ChangeLog		/tmp/atop
-cp AUTHOR		/tmp/atop
-# cp atop      		/tmp/atop
-cp atop.daily  		/tmp/atop
-cp atop.cron  		/tmp/atop
-cp atop.init  		/tmp/atop
-cp psaccs_atop 		/tmp/atop
-cp psaccu_atop 		/tmp/atop
-cp 45atoppm  		/tmp/atop
-cp -r man      		/tmp/atop
+mkdir          		/tmp/atop-$VERSION
+cp *.[ch]		/tmp/atop-$VERSION
+cp Makefile    		/tmp/atop-$VERSION
+cp README		/tmp/atop-$VERSION
+cp COPYING		/tmp/atop-$VERSION
+cp ChangeLog		/tmp/atop-$VERSION
+cp AUTHOR		/tmp/atop-$VERSION
+# cp atop      		/tmp/atop-$VERSION
+cp atop.daily  		/tmp/atop-$VERSION
+cp atop.cron  		/tmp/atop-$VERSION
+cp atop.init  		/tmp/atop-$VERSION
+cp psaccs_atop 		/tmp/atop-$VERSION
+cp psaccu_atop 		/tmp/atop-$VERSION
+cp 45atoppm  		/tmp/atop-$VERSION
+cp -r man      		/tmp/atop-$VERSION
 
 ############################################################################
 # All files copied.
-# Make a compressed tar-archive.
+# Make compressed tar-archives with and without release number.
 ############################################################################
 #
 ORIGDIR=`pwd`
 
 cd /tmp
 
-rm -rf		atop-$VERSION     2> /dev/null
-mv atop		atop-$VERSION
+rm -f			atop-$VERSION.tar 2> /dev/null
+tar cvf 		atop-$VERSION.tar atop-$VERSION
 
-rm -f		atop-$VERSION.tar 2> /dev/null
-tar         cvf atop-$VERSION.tar atop-$VERSION
-rm -rf		atop-$VERSION     2> /dev/null
+rm -f          		atop-$VERSION.tar.gz 2> /dev/null
+gzip            	atop-$VERSION.tar
 
-rm -f           atop-$VERSION.tar.gz 2> /dev/null
-gzip            atop-$VERSION.tar
+
+rm -rf			atop-$VERSION-$RELEASE     2> /dev/null
+mv atop-$VERSION	atop-$VERSION-$RELEASE
+
+rm -f			atop-$VERSION-$RELEASE.tar 2> /dev/null
+tar cvf 		atop-$VERSION-$RELEASE.tar atop-$VERSION-$RELEASE
+rm -rf			atop-$VERSION-$RELEASE     2> /dev/null
+
+rm -f          		atop-$VERSION-$RELEASE.tar.gz 2> /dev/null
+gzip            	atop-$VERSION-$RELEASE.tar
 
 ############################################################################
 # Make an RPM-distribution
@@ -91,44 +99,46 @@ then
 	cp atop-$VERSION.tar.gz /usr/src/RPM/SOURCES
 fi
 
-if [ -d /root/rpmbuild/SOURCES ]
+if [ -d $HOME/rpmbuild/SOURCES ]
 then
-	cp atop-$VERSION.tar.gz /root/rpmbuild/SOURCES
+	cp atop-$VERSION.tar.gz $HOME/rpmbuild/SOURCES/atop-$VERSION.tar.gz
 fi
 
 cd $ORIGDIR
 
-sed "s/XVERSX/$VERSION/g" atop.spec > /tmp/atop-$VERSION.spec
+sed -e "s/XVERSX/$VERSION/g" -e "s/XRELEX/$RELEASE/g" atop.spec 	\
+					> /tmp/atop-$VERSION-$RELEASE.spec
 
 cd /tmp
 
-if rpmbuild -ba atop-$VERSION.spec #  > /dev/null
+if rpmbuild -ba atop-$VERSION-$RELEASE.spec #  > /dev/null
 then
 	if [ -d /usr/src/redhat/SOURCES ]
 	then
-		cp /usr/src/redhat/RPMS/i386/atop-$VERSION-*.i386.rpm /tmp
-		cp /usr/src/redhat/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+		cp /usr/src/redhat/RPMS/i386/atop-$VERSION-$RELEASE-*.i386.rpm /tmp
+		cp /usr/src/redhat/SRPMS/atop-$VERSION-$RELEASE-*.src.rpm      /tmp
 	fi
 
 	if [ -d /usr/src/RPM/SOURCES ]
 	then
-		cp /usr/src/RPM/RPMS/i386/atop-$VERSION-*.i386.rpm /tmp
-		cp /usr/src/RPM/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+		cp /usr/src/RPM/RPMS/i386/atop-$VERSION-$RELEASE.i386.rpm /tmp
+		cp /usr/src/RPM/SRPMS/atop-$VERSION-$RELEASE.src.rpm      /tmp
 	fi
 
-	if [ -d /root/rpmbuild/SOURCES ]
+	if [ -d $HOME/rpmbuild/SOURCES ]
 	then
-		cp /root/rpmbuild/RPMS/x86_64/atop-$VERSION-*.x86_64.rpm /tmp
-		cp /root/rpmbuild/SRPMS/atop-$VERSION-*.src.rpm      /tmp
+	   cp $HOME/rpmbuild/RPMS/x86_64/atop-$VERSION-$RELEASE.x86_64.rpm /tmp
+	   cp $HOME/rpmbuild/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
 	fi
 
 	echo
-	echo /tmp/atop-$VERSION-*.x86_64.rpm ready
-	echo /tmp/atop-$VERSION-*.src.rpm  ready
+	echo /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ready
+	echo /tmp/atop-$VERSION-$RELEASE.src.rpm  ready
 fi
 
 echo
-echo /tmp/atop-$VERSION.tar.gz ready
+echo /tmp/atop-$VERSION-$RELEASE.tar.gz ready
+exit 0
 
 ############################################################################
 # Make compressed tar-archives for the kernel-patches
