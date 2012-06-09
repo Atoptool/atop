@@ -1158,6 +1158,7 @@ static struct {
 	{ "^fio[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "/host.*/bus.*/target.*/lun.*/disc",	{0},  abbrevname1, DSKTYPE, },
 	{ "^xvd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
+	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, DSKTYPE, },
 	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, DSKTYPE, },
 };
