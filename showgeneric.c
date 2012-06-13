@@ -282,7 +282,8 @@ static const char rcsid[] = "$Id: showgeneric.c,v 1.71 2010/10/25 19:08:32 gerlo
 #include "showgeneric.h"
 #include "showlinux.h"
 
-static struct selection procsel = {"", {USERSTUB, }, "", 0, { 0, }};
+static struct pselection procsel = {"", {USERSTUB, }, "", 0, { 0, }};
+static struct sselection syssel;
 
 static void	showhelp(int);
 static int	paused;     	/* boolean: currently in pause-mode     */
@@ -300,7 +301,7 @@ static int	maxintlines = 999;  /* maximum interface lines          */
 
 static int	cumusers(struct tstat **, struct tstat *, int);
 static int	cumprocs(struct tstat **, struct tstat *, int);
-static int	procsuppress(struct tstat *, struct selection *);
+static int	procsuppress(struct tstat *, struct pselection *);
 static void	limitedlines(void);
 static long	getnumval(char *, long, int);
 static void	generic_init(void);
@@ -467,7 +468,7 @@ generic_samp(time_t curtime, int nsecs,
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                      ? 'y' : '-',
@@ -476,7 +477,10 @@ generic_samp(time_t curtime, int nsecs,
 			usecolors  			? '-' : 'x',
 			avgval     			? '1' : '-',
 			procsel.userid[0] != USERSTUB	? 'U' : '-',
-			procsel.procnamesz		? 'P' : '-',
+			procsel.prognamesz		? 'P' : '-',
+			syssel.lvmnamesz +
+			syssel.dsknamesz +
+			syssel.itfnamesz		? 'S' : '-',
 			len2, "", buf);
 
 		if (screen)
@@ -502,7 +506,7 @@ generic_samp(time_t curtime, int nsecs,
 			autoorder = showorder;
 
 		curline = prisyst(sstat, curline, nsecs, avgval,
-		                  fixedhead, &autoorder,
+		                  fixedhead, &syssel, &autoorder,
 		                  maxcpulines, maxdsklines, maxmddlines,
 		                  maxlvmlines, maxintlines);
 
@@ -522,7 +526,7 @@ generic_samp(time_t curtime, int nsecs,
 			limitedlines();
 			
 			curline = prisyst(sstat, curline, nsecs, avgval,
-					fixedhead, &autoorder,
+					fixedhead,  &syssel, &autoorder,
 					maxcpulines, maxdsklines, maxmddlines,
 					maxlvmlines, maxintlines);
 
@@ -683,7 +687,7 @@ generic_samp(time_t curtime, int nsecs,
 		   default:
 			threadallowed = 1;
 
-			if (procsel.userid[0] ==USERSTUB && !procsel.procnamesz)
+			if (procsel.userid[0] ==USERSTUB && !procsel.prognamesz)
 			{	/* no selection wanted */
 				curlist   = proclist;
 				nlist     = nactproc;
@@ -1345,23 +1349,115 @@ generic_samp(time_t curtime, int nsecs,
 				printw("Process-name as regular "
 				       "expression (enter=no specific name): ");
 
-				procsel.procnamesz  = 0;
-				procsel.procname[0] = '\0';
+				procsel.prognamesz  = 0;
+				procsel.progname[0] = '\0';
 
-				scanw("%63s\n", procsel.procname);
-				procsel.procnamesz = strlen(procsel.procname);
+				scanw("%63s\n", procsel.progname);
+				procsel.prognamesz = strlen(procsel.progname);
 
-				if (procsel.procnamesz)
+				if (procsel.prognamesz)
 				{
-					if (regcomp(&procsel.procregex,
-					         procsel.procname, REG_NOSUB))
+					if (regcomp(&procsel.progregex,
+					         procsel.progname, REG_NOSUB))
 					{
 						statmsg = "Invalid regular "
 						          "expression!";
 						beep();
 
-						procsel.procnamesz  = 0;
-						procsel.procname[0] = '\0';
+						procsel.prognamesz  = 0;
+						procsel.progname[0] = '\0';
+					}
+				}
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
+
+			   /*
+			   ** focus on specific system resource
+			   */
+			   case MSELSYS:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Logical volume name as regular "
+				       "expression (enter=no specific name): ");
+
+				syssel.lvmnamesz  = 0;
+				syssel.lvmname[0] = '\0';
+
+				scanw("%63s\n", syssel.lvmname);
+				syssel.lvmnamesz = strlen(syssel.lvmname);
+
+				if (syssel.lvmnamesz)
+				{
+					if (regcomp(&syssel.lvmregex,
+					         syssel.lvmname, REG_NOSUB))
+					{
+						statmsg = "Invalid regular "
+						          "expression!";
+						beep();
+
+						syssel.lvmnamesz  = 0;
+						syssel.lvmname[0] = '\0';
+					}
+				}
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Disk name as regular "
+				       "expression (enter=no specific name): ");
+
+				syssel.dsknamesz  = 0;
+				syssel.dskname[0] = '\0';
+
+				scanw("%63s\n", syssel.dskname);
+				syssel.dsknamesz = strlen(syssel.dskname);
+
+				if (syssel.dsknamesz)
+				{
+					if (regcomp(&syssel.dskregex,
+					         syssel.dskname, REG_NOSUB))
+					{
+						statmsg = "Invalid regular "
+						          "expression!";
+						beep();
+
+						syssel.dsknamesz  = 0;
+						syssel.dskname[0] = '\0';
+					}
+				}
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Interface name as regular "
+				       "expression (enter=no specific name): ");
+
+				syssel.itfnamesz  = 0;
+				syssel.itfname[0] = '\0';
+
+				scanw("%63s\n", syssel.itfname);
+				syssel.itfnamesz = strlen(syssel.itfname);
+
+				if (syssel.itfnamesz)
+				{
+					if (regcomp(&syssel.itfregex,
+					         syssel.itfname, REG_NOSUB))
+					{
+						statmsg = "Invalid regular "
+						          "expression!";
+						beep();
+
+						syssel.itfnamesz  = 0;
+						syssel.itfname[0] = '\0';
 					}
 				}
 
@@ -1806,7 +1902,7 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 ** returns 1 (suppress) or 0 (do not suppress)
 */
 static int
-procsuppress(struct tstat *curstat, struct selection *sel)
+procsuppress(struct tstat *curstat, struct pselection *sel)
 {
 	/*
 	** check if only processes of a particular user
@@ -1831,8 +1927,8 @@ procsuppress(struct tstat *curstat, struct selection *sel)
 	** check if only processes with a particular name
 	** should be shown
 	*/
-	if (sel->procnamesz &&
-	    regexec(&(sel->procregex), curstat->gen.name, 0, NULL, 0))
+	if (sel->prognamesz &&
+	    regexec(&(sel->progregex), curstat->gen.name, 0, NULL, 0))
 		return 1;
 
 	return 0;
@@ -2137,10 +2233,12 @@ static struct helptext {
 	 "process name)\n",					MCUMPROC},
 	{"\n",							' '},
 	{"Selections:\n",					' '},
-	{"\t'%c'  - focus on specific user name    (regular expression)\n",
+	{"\t'%c'  - focus on specific user name        (regular expression)\n",
 								MSELUSER},
-	{"\t'%c'  - focus on specific process name (regular expression)\n",
+	{"\t'%c'  - focus on specific process name     (regular expression)\n",
 								MSELPROC},
+	{"\t'%c'  - focus on specific system resources (regular expression)\n",
+								MSELSYS},
 	{"\n",							      ' '},
 	{"Screen-handling:\n",					      ' '},
 	{"\t^L   - redraw the screen                       \n",	      ' '},
@@ -2377,12 +2475,12 @@ do_username(char *name, char *val)
 void
 do_procname(char *name, char *val)
 {
-	strncpy(procsel.procname, val, sizeof procsel.procname -1);
-	procsel.procnamesz = strlen(procsel.procname);
+	strncpy(procsel.progname, val, sizeof procsel.progname -1);
+	procsel.prognamesz = strlen(procsel.progname);
 
-	if (procsel.procnamesz)
+	if (procsel.prognamesz)
 	{
-		if (regcomp(&procsel.procregex, procsel.procname, REG_NOSUB))
+		if (regcomp(&procsel.progregex, procsel.progname, REG_NOSUB))
 		{
 			fprintf(stderr,
 				"atoprc - %s: invalid regular expression %s\n",

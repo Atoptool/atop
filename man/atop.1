@@ -6,7 +6,7 @@
 Interactive usage:
 .P
 .B atop
-[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o] [-C|-M|-D|-N|-A] [-af1x] [-L linelen] [-Plabel[,label]...]
+[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-af1x] [-L linelen] [-Plabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I hh:mm
 ] [-e
 .I hh:mm
-] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o] [-C|-M|-D|-N|-A] [-f1x] [-L linelen] [-Plabel[,label]...]
+] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-f1x] [-L linelen] [-Plabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -328,6 +328,14 @@ Refer to the man-page of
 for a detailed description.
 .PP
 .TP 5
+.B y
+Show the individual threads within a process (toggle).
+
+Single-threaded processes are still shown as one line.
+For multi-threaded processes separate lines show the activity
+per individual thread (different color).
+.PP
+.TP 5
 .B u
 Show the process activity accumulated per user.
 
@@ -412,10 +420,6 @@ Request for help information (also the key 'h' can be pressed).
 Request for version information (version number and date).
 .PP
 .TP 5
-.B y
-Show individual threads within a process (toggle).
-.PP
-.TP 5
 .B x
 Suppress colors to highlight critical resources (toggle).
 .br
@@ -487,6 +491,18 @@ regular expression.
 The system statistics are still system wide.
 If the Enter-key is pressed without specifying a name, all active
 processes will be shown again.
+.br
+Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B S
+Specify a search string for specific logical volume names,
+specific disk names and specific network interface names, all
+as a regular expression.
+From now on, only those system resource will be shown that match
+the concerning regular expression.
+If the Enter-key is pressed without specifying a name, all (active)
+system resources of that type will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
 .PP

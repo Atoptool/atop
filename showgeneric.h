@@ -32,13 +32,27 @@ struct syscap {
 	count_t	availnet;
 };
 
-struct selection {
+struct pselection {
 	char	username[256];
 	uid_t	userid[MAXUSERSEL];
 
-	char	procname[64];
-	int	procnamesz;
-	regex_t	procregex;
+	char	progname[64];
+	int	prognamesz;
+	regex_t	progregex;
+};
+
+struct sselection {
+	char	lvmname[64];	// logical volume selection
+	int	lvmnamesz;
+	regex_t	lvmregex;
+
+	char	dskname[64];	// disk selection
+	int	dsknamesz;
+	regex_t	dskregex;
+
+	char	itfname[64];	// network interface selection
+	int	itfnamesz;
+	regex_t	itfregex;
 };
 
 /*
@@ -75,8 +89,9 @@ struct selection {
 #define	MSYSFIXED	'f'
 #define	MSYSLIMIT	'l'
 
-#define	MSELPROC	'P'
 #define	MSELUSER	'U'
+#define	MSELPROC	'P'
+#define	MSELSYS		'S'
 
 #define	MALLPROC	'a'
 #define	MKILLPROC	'k'
@@ -112,8 +127,8 @@ void	showtotproc(struct tstat *, double, int, int);
 void	showcmdproc(struct tstat *, double, int, int);
 
 void	printg     (const char *, ...);
-int	prisyst(struct sstat  *, int, int, int, int, char *,
-                int, int, int, int, int);
+int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
+			char *, int, int, int, int, int);
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
 void	priphead(int, int, char, char, char);

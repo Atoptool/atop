@@ -1453,11 +1453,11 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 ** print the system-wide statistics
 */
 static void	pridisklike(extraparam *, struct perdsk *, char *,
-		         char *, int, unsigned int *, int *, int);
+		      char *, int, unsigned int *, int *, int, regex_t *);
 
 int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
-        int fixedhead, char *highorderp,
+        int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines)
 {
@@ -1663,13 +1663,15 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         extra.mstot = extra.cputot * 1000 / hertz / sstat->cpu.nrcpu; 
 
 	pridisklike(&extra, sstat->dsk.lvm, "LVM", highorderp, maxlvmlines,
-			&highbadness, &curline, fixedhead);
+			&highbadness, &curline, fixedhead,
+			selp->lvmnamesz ? &(selp->lvmregex) : (void *) 0);
 
 	pridisklike(&extra, sstat->dsk.mdd, "MDD", highorderp, maxmddlines,
-			&highbadness, &curline, fixedhead);
+			&highbadness, &curline, fixedhead, (void *) 0);
 
 	pridisklike(&extra, sstat->dsk.dsk, "DSK", highorderp, maxdsklines,
-			&highbadness, &curline, fixedhead);
+			&highbadness, &curline, fixedhead,
+			selp->dsknamesz ? &(selp->dskregex) : (void *) 0);
 
         /*
         ** NET statistics
@@ -1709,6 +1711,10 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 if (sstat->intf.intf[extra.index].rpack ||
                     sstat->intf.intf[extra.index].spack || fixedhead)
                 {
+			if (selp->itfnamesz && regexec(&(selp->itfregex),
+			       sstat->intf.intf[extra.index].name, 0, NULL, 0))
+				continue;	// suppress (not selected)
+
                         /*
                         ** calculate busy-percentage for interface
                         */
@@ -1808,7 +1814,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 */
 static void
 pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
-	int maxlines, unsigned int *highbadp, int *curlinp, int fixedhead)
+	int maxlines, unsigned int *highbadp, int *curlinp, int fixedhead,
+	regex_t *rep)
 {
 	int 		lin;
         count_t         busy;
@@ -1817,6 +1824,9 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
         for (ep->perdsk = dp, ep->index=0, lin=0;
 	     ep->perdsk[ep->index].name[0] && lin < maxlines; ep->index++)
         {
+		if (rep && regexec(rep, ep->perdsk[ep->index].name, 0, NULL, 0))
+			continue;	// suppress (not selected)
+
                 ep->iotot =  ep->perdsk[ep->index].nread +
 		             ep->perdsk[ep->index].nwrite;
 
