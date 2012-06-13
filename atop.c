@@ -319,8 +319,8 @@ char		rawreadflag;
 unsigned int	begintime, endtime;
 char		flaglist[MAXFL];
 char		deviatonly = 1;
-char      	usecolors=1;    /* boolean: colors for high occupation  */
-char		threadview=0;	/* boolean: show individual threads     */
+char      	usecolors  = 1;  /* boolean: colors for high occupation  */
+char		threadview = 0;	 /* boolean: show individual threads     */
 
 unsigned short	hertz;
 unsigned int	pagesize;

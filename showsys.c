@@ -188,13 +188,14 @@ void showsysline(sys_printpair* elemptr,
         syscolorlabel(labeltext, badness);
 
         /* count number of items */
-        sys_printpair newelems[40];     // MURPHY
-        int nitems;
-        for (nitems=0; elemptr[nitems].f != 0; ++nitems)
-        {
-                newelems[nitems]=elemptr[nitems];
-        }
-        newelems[nitems].f=0;
+#define MAXELEMS 40
+	sys_printpair newelems[MAXELEMS];
+	int nitems;
+
+	for (nitems=0; nitems < MAXELEMS-1 && elemptr[nitems].f != 0; ++nitems)
+		newelems[nitems]=elemptr[nitems];
+
+	newelems[nitems].f=0;
 
         /* remove lowest priority box to make room as needed */
         while (nitems > avail)
