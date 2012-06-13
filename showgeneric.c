@@ -315,6 +315,10 @@ static int	(*procsort[])(const void *, const void *) = {
 
 extern proc_printpair ownprocs[];
 
+/*
+** global: incremented by -> key and decremented by <- key
+*/
+int	startoffset;
 
 /*
 ** print the deviation-counters on process- and system-level
@@ -396,6 +400,8 @@ generic_samp(time_t curtime, int nsecs,
 
 	callnr++;
 
+	startoffset = 0;
+
 	/*
 	** compute the total capacity of this system for the 
 	** four main resources
@@ -474,14 +480,9 @@ generic_samp(time_t curtime, int nsecs,
 			len2, "", buf);
 
 		if (screen)
-                {
 			attroff(A_REVERSE);
-			attroff(A_REVERSE);
-                }
                 else
-                {
                         printg("\n");
-                }
 
 		/*
 		** print cumulative system- and user-time for all processes
@@ -557,14 +558,20 @@ generic_samp(time_t curtime, int nsecs,
 
 		if (statmsg)
 		{
-			clrtoeol();
-			if (usecolors)
-				attron(COLOR_PAIR(COLORLOW));
+			if (screen)
+			{
+				clrtoeol();
+				if (usecolors)
+					attron(COLOR_PAIR(COLORLOW));
+			}
 
 			printg(statmsg);
 
-			if (usecolors)
-				attroff(COLOR_PAIR(COLORLOW));
+			if (screen)
+			{
+				if (usecolors)
+					attroff(COLOR_PAIR(COLORLOW));
+			}
 
 			statmsg = NULL;
 		}
@@ -851,6 +858,9 @@ generic_samp(time_t curtime, int nsecs,
 			   */
 			   case ERR:
 			   case 0:
+				timeout(0);
+				(void) getch();
+				timeout(-1);
 				if (tpcumlist) free(tpcumlist);
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
@@ -1078,7 +1088,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** command-line per process
+			   ** command line per process
 			   */
 			   case MPROCARG:
 				showtype  = MPROCARG;
@@ -1457,12 +1467,14 @@ generic_samp(time_t curtime, int nsecs,
 				if (threadview)
 				{
 					threadview = 0;
-					statmsg = "Thread view disabled";
+					statmsg    = "Thread view disabled";
+					firstproc  = 0;
 				}
 				else
 				{
 					threadview = 1;
-					statmsg = "Thread view enabled";
+					statmsg    = "Thread view enabled";
+					firstproc  = 0;
 				}
 				break;
 
@@ -1568,8 +1580,41 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** handle backward
+			   ** handle arrow right for command line
 			   */
+			   case KEY_RIGHT:
+				startoffset++;
+				break;
+
+			   /*
+			   ** handle arrow left for command line
+			   */
+			   case KEY_LEFT:
+				if (startoffset > 0)
+					startoffset--;
+				break;
+
+			   /*
+			   ** handle arrow down to go one line down
+			   */
+			   case KEY_DOWN:
+				if (firstproc < alistsz-1)
+				  //  alistsz-firstproc >= plistsz)
+					firstproc += 1;
+				break;
+
+			   /*
+			   ** handle arrow up to go one line up
+			   */
+			   case KEY_UP:	
+				if (firstproc > 0)
+					firstproc -= 1;
+				break;
+
+			   /*
+			   ** handle forward
+			   */
+			   case KEY_NPAGE:
 			   case MLISTFW:
 				if (alistsz-firstproc > plistsz)
 					firstproc += plistsz;
@@ -1578,16 +1623,19 @@ generic_samp(time_t curtime, int nsecs,
 			   /*
 			   ** handle backward
 			   */
+			   case KEY_PPAGE:
 			   case MLISTBW:
 				if (firstproc >= plistsz)
 					firstproc -= plistsz;
+				else
+					firstproc = 0;
 				break;
 
 			   /*
 			   ** handle screen resize
 			   */
 			   case KEY_RESIZE:
-				statmsg = "Window has been resized....";
+				statmsg = "Window has been resized...";
 				break;
 
 			   /*
@@ -2026,6 +2074,7 @@ generic_init(void)
 		initscr();
 		cbreak();
 		noecho();
+		keypad(stdscr, TRUE);
 
 		if (COLS  < 30)
 		{
@@ -2051,9 +2100,10 @@ generic_init(void)
 		{
 			usecolors = 0;
 		}
-	} 
-               signal(SIGINT,   cleanstop);
-               signal(SIGTERM,  cleanstop);
+	}
+
+	signal(SIGINT,   cleanstop);
+	signal(SIGTERM,  cleanstop);
 }
 
 /*
@@ -2064,73 +2114,79 @@ static struct helptext {
 	char helparg;
 } helptext[] = {
 	{"Figures shown for active processes:\n", 		' '},
-	{"\t'%c' - generic info (default)\n",			MPROCGEN},
-	{"\t'%c' - memory details\n",				MPROCMEM},
-	{"\t'%c' - disk details\n",				MPROCDSK},
-	{"\t'%c' - network details\n",				MPROCNET},
-	{"\t'%c' - scheduling and thread-group info\n",		MPROCSCH},
-	{"\t'%c' - various info (ppid, user/group, date/time, status, "
+	{"\t'%c'  - generic info (default)\n",			MPROCGEN},
+	{"\t'%c'  - memory details\n",				MPROCMEM},
+	{"\t'%c'  - disk details\n",				MPROCDSK},
+	{"\t'%c'  - network details\n",				MPROCNET},
+	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH},
+	{"\t'%c'  - various info (ppid, user/group, date/time, status, "
 	 "exitcode)\n",	MPROCVAR},
-	{"\t'%c' - full command-line per process\n",		MPROCARG},
-	{"\t'%c' - use own output line definition\n",		MPROCOWN},
+	{"\t'%c'  - full command line per process\n",		MPROCARG},
+	{"\t'%c'  - use own output line definition\n",		MPROCOWN},
 	{"\n",							' '},
 	{"Sort list of processes in order of:\n",		' '},
-	{"\t'%c' - cpu activity\n",				MSORTCPU},
-	{"\t'%c' - memory consumption\n",			MSORTMEM},
-	{"\t'%c' - disk activity\n",				MSORTDSK},
-	{"\t'%c' - network activity\n",				MSORTNET},
-	{"\t'%c' - most active system resource (auto mode)\n",	MSORTAUTO},
+	{"\t'%c'  - cpu activity\n",				MSORTCPU},
+	{"\t'%c'  - memory consumption\n",			MSORTMEM},
+	{"\t'%c'  - disk activity\n",				MSORTDSK},
+	{"\t'%c'  - network activity\n",			MSORTNET},
+	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO},
 	{"\n",							' '},
 	{"Accumulated figures:\n",				' '},
-	{"\t'%c' - total resource consumption per user\n", 	MCUMUSER},
-	{"\t'%c' - total resource consumption per program (i.e. same "
+	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
+	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
 	{"\n",							' '},
 	{"Selections:\n",					' '},
-	{"\t'%c' - focus on specific user name    (regular expression)\n",
+	{"\t'%c'  - focus on specific user name    (regular expression)\n",
 								MSELUSER},
-	{"\t'%c' - focus on specific process name (regular expression)\n",
+	{"\t'%c'  - focus on specific process name (regular expression)\n",
 								MSELPROC},
+	{"\n",							      ' '},
+	{"Screen-handling:\n",					      ' '},
+	{"\t^L   - redraw the screen                       \n",	      ' '},
+	{"\tPgDn - show next page in the process list (or ^F)\n",     ' '},
+	{"\tArDn - arrow-down for next line in process list\n",       ' '},
+	{"\tPgUp - show previous page in the process list (or ^B)\n", ' '},
+	{"\tArUp   arrow-up for previous line in process list\n",     ' '},
 	{"\n",							' '},
-	{"Screen-handling:\n",					' '},
-	{"\t^L  - redraw the screen                       \n",	' '},
-	{"\t^F  - show next     page in the process-list (forward)\n",	' '},
-	{"\t^B  - show previous page in the process-list (backward)\n", ' '},
+	{"\tArRt - arrow-right for next character in full command line\n", ' '},
+	{"\tArLt - arrow-left  for previous character in full command line\n",
+									' '},
 	{"\n",							' '},
 	{"Presentation (these keys are shown in the header line):\n",	' '},
-	{"\t'%c' - show individual threads                          (toggle)\n",
-								MTHREAD},
-	{"\t'%c' - show all processes (default: active processes)   (toggle)\n",
+	{"\t'%c'  - show individual threads                        (toggle)\n",
+		 						MTHREAD},
+	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
 								MALLPROC},
-	{"\t'%c' - fixate on static range of header-lines           (toggle)\n",
+	{"\t'%c'  - fixate on static range of header-lines         (toggle)\n",
 								MSYSFIXED},
-	{"\t'%c' - no colors to indicate high occupation            (toggle)\n",
+	{"\t'%c'  - no colors to indicate high occupation          (toggle)\n",
 								MCOLORS},
-	{"\t'%c' - show average-per-second i.s.o. total values      (toggle)\n",
+	{"\t'%c'  - show average-per-second i.s.o. total values    (toggle)\n",
 								MAVGVAL},
 	{"\n",							' '},
 	{"Raw file viewing:\n",					' '},
-	{"\t'%c' - show next     sample in raw file\n",		MSAMPNEXT},
-	{"\t'%c' - show previous sample in raw file\n",		MSAMPPREV},
-	{"\t'%c' - branch to certain time in raw file)\n",	MSAMPBRANCH},
-	{"\t'%c' - rewind to begin of raw file)\n",		MRESET},
+	{"\t'%c'  - show next     sample in raw file\n",	MSAMPNEXT},
+	{"\t'%c'  - show previous sample in raw file\n",	MSAMPPREV},
+	{"\t'%c'  - branch to certain time in raw file)\n",	MSAMPBRANCH},
+	{"\t'%c'  - rewind to begin of raw file)\n",		MRESET},
 	{"\n",							' '},
 	{"Miscellaneous commands:\n",				' '},
-	{"\t'%c' - change interval-timer (0 = only manual trigger)\n",
+	{"\t'%c'  - change interval-timer (0 = only manual trigger)\n",
 								MINTERVAL},
-	{"\t'%c' - manual trigger to force next sample\n",	MSAMPNEXT},
-	{"\t'%c' - reset counters to boot time values\n",	MRESET},
-	{"\t'%c' - pause-button to freeze current sample (toggle)\n",
+	{"\t'%c'  - manual trigger to force next sample\n",	MSAMPNEXT},
+	{"\t'%c'  - reset counters to boot time values\n",	MRESET},
+	{"\t'%c'  - pause-button to freeze current sample (toggle)\n",
 								MPAUSE},
 	{"\n",							' '},
-	{"\t'%c' - limited lines for per-cpu, disk and interface resources\n",
+	{"\t'%c'  - limited lines for per-cpu, disk and interface resources\n",
 								MSYSLIMIT},
-	{"\t'%c' - kill a process (i.e. send a signal)\n",	MKILLPROC},
+	{"\t'%c'  - kill a process (i.e. send a signal)\n",	MKILLPROC},
 	{"\n",							' '},
-	{"\t'%c' - version-information\n",			MVERSION},
-	{"\t'%c' - help-information\n",				MHELP1},
-	{"\t'%c' - help-information\n",				MHELP2},
-	{"\t'%c' - quit this program\n",			MQUIT},
+	{"\t'%c'  - version-information\n",			MVERSION},
+	{"\t'%c'  - help-information\n",			MHELP1},
+	{"\t'%c'  - help-information\n",			MHELP2},
+	{"\t'%c'  - quit this program\n",			MQUIT},
 };
 
 static int helplines = sizeof(helptext)/sizeof(struct helptext);
@@ -2231,7 +2287,7 @@ generic_usage(void)
 			MPROCSCH);
 	printf("\t  -%c  show various process-info (ppid, user/group, "
 	                 "date/time)\n", MPROCVAR);
-	printf("\t  -%c  show command-line per process\n",
+	printf("\t  -%c  show command line per process\n",
 			MPROCARG);
 	printf("\t  -%c  show own defined process-info\n",
 			MPROCOWN);

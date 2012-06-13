@@ -24,7 +24,7 @@
 */
 
 #define	PNAMLEN		15
-#define	CMDLEN		150
+#define	CMDLEN		255
 
 /* 
 ** structure containing only relevant process-info extracted 

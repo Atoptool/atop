@@ -350,7 +350,7 @@ showhdrline(proc_printpair* elemptr, int curlist, int totlist,
  * showprocline: show line for processes.
  * if in interactive mode, columns are aligned to fill out rows
  * params:
- *     elemptr: pointer to array of print definitcion structs ptrs
+ *     elemptr: pointer to array of print definition structs ptrs
  *     curstat: the process to print
  *     perc: the sort order used
  *     nsecs: number of seconds elapsed between previous and this sample
@@ -1316,23 +1316,26 @@ char *
 procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         extern proc_printdef procprt_COMMAND_LINE;
-        static char buf[CMDLEN+1];
+        extern int startoffset;		// influenced by -> and <- keys
 
-        int len=procprt_COMMAND_LINE.width;
-        if (len > CMDLEN) len=CMDLEN;
+        static char buf[CMDLEN+1];
+	char	*pline = curstat->gen.cmdline[0] ?
+		              curstat->gen.cmdline : curstat->gen.name;
+
+        int curwidth   = procprt_COMMAND_LINE.width <= CMDLEN ?
+				procprt_COMMAND_LINE.width : CMDLEN;
+
+        int curlinelen = strlen(pline);
+        int curoffset  = startoffset;
+
+	if (curoffset > curlinelen)
+		curoffset = curlinelen;
 
         if (screen) 
-        {
-                sprintf(buf, "%-*.*s", len, len, 
-                               curstat->gen.cmdline[0] ? 
-                               curstat->gen.cmdline : curstat->gen.name);
-        }
+                sprintf(buf, "%-*.*s", curwidth, curwidth, pline+curoffset);
         else
-        {
-                sprintf(buf, "%.*s", CMDLEN,
-                               curstat->gen.cmdline[0] ? 
-                               curstat->gen.cmdline : curstat->gen.name);
-        }
+                sprintf(buf, "%.*s", CMDLEN, pline+curoffset);
+
         return buf;
 }
 
