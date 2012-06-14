@@ -42,7 +42,7 @@ fi
 # Prepare a directory for distribution under /tmp
 # and copy all required stuff 
 ############################################################################
-rm -r          		/tmp/atop-$VERSION 2> /dev/null
+rm -rf         		/tmp/atop-$VERSION 2> /dev/null
 
 mkdir          		/tmp/atop-$VERSION
 cp *.[ch]		/tmp/atop-$VERSION
@@ -51,7 +51,6 @@ cp README		/tmp/atop-$VERSION
 cp COPYING		/tmp/atop-$VERSION
 cp ChangeLog		/tmp/atop-$VERSION
 cp AUTHOR		/tmp/atop-$VERSION
-# cp atop      		/tmp/atop-$VERSION
 cp atop.daily  		/tmp/atop-$VERSION
 cp atop.cron  		/tmp/atop-$VERSION
 cp atop.init  		/tmp/atop-$VERSION

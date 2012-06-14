@@ -329,7 +329,7 @@ generic_samp(time_t curtime, int nsecs,
            struct sstat *sstat, struct tstat *tstat, struct tstat **proclist,
            int ndeviat, int ntask, int nactproc,
            int totproc, int totrun, int totslpi, int totslpu, int totzomb,
-           int nexit, char flag)
+           int nexit, unsigned int noverflow, char flag)
 {
 	static int	callnr = 0;
 
@@ -337,7 +337,7 @@ generic_samp(time_t curtime, int nsecs,
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
 	char		format1[16], format2[16], hhmm[16];
-	char		*statmsg = NULL;
+	char		*statmsg = NULL, statbuf[80];
 	char		 *lastsortp, curorder, autoorder;
 	char		buf[33];
 	struct passwd 	*pwd;
@@ -493,7 +493,15 @@ generic_samp(time_t curtime, int nsecs,
 		*/
 		pricumproc(sstat, proclist, nactproc, ntask,
 			totproc, totrun, totslpi, totslpu, totzomb,
-			nexit, avgval, nsecs);
+			nexit, noverflow, avgval, nsecs);
+
+		if (noverflow)
+		{
+			snprintf(statbuf, sizeof statbuf, 
+			         "Only %d exited processes in handled "
+			         "-- %u skipped!", nexit, noverflow);
+			statmsg = statbuf;
+		}
 
 		curline=2;
 

@@ -199,7 +199,7 @@ static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 int
 deviatproc(struct tstat *aproc, int npresent,
            struct tstat *eproc, int nexit, int deviatonly,
-	   struct tstat *dproc, struct sstat *dstat, int *nactproc,
+	   struct tstat *dproc, struct sstat *dstat, unsigned int *nactproc,
            int *totproc, int *totrun, int *totslpi, int *totslpu, int *nzombie)
 {
 	register int		c, d;

@@ -211,7 +211,7 @@ parseout(time_t curtime, int numsecs,
 	 struct sstat *ss, struct tstat *ts, struct tstat **proclist,
 	 int ndeviat, int ntask, int nactproc,
          int totproc, int totrun, int totslpi, int totslpu, int totzomb,
-	 int nexit, char flag)
+	 int nexit, unsigned int noverflow, char flag)
 {
 	register int	i;
 	char		datestr[32], timestr[32], header[256];

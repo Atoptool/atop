@@ -221,6 +221,7 @@ struct rawrecord {
 	unsigned int    totslpu;	/* number of sleeping threads(D)*/
 	unsigned int	totzomb;	/* number of zombie processes   */
 	unsigned int	nexit;		/* number of exited processes   */
+	unsigned int	noverflow;	/* number of overflow processes */
 	unsigned int	ifuture[6];	/* future use                   */
 };
 
@@ -241,7 +242,7 @@ rawwrite(time_t curtime, int numsecs,
 	 struct sstat *ss, struct tstat *ts, struct tstat **proclist,
 	 int ndeviat, int ntask, int nactproc,
          int totproc, int totrun, int totslpi, int totslpu, int totzomb, 
-         int nexit, char flag)
+         int nexit, unsigned int noverflow, char flag)
 {
 	static int		rawfd = -1;
 	struct rawrecord	rr;
@@ -294,6 +295,7 @@ rawwrite(time_t curtime, int numsecs,
 	rr.nactproc	= nactproc;
 	rr.ntask	= ntask;
 	rr.nexit	= nexit;
+	rr.noverflow	= noverflow;
 	rr.totproc	= totproc;
 	rr.totrun	= totrun;
 	rr.totslpi	= totslpi;
@@ -766,7 +768,8 @@ rawread(void)
 			             &devsstat, devtstat, devpstat,
 		 	             rr.ndeviat,  rr.ntask, rr.nactproc,
 			             rr.totproc, rr.totrun, rr.totslpi,
-			             rr.totslpu, rr.totzomb, rr.nexit, flags);
+			             rr.totslpu, rr.totzomb, rr.nexit,
+			             rr.noverflow, flags);
 
 			free(devtstat);
 			free(devpstat);

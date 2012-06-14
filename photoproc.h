@@ -136,7 +136,7 @@ int		pdb_srchresidue(struct tstat *, struct pinfo **);
 ** prototypes for raw process-statistics functions
 */
 int		deviatproc(struct tstat *, int, struct tstat *, int, int,
-				struct tstat *, struct sstat *, int *,
+				struct tstat *, struct sstat *, unsigned int *,
 				int *, int *, int *, int *, int *);
 int		photoproc(struct tstat *, int);
 unsigned int	countprocs(void);

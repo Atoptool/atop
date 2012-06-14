@@ -418,9 +418,20 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
 
         extraparam *as=q;
         static char buf[15]="#exit     ";
+
         if (supportflags & ACCTACTIVE)
         {
-                val2valstr(as->nexit, buf+6, 6, as->avgval, as->nsecs);
+		if (as->noverflow)
+		{
+			*color = COLORHIGH;
+			buf[6] = '>';
+			val2valstr(as->nexit, buf+7, 5, as->avgval, as->nsecs);
+		}
+		else
+		{
+			val2valstr(as->nexit, buf+6, 6, as->avgval, as->nsecs);
+		}
+
                 return buf;
         }
         else

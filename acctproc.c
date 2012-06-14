@@ -145,6 +145,7 @@ static	int   	acctfd = -1;	/* fd of account file       		  */
 static count_t 	acctexp (comp_t  ct);
 static count_t	acctexp2(comp2_t ct);
 static int	acctvers(int);
+static void	acctrestarttrial();
 
 struct pacctadm {
 	char		*name;
@@ -296,7 +297,7 @@ acctswon(void)
 	**
 	** first try to create a semaphore exclusively; if this succeeds,
 	** this is the first atop-incarnation since boot and the semaphore
-	** should be initialized
+	** should be initialized`
 	*/
 	if ( (semid = semget(SEMAKEY, 2, 0666|IPC_CREAT|IPC_EXCL)) >= 0)
 		(void) semctl(semid, 0, SETALL, arg);
@@ -565,6 +566,27 @@ acctprocnt(void)
 }
 
 /*
+** reposition the seek-offset in the process-account file to skip
+** processes that have not been read
+*/
+void
+acctrepos(unsigned int noverflow)
+{
+	/*
+	** if accounting not supported, skip call
+	*/
+	if (acctfd == -1)
+		return;
+
+	/*
+	** reposition to start of file
+	*/
+	lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
+	acctsize   += noverflow * acctrecsz;
+}
+
+
+/*
 ** read process-records from the account-file,
 ** which are written since the previous cycle
 */
@@ -690,7 +712,83 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 	acctsize += nrexit * acctrecsz;
 
+	if (acctsize > ACCTMAXFILESZ)
+		acctrestarttrial();
+
 	return nrexit;
+}
+
+/*
+** when the size of the accounting file exceeds a certain limit,
+** it might be useful to stop process accounting, truncate the
+** process accounting file to zero and start process accounting
+** again
+**
+** this will only be done if this atop process  is the only one
+** that is currently using the accounting file
+*/
+static void
+acctrestarttrial()
+{
+	struct stat 	statacc;
+	int		semid;
+
+	/*
+	** not private accounting-file in use?
+	*/
+	if (!acctatop)
+		return;		// do not restart
+
+	/*
+	** still remaining records in accounting file that are
+	** written between the moment that the number of exited
+	** processes was counted and the moment that all processes
+	** were read
+	*/
+	(void) fstat(acctfd, &statacc);
+
+	if (acctsize != statacc.st_size)
+		return;		// do not restart
+
+	/*
+	** claim the semaphore to get exclusive rights for
+	** the accounting-manipulation
+	*/
+	semid = semget(SEMAKEY, 0, 0);
+
+	(void) semop(semid, &semclaim, 1);
+
+	/*
+	** check if there are more users of accounting file
+	*/
+	if (semctl(semid, 1, GETVAL, 0) < SEMTOTAL-1)
+	{
+		(void) semop(semid, &semrelse, 1);
+		return;		// do not restart
+	}
+
+	/*
+	** restart is possible
+	**
+	** - switch off accounting
+	** - truncate the file
+	** - switch on accounting
+	*/
+	regainrootprivs();	// get root privs again 
+
+	(void) acct(0);		// switch off accounting
+
+	(void) lseek(acctfd, 0, SEEK_SET);
+	(void) truncate(ACCTDIR "/" ACCTFILE, 0);
+
+	(void) acct(ACCTDIR "/" ACCTFILE);
+
+	if (! droprootprivs() )
+		cleanstop(42);
+
+	acctsize = 0;
+
+	(void) semop(semid, &semrelse, 1);
 }
 
 /*

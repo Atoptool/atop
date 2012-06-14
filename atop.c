@@ -551,7 +551,7 @@ main(int argc, char *argv[])
 		/*
 		** get optional interval-value and optional number of samples	
 		*/
-		if (optind < argc && optind < MAXFL)
+			if (optind < argc && optind < MAXFL)
 		{
 			if (!numeric(argv[optind]))
 				prusage(argv[0]);
@@ -693,7 +693,7 @@ engine(void)
 	struct tstat		**devpstat;	/* pointers to processes*/
 						/* in deviation list    */
 
-	int			ntask, nexit, ndeviat, nactproc;
+	unsigned int		ntask, nexit, noverflow, ndeviat, nactproc;
 	int			totproc, totrun, totslpi, totslpu, totzombie;
 
 	/*
@@ -822,12 +822,24 @@ engine(void)
 
 		/*
 		** register processes which exited during last sample;
-		** first determine how many processes exited and
-		** reserve space for them, and secondly obtain the info
+		** first determine how many processes exited
+		** the number of exited processes is limited to avoid
+		** that atop explodes in memory and introduces OOM killing
 		*/
 		nexit = acctprocnt();	/* number of exited processes */
 
-		if (nexit > 0)	
+		if (nexit > MAXACCTPROCS)
+		{
+			noverflow = nexit - MAXACCTPROCS;
+			nexit     = MAXACCTPROCS;
+		}
+		else
+			noverflow = 0;
+
+		/*
+		** reserve space for the exited processes and read them
+		*/
+		if (nexit > 0)
 		{
 			curpexit = malloc(  nexit * sizeof(struct tstat));
 
@@ -838,6 +850,14 @@ engine(void)
 			memset(curpexit, 0, nexit * sizeof(struct tstat));
 
 			acctphotoproc(curpexit, nexit);
+
+			/*
+ 			** reposition offset in accounting file when not
+			** all exited processes have been read (i.e. skip
+			** those processes)
+			*/
+			if (noverflow)
+				acctrepos(noverflow);
 		}
 		else
 			curpexit = NULL;
@@ -879,7 +899,7 @@ engine(void)
 		           	     devsstat, devtstat, devpstat,
 		                     ndeviat, ntask, nactproc,
 		                     totproc, totrun, totslpi, totslpu,
-		                     totzombie, nexit, sampcnt==0);
+		                     totzombie, nexit, noverflow, sampcnt==0);
 
 		/*
 		** release dynamically allocated memory

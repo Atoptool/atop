@@ -107,7 +107,8 @@ static void	pratopsaruse(char *);
 static void	reportlive(time_t, int, struct sstat *);
 static char	reportraw (time_t, int,
 		           struct sstat *, struct tstat *, struct tstat **,
-		           int, int, int, int, int, int, int, int, int, char);
+		           int, int, int, int, int, int, int, int,
+		           int, unsigned int, char);
 static void	reportheader(struct utsname *, time_t);
 static time_t	daylimit(time_t);
 
@@ -648,7 +649,7 @@ reportraw(time_t curtime, int numsecs,
          	struct sstat *ss, struct tstat *ts, struct tstat **proclist,
          	int ndeviat, int ntask, int nactproc,
 		int totproc, int totrun, int totslpi, int totslpu, int totzomb,
-		int nexit, char flags)
+		int nexit, unsigned int noverflow, char flags)
 {
 	static char		firstcall = 1;
 	char			timebuf[16], datebuf[16];

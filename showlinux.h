@@ -49,9 +49,10 @@ typedef struct {
         int		ntslpu;
         int		nzomb;
         int		nexit;
+        int		noverflow;
         int		avgval;
         int		nsecs;
-        count_t		 mstot;
+        count_t		mstot;
         count_t		iotot;
 	struct perdsk	*perdsk;
         int		index;

@@ -774,7 +774,7 @@ void
 pricumproc(struct sstat *sstat, struct tstat **proclist,
            int nactproc, int ntask, int totproc,
 	   int totrun, int totslpi, int totslpu, int totzomb,
-           int nexit, int avgval, int nsecs)
+           int nexit, unsigned int noverflow, int avgval, int nsecs)
 {
 
         static int firsttime=1;
@@ -960,6 +960,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	extra.ntslpu	= totslpu;
         extra.nzomb	= totzomb;
         extra.nexit	= nexit;
+        extra.noverflow	= noverflow;
         extra.avgval	= avgval;
         extra.nsecs	= nsecs;
 

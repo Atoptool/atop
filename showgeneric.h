@@ -115,7 +115,7 @@ struct sselection {
 */
 void	totalcap   (struct syscap *, struct sstat *, struct tstat **, int);
 void	pricumproc (struct sstat *,  struct tstat **, int, int, int,
-					int, int, int, int, int, int, int);
+			int, int, int, int, int, unsigned int, int, int);
 
 void	showgenproc(struct tstat *, double, int, int);
 void	showmemproc(struct tstat *, double, int, int);

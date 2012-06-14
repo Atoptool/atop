@@ -49,7 +49,8 @@ struct sstat;
 struct visualize {
 	char	(*show_samp)  (time_t, int,
 	                struct sstat *, struct tstat *, struct tstat **,
-			int, int, int, int, int, int, int, int, int, char);
+			int, int, int, int, int, int, int, int, 
+			int, unsigned int, char);
 	void	(*show_error) (const char *, ...);
 	void	(*show_end)   (void);
 	void	(*show_usage) (void);
@@ -106,7 +107,8 @@ extern int		almostcrit;
 */
 char		generic_samp (time_t, int,
 		            struct sstat *, struct tstat *, struct tstat **,
-		            int, int, int, int, int, int, int, int, int, char);
+		            int, int, int, int, int, int, int, int,
+		            int, unsigned int, char);
 void		generic_error(const char *, ...);
 void		generic_end  (void);
 void		generic_usage(void);
@@ -141,7 +143,7 @@ count_t		subcount(count_t, count_t);
 void  		rawread(void);
 char		rawwrite(time_t, int, struct sstat *, struct tstat *,
 			struct tstat **, int, int, int, int, int, int,
-			int, int, int, char);
+			int, int, int, unsigned int, char);
 
 int 		numeric(char *);
 void		getalarm(int);
