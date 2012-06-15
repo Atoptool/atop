@@ -464,7 +464,7 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						42 - seclen - utsnodenamelen;
+						43 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
@@ -1740,6 +1740,9 @@ generic_samp(time_t curtime, int nsecs,
 			   */
 			   case KEY_RESIZE:
 				statmsg = "Window has been resized...";
+				timeout(0);
+				(void) getch();
+				timeout(-1);
 				break;
 
 			   /*
