@@ -392,10 +392,11 @@ rawwopen()
 		     rh.supportflags	!= supportflags			  )
 		{
 			fprintf(stderr,
-				"%s exists but has incompatible header\n",
+				"existing file %s has incompatible header\n",
 				rawname);
 
-			if (rh.aversion & 0x8000)
+			if (rh.aversion & 0x8000 &&
+			   (rh.aversion & 0x7fff) != getnumvers())
 			{
 				fprintf(stderr,
 					"(created by version %d.%d - "
@@ -625,7 +626,8 @@ rawread(void)
 		fprintf(stderr,
 			"raw file %s has incompatible format\n", rawname);
 
-		if (rh.aversion & 0x8000)
+		if (rh.aversion & 0x8000 &&
+       		   (rh.aversion & 0x7fff) != getnumvers())
 		{
 			fprintf(stderr,
 				"(created by version %d.%d - "
@@ -634,6 +636,12 @@ rawread(void)
 				 rh.aversion       & 0xff,
 				 getnumvers() >> 8,
 				 getnumvers() & 0x7f);
+		}
+		else
+		{
+			fprintf(stderr,
+				"(files from other system architectures might"
+				" be binary incompatible)\n");
 		}
 
 		close(rawfd);
