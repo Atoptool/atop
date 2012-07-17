@@ -288,6 +288,7 @@ static struct sselection syssel;
 static void	showhelp(int);
 static int	paused;     	/* boolean: currently in pause-mode     */
 static int	fixedhead;	/* boolean: fixate header-lines         */
+static int	sysnosort;	/* boolean: suppress sort of resources  */
 static int	avgval;		/* boolean: average values i.s.o. total */
 
 static char	showtype  = MPROCGEN;
@@ -416,25 +417,28 @@ generic_samp(time_t curtime, int nsecs,
 	** sort per-disk      		statistics on busy percentage
 	** sort per-interface 		statistics on busy percentage (if known)
 	*/
-	if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
-		qsort(sstat->cpu.cpu, sstat->cpu.nrcpu,
+	if (!sysnosort)
+	{
+		if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
+			qsort(sstat->cpu.cpu, sstat->cpu.nrcpu,
 	 	               sizeof sstat->cpu.cpu[0], cpucompar);
 
-	if (sstat->dsk.nlvm > 1 && maxlvmlines > 0)
-		qsort(sstat->dsk.lvm, sstat->dsk.nlvm,
+		if (sstat->dsk.nlvm > 1 && maxlvmlines > 0)
+			qsort(sstat->dsk.lvm, sstat->dsk.nlvm,
 			       sizeof sstat->dsk.lvm[0], diskcompar);
 
-	if (sstat->dsk.nmdd > 1 && maxmddlines > 0)
-		qsort(sstat->dsk.mdd, sstat->dsk.nmdd,
+		if (sstat->dsk.nmdd > 1 && maxmddlines > 0)
+			qsort(sstat->dsk.mdd, sstat->dsk.nmdd,
 			       sizeof sstat->dsk.mdd[0], diskcompar);
 
-	if (sstat->dsk.ndsk > 1 && maxdsklines > 0)
-		qsort(sstat->dsk.dsk, sstat->dsk.ndsk,
+		if (sstat->dsk.ndsk > 1 && maxdsklines > 0)
+			qsort(sstat->dsk.dsk, sstat->dsk.ndsk,
 			       sizeof sstat->dsk.dsk[0], diskcompar);
 
-	if (sstat->intf.nrintf > 1 && maxintlines > 0)
-		qsort(sstat->intf.intf, sstat->intf.nrintf,
+		if (sstat->intf.nrintf > 1 && maxintlines > 0)
+			qsort(sstat->intf.intf, sstat->intf.nrintf,
 		  	       sizeof sstat->intf.intf[0], intfcompar);
+	}
 
 	/*
 	** loop in which the system resources and the list of active
@@ -464,15 +468,16 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						43 - seclen - utsnodenamelen;
+						44 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                      ? 'y' : '-',
 			fixedhead  			? 'f' : '-',
+			sysnosort  			? 'F' : '-',
 			deviatonly 			? '-' : 'a',
 			usecolors  			? '-' : 'x',
 			avgval     			? '1' : '-',
@@ -1564,6 +1569,27 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** system-statistics lines:
+			   **	         toggle fixed or variable
+			   */
+			   case MSYSNOSORT:
+				if (sysnosort)
+				{
+					sysnosort=0;
+					statmsg = "System resources will be "
+					          "sorted on utilization...";
+				}
+				else
+				{
+					sysnosort=1;
+					statmsg = "System resources will not "
+					          "be sorted on utilization...";
+				}
+
+				firstproc = 0;
+				break;
+
+			   /*
 			   ** per-thread view wanted with sorting on
 			   ** process level or thread level
 			   */
@@ -2132,6 +2158,13 @@ generic_init(void)
 				fixedhead=1;
 			break;
 
+		   case MSYSNOSORT:
+			if (sysnosort)
+				sysnosort=0;
+			else
+				sysnosort=1;
+			break;
+
 		   case MTHREAD:
 			if (threadview)
 				threadview = 0;
@@ -2267,8 +2300,10 @@ static struct helptext {
 		 						MTHREAD},
 	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
 								MALLPROC},
-	{"\t'%c'  - fixate on static range of header-lines         (toggle)\n",
+	{"\t'%c'  - show fixed number of header-lines              (toggle)\n",
 								MSYSFIXED},
+	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
+								MSYSNOSORT},
 	{"\t'%c'  - no colors to indicate high occupation          (toggle)\n",
 								MCOLORS},
 	{"\t'%c'  - show average-per-second i.s.o. total values    (toggle)\n",
@@ -2375,8 +2410,10 @@ generic_end(void)
 void
 generic_usage(void)
 {
-	printf("\t  -%c  show fixed number of lines with system-statistics\n",
+	printf("\t  -%c  show fixed number of lines with system statistics\n",
 			MSYSFIXED);
+	printf("\t  -%c  suppress sorting of system resources\n",
+			MSYSNOSORT);
 	printf("\t  -%c  show limited number of lines for certain resources\n",
 			MSYSLIMIT);
 	printf("\t  -%c  show individual threads\n", MTHREAD);
@@ -2621,6 +2658,10 @@ do_flags(char *name, char *val)
 
 		   case MSYSFIXED:
 			fixedhead=1;
+			break;
+
+		   case MSYSNOSORT:
+			sysnosort=1;
 			break;
 
 		   case MTHREAD:
