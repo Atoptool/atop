@@ -577,20 +577,25 @@ rawread(void)
 		** compressed raw file to be decompressed via gunzip
 		*/
 		fprintf(stderr, "Decompressing logfile ....\n");
-
-		snprintf(tmpname2, sizeof tmpname2, "/tmp/atopwrk%d", getpid());
-		snprintf(command,  sizeof command, "gunzip -c %s > %s",
-							tmpname1, tmpname2);
-		system (command);
-
-		if ( (rawfd = open(tmpname2, O_RDONLY)) == -1)
+		snprintf(tmpname2, sizeof tmpname2, "/tmp/atopwrkXXXXXX");
+		rawfd = mkstemp(tmpname2);
+		if (rawfd == -1)
 		{
 			fprintf(stderr, "%s - ", rawname);
-			perror("open decompressed raw file");
+			perror("creating decompression temp file");
 			cleanstop(7);
 		}
 
+		snprintf(command,  sizeof command, "gunzip -c %s > %s",
+							tmpname1, tmpname2);
+		const int system_res = system (command);
 		unlink(tmpname2);
+
+		if (system_res)
+		{
+			fprintf(stderr, "%s - gunzip failed", rawname);
+			cleanstop(7);
+		}
 	}
 
 	/*
