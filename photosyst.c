@@ -539,10 +539,7 @@ photosyst(struct sstat *si)
 	*/
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
-		int	nrfields = 9;	/* number of fields to be filled */
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL &&
-								nrfields > 0)
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf, "%s %lld", nam, &cnts[0]);
 
@@ -552,28 +549,30 @@ photosyst(struct sstat *si)
 			if ( strcmp("pswpin", nam) == EQ)
 			{
 				si->mem.swins   = cnts[0];
-				nrfields--;
 				continue;
 			}
 
 			if ( strcmp("pswpout", nam) == EQ)
 			{
 				si->mem.swouts  = cnts[0];
-				nrfields--;
-				continue;
-			}
-
-			if ( strcmp("allocstall", nam) == EQ)
-			{
-				si->mem.allocstall = cnts[0];
-				nrfields--;
 				continue;
 			}
 
 			if ( strncmp("pgscan_", nam, 7) == EQ)
 			{
 				si->mem.pgscans += cnts[0];
-				nrfields--;
+				continue;
+			}
+
+			if ( strncmp("pgsteal_", nam, 8) == EQ)
+			{
+				si->mem.pgsteal += cnts[0];
+				continue;
+			}
+
+			if ( strcmp("allocstall", nam) == EQ)
+			{
+				si->mem.allocstall = cnts[0];
 				continue;
 			}
 		}

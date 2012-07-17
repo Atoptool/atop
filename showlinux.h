@@ -175,6 +175,7 @@ extern sys_printdef syspdef_SWPFREE;
 extern sys_printdef syspdef_SWPCOMMITTED;
 extern sys_printdef syspdef_SWPCOMMITLIM;
 extern sys_printdef syspdef_PAGSCAN;
+extern sys_printdef syspdef_PAGSTEAL;
 extern sys_printdef syspdef_PAGSTALL;
 extern sys_printdef syspdef_PAGSWIN;
 extern sys_printdef syspdef_PAGSWOUT;

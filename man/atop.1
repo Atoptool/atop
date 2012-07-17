@@ -1,4 +1,4 @@
-.TH ATOP 1 "April 2010" "AT Computing"
+.TH ATOP 1 "July 2012" "Linux"
 .SH NAME
 .B atop 
 - AT Computing's System & Process Monitor
@@ -76,10 +76,10 @@ scales dynamically to the current dimensions of the screen/window.
 .br
 If the window is resized horizontally, columns will be added or removed
 automatically. For this purpose, every column has a particular weight. The
-columns with the highest weigths that fit within the current width will
+columns with the highest weights that fit within the current width will
 be shown.
 .br
-If the window is resized vertically, lines of the process-list
+If the window is resized vertically, lines of the process/thread list 
 will be added or removed automatically.
 .PP
 Furthermore in interactive mode the output of 
@@ -87,14 +87,14 @@ Furthermore in interactive mode the output of
 can be controlled by pressing particular keys.
 However it is also possible to specify such key as
 .B flag
-on the command line. In the latter case
+on the command line. In that case
 .I atop
-will switch to the indicated mode on beforehand; this mode can 
+switches to the indicated mode on beforehand; this mode can 
 be modified again interactively. Specifying such key as flag is especially
 useful when running
 .I atop
 with output to a pipe or file (non-interactively).
-The flags used are the same as the keys which can be pressed in interactive
+These flags are the same as the keys that can be pressed in interactive
 mode (see section INTERACTIVE COMMANDS).
 .br
 Additional flags are available to support storage of atop-data in raw 
@@ -107,8 +107,8 @@ the kernel. This forces the kernel to write a record with
 accounting information to the accounting file whenever a process ends.
 Apart from the kernel administration related to the running processes, 
 .I atop
-also interprets the accounting records on disk with every interval;
-in this way 
+also interprets the accounting records on disk with every interval.
+In this way 
 .I atop
 can also show the activity of a process during the interval in which it is
 finished.
@@ -119,8 +119,14 @@ stops (either by pressing `q' or by `kill -15'), it switches off the
 process accounting mechanism again. You should never terminate
 .I atop
 by `kill -9', because then it has no chance to stop
-process accounting; as a result the accounting file may consume a lot of 
+process accounting. As a result the accounting file may consume a lot of 
 disk space after a while.
+.br
+To avoid that the process accounting file consumes too much disk space,
+.I atop
+verifies at the end of every sample if the size of the process accounting
+file exceeds 200 MiB and if this atop process is the only one using the file.
+In that case the file is truncated to a size of zero again.
 .PP
 With the environment variable ATOPACCT the name of a specific process
 accounting file can be specified (accounting should have been activated
@@ -135,6 +141,13 @@ In the latter case,
 .I atop
 switches on process accounting and immediately drops the root-privileges
 again.
+.br
+If
+.I atop
+does not run with root-privileges, it does not show information
+about finished processes. It indicates this situation with the message
+message `no procacct` in the top-right corner (instead of the counter that
+shows the number of exited processes).
 .SH COLORS
 For the resource consumption on system level,
 .I atop
@@ -185,23 +198,23 @@ it is not critical from a performance point-of-view.
 These default values can be modified in the configuration file
 (see separate man-page of atoprc).
 .PP
-When a resource exceeded its critical occupation percentage, the entire
-screen line is colored red.
+When a resource exceeds its critical occupation percentage, the concerning
+values in the screen line are colored red.
 .br
 When a resource exceeded (default) 80% of its critical percentage
-(so it is almost critical), the entire screen line
-is colored cyan. This `almost critical percentage' (one value
+(so it is almost critical), the concerning values in the screen line
+are colored cyan. This `almost critical percentage' (one value
 for all resources) can be modified in the configuration file
 (see separate man-page of atoprc).
 .PP
-With the key 'x' (or flag -x), line coloring can be suppressed.
+With the key 'x' (or flag -x), the use of colors can be suppressed.
 .SH INTERACTIVE COMMANDS
 When running
 .I atop
 interactively (no output redirection), keys can be pressed to control the
 output. In general, lower case keys can be used to show other information for
 the active processes and upper case keys can be used to influence the
-sort order of the active process list.
+sort order of the active process/thread list.
 .PP
 .TP 5
 .B g
@@ -225,7 +238,7 @@ When the kernel patch is not installed and the kernel does not support
 thread group, the status and exit code are shown.
 .br
 The last columns contain the state, the occupation percentage for the
-choosen resource (default: cpu) and the process name.
+chosen resource (default: cpu) and the process name.
 
 When more than 80 positions are available, other information is added.
 .PP
@@ -290,7 +303,7 @@ number of threads in state 'interruptible sleeping' (S),
 number of threads in state 'uninterruptible sleeping' (D),
 scheduling policy (normal timesharing, realtime round-robin, realtime fifo),
 nice value, priority, realtime priority, current processor,
-status, exit code, state, the occupation percentage for the choosen
+status, exit code, state, the occupation percentage for the chosen
 resource and the process name.
 
 When more than 80 positions are available, other information is added.
@@ -303,7 +316,7 @@ Per process the following fields are shown in case of a window-width
 of 80 positions:
 process-id, user name and group,
 start date and time, status (e.g. exit code if the process has finished),
-state, the occupation percentage for the choosen resource and the process name.
+state, the occupation percentage for the chosen resource and the process name.
 
 When more than 80 positions are available, other information is added.
 .PP
@@ -312,7 +325,7 @@ When more than 80 positions are available, other information is added.
 Show the command line of the process.
 
 Per process the following fields are shown: process-id,
-the occupation percentage for the choosen resource and the
+the occupation percentage for the chosen resource and the
 command line including arguments.
 .PP
 .TP 5
@@ -332,8 +345,14 @@ for a detailed description.
 Show the individual threads within a process (toggle).
 
 Single-threaded processes are still shown as one line.
-For multi-threaded processes separate lines show the activity
-per individual thread (different color).
+.br
+For multi-threaded processes, one line represents the process
+while additional lines show the activity
+per individual thread (in a different color). Depending on
+the option 'a' (all or active toggle), all threads are shown
+or only the threads that were active during the last interval.
+.br
+Whether this key is active or not can be seen in the header line.
 .PP
 .TP 5
 .B u
@@ -351,7 +370,7 @@ When the kernel patch `cnt' has been installed,
 the number of received and sent network packets are shown.
 .br
 The last columns contain the accumulated occupation percentage for the
-choosen resource (default: cpu) and the user name.
+chosen resource (default: cpu) and the user name.
 .PP
 .TP 5
 .B p
@@ -369,7 +388,7 @@ When the kernel patch `cnt' has been installed,
 the number of received and sent network packets are shown.
 .br
 The last columns contain the accumulated occupation percentage for the
-choosen resource (default: cpu) and the program name.
+chosen resource (default: cpu) and the program name.
 .PP
 .TP 5
 .B C 
@@ -496,12 +515,12 @@ Whether this key is active or not can be seen in the header line.
 .PP
 .TP 5
 .B S
-Specify a search string for specific logical volume names,
-specific disk names and specific network interface names, all
-as a regular expression.
-From now on, only those system resource will be shown that match
+Specify search strings for specific logical volume names,
+specific disk names and specific network interface names. All
+search strings are interpreted as a regular expressions.
+From now on, only those system resources are shown that match
 the concerning regular expression.
-If the Enter-key is pressed without specifying a name, all (active)
+If the Enter-key is pressed without specifying a search string, all (active)
 system resources of that type will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -560,12 +579,28 @@ Send a signal to an active process (a.k.a. kill a process).
 Quit the program.
 .PP
 .TP 5
+.B PgDn
+Show the next page of the process/thread list.
+.br
+With the arrow-down key the list can be scrolled downwards with single lines.
+.PP
+.TP 5
 .B ^F
-Show the next page of the process list (forward).
+Show the next page of the process/thread list (forward).
+.br
+With the arrow-down key the list can be scrolled downwards with single lines.
+.PP
+.TP 5
+.B PgUp
+Show the previous page of the process/thread list.
+.br
+With the arrow-up key the list can be scrolled upwards with single lines.
 .PP
 .TP 5
 .B ^B
-Show the previous page of the process list (backward).
+Show the previous page of the process/thread list (backward).
+.br
+With the arrow-up key the list can be scrolled upwards with single lines.
 .PP
 .TP 5
 .B ^L
@@ -690,11 +725,11 @@ can be changed by the keys which are previously described.
 If values have to be shown by
 .I atop
 which do not fit in the column width,
-another notation is used. If e.g. a cpu-consumption of 233216 milliseconds
+another format is used. If e.g. a cpu-consumption of 233216 milliseconds
 should be shown in a column width of 4 positions, it is shown as `233s'
 (in seconds).
 For large memory figures, another unit is chosen if the value does not fit
-(Mb instead of Kb, Gb instead of Mb).
+(Mb instead of Kb, Gb instead of Mb, Tb instead of Gb, ...).
 For other values, a kind of exponent notation is used (value 123456789
 shown in a column of 5 positions gives 123e6).
 .SH OUTPUT DESCRIPTION - SYSTEM LEVEL
@@ -713,8 +748,8 @@ the number of zombie processes (`#zombie'),
 the number of clone system calls (`clones'), and
 the number of processes that ended during the interval
 (`#exit') when process accounting is used. Instead of `#exit` the last
-column may give the reason why process accounting could not be used
-(e.g. `no acctread`, `no rootprivs`, ...).
+column may indicate that process accounting could not be activated
+(`no procacct`).
 .br
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -951,18 +986,16 @@ signs (`<name>') which means that the process has finished during the last
 interval.
 .br
 Behind the abbreviation `CMD' in the header line, the current page number and
-the total number of pages of the process list are shown.
+the total number of pages of the process/thread list are shown.
 .PP
 .TP 9
 .B COMMAND-LINE
-The full command line of the process (including arguments), which is limited
-to the length of the screen line.
-Th command line can be surrounded by "less/greater than" 
-signs (`<line>') which means that the process has finished during the last
-interval.
+The full command line of the process (including arguments). If the length of
+the command line exceeds the length of the screen line, the arrow 
+keys -> and <- can be used for horizontal scroll.
 .br
 Behind the verb `COMMAND-LINE' in the header line, the current page number
-and the total number of pages of the process list are shown.
+and the total number of pages of the process/thread list are shown.
 .PP
 .TP 9
 .B CPU
@@ -1280,6 +1313,13 @@ which threads (i.e. processes) are related to the same thread group.
 Every thread is represented by
 .I atop
 as a separate line.
+.PP
+.TP 9
+.B TID
+Thread-id.
+All threads within a process run with the same PID but with a
+different TID. This value is shown for individual threads in
+multi-threaded processes (when using the key 'y').
 .PP
 .TP 9
 .B TOTRSZ 
@@ -1737,4 +1777,4 @@ in compressed format.
 .SH AUTHOR
 Gerlof Langeveld (gerlof.langeveld@atoptool.nl)
 .br
-JC van Winkel (jc@ATComputing.nl)
+JC van Winkel

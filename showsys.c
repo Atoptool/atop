@@ -449,15 +449,15 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
 		switch (acctreason)
 		{
 		   case 1:
-                	return "no  acctread";
+                	return "no  procacct";	// "no  acctread";
 		   case 2:
-                	return "no  acctwant";
+                	return "no  procacct";	// "no  acctwant";
 		   case 3:
-                	return "no  acctsema";
+                	return "no  procacct";	// "no  acctsema";
 		   case 4:
-                	return "no acctmkdir";
+                	return "no  procacct";	// "no acctmkdir";
 		   case 5:
-                	return "no rootprivs";
+                	return "no  procacct";	// "no rootprivs";
 		   default:
                 	return "no  procacct";
 		}
@@ -1101,21 +1101,31 @@ sysprt_SWPCOMMITLIM(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_SWPCOMMITLIM =
-{  "SWPCOMMITLIM", sysprt_SWPCOMMITLIM };
+sys_printdef syspdef_SWPCOMMITLIM = {"SWPCOMMITLIM", sysprt_SWPCOMMITLIM };
 /*******************************************************************/
 char *
 sysprt_PAGSCAN(void *p, void *q, int badness, int *color) 
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="scan   ";
-        val2valstr(sstat->mem.pgscans, buf+ 6, 6, as->avgval, as->nsecs);
+        static char buf[16]="scan  ";
+        val2valstr(sstat->mem.pgscans, buf+5, 7, as->avgval, as->nsecs);
         return buf;
 }
 
-sys_printdef syspdef_PAGSCAN =
-{  "PAGSCAN", sysprt_PAGSCAN };
+sys_printdef syspdef_PAGSCAN = {"PAGSCAN", sysprt_PAGSCAN };
+/*******************************************************************/
+char *
+sysprt_PAGSTEAL(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="steal  ";
+        val2valstr(sstat->mem.pgsteal, buf+ 6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PAGSTEAL = {"PAGSTEAL", sysprt_PAGSTEAL };
 /*******************************************************************/
 char *
 sysprt_PAGSTALL(void *p, void *q, int badness, int *color) 
@@ -1127,8 +1137,7 @@ sysprt_PAGSTALL(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_PAGSTALL =
-{  "PAGSTALL", sysprt_PAGSTALL };
+sys_printdef syspdef_PAGSTALL = {"PAGSTALL", sysprt_PAGSTALL };
 /*******************************************************************/
 char *
 sysprt_PAGSWIN(void *p, void *q, int badness, int *color) 
@@ -1140,8 +1149,7 @@ sysprt_PAGSWIN(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_PAGSWIN =
-{  "PAGSWIN", sysprt_PAGSWIN };
+sys_printdef syspdef_PAGSWIN = {"PAGSWIN", sysprt_PAGSWIN };
 /*******************************************************************/
 char *
 sysprt_PAGSWOUT(void *p, void *q, int badness, int *color) 
@@ -1154,8 +1162,7 @@ sysprt_PAGSWOUT(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_PAGSWOUT =
-{  "PAGSWOUT", sysprt_PAGSWOUT };
+sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT };
 /*******************************************************************/
 char *
 sysprt_DSKNAME(void *p, void *q, int badness, int *color) 
@@ -1176,8 +1183,7 @@ sysprt_DSKNAME(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKNAME =
-{  "DSKNAME", sysprt_DSKNAME };
+sys_printdef syspdef_DSKNAME = {"DSKNAME", sysprt_DSKNAME };
 /*******************************************************************/
 char *
 sysprt_DSKBUSY(void *p, void *q, int badness, int *color) 
@@ -1192,8 +1198,7 @@ sysprt_DSKBUSY(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKBUSY =
-{  "DSKBUSY", sysprt_DSKBUSY };
+sys_printdef syspdef_DSKBUSY = {"DSKBUSY", sysprt_DSKBUSY };
 /*******************************************************************/
 char *
 sysprt_DSKNREAD(void *p, void *q, int badness, int *color) 
@@ -1208,8 +1213,7 @@ sysprt_DSKNREAD(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKNREAD =
-{  "DSKNREAD", sysprt_DSKNREAD };
+sys_printdef syspdef_DSKNREAD = {"DSKNREAD", sysprt_DSKNREAD };
 /*******************************************************************/
 char *
 sysprt_DSKNWRITE(void *p, void *q, int badness, int *color) 
@@ -1224,8 +1228,7 @@ sysprt_DSKNWRITE(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKNWRITE =
-{  "DSKNWRITE", sysprt_DSKNWRITE };
+sys_printdef syspdef_DSKNWRITE = {"DSKNWRITE", sysprt_DSKNWRITE };
 /*******************************************************************/
 char *
 sysprt_DSKKBPERWR(void *p, void *q, int badness, int *color) 
@@ -1239,8 +1242,7 @@ sysprt_DSKKBPERWR(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKKBPERWR =
-{  "DSKKBPERWR", sysprt_DSKKBPERWR };
+sys_printdef syspdef_DSKKBPERWR = {"DSKKBPERWR", sysprt_DSKKBPERWR };
 /*******************************************************************/
 char *
 sysprt_DSKKBPERRD(void *p, void *q, int badness, int *color) 
@@ -1254,8 +1256,7 @@ sysprt_DSKKBPERRD(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKKBPERRD =
-{  "DSKKBPERRD", sysprt_DSKKBPERRD };
+sys_printdef syspdef_DSKKBPERRD = {"DSKKBPERRD", sysprt_DSKKBPERRD };
 /*******************************************************************/
 char *
 sysprt_DSKMBPERSECWR(void *p, void *q, int badness, int *color) 
@@ -1269,8 +1270,7 @@ sysprt_DSKMBPERSECWR(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKMBPERSECWR =
-{  "DSKMBPERSECWR", sysprt_DSKMBPERSECWR };
+sys_printdef syspdef_DSKMBPERSECWR = {"DSKMBPERSECWR", sysprt_DSKMBPERSECWR };
 /*******************************************************************/
 char *
 sysprt_DSKMBPERSECRD(void *p, void *q, int badness, int *color) 
@@ -1283,8 +1283,7 @@ sysprt_DSKMBPERSECRD(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKMBPERSECRD =
-{  "DSKMBPERSECRD", sysprt_DSKMBPERSECRD };
+sys_printdef syspdef_DSKMBPERSECRD = {"DSKMBPERSECRD", sysprt_DSKMBPERSECRD };
 /*******************************************************************/
 char *
 sysprt_DSKAVQUEUE(void *p, void *q, int badness, int *color) 
@@ -1298,8 +1297,7 @@ sysprt_DSKAVQUEUE(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKAVQUEUE =
-{  "DSKAVQUEUE", sysprt_DSKAVQUEUE };
+sys_printdef syspdef_DSKAVQUEUE = {"DSKAVQUEUE", sysprt_DSKAVQUEUE };
 /*******************************************************************/
 char *
 sysprt_DSKAVIO(void *p, void *q, int badness, int *color) 
@@ -1327,8 +1325,7 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_DSKAVIO =
-{  "DSKAVIO", sysprt_DSKAVIO };
+sys_printdef syspdef_DSKAVIO = {"DSKAVIO", sysprt_DSKAVIO };
 /*******************************************************************/
 char *
 sysprt_NETTRANSPORT(void *p, void *notused, int badness, int *color) 
@@ -1336,8 +1333,7 @@ sysprt_NETTRANSPORT(void *p, void *notused, int badness, int *color)
         return "transport   ";
 }
 
-sys_printdef syspdef_NETTRANSPORT =
-{  "NETTRANSPORT", sysprt_NETTRANSPORT };
+sys_printdef syspdef_NETTRANSPORT = {"NETTRANSPORT", sysprt_NETTRANSPORT };
 /*******************************************************************/
 char *
 sysprt_NETTCPI(void *p, void *q, int badness, int *color) 
@@ -1349,8 +1345,7 @@ sysprt_NETTCPI(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPI =
-{  "NETTCPI", sysprt_NETTCPI };
+sys_printdef syspdef_NETTCPI = {"NETTCPI", sysprt_NETTCPI };
 /*******************************************************************/
 char *
 sysprt_NETTCPO(void *p, void *q, int badness, int *color) 
@@ -1362,8 +1357,7 @@ sysprt_NETTCPO(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPO =
-{  "NETTCPO", sysprt_NETTCPO };
+sys_printdef syspdef_NETTCPO = {"NETTCPO", sysprt_NETTCPO };
 /*******************************************************************/
 char *
 sysprt_NETTCPACTOPEN(void *p, void *q, int badness, int *color) 
@@ -1375,8 +1369,7 @@ sysprt_NETTCPACTOPEN(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPACTOPEN =
-{  "NETTCPACTOPEN", sysprt_NETTCPACTOPEN };
+sys_printdef syspdef_NETTCPACTOPEN = {"NETTCPACTOPEN", sysprt_NETTCPACTOPEN };
 /*******************************************************************/
 char *
 sysprt_NETTCPPASVOPEN(void *p, void *q, int badness, int *color) 
@@ -1389,7 +1382,7 @@ sysprt_NETTCPPASVOPEN(void *p, void *q, int badness, int *color)
 }
 
 sys_printdef syspdef_NETTCPPASVOPEN =
-{  "NETTCPPASVOPEN", sysprt_NETTCPPASVOPEN };
+{"NETTCPPASVOPEN", sysprt_NETTCPPASVOPEN };
 /*******************************************************************/
 char *
 sysprt_NETTCPRETRANS(void *p, void *q, int badness, int *color) 
@@ -1401,8 +1394,7 @@ sysprt_NETTCPRETRANS(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPRETRANS =
-{  "NETTCPRETRANS", sysprt_NETTCPRETRANS };
+sys_printdef syspdef_NETTCPRETRANS = {"NETTCPRETRANS", sysprt_NETTCPRETRANS };
 /*******************************************************************/
 char *
 sysprt_NETTCPINERR(void *p, void *q, int badness, int *color) 
@@ -1414,8 +1406,7 @@ sysprt_NETTCPINERR(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPINERR =
-{  "NETTCPINERR", sysprt_NETTCPINERR };
+sys_printdef syspdef_NETTCPINERR = {"NETTCPINERR", sysprt_NETTCPINERR };
 /*******************************************************************/
 char *
 sysprt_NETTCPORESET(void *p, void *q, int badness, int *color) 
@@ -1427,8 +1418,7 @@ sysprt_NETTCPORESET(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETTCPORESET =
-{  "NETTCPORESET", sysprt_NETTCPORESET };
+sys_printdef syspdef_NETTCPORESET = {"NETTCPORESET", sysprt_NETTCPORESET };
 /*******************************************************************/
 char *
 sysprt_NETUDPNOPORT(void *p, void *q, int badness, int *color) 
@@ -1440,8 +1430,7 @@ sysprt_NETUDPNOPORT(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-sys_printdef syspdef_NETUDPNOPORT =
-{  "NETUDPNOPORT", sysprt_NETUDPNOPORT };
+sys_printdef syspdef_NETUDPNOPORT = {"NETUDPNOPORT", sysprt_NETUDPNOPORT };
 /*******************************************************************/
 char *
 sysprt_NETUDPINERR(void *p, void *q, int badness, int *color) 

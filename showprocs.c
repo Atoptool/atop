@@ -1316,20 +1316,18 @@ char *
 procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         extern proc_printdef procprt_COMMAND_LINE;
-        extern int startoffset;		// influenced by -> and <- keys
+        extern int	startoffset;	// influenced by -> and <- keys
 
-        static char buf[CMDLEN+1];
-	char	*pline = curstat->gen.cmdline[0] ?
-		              curstat->gen.cmdline : curstat->gen.name;
+        static char	buf[CMDLEN+1];
 
-        int curwidth   = procprt_COMMAND_LINE.width <= CMDLEN ?
+	char	*pline     = curstat->gen.cmdline[0] ?
+		                curstat->gen.cmdline : curstat->gen.name;
+
+        int 	curwidth   = procprt_COMMAND_LINE.width <= CMDLEN ?
 				procprt_COMMAND_LINE.width : CMDLEN;
 
-        int curlinelen = strlen(pline);
-        int curoffset  = startoffset;
-
-	if (curoffset > curlinelen)
-		curoffset = curlinelen;
+        int 	cmdlen     = strlen(pline);
+        int 	curoffset  = startoffset <= cmdlen ? startoffset : cmdlen;
 
         if (screen) 
                 sprintf(buf, "%-*.*s", curwidth, curwidth, pline+curoffset);
@@ -1340,8 +1338,9 @@ procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_COMMAND_LINE = 
-       { "COMMAND-LINE  ", "COMMAND-LINE", 
-            procprt_COMMAND_LINE_ae, procprt_COMMAND_LINE_ae, 0, 1 };
+       { "COMMAND-LINE (horizontal scroll with <- and -> keys)",
+	"COMMAND-LINE", 
+        procprt_COMMAND_LINE_ae, procprt_COMMAND_LINE_ae, 0, 1 };
 /***************************************************************/
 char *
 procprt_NPROCS_ae(struct tstat *curstat, int avgval, int nsecs)

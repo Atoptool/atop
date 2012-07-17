@@ -295,23 +295,23 @@ acctswon(void)
 	** process-accounting is not yet switched on in a standard way;
 	** check if another atop has switched on accounting already
 	**
-	** first try to create a semaphore exclusively; if this succeeds,
-	** this is the first atop-incarnation since boot and the semaphore
+	** first try to create a semaphore group exclusively; if this succeeds,
+	** this is the first atop-incarnation since boot and the semaphore group
 	** should be initialized`
 	*/
-	if ( (semid = semget(SEMAKEY, 2, 0666|IPC_CREAT|IPC_EXCL)) >= 0)
+	if ( (semid = semget(SEMAKEY, 2, 0600|IPC_CREAT|IPC_EXCL)) >= 0)
 		(void) semctl(semid, 0, SETALL, arg);
 	else
 		semid = semget(SEMAKEY, 0, 0);
 
 	/*
-	** check if we got access to the semaphore-group
+	** check if we got access to the semaphore group
 	*/
 	if (semid == -1)
 		return 3;
 
 	/*
-	** the semaphore-group is opened now; claim exclusive rights
+	** the semaphore group is opened now; claim exclusive rights
 	*/
 	(void) semop(semid, &semclaim, 1);
 
@@ -724,7 +724,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 ** process accounting file to zero and start process accounting
 ** again
 **
-** this will only be done if this atop process  is the only one
+** this will only be done if this atop process is the only one
 ** that is currently using the accounting file
 */
 static void

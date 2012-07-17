@@ -375,6 +375,7 @@ sys_printdef *swpsyspdefs[] = {
 };
 sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSCAN,
+	&syspdef_PAGSTEAL,
 	&syspdef_PAGSTALL,
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
@@ -875,10 +876,15 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 {
                     make_sys_prints(pagline, MAXITEMS,
 	                "PAGSCAN:3 "
+	                "PAGSTEAL:3 "
 	                "PAGSTALL:1 "
 	                "BLANKBOX:0 "
-	                "PAGSWIN:4 "
-	                "PAGSWOUT:3", pagsyspdefs, "built in pagline");
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "PAGSWIN:3 "
+	                "PAGSWOUT:4", pagsyspdefs, "built in pagline");
                 }
                 if (dskline[0].f == 0)
                 {
@@ -1184,9 +1190,9 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                 }
 
                 make_proc_prints(memprocs, MAXITEMS, 
-                        "PID:10 TID:4 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
-			"VDATA:3 VSTACK:3 VSIZE:5 RSIZE:6 "
-                        "VGROW:7 RGROW:8 SWAPSZ:4 RUID:1 EUID:0 "
+                        "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
+			"VDATA:4 VSTACK:4 VSIZE:6 RSIZE:7 "
+                        "VGROW:7 RGROW:8 SWAPSZ:5 RUID:1 EUID:0 "
                         "SORTITEM:9 CMD:10", 
                         "built-in memprocs");
 
@@ -1210,7 +1216,7 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                         "built-in varprocs");
 
                 make_proc_prints(cmdprocs, MAXITEMS,
-                        "PID:10 TID:8 SORTITEM:10 COMMAND-LINE:10", 
+                        "PID:10 TID:4 S:8 SORTITEM:10 COMMAND-LINE:10", 
                         "built-in cmdprocs");
 
                 make_proc_prints(totusers, MAXITEMS, 
@@ -1623,6 +1629,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         */
         if (fixedhead             ||
             sstat->mem.pgscans    ||
+            sstat->mem.pgsteal    ||
             sstat->mem.allocstall ||
             sstat->mem.swins      ||
             sstat->mem.swouts       )
