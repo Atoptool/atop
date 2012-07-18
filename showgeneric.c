@@ -549,22 +549,19 @@ generic_samp(time_t curtime, int nsecs,
 			*/
 			if (curline+2 > LINES)
 			{
-				move(0, 0);
-				clrtobot();
-				move(0, 0);
-				printw("Not enough screen-lines available "
-			           "(need at least %d lines)\n", curline+2);
-				move(1, 0);
-				printw("Please resize window....");
+				endwin();	// finish curses interface
 
-				refresh();
-				sleep(4);
+				fprintf(stderr,
+				      "Not enough screen-lines available "
+				      "(need at least %d lines)\n", curline+2);
+				fprintf(stderr, "Please resize window....\n");
+
 				cleanstop(1);
 			}
 			else
 			{
 				statmsg = "Number of variable resources"
-				          " limited to fit number of lines";
+				          " limited to fit in this window";
 			}
 		}
 
@@ -2218,10 +2215,12 @@ generic_init(void)
 
 		if (COLS  < 30)
 		{
-			printw("Not enough columns "
-			       "(need at least %d columns)\n", 30);
-			refresh();
-			sleep(3);
+			endwin();	// finish curses interface
+
+			fprintf(stderr, "Not enough columns available\n"
+			                "(need at least %d columns)\n", 30);
+			fprintf(stderr, "Please resize window....\n");
+
 			cleanstop(1);
 		}
 

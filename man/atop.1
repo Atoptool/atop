@@ -102,31 +102,44 @@ format (see section RAW DATA STORAGE).
 .SH PROCESS ACCOUNTING
 When 
 .I atop
-is started, it switches on the process accounting mechanism in
+is started, it activates the process accounting mechanism in
 the kernel. This forces the kernel to write a record with
 accounting information to the accounting file whenever a process ends.
-Apart from the kernel administration related to the running processes, 
+With every interval, 
 .I atop
-also interprets the accounting records on disk with every interval.
+reads the kernel administration concerning the running processes and 
+the accounting records on disk concerning the exited processes.
 In this way 
 .I atop
-can also show the activity of a process during the interval in which it is
-finished.
+also shows the remaining activity of a process during the interval
+in which it is finished.
 .br
 Whenever the last incarnation of
 .I atop
-stops (either by pressing `q' or by `kill -15'), it switches off the
-process accounting mechanism again. You should never terminate
+stops (either by pressing `q' or by `kill -15'), it deactivates the
+process accounting mechanism again. Therefore you should never terminate
 .I atop
-by `kill -9', because then it has no chance to stop
-process accounting. As a result the accounting file may consume a lot of 
+by `kill -9', because then it has no chance to stop process accounting.
+As a result the accounting file may consume a lot of 
 disk space after a while.
 .br
 To avoid that the process accounting file consumes too much disk space,
 .I atop
 verifies at the end of every sample if the size of the process accounting
-file exceeds 200 MiB and if this atop process is the only one using the file.
+file exceeds 200 MiB and if this
+.I atop
+process is the only one that is currently using the file.
 In that case the file is truncated to a size of zero again.
+.br
+When during one interval a lot of processes have finished,
+.I atop
+might grow tremendously in memory when reading all process accounting
+records at the end of the interval. To avoid such excessive growth,
+.I atop
+will never read more than 50 MiB with process information from the
+process accounting file per interval (approx. 72000 finished processes).
+In interactive mode a warning is given whenever processes have been skipped
+for this reason.
 .PP
 With the environment variable ATOPACCT the name of a specific process
 accounting file can be specified (accounting should have been activated
@@ -1738,10 +1751,10 @@ interactively:
 .PP
 .B \  atop -r yy
 .PP
-View the contents of the standard logfile of 2010, January 7 from
+View the contents of the standard logfile of 2012, June 7 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20100107 -b 14:00
+.B \  atop -r 20120607 -b 14:00
 .PP
 .SH FILES
 .PP
