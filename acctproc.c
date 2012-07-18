@@ -423,8 +423,13 @@ acctvers(int fd)
 	if ( read(fd, &tmprec, sizeof tmprec) < sizeof tmprec)
 		return 0;
 
-	switch (tmprec.ac_version)
+	switch (tmprec.ac_version & 0x0f)
 	{
+	   case 2:
+ 		acctrecsz     = sizeof(struct acct);
+		acctversion   = 2;
+		break;
+
 	   case 3:
 	   	acctrecsz     = sizeof(struct acct_v3);
 		acctversion   = 3;
@@ -437,8 +442,8 @@ acctvers(int fd)
 		break;
 
 	   default:
-	   	acctrecsz     = sizeof(struct acct);
-		acctversion   = 2;
+		fprintf(stderr, "Unknown format of process accounting file\n");
+		cleanstop(8);
 	}
 
 	/*
