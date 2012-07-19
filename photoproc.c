@@ -210,12 +210,17 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
 		if ( !(supportflags & PATCHSTAT) )
 		{
+			regainrootprivs();
+
 			if ( (fp = fopen("/proc/1/io", "r")) )
 			{
 				supportflags |= IOSTAT;
 
 				fclose(fp);
 			}
+
+			if (! droprootprivs())
+				cleanstop(42);
 		}
 
 		/*
@@ -596,39 +601,50 @@ procio(struct tstat *curtask)
 	char	line[4096];
 	count_t	dskrsz, dskwsz, dskcwsz;
 
-	if ((supportflags & IOSTAT) && (fp = fopen("io", "r")) )
+	if (supportflags & IOSTAT)
 	{
-		while (fgets(line, sizeof line, fp))
+		regainrootprivs();
+
+		if ( (fp = fopen("io", "r")) )
 		{
-			if (memcmp(line, IO_READ, sizeof IO_READ -1) == 0)
+			while (fgets(line, sizeof line, fp))
 			{
-				sscanf(line, "%*s %llu", &dskrsz);
-				dskrsz /= 512;		/* in sectors     */
-				continue;
+				if (memcmp(line, IO_READ,
+						sizeof IO_READ -1) == 0)
+				{
+					sscanf(line, "%*s %llu", &dskrsz);
+					dskrsz /= 512;		// in sectors
+					continue;
+				}
+
+				if (memcmp(line, IO_WRITE,
+						sizeof IO_WRITE -1) == 0)
+				{
+					sscanf(line, "%*s %llu", &dskwsz);
+					dskwsz /= 512;		// in sectors
+					continue;
+				}
+
+				if (memcmp(line, IO_CWRITE,
+						sizeof IO_CWRITE -1) == 0)
+				{
+					sscanf(line, "%*s %llu", &dskcwsz);
+					dskcwsz /= 512;		// in sectors
+					continue;
+				}
 			}
 
-			if (memcmp(line, IO_WRITE, sizeof IO_WRITE -1) == 0)
-			{
-				sscanf(line, "%*s %llu", &dskwsz);
-				dskwsz /= 512;		/* in sectors     */
-				continue;
-			}
+			fclose(fp);
 
-			if (memcmp(line, IO_CWRITE, sizeof IO_CWRITE -1) == 0)
-			{
-				sscanf(line, "%*s %llu", &dskcwsz);
-				dskcwsz /= 512;		/* in sectors     */
-				continue;
-			}
+			curtask->dsk.rsz	= dskrsz;
+			curtask->dsk.rio	= dskrsz;  // to enable sort
+			curtask->dsk.wsz	= dskwsz;
+			curtask->dsk.wio	= dskwsz;  // to enable sort
+			curtask->dsk.cwsz	= dskcwsz;
 		}
 
-		fclose(fp);
-
-		curtask->dsk.rsz	= dskrsz;
-		curtask->dsk.rio	= dskrsz;	/* to enable sorting */
-		curtask->dsk.wsz	= dskwsz;
-		curtask->dsk.wio	= dskwsz;	/* to enable sorting */
-		curtask->dsk.cwsz	= dskcwsz;
+		if (! droprootprivs())
+			cleanstop(42);
 	}
 
 	return 1;
