@@ -258,6 +258,14 @@ void showsysline(sys_printpair* elemptr,
                 printg(" | ");
                 addblanks(&charslackused, &charslackover);
 
+		/*
+		** by default no color is shown for this field (color = 0)
+		**
+		** the convert-function can set a color-number (color > 0)
+		** when a specific color is wanted or the convert-function
+		** can leave the decision to display with a color to the piece
+		** of code below (color == -1)
+		*/
 		color = 0;
                 itemp = curelem->doconvert(sstat, extra, badness, &color);
 
@@ -273,7 +281,7 @@ void showsysline(sys_printpair* elemptr,
 					color = COLORMED;
 			}
 
-			if (color)
+			if (color)	// after all: has a color been set?
 			{
 				if (usecolors)
                                		attron(COLOR_PAIR(color));
@@ -284,7 +292,7 @@ void showsysline(sys_printpair* elemptr,
 
                 printg("%s", itemp);
 
-		if (color && screen)	// color wanted for this value?
+		if (color && screen)	// color set for this value?
 		{
 			if (usecolors)
                                 attroff(COLOR_PAIR(color));
