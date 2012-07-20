@@ -2275,7 +2275,7 @@ static struct helptext {
 	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
 	{"\n",							' '},
-	{"Selections:\n",					' '},
+	{"Selections (keys shown in header line):\n",		' '},
 	{"\t'%c'  - focus on specific user name        (regular expression)\n",
 								MSELUSER},
 	{"\t'%c'  - focus on specific process name     (regular expression)\n",
@@ -2294,7 +2294,7 @@ static struct helptext {
 	{"\tArLt - arrow-left  for previous character in full command line\n",
 									' '},
 	{"\n",							' '},
-	{"Presentation (these keys are shown in the header line):\n",	' '},
+	{"Presentation (keys shown in header line):\n",  	' '},
 	{"\t'%c'  - show individual threads                        (toggle)\n",
 		 						MTHREAD},
 	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
