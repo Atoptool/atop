@@ -4,7 +4,7 @@ Release:   XRELEX
 Source0:   atop-XVERSX.tar.gz
 URL:       http://www.atoptool.nl
 Packager:  Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
-Summary:   AT Computing System and Process Monitor
+Summary:   Advanced System and Process Monitor
 License:   GPL
 Group:     System Environment
 BuildRoot: /var/tmp/rpm-buildroot-atop
@@ -13,14 +13,14 @@ BuildRoot: /var/tmp/rpm-buildroot-atop
 The program atop is an interactive monitor to view the load on
 a Linux-system. It shows the occupation of the most critical
 hardware-resources (from a performance point of view) on system-level,
-i.e. cpu, memory, disk and network. It also shows which processes are
-responsible for the indicated load (again cpu-, memory-, disk- and
-network-load on process-level).
+i.e. cpu, memory, disk and network. It also shows which processess
+(and threads) are responsible for the indicated load (again cpu-,
+memory-, disk- and network-load on process-level).
 The program atop can also be used to log system- and process-level
 information in raw format for long-term analysis.
 
-The program atopsar can be used to view system-level statistics as
-reports, similar to the program sar.
+The program atopsar can be used to view system-level statistics
+as reports.
 
 %prep
 %setup -q
