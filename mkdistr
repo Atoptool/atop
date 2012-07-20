@@ -54,6 +54,7 @@ cp AUTHOR		/tmp/atop-$VERSION
 cp atop.daily  		/tmp/atop-$VERSION
 cp atop.cron  		/tmp/atop-$VERSION
 cp atop.init  		/tmp/atop-$VERSION
+cp atop.service 	/tmp/atop-$VERSION
 cp psaccs_atop 		/tmp/atop-$VERSION
 cp psaccu_atop 		/tmp/atop-$VERSION
 cp 45atoppm  		/tmp/atop-$VERSION
