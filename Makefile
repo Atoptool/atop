@@ -76,7 +76,8 @@ install:	atop
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 		if [ -z "$(DESTDIR)" ]; then /sbin/chkconfig --add atop; fi
-distr: rm -f *.o
+
+distr: rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
 ##########################################################################
 

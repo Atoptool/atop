@@ -113,31 +113,32 @@ cd /tmp
 
 if rpmbuild -ba atop-$VERSION-$RELEASE.spec #  > /dev/null
 then
-	if [ -d /usr/src/redhat/SOURCES ]
-	then
-		cp /usr/src/redhat/RPMS/i386/atop-$VERSION-$RELEASE-*.i386.rpm /tmp
-		cp /usr/src/redhat/SRPMS/atop-$VERSION-$RELEASE-*.src.rpm      /tmp
-	fi
-
-	if [ -d /usr/src/RPM/SOURCES ]
-	then
-		cp /usr/src/RPM/RPMS/i386/atop-$VERSION-$RELEASE.i386.rpm /tmp
-		cp /usr/src/RPM/SRPMS/atop-$VERSION-$RELEASE.src.rpm      /tmp
-	fi
-
 	if [ -d $HOME/rpmbuild/SOURCES ]
 	then
 	   cp $HOME/rpmbuild/RPMS/x86_64/atop-$VERSION-$RELEASE.x86_64.rpm /tmp
+	   cp $HOME/rpmbuild/RPMS/i586/atop-$VERSION-$RELEASE.i586.rpm     /tmp
 	   cp $HOME/rpmbuild/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
 	fi
 
 	echo
-	echo /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ready
-	echo /tmp/atop-$VERSION-$RELEASE.src.rpm  ready
+	if [ -f /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ]
+	then
+		echo /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ready
+	fi
+	if [ -f /tmp/atop-$VERSION-$RELEASE.i586.rpm ]
+	then
+		echo /tmp/atop-$VERSION-$RELEASE.i586.rpm ready
+	fi
+	if [ -f /tmp/atop-$VERSION-$RELEASE.src.rpm ]
+		echo /tmp/atop-$VERSION-$RELEASE.src.rpm  ready
+	fi
 fi
 
 echo
-echo /tmp/atop-$VERSION-$RELEASE.tar.gz ready
+if [ -f /tmp/atop-$VERSION-$RELEASE.tar.gz ]
+then
+	echo /tmp/atop-$VERSION-$RELEASE.tar.gz ready
+fi
 exit 0
 
 ############################################################################
