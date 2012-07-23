@@ -94,6 +94,11 @@ then
 	cp atop-$VERSION.tar.gz /usr/src/redhat/SOURCES
 fi
 
+if [ -d /usr/src/packages/SOURCES ]
+then
+	cp atop-$VERSION.tar.gz /usr/src/packages/SOURCES
+fi
+
 if [ -d /usr/src/RPM/SOURCES ]
 then
 	cp atop-$VERSION.tar.gz /usr/src/RPM/SOURCES
@@ -104,7 +109,7 @@ then
 	cp atop-$VERSION.tar.gz $HOME/rpmbuild/SOURCES/atop-$VERSION.tar.gz
 fi
 
-cd $ORIGDIR
+cd "$ORIGDIR"
 
 sed -e "s/XVERSX/$VERSION/g" -e "s/XRELEX/$RELEASE/g" atop.spec 	\
 					> /tmp/atop-$VERSION-$RELEASE.spec
@@ -120,6 +125,13 @@ then
 	   cp $HOME/rpmbuild/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
 	fi
 
+	if [ -d /usr/src/packages/SOURCES ]
+	then
+	   cp /usr/src/packages/RPMS/x86_64/atop-$VERSION-$RELEASE.x86_64.rpm /tmp
+	   cp /usr/src/packages/RPMS/i586/atop-$VERSION-$RELEASE.i586.rpm     /tmp
+	   cp /usr/src/packages/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
+	fi
+
 	echo
 	if [ -f /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ]
 	then
@@ -130,6 +142,7 @@ then
 		echo /tmp/atop-$VERSION-$RELEASE.i586.rpm ready
 	fi
 	if [ -f /tmp/atop-$VERSION-$RELEASE.src.rpm ]
+	then
 		echo /tmp/atop-$VERSION-$RELEASE.src.rpm  ready
 	fi
 fi
@@ -140,22 +153,3 @@ then
 	echo /tmp/atop-$VERSION-$RELEASE.tar.gz ready
 fi
 exit 0
-
-############################################################################
-# Make compressed tar-archives for the kernel-patches
-############################################################################
-echo
-cd /tmp
-
-ls $ORIGDIR/atoppatch/01patch* | sed 's/.*01patch-//' | sed 's/_.*//' |
-				sort | uniq | while read KVERS
-do
-	rm -rf atoppatch-kernel-$KVERS  2> /dev/null
-	mkdir  atoppatch-kernel-$KVERS
-
-	cp $ORIGDIR/atoppatch/*$KVERS*     atoppatch-kernel-$KVERS
-	cp $ORIGDIR/atoppatch/README.patch atoppatch-kernel-$KVERS
-	tar -czf atoppatch-kernel-$KVERS.tar.gz atoppatch-kernel-$KVERS
-	rm -rf atoppatch-kernel-$KVERS  2> /dev/null
-	echo /tmp/atoppatch-kernel-$KVERS.tar.gz ready
-done
