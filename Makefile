@@ -15,7 +15,7 @@ ROTPATH  = /etc/logrotate.d
 PMPATH1  = /usr/lib/pm-utils/sleep.d
 PMPATH2  = /usr/lib64/pm-utils/sleep.d
 
-CFLAGS  += -O2 -I. -Wall	 # -DHTTPSTATS
+CFLAGS  += -O2 -I. -Wall 	 # -DHTTPSTATS
 LDFLAGS += -lncurses -lm -lz
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o

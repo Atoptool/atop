@@ -1028,7 +1028,6 @@ setunavail(proc_printdef *item)
 void
 priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 {
-        char            columnprefix;
         static int      firsttime=1;
 
         if (firsttime) 
@@ -1231,15 +1230,6 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                         "SORTITEM:10 CMD:10", 
                         "built-in totprocs");
         }
-
-        /*
-        ** determine the prefix for the sorting-column
-        ** to indicate automatic mode
-        */
-        if (autosort)
-                columnprefix = 'A';
-        else
-                columnprefix = ' ';
 
         /*
         ** print the header line
