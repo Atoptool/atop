@@ -412,67 +412,26 @@ deviatproc(struct tstat *aproc, int npresent,
 		devstat->cpu.curcpu   = 0;
 		devstat->cpu.sleepavg = 0;
 
-		if (supportflags & PATCHACCT)
-		{
-			devstat->net.tcpsnd = curstat->net.tcpsnd -
-			                      prestat.net.tcpsnd;
-			devstat->net.tcpssz = curstat->net.tcpssz -
-			                      prestat.net.tcpssz;
-			devstat->net.tcprcv = curstat->net.tcprcv -
-			                      prestat.net.tcprcv;
-			devstat->net.tcprsz = curstat->net.tcprsz -
-			                      prestat.net.tcprsz;
-			devstat->net.udpsnd = curstat->net.udpsnd -
-			                      prestat.net.udpsnd;
-			devstat->net.udpssz = curstat->net.udpssz -
-			                      prestat.net.udpssz;
-			devstat->net.udprcv = curstat->net.udprcv -
-			                      prestat.net.udprcv;
-			devstat->net.udprsz = curstat->net.udprsz -
-			                      prestat.net.udprsz;
-			devstat->net.rawsnd = curstat->net.rawsnd -
-			                      prestat.net.rawsnd;
-			devstat->net.rawrcv = curstat->net.rawrcv -
-			                      prestat.net.rawrcv;
-			devstat->dsk.rio    = curstat->dsk.rio    -
-			                      prestat.dsk.rio;
-			devstat->dsk.rsz    = curstat->dsk.rsz    -
-			                      prestat.dsk.rsz;
-			devstat->dsk.wio    = curstat->dsk.wio    -
-			                      prestat.dsk.wio;
-			devstat->dsk.wsz    = curstat->dsk.wsz    -
-			                      prestat.dsk.wsz;
-			devstat->dsk.cwsz   = curstat->dsk.cwsz    -
-			                      prestat.dsk.cwsz;
-			devstat->mem.vmem   = 0;
-			devstat->mem.rmem   = 0;
-			devstat->mem.vgrow  = -curstat->mem.vmem;
-			devstat->mem.rgrow  = -curstat->mem.rmem;
-		}
-		else
-		{
-			devstat->net.tcpsnd   = 0;
-			devstat->net.tcpssz   = 0;
-			devstat->net.tcprcv   = 0;
-			devstat->net.tcprsz   = 0;
-			devstat->net.udpsnd   = 0;
-			devstat->net.udpssz   = 0;
-			devstat->net.udprcv   = 0;
-			devstat->net.udprsz   = 0;
-			devstat->net.rawsnd   = 0;
-			devstat->net.rawrcv   = 0;
-			devstat->mem.vmem     = 0;
-			devstat->mem.rmem     = 0;
-			devstat->mem.vgrow    = 0;
-			devstat->mem.rgrow    = 0;
-			devstat->dsk.wio      = 0;
-			devstat->dsk.wsz      = 0;
-			devstat->dsk.cwsz     = 0;
-			devstat->dsk.rsz      = 0;
-			devstat->dsk.rio      = curstat->dsk.rio  -
-						prestat.dsk.rio   -
-						prestat.dsk.wio;
-		}
+		devstat->net.tcpsnd   = 0;
+		devstat->net.tcpssz   = 0;
+		devstat->net.tcprcv   = 0;
+		devstat->net.tcprsz   = 0;
+		devstat->net.udpsnd   = 0;
+		devstat->net.udpssz   = 0;
+		devstat->net.udprcv   = 0;
+		devstat->net.udprsz   = 0;
+		devstat->net.rawsnd   = 0;
+		devstat->net.rawrcv   = 0;
+		devstat->mem.vmem     = 0;
+		devstat->mem.rmem     = 0;
+		devstat->mem.vgrow    = 0;
+		devstat->mem.rgrow    = 0;
+		devstat->dsk.wio      = 0;
+		devstat->dsk.wsz      = 0;
+		devstat->dsk.cwsz     = 0;
+		devstat->dsk.rsz      = 0;
+		devstat->dsk.rio      = curstat->dsk.rio  -
+					prestat.dsk.rio   - prestat.dsk.wio;
 
 		devstat->cpu.stime  = curstat->cpu.stime  - prestat.cpu.stime;
 		devstat->cpu.utime  = curstat->cpu.utime  - prestat.cpu.utime;
@@ -505,22 +464,6 @@ deviatproc(struct tstat *aproc, int npresent,
 			devstat->mem.minflt = 0;
 		if (devstat->mem.majflt < 0)
 			devstat->mem.majflt = 0;
-
-		if (supportflags & PATCHACCT)
-		{
-			if (devstat->net.tcpsnd < 0)
-				 devstat->net.tcpsnd = 0;
-			if (devstat->net.tcprcv < 0)
-				 devstat->net.tcprcv = 0;
-			if (devstat->net.udpsnd < 0)
-				 devstat->net.udpsnd = 0;
-			if (devstat->net.udprcv < 0)
-				 devstat->net.udprcv = 0;
-			if (devstat->net.rawsnd < 0)
-				 devstat->net.rawsnd = 0;
-			if (devstat->net.rawrcv < 0)
-				 devstat->net.rawrcv = 0;
-		}
 
 		d++;
 		(*nactproc)++;

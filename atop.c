@@ -646,6 +646,11 @@ main(int argc, char *argv[])
 	initifprop();
 
 	/*
+ 	** make connection with the atopnet kernel module
+	*/
+	netmodprobe();
+	
+	/*
 	** since priviliged activities are finished now, there is no
 	** need to keep running under root-priviliges, so switch
 	** effective user-id to real user-id

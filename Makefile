@@ -21,7 +21,7 @@ OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
 OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
-OBJMOD4  = atopsar.o
+OBJMOD4  = atopsar.o  atopnetif.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
@@ -90,6 +90,7 @@ parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h              acctproc.h
+acctproc.o:	atop.h	photoproc.h              atopnet.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h

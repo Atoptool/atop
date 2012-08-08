@@ -1355,45 +1355,7 @@ proc_printdef procprt_NPROCS =
    { "NPROCS", "NPROCS", procprt_NPROCS_ae, procprt_NPROCS_ae, 6 };
 /***************************************************************/
 char *
-procprt_NRDDSK_ae(struct tstat *curstat, int avgval, int nsecs)    // with patches && ACCT
-{
-        static char buf[10];
-        val2valstr(curstat->dsk.rio, buf, 6, avgval, nsecs);
-
-        return buf;
-}
-
-proc_printdef procprt_RDDSK = 
-   { " RDDSK", "RDDSK", procprt_NRDDSK_ae, procprt_NRDDSK_ae, 6 };
-/***************************************************************/
-char *
-procprt_NWRDSK_a(struct tstat *curstat, int avgval, int nsecs)    // with patches && ACCT
-{
-        static char buf[10];
-        val2valstr(curstat->dsk.wio, buf, 6, avgval, nsecs);
-
-        return buf;
-}
-
-proc_printdef procprt_WRDSK = 
-   { " WRDSK", "WRDSK", procprt_NWRDSK_a, procprt_NWRDSK_a, 6 };
-/***************************************************************/
-char *
-procprt_NRDDSK_e(struct tstat *curstat, int avgval, int nsecs)      // with patches, no ACCT
-{
-        return " (r&w)";
-}
-/***************************************************************/
-char *
-procprt_NWRDSK_e(struct tstat *curstat, int avgval, int nsecs)    // patches, no ACCT
-{
-        static char buf[10];
-        val2valstr(curstat->dsk.rio, buf, 6, avgval, nsecs);  // r and w!
-        return buf;
-}
-/***************************************************************/
-char *
-procprt_RDDSK_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)   // IOSTAT based 
+procprt_RDDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
         val2memstr(curstat->dsk.rsz*512, buf, KBFORMAT, 0, 0);
@@ -1402,13 +1364,16 @@ procprt_RDDSK_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)   // IOSTAT
 }
 
 char *
-procprt_RDDSK_IOSTAT_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_RDDSK_e(struct tstat *curstat, int avgval, int nsecs)
 {
         return "     -";
 }
+
+proc_printdef procprt_RDDSK = 
+   { " RDDSK", "RDDSK", procprt_RDDSK_a, procprt_RDDSK_e, 6 };
 /***************************************************************/
 char *
-procprt_WRDSK_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)    // IOSTAT based
+procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs) 
 {
         static char buf[10];
         val2memstr(curstat->dsk.wsz*512, buf, KBFORMAT, 0, 0);
@@ -1417,13 +1382,16 @@ procprt_WRDSK_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)    // IOSTA
 }
 
 char *
-procprt_WRDSK_IOSTAT_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_WRDSK_e(struct tstat *curstat, int avgval, int nsecs)
 {
         return "     -";
 }
+
+proc_printdef procprt_WRDSK = 
+   { " WRDSK", "WRDSK", procprt_WRDSK_a, procprt_WRDSK_e, 6 };
 /***************************************************************/
 char *
-procprt_WCANCEL_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)  // IOSTAT based */
+procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
         val2memstr(curstat->dsk.cwsz*512, buf, KBFORMAT, 0, 0);
@@ -1432,80 +1400,13 @@ procprt_WCANCEL_IOSTAT_a(struct tstat *curstat, int avgval, int nsecs)  // IOSTA
 }
 
 char *
-procprt_WCANCEL_IOSTAT_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_WCANCEL_e(struct tstat *curstat, int avgval, int nsecs)
 {
         return "     -";
 }
 
-proc_printdef procprt_WCANCEL_IOSTAT = 
-   { "WCANCL", "WCANCL", procprt_WCANCEL_IOSTAT_a, procprt_WCANCEL_IOSTAT_e, 6 };
-/***************************************************************/
-char *
-procprt_AVGRSZ_PATCH_ae(struct tstat *curstat, int avgval, int nsecs)        // patch based
-{
-        static char buf[10];
-        int avgrsz = curstat->dsk.rio ?
-                                curstat->dsk.rsz * 512LL / curstat->dsk.rio : 0;
-        val2valstr(avgrsz, buf, 7, 0, 0);
-
-        return buf;
-}
-
-proc_printdef procprt_AVGRSZ = 
-   { " AVGRSZ", "AVGRSZ", procprt_AVGRSZ_PATCH_ae, procprt_AVGRSZ_PATCH_ae, 7 };
-/***************************************************************/
-char *
-procprt_AVGWSZ_PATCH_ae(struct tstat *curstat, int avgval, int nsecs) 
-{
-        static char buf[10];
-        int avgwsz = curstat->dsk.wio ?
-                                curstat->dsk.wsz * 512LL / curstat->dsk.wio : 0;
-        val2valstr(avgwsz, buf, 7, 0, 0);
-
-        return buf;
-}
-
-proc_printdef procprt_AVGWSZ = 
-   { " AVGWSZ", "AVGWSZ", procprt_AVGWSZ_PATCH_ae, procprt_AVGWSZ_PATCH_ae, 7 };
-/***************************************************************/
-char *
-procprt_TOTRSZ_ae(struct tstat *curstat, int avgval, int nsecs)    // patch and ACCT
-{
-        static char buf[10];
-        val2memstr(curstat->dsk.rsz*512LL, buf, KBFORMAT, avgval, nsecs);
-
-        return buf;
-}
-
-proc_printdef procprt_TOTRSZ = 
-   { "TOTRSZ", "TOTRSZ", procprt_TOTRSZ_ae, procprt_TOTRSZ_ae, 6 };
-/***************************************************************/
-char *
-procprt_TOTWSZ_ae(struct tstat *curstat, int avgval, int nsecs)    // patch and ACCT
-{
-        static char buf[10];
-        val2memstr(curstat->dsk.wsz*512LL, buf, KBFORMAT, avgval, nsecs);
-
-        return buf;
-}
-
-proc_printdef procprt_TOTWSZ = 
-   { "TOTWSZ", "TOTWSZ", procprt_TOTWSZ_ae, procprt_TOTWSZ_ae, 6 };
-/***************************************************************/
-char *
-procprt_TOTRSZ_NOACCT_e(struct tstat *curstat, int avgval, int nsecs)    // patch noACCT
-{
-        static char buf[10];
-        val2memstr(curstat->dsk.rsz*512LL, buf, KBFORMAT, avgval, nsecs);
-
-        return buf;
-}
-/***************************************************************/
-char *
-procprt_TOTWSZ_NOACCT_e(struct tstat *curstat, int avgval, int nsecs)    // patch noACCT
-{
-        return "(r & w)";
-}
+proc_printdef procprt_WCANCEL = 
+   {"WCANCL", "WCANCL", procprt_WCANCEL_a, procprt_WCANCEL_e, 6};
 /***************************************************************/
 char *
 procprt_TCPRCV_a(struct tstat *curstat, int avgval, int nsecs)

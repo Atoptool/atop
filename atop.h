@@ -98,9 +98,8 @@ extern int		almostcrit;
 ** bit-values for supportflags
 */
 #define	ACCTACTIVE	0x00000001
-#define	PATCHSTAT	0x00000002
 #define	IOSTAT		0x00000004
-#define	PATCHACCT	0x00000008
+#define	ATOPNET		0x00000010
 
 /*
 ** structure containing the start-addresses of functions for visualization
@@ -156,3 +155,6 @@ void		prusage(char *);
 
 int		droprootprivs(void);
 void		regainrootprivs(void);
+
+void		netmodprobe(void);
+void		netmodfill(pid_t, char, struct tstat *);

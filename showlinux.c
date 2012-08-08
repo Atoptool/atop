@@ -288,6 +288,8 @@ static const char rcsid[] = "$Id: showlinux.c,v 1.70 2010/10/23 14:04:12 gerlof 
 #include "showgeneric.h"
 #include "showlinux.h"
 
+static void	make_proc_dynamicgen(void);
+
 /*
 ** critical percentages for occupation-percentage;
 ** these defaults can be overruled via the config-file
@@ -487,13 +489,9 @@ proc_printdef *allprocpdefs[]=
 	&procprt_S,
 	&procprt_COMMAND_LINE,
 	&procprt_NPROCS,
-	&procprt_RDDSK,          // refers to correct disk display routines
-	&procprt_WRDSK,          // refers to correct disk display routines
-	&procprt_WCANCEL_IOSTAT,
-	&procprt_AVGRSZ,
-	&procprt_AVGWSZ,
-	&procprt_TOTRSZ,
-	&procprt_TOTWSZ,
+	&procprt_RDDSK,
+	&procprt_WRDSK,
+	&procprt_WCANCEL,
 	&procprt_TCPRCV,
 	&procprt_TCPRASZ,
 	&procprt_TCPSND,
@@ -735,7 +733,7 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 
         psc->availmem   = sstat->mem.physmem * pagesize/1024;
 
-        if (supportflags & PATCHSTAT)
+        if ( supportflags & ATOPNET )
         {
                 /*
                 ** calculate total number of accesses which have been
@@ -974,220 +972,21 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
         showsysline(sysprcline, sstat, &extra, "PRC", 0);
 }
 
-void
-setunavailactive(proc_printdef *item) 
-{
-        switch (item->width) 
-        {
-        case 4:
-                item->doactiveconvert=procprt_NOTAVAIL_4;
-                break;
-        case 5:
-                item->doactiveconvert=procprt_NOTAVAIL_5;
-                break;
-        case 6:
-                item->doactiveconvert=procprt_NOTAVAIL_6;
-                break;
-        case 7:
-                item->doactiveconvert=procprt_NOTAVAIL_7;
-                break;
-        }
-}
-
-void
-setunavailexit(proc_printdef *item) 
-{
-        switch (item->width) 
-        {
-        case 4:
-                item->doexitconvert=procprt_NOTAVAIL_4;
-                break;
-        case 5:
-                item->doexitconvert=procprt_NOTAVAIL_5;
-                break;
-        case 6:
-                item->doexitconvert=procprt_NOTAVAIL_6;
-                break;
-        case 7:
-                item->doexitconvert=procprt_NOTAVAIL_7;
-                break;
-        }
-}
-
-
-void
-setunavail(proc_printdef *item) 
-{
-        setunavailactive(item);
-        setunavailexit(item);
-}
-
 /*
-** print the header for the process-list
+** print the header for the process list
 */
 void
 priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 {
         static int      firsttime=1;
+        static int      prev_supportflags = -1;;
 
+	/*
+ 	** determine once the layout of all per-process reports
+	** except for the generic report (might change dynamically)
+	*/
         if (firsttime) 
-        { 
-                 // select disk, net functions
-                if (supportflags & PATCHACCT) 
-                {
-                        // disk/net patch and accounting patch
-                        make_proc_prints(genprocs, MAXITEMS, 
-                                "PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-                                "VGROW:8 RGROW:8 "
-                                "RDDSK:7 WRDSK:7 "
-                                "RNET:6 SNET:6 "
-                                "S:5 SORTITEM:10 CMD:10", 
-                                "built-in genprocs");
-                        make_proc_prints(dskprocs, MAXITEMS, 
-                                "PID:10 TID:4 RDDSK:9 AVGRSZ:8 TOTRSZ:7 "
-                                "WRDSK:9 AVGWSZ:8 TOTWSZ:7 "
-                                "SORTITEM:10 CMD:10", 
-                                "built-in dskprocs");
-
-                        /* Set correct disk routines */
-                        procprt_RDDSK.doactiveconvert=procprt_NRDDSK_ae;
-                        procprt_RDDSK.doexitconvert=procprt_NRDDSK_ae;
-                        procprt_WRDSK.doactiveconvert=procprt_NWRDSK_a;
-                        procprt_WRDSK.doexitconvert=procprt_NWRDSK_a;
-
-			/* make IOSTAT items unavailable */
-                        setunavail(&procprt_WCANCEL_IOSTAT);
-
-			/* Set correct net routines */
-			procprt_RNET.doexitconvert=procprt_RNET_a;
-			procprt_SNET.doexitconvert=procprt_SNET_a;
-			procprt_TCPSND.doexitconvert=procprt_TCPSND_a;
-			procprt_TCPRCV.doexitconvert=procprt_TCPRCV_a;
-			procprt_RAWSND.doexitconvert=procprt_RAWSND_a;
-			procprt_RAWRCV.doexitconvert=procprt_RAWRCV_a;
-			procprt_UDPSND.doexitconvert=procprt_UDPSND_a;
-			procprt_UDPRCV.doexitconvert=procprt_UDPRCV_a;
-			procprt_TCPSASZ.doexitconvert=procprt_TCPSASZ_a;
-			procprt_TCPRASZ.doexitconvert=procprt_TCPRASZ_a;
-			procprt_UDPSASZ.doexitconvert=procprt_UDPSASZ_a;
-			procprt_UDPRASZ.doexitconvert=procprt_UDPRASZ_a;
-                } 
-                else if (supportflags & PATCHSTAT) 
-                {
-                        // just the disk/net patch, NO accounting patch
-                        make_proc_prints(genprocs, MAXITEMS, 
-                                "PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-                                "VGROW:8 RGROW:8 "
-                                "RDDSK:7 WRDSK:7 "
-                                "RNET:6 SNET:6 S:5 "
-                                "SORTITEM:10 CMD:10", 
-                                "built-in genprocs");
-                        make_proc_prints(dskprocs, MAXITEMS, 
-                                "PID:10 TID:4 RDDSK:9 AVGRSZ:8 TOTRSZ:7 "
-                                "WRDSK:9 AVGWSZ:8 TOTWSZ:7 "
-                                "SORTITEM:10 CMD:10", 
-                                "built-in dskprocs");
-
-                        /* Set correct disk routines */
-                        procprt_RDDSK.doactiveconvert=procprt_NRDDSK_ae;
-                        procprt_RDDSK.doexitconvert=procprt_NRDDSK_e;
-                        procprt_WRDSK.doactiveconvert=procprt_NWRDSK_a;
-                        procprt_WRDSK.doexitconvert=procprt_NWRDSK_e;
-
-                        /* make IOSTAT items unavailable */
-                        setunavail(&procprt_WCANCEL_IOSTAT);
-
-                        /* make exit disk data unavailable */
-                        setunavailexit(&procprt_TOTRSZ);
-                        setunavailexit(&procprt_TOTWSZ);
-
-			/* Set correct net routines */
-			procprt_RNET.doexitconvert=procprt_RNET_e;
-			procprt_SNET.doexitconvert=procprt_SNET_e;
-			procprt_TCPSND.doexitconvert=procprt_TCPSND_e;
-			procprt_TCPRCV.doexitconvert=procprt_TCPRCV_e;
-			procprt_RAWSND.doexitconvert=procprt_RAWSND_e;
-			procprt_RAWRCV.doexitconvert=procprt_RAWRCV_e;
-			procprt_UDPSND.doexitconvert=procprt_UDPSND_e;
-			procprt_UDPRCV.doexitconvert=procprt_UDPRCV_e;
-			procprt_TCPSASZ.doexitconvert=procprt_TCPSASZ_e;
-			procprt_TCPRASZ.doexitconvert=procprt_TCPRASZ_e;
-			procprt_UDPSASZ.doexitconvert=procprt_UDPSASZ_e;
-			procprt_UDPRASZ.doexitconvert=procprt_UDPRASZ_e;
-                } 
-                else if (supportflags & IOSTAT) 
-                {
-                        // No patches, iostat data is available
-                        make_proc_prints(genprocs, MAXITEMS, 
-                                "PID:10 TID:4 RUID:3 EUID:2 THR:4 "
-                                "SYSCPU:9 USRCPU:9 "
-                                "VGROW:8 RGROW:8 "
-                                "RDDSK:7 WRDSK:7 "
-                                "ST:6 EXC:6 S:6 "
-                                "CPUNR:5 SORTITEM:10 CMD:10", 
-                                "built-in genprocs");
-                        make_proc_prints(dskprocs, MAXITEMS, 
-                                "PID:10 TID:4 RDDSK:9 "
-                                "WRDSK:9 WCANCL:8 "
-                                "SORTITEM:10 CMD:10", 
-                                "built-in dskprocs");
-
-                        /* make path based data unavailable */
-                        procprt_RDDSK.doactiveconvert=procprt_RDDSK_IOSTAT_a;
-                        procprt_RDDSK.doexitconvert=procprt_RDDSK_IOSTAT_e;
-                        procprt_WRDSK.doactiveconvert=procprt_WRDSK_IOSTAT_a;
-                        procprt_WRDSK.doexitconvert=procprt_WRDSK_IOSTAT_e;
-                        setunavail(&procprt_TOTRSZ);
-                        setunavail(&procprt_TOTWSZ);
-                        setunavail(&procprt_AVGRSZ);
-                        setunavail(&procprt_AVGWSZ);
-                        setunavail(&procprt_TCPRCV);
-                        setunavail(&procprt_TCPRASZ);
-                        setunavail(&procprt_TCPSND);
-                        setunavail(&procprt_TCPSASZ);
-                        setunavail(&procprt_RAWRCV);
-                        setunavail(&procprt_RAWSND);
-                        setunavail(&procprt_UDPRCV);
-                        setunavail(&procprt_UDPRASZ);
-                        setunavail(&procprt_UDPSND);
-                        setunavail(&procprt_UDPSASZ);
-                        setunavail(&procprt_RNET);
-                        setunavail(&procprt_SNET);
-                } 
-                else 
-                {
-                        // No patches, no iostat data available
-                        make_proc_prints(genprocs, MAXITEMS, 
-                                "PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-                                "VGROW:8 RGROW:8 RUID:4 EUID:3 "
-                                "THR:7 ST:7 EXC:7 S:7 "
-                                "SORTITEM:10 CMD:10", 
-                                "built-in genprocs");
-
-                        /* disable iostat and patch based items */
-                        setunavail(&procprt_RDDSK);
-                        setunavail(&procprt_WRDSK);
-                        setunavail(&procprt_WCANCEL_IOSTAT);
-                        setunavailexit(&procprt_TOTRSZ);
-                        setunavailexit(&procprt_TOTWSZ);
-                        setunavail(&procprt_TOTRSZ);
-                        setunavail(&procprt_TOTWSZ);
-                        setunavail(&procprt_AVGRSZ);
-                        setunavail(&procprt_AVGWSZ);
-                        setunavail(&procprt_TCPRCV);
-                        setunavail(&procprt_TCPRASZ);
-                        setunavail(&procprt_TCPSND);
-                        setunavail(&procprt_TCPSASZ);
-                        setunavail(&procprt_RAWRCV);
-                        setunavail(&procprt_RAWSND);
-                        setunavail(&procprt_UDPRCV);
-                        setunavail(&procprt_UDPRASZ);
-                        setunavail(&procprt_UDPSND);
-                        setunavail(&procprt_UDPSASZ);
-                        setunavail(&procprt_RNET);
-                        setunavail(&procprt_SNET);
-                }
-
+        {
                 make_proc_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
 			"VDATA:4 VSTACK:4 VSIZE:6 RSIZE:7 "
@@ -1200,6 +999,12 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                         "NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 EXC:8 "
                         "S:8 SORTITEM:10 CMD:10", 
                         "built-in schedprocs");
+
+                make_proc_prints(dskprocs, MAXITEMS, 
+                        "PID:10 TID:4 RDDSK:9 "
+                        "WRDSK:9 WCANCL:8 "
+                        "SORTITEM:10 CMD:10", 
+                        "built-in dskprocs");
 
                 make_proc_prints(netprocs, MAXITEMS, 
                         "PID:10 TID:6 TCPRCV:9 TCPRASZ:4 TCPSND:9 "
@@ -1230,6 +1035,15 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                         "SORTITEM:10 CMD:10", 
                         "built-in totprocs");
         }
+
+	/*
+ 	** update the generic report if needed
+	*/
+	if (prev_supportflags != supportflags)
+	{
+		make_proc_dynamicgen();
+		prev_supportflags = supportflags;
+	}
 
         /*
         ** print the header line
@@ -1278,6 +1092,54 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
         }
 }
 
+static void
+make_proc_dynamicgen()
+{
+	if ( (supportflags & (IOSTAT|ATOPNET)) == (IOSTAT|ATOPNET)) 
+	{
+		// iostat and atopnet data is available
+		make_proc_prints(genprocs, MAXITEMS, 
+			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
+			"VGROW:8 RGROW:8 "
+			"RDDSK:7 WRDSK:7 "
+			"RNET:6 SNET:6 S:5 "
+			"SORTITEM:10 CMD:10", 
+			"built-in genprocs");
+	}
+	else if (supportflags & IOSTAT) 
+	{
+		// only iostat data is available
+		make_proc_prints(genprocs, MAXITEMS, 
+			"PID:10 TID:4 RUID:3 EUID:2 THR:4 "
+			"SYSCPU:9 USRCPU:9 "
+			"VGROW:8 RGROW:8 "
+			"RDDSK:7 WRDSK:7 "
+			"ST:6 EXC:6 S:6 "
+			"CPUNR:5 SORTITEM:10 CMD:10", 
+			"built-in genprocs");
+	} 
+	else if (supportflags & ATOPNET) 
+	{
+		// only atopnet data is available
+		make_proc_prints(genprocs, MAXITEMS, 
+			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
+			"VGROW:8 RGROW:8 "
+			"RNET:7 SNET:7 "
+			"ST:5 EXC:5 S:6 "
+			"CPUNR:5 SORTITEM:10 CMD:10", 
+			"built-in genprocs");
+	}
+	else 
+	{
+		// no optional data is available
+		make_proc_prints(genprocs, MAXITEMS, 
+			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
+			"VGROW:8 RGROW:8 RUID:4 EUID:3 "
+			"THR:7 ST:7 EXC:7 S:7 "
+			"SORTITEM:10 CMD:10", 
+			"built-in genprocs");
+	}
+}
 
 /*
 ** print the list of processes from the deviation-list
@@ -1313,8 +1175,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         if (sb->availcpu)
                         {
                                 perc = (double)(curstat->cpu.stime +
-                                                curstat->cpu.utime  ) *
-                                                100.0 /
+                                                curstat->cpu.utime  ) * 100 /
                                                 (sb->availcpu / sb->nrcpu);
 
                                 if (perc > 100.0 * sb->nrcpu)
@@ -1341,29 +1202,14 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                    case MSORTDSK:
                         perc = 0.0;
 
-                        if (supportflags & PATCHSTAT)
+			if (sb->availdsk)
                         {
-                                if (sb->availdsk)
-                                {
-                                        perc = (double)(curstat->dsk.rio +
-                                                        curstat->dsk.wio  ) *
-                                                        100.0 / sb->availdsk;
+				perc = (double)(curstat->dsk.rsz +
+						curstat->dsk.wsz  ) *
+						100.0 / sb->availdsk;
 
-                                        if (perc > 100.0)
-                                                perc = 100.0;
-                                }
-                        }
-                        else
-                        {
-                                if (sb->availdsk)
-                                {
-                                        perc = (double)(curstat->dsk.rsz +
-                                                        curstat->dsk.wsz  ) *
-                                                        100.0 / sb->availdsk;
-
-                                        if (perc > 100.0)
-                                                perc = 100.0;
-                                }
+				if (perc > 100.0)
+					perc = 100.0;
                         }
                         break;
 
@@ -1750,8 +1596,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         else
                                 badness = 0;
 
-                        if (highbadness < badness &&
-                                        (supportflags & PATCHSTAT) )
+                        if (highbadness < badness && (supportflags & ATOPNET) )
                         {
                                 highbadness = badness;
                                 *highorderp = MSORTNET;
@@ -1836,7 +1681,7 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
                 else
                         badness = 0;
 
-                if (*highbadp < badness && (supportflags & (PATCHSTAT|IOSTAT)) )
+                if (*highbadp < badness && (supportflags & IOSTAT) )
                 {
                         *highbadp	= badness;
                         *highorderp 	= MSORTDSK;

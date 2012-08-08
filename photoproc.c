@@ -186,42 +186,18 @@ photoproc(struct tstat *tasklist, int maxtask)
 	if (firstcall)
 	{
 		/*
-		** check if this kernel is patched for additional
-		** per-task counters
+		** check if this kernel offers io-statistics per task
 		*/
-		if ( (fp = fopen("/proc/1/stat", "r")) )
+		regainrootprivs();
+
+		if ( (fp = fopen("/proc/1/io", "r")) )
 		{
-			char	line[4096];
-
-			/*
-			** when the patch is installed, the output
-			** of /proc/pid/stat contains two lines
-			*/
-			(void) fgets(line, sizeof line, fp);
-
-			if ( fgets(line, sizeof line, fp) != NULL)
-				supportflags |= PATCHSTAT;
-
+			supportflags |= IOSTAT;
 			fclose(fp);
 		}
 
-		/*
-		** check if this kernel offers io-statistics per task
-		*/
-		if ( !(supportflags & PATCHSTAT) )
-		{
-			regainrootprivs();
-
-			if ( (fp = fopen("/proc/1/io", "r")) )
-			{
-				supportflags |= IOSTAT;
-
-				fclose(fp);
-			}
-
-			if (! droprootprivs())
-				cleanstop(42);
-		}
+		if (! droprootprivs())
+			cleanstop(42);
 
 		/*
  		** find epoch time of boot moment
@@ -230,6 +206,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 		firstcall = 0;
 	}
+
+	/*
+ 	** verify if the atopnet module is available
+	*/
+	netmodprobe();
 
 	/*
 	** read all subdirectory-names below the /proc directory
@@ -276,6 +257,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 		}
 
 		proccmd(curtask);		    /* from /proc/pid/cmdline */
+
+		netmodfill(curtask->gen.tgid, 'g', curtask); /* atop module */
 
 		tval++;		/* increment for process-level info */
 
@@ -342,6 +325,9 @@ photoproc(struct tstat *tasklist, int maxtask)
 					}
 
 					curthr->gen.nthr = 1;
+
+					netmodfill(curthr->gen.pid, 't',
+						curthr); /* atop module */
 
 					tval++;	    /* increment thread-level */
 					chdir("..");	/* leave thread's dir */

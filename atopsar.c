@@ -2149,7 +2149,7 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		return 0;
 	}
 
-	if ( !(supportflags & (PATCHSTAT | IOSTAT)) )
+	if ( !(supportflags & IOSTAT) )
 	{
 		printf("no per-process disk counters available.....\n");
 		return 0;
@@ -2208,7 +2208,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		return 0;
 	}
 
-	if ( !(supportflags & PATCHSTAT))
+	if ( !(supportflags & ATOPNET) )
 	{
 		printf("no per-process network counters available.....\n");
 		return 0;

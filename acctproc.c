@@ -435,12 +435,6 @@ acctvers(int fd)
 		acctversion   = 3;
 		break;
 
-	   case 6:
-	   	acctrecsz     = sizeof(struct acct_atop);
-		acctversion   = 6;
-		supportflags |= PATCHACCT;  
-		break;
-
 	   default:
 		fprintf(stderr, "Unknown format of process accounting file\n");
 		cleanstop(8);

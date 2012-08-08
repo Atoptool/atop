@@ -1007,7 +1007,7 @@ generic_samp(time_t curtime, int nsecs,
 			   ** sort in disk-activity order
 			   */
 			   case MSORTDSK:
-				if ( !(supportflags & (PATCHSTAT|IOSTAT)) )
+				if ( !(supportflags & IOSTAT) )
 				{
 					statmsg = "No disk-activity figures "
 					          "available; request ignored!";
@@ -1021,10 +1021,10 @@ generic_samp(time_t curtime, int nsecs,
 			   ** sort in network-activity order
 			   */
 			   case MSORTNET:
-				if ( !(supportflags & PATCHSTAT) )
+				if ( !(supportflags & ATOPNET) )
 				{
-					statmsg = "No kernel-patch installed; "
-					          "request ignored!";
+					statmsg = "Kernel module 'atopnet' not "
+					          "active; request ignored!";
 					break;
 				}
 				showorder = MSORTNET;
@@ -1059,7 +1059,7 @@ generic_samp(time_t curtime, int nsecs,
 			   ** disk-specific figures per process
 			   */
 			   case MPROCDSK:
-				if ( !(supportflags & (PATCHSTAT|IOSTAT)) )
+				if ( !(supportflags & IOSTAT) )
 				{
 					statmsg = "No disk-activity figures "
 					          "available; request ignored!";
@@ -1078,10 +1078,10 @@ generic_samp(time_t curtime, int nsecs,
 			   ** network-specific figures per process
 			   */
 			   case MPROCNET:
-				if ( !(supportflags & PATCHSTAT) )
+				if ( !(supportflags & ATOPNET) )
 				{
-					statmsg = "No kernel-patch installed; "
-					          "request ignored!";
+					statmsg = "Kernel module 'atopnet' not "
+					          "active; request ignored!";
 					break;
 				}
 
@@ -2094,7 +2094,7 @@ generic_init(void)
 			break;
 
 		   case MPROCDSK:
-			if ( !(supportflags & (PATCHSTAT|IOSTAT)) )
+			if ( !(supportflags & IOSTAT) )
 			{
 				fprintf(stderr,
 					"No disk-activity figures "
@@ -2108,11 +2108,10 @@ generic_init(void)
 			break;
 
 		   case MPROCNET:
-			if ( !(supportflags & PATCHSTAT) )
+			if ( !(supportflags & ATOPNET) )
 			{
-				fprintf(stderr,
-					"No kernel-patch installed "
-					"(no network-statistics)\n");
+				fprintf(stderr, "Kernel module 'atopnet' not "
+					          "active; request ignored!");
 				sleep(3);
 				break;
 			}
