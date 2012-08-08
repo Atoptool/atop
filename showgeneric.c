@@ -1796,6 +1796,7 @@ static int
 cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 {
 	register int	i, numusers;
+	count_t		nett_wsz;
 
 	/*
 	** sort list of active processes in order of uid (increasing)
@@ -1829,10 +1830,18 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 
 		curusers->dsk.rsz    += (*curprocs)->dsk.rsz;
 		curusers->dsk.wsz    += (*curprocs)->dsk.wsz;
-			
-		curusers->dsk.rio    += (*curprocs)->dsk.rio;
-		curusers->dsk.wio    += (*curprocs)->dsk.wio;
-			
+
+ 		if ((*curprocs)->dsk.wsz > (*curprocs)->dsk.cwsz)
+                	nett_wsz = (*curprocs)->dsk.wsz -(*curprocs)->dsk.cwsz;
+		else
+			nett_wsz = 0;
+
+		curusers->dsk.rio    += (*curprocs)->dsk.rsz;
+		curusers->dsk.wio    += nett_wsz;
+
+		curusers->dsk.rsz    += curusers->dsk.rio;
+		curusers->dsk.wsz    +=	curusers->dsk.wio;
+
 		curusers->net.tcpsnd += (*curprocs)->net.tcpsnd;
 		curusers->net.tcprcv += (*curprocs)->net.tcprcv;
 		curusers->net.udpsnd += (*curprocs)->net.udpsnd;
@@ -1865,6 +1874,7 @@ static int
 cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 {
 	register int	i, numprogs;
+	count_t		nett_wsz;
 
 	/*
 	** sort list of active processes in order of process-name
@@ -1896,11 +1906,16 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 		curprogs->cpu.utime  += (*curprocs)->cpu.utime;
 		curprogs->cpu.stime  += (*curprocs)->cpu.stime;
 
-		curprogs->dsk.rio    += (*curprocs)->dsk.rio;
-		curprogs->dsk.wio    += (*curprocs)->dsk.wio;
+ 		if ((*curprocs)->dsk.wsz > (*curprocs)->dsk.cwsz)
+                	nett_wsz = (*curprocs)->dsk.wsz -(*curprocs)->dsk.cwsz;
+		else
+			nett_wsz = 0;
+
+		curprogs->dsk.rio    += (*curprocs)->dsk.rsz;
+		curprogs->dsk.wio    += nett_wsz;
 			
-		curprogs->dsk.rsz    += (*curprocs)->dsk.rsz;
-		curprogs->dsk.wsz    += (*curprocs)->dsk.wsz;
+		curprogs->dsk.rsz    += curprogs->dsk.rio;
+		curprogs->dsk.wsz    +=	curprogs->dsk.wio;
 			
 		curprogs->net.tcpsnd += (*curprocs)->net.tcpsnd;
 		curprogs->net.tcprcv += (*curprocs)->net.tcprcv;

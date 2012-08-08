@@ -276,6 +276,7 @@ extern proc_printdef procprt_COMMAND_LINE;
 extern proc_printdef procprt_NPROCS;
 extern proc_printdef procprt_RDDSK;
 extern proc_printdef procprt_WRDSK;
+extern proc_printdef procprt_CWRDSK;
 extern proc_printdef procprt_WCANCEL;
 extern proc_printdef procprt_TCPRCV;
 extern proc_printdef procprt_TCPRASZ;
@@ -291,10 +292,10 @@ extern proc_printdef procprt_SNET;
 
 
 
-extern char *procprt_NRDDSK_ae(struct tstat *, int, int);
-extern char *procprt_NWRDSK_a(struct tstat *, int, int);
-extern char *procprt_NRDDSK_e(struct tstat *, int, int);
-extern char *procprt_NWRDSK_e(struct tstat *, int, int);
+//extern char *procprt_NRDDSK_ae(struct tstat *, int, int);
+//extern char *procprt_NWRDSK_a(struct tstat *, int, int);
+//extern char *procprt_NRDDSK_e(struct tstat *, int, int);
+//extern char *procprt_NWRDSK_e(struct tstat *, int, int);
 
 extern char *procprt_SNET_a(struct tstat *, int, int);
 extern char *procprt_SNET_e(struct tstat *, int, int);

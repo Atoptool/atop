@@ -491,6 +491,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_NPROCS,
 	&procprt_RDDSK,
 	&procprt_WRDSK,
+	&procprt_CWRDSK,
 	&procprt_WCANCEL,
 	&procprt_TCPRCV,
 	&procprt_TCPRASZ,
@@ -731,35 +732,29 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 
         psc->availmem   = sstat->mem.physmem * pagesize/1024;
 
-        if ( supportflags & ATOPNET )
-        {
-                /*
-                ** calculate total number of accesses which have been
-                ** issued by the active processes for disk and for network
-                */
-                for (psc->availnet=psc->availdsk=0, i=0; i < nactproc; i++) 
-                {
-			struct tstat *curstat = *(proclist+i);
+	/*
+	** calculate total transfer issued by the active processes
+	** for disk and for network
+	*/
+	for (psc->availnet=psc->availdsk=0, i=0; i < nactproc; i++) 
+	{
+		struct tstat 	*curstat = *(proclist+i);
+		count_t		nett_wsz;
 
-                        psc->availnet += curstat->net.tcpsnd;
-                        psc->availnet += curstat->net.tcprcv;
-                        psc->availnet += curstat->net.udpsnd;
-                        psc->availnet += curstat->net.udprcv;
+		psc->availnet += curstat->net.tcpsnd;
+		psc->availnet += curstat->net.tcprcv;
+		psc->availnet += curstat->net.udpsnd;
+		psc->availnet += curstat->net.udprcv;
 
-                        psc->availdsk += curstat->dsk.rio;
-                        psc->availdsk += curstat->dsk.wio;
-                }
-        }
-        else
-        {
-                for (psc->availnet=psc->availdsk=0, i=0; i < nactproc; i++) 
-                {
-			struct tstat *curstat = *(proclist+i);
+		if (curstat->dsk.wsz > curstat->dsk.cwsz)
+			nett_wsz = curstat->dsk.wsz -
+			           curstat->dsk.cwsz;
+		else
+			nett_wsz = 0;
 
-                        psc->availdsk += curstat->dsk.rsz;
-                        psc->availdsk += curstat->dsk.wsz;
-                }
-        }
+		psc->availdsk += curstat->dsk.rsz;
+		psc->availdsk += nett_wsz;
+	}
 }
 
 /*
@@ -1021,13 +1016,13 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 
                 make_proc_prints(totusers, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 "
-                        "RSIZE:8 SWAPSZ:5 RDDSK:7 WRDSK:7 RNET:6 SNET:6 "
+                        "RSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 RNET:6 SNET:6 "
                         "SORTITEM:10 RUID:10", 
                         "built-in totusers");
 
                 make_proc_prints(totprocs, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 SWAPSZ:5 "
-                        "RSIZE:8 RDDSK:7 WRDSK:7 RNET:6 SNET:6" 
+                        "RSIZE:8 RDDSK:7 CWRDSK:7 RNET:6 SNET:6" 
                         "SORTITEM:10 CMD:10", 
                         "built-in totprocs");
         }
@@ -1097,7 +1092,7 @@ make_proc_dynamicgen()
 		make_proc_prints(genprocs, MAXITEMS, 
 			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
 			"VGROW:8 RGROW:8 "
-			"RDDSK:7 WRDSK:7 "
+			"RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 S:5 "
 			"SORTITEM:10 CMD:10", 
 			"built-in genprocs");
@@ -1109,7 +1104,7 @@ make_proc_dynamicgen()
 			"PID:10 TID:4 RUID:3 EUID:2 THR:4 "
 			"SYSCPU:9 USRCPU:9 "
 			"VGROW:8 RGROW:8 "
-			"RDDSK:7 WRDSK:7 "
+			"RDDSK:7 CWRDSK:7 "
 			"ST:6 EXC:6 S:6 "
 			"CPUNR:5 SORTITEM:10 CMD:10", 
 			"built-in genprocs");
@@ -1200,8 +1195,16 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
 			if (sb->availdsk)
                         {
-				perc = (double)(curstat->dsk.rsz +
-						curstat->dsk.wsz  ) *
+				count_t nett_wsz;
+
+
+				if (curstat->dsk.wsz > curstat->dsk.cwsz)
+					nett_wsz = curstat->dsk.wsz -
+					           curstat->dsk.cwsz;
+				else
+					nett_wsz = 0;
+
+				perc = (double)(curstat->dsk.rsz + nett_wsz) *
 						100.0 / sb->availdsk;
 
 				if (perc > 100.0)
@@ -1711,10 +1714,21 @@ compcpu(const void *a, const void *b)
 int
 compdsk(const void *a, const void *b)
 {
-        register count_t adsk = (*(struct tstat **)a)->dsk.rio +
-                                (*(struct tstat **)a)->dsk.wio;
-        register count_t bdsk = (*(struct tstat **)b)->dsk.rio +
-                                (*(struct tstat **)b)->dsk.wio;
+	struct tstat	*ta = *(struct tstat **)a;
+	struct tstat	*tb = *(struct tstat **)b;
+
+        count_t	adsk;
+        count_t bdsk;
+
+	if (ta->dsk.wsz > ta->dsk.cwsz)
+		adsk = ta->dsk.rio + ta->dsk.wsz - ta->dsk.cwsz;
+	else
+		adsk = ta->dsk.rio;
+
+	if (tb->dsk.wsz > tb->dsk.cwsz)
+		bdsk = tb->dsk.rio + tb->dsk.wsz - tb->dsk.cwsz;
+	else
+		bdsk = tb->dsk.rio;
 
         if (adsk < bdsk) return  1;
         if (adsk > bdsk) return -1;

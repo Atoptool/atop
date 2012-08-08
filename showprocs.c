@@ -1376,6 +1376,7 @@ char *
 procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs) 
 {
         static char buf[10];
+
         val2memstr(curstat->dsk.wsz*512, buf, KBFORMAT, 0, 0);
 
         return buf;
@@ -1389,6 +1390,25 @@ procprt_WRDSK_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_WRDSK = 
    { " WRDSK", "WRDSK", procprt_WRDSK_a, procprt_WRDSK_e, 6 };
+/***************************************************************/
+char *
+procprt_CWRDSK_a(struct tstat *curstat, int avgval, int nsecs) 
+{
+	count_t nett_wsz;
+        static char buf[10];
+
+	if (curstat->dsk.wsz > curstat->dsk.cwsz)
+		nett_wsz = curstat->dsk.wsz - curstat->dsk.cwsz;
+	else
+		nett_wsz = 0;
+
+        val2memstr(nett_wsz*512, buf, KBFORMAT, 0, 0);
+
+        return buf;
+}
+
+proc_printdef procprt_CWRDSK = 
+   { " WRDSK", "CWRDSK", procprt_CWRDSK_a, procprt_WRDSK_e, 6 };
 /***************************************************************/
 char *
 procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
