@@ -500,8 +500,6 @@ proc_printdef *allprocpdefs[]=
 	&procprt_UDPRASZ,
 	&procprt_UDPSND,
 	&procprt_UDPSASZ,
-	&procprt_RAWSND,
-	&procprt_RAWRCV,
 	&procprt_RNET,
 	&procprt_SNET,
 	&procprt_SORTITEM,
@@ -747,8 +745,6 @@ totalcap(struct syscap *psc, struct sstat *sstat,
                         psc->availnet += curstat->net.tcprcv;
                         psc->availnet += curstat->net.udpsnd;
                         psc->availnet += curstat->net.udprcv;
-                        psc->availnet += curstat->net.rawsnd;
-                        psc->availnet += curstat->net.rawrcv;
 
                         psc->availdsk += curstat->dsk.rio;
                         psc->availdsk += curstat->dsk.wio;
@@ -1009,7 +1005,7 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                 make_proc_prints(netprocs, MAXITEMS, 
                         "PID:10 TID:6 TCPRCV:9 TCPRASZ:4 TCPSND:9 "
                         "TCPSASZ:4 UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
-                        "RAWRCV:7 RAWSND:7 SORTITEM:10 CMD:10", 
+                        "SORTITEM:10 CMD:10", 
                         "built-in netprocs");
 
                 make_proc_prints(varprocs, MAXITEMS,
@@ -1221,9 +1217,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                                 perc = (double)(curstat->net.tcpsnd +
                                                 curstat->net.tcprcv +
                                                 curstat->net.udpsnd +
-                                                curstat->net.udprcv +
-                                                curstat->net.rawsnd +
-                                                curstat->net.rawrcv ) *
+                                                curstat->net.udprcv  ) *
                                                 100.0 / sb->availnet;
 
                                 if (perc > 100.0)
@@ -1744,15 +1738,11 @@ compnet(const void *a, const void *b)
         register count_t anet = (*(struct tstat **)a)->net.tcpsnd +
                                 (*(struct tstat **)a)->net.tcprcv +
                                 (*(struct tstat **)a)->net.udpsnd +
-                                (*(struct tstat **)a)->net.udprcv +
-                                (*(struct tstat **)a)->net.rawsnd +
-                                (*(struct tstat **)a)->net.rawrcv  ;
+                                (*(struct tstat **)a)->net.udprcv  ;
         register count_t bnet = (*(struct tstat **)b)->net.tcpsnd +
                                 (*(struct tstat **)b)->net.tcprcv +
                                 (*(struct tstat **)b)->net.udpsnd +
-                                (*(struct tstat **)b)->net.udprcv +
-                                (*(struct tstat **)b)->net.rawsnd +
-                                (*(struct tstat **)b)->net.rawrcv  ;
+                                (*(struct tstat **)b)->net.udprcv  ;
 
         if (anet < bnet) return  1;
         if (anet > bnet) return -1;

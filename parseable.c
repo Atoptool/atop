@@ -636,7 +636,7 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->net.tcprcv, ps->net.tcprsz,
 				ps->net.udpsnd, ps->net.udpssz,
 				ps->net.udprcv, ps->net.udprsz,
-				ps->net.rawsnd, ps->net.rawrcv,
+				0,              0,
 				ps->gen.tgid,   ps->gen.isproc ? 'y':'n');
 	}
 }

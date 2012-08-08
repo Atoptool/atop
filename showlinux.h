@@ -288,8 +288,6 @@ extern proc_printdef procprt_UDPSASZ;
 extern proc_printdef procprt_RNET;
 extern proc_printdef procprt_SORTITEM;
 extern proc_printdef procprt_SNET;
-extern proc_printdef procprt_RAWRCV;
-extern proc_printdef procprt_RAWSND;
 
 
 
@@ -318,7 +316,3 @@ extern char *procprt_TCPSASZ_e(struct tstat *, int, int);
 extern char *procprt_TCPRASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPSASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPRASZ_e(struct tstat *, int, int);
-extern char *procprt_RAWSND_e(struct tstat *, int, int);
-extern char *procprt_RAWRCV_e(struct tstat *, int, int);
-extern char *procprt_RAWSND_a(struct tstat *, int, int);
-extern char *procprt_RAWRCV_a(struct tstat *, int, int);

@@ -1574,50 +1574,12 @@ proc_printdef procprt_UDPSASZ =
    { "UDPSASZ", "UDPSASZ", procprt_UDPSASZ_a, procprt_UDPSASZ_e, 7 };
 /***************************************************************/
 char *
-procprt_RAWSND_a(struct tstat *curstat, int avgval, int nsecs)
-{
-        static char buf[10];
-        
-        val2valstr(curstat->net.rawsnd, buf, 6, avgval, nsecs);
-
-        return buf;
-}
-
-char *
-procprt_RAWSND_e(struct tstat *curstat, int avgval, int nsecs)
-{
-        return "     -";
-}
-
-proc_printdef procprt_RAWSND = 
-   { "RAWSND", "RAWSND", procprt_RAWSND_a, procprt_RAWSND_e, 6 };
-/***************************************************************/
-char *
-procprt_RAWRCV_a(struct tstat *curstat, int avgval, int nsecs)
-{
-        static char buf[10];
-        
-        val2valstr(curstat->net.rawrcv, buf, 6, avgval, nsecs);
-
-        return buf;
-}
-
-char *
-procprt_RAWRCV_e(struct tstat *curstat, int avgval, int nsecs)
-{
-        return "     -";
-}
-
-proc_printdef procprt_RAWRCV = 
-   { "RAWRCV", "RAWRCV", procprt_RAWRCV_a, procprt_RAWRCV_e, 6 };
-/***************************************************************/
-char *
 procprt_RNET_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
         
-        val2valstr(curstat->net.tcprcv + curstat->net.udprcv + 
-                           curstat->net.rawrcv,  buf, 4, avgval, nsecs);
+        val2valstr(curstat->net.tcprcv + curstat->net.udprcv ,
+					buf, 4, avgval, nsecs);
 
         return buf;
 }
@@ -1645,8 +1607,8 @@ procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
         
-        val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd + 
-                           curstat->net.rawsnd,  buf, 4, avgval, nsecs);
+        val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd,
+                           		buf, 4, avgval, nsecs);
 
         return buf;
 }

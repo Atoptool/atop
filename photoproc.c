@@ -443,21 +443,6 @@ procstat(struct tstat *curtask, time_t bootepoch, char isproc)
 	curtask->mem.vmem   /= 1024;
 	curtask->mem.rmem   *= pagesize/1024;
 
-	/*
- 	** second line present for patched kernel?
-	*/
-	if ( fgets(line, sizeof line, fp) != NULL)
-	{
-		sscanf(line, ATOPSTAT,
-			&(curtask->dsk.rio),	&(curtask->dsk.rsz),
-			&(curtask->dsk.wio),	&(curtask->dsk.wsz),
-			&(curtask->net.tcpsnd),	&(curtask->net.tcpssz),
-			&(curtask->net.tcprcv),	&(curtask->net.tcprsz),
-			&(curtask->net.udpsnd),	&(curtask->net.udpssz),
-			&(curtask->net.udprcv),	&(curtask->net.udprsz),
-			&(curtask->net.rawsnd),	&(curtask->net.rawrcv));
-	}
-
 	fclose(fp);
 
 	switch (curtask->gen.state)

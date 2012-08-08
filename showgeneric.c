@@ -1837,8 +1837,6 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 		curusers->net.tcprcv += (*curprocs)->net.tcprcv;
 		curusers->net.udpsnd += (*curprocs)->net.udpsnd;
 		curusers->net.udprcv += (*curprocs)->net.udprcv;
-		curusers->net.rawsnd += (*curprocs)->net.rawsnd;
-		curusers->net.rawrcv += (*curprocs)->net.rawrcv;
 
 		if ((*curprocs)->gen.state != 'E')
 		{
@@ -1908,8 +1906,6 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 		curprogs->net.tcprcv += (*curprocs)->net.tcprcv;
 		curprogs->net.udpsnd += (*curprocs)->net.udpsnd;
 		curprogs->net.udprcv += (*curprocs)->net.udprcv;
-		curprogs->net.rawsnd += (*curprocs)->net.rawsnd;
-		curprogs->net.rawrcv += (*curprocs)->net.rawrcv;
 
 		if ((*curprocs)->gen.state != 'E')
 		{

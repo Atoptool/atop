@@ -702,8 +702,6 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->net.udprcv = acctexp (acctrec_atop.ac_udprcv);
 			api->net.udpssz = acctexp2(acctrec_atop.ac_udpssz);
 			api->net.udprsz = acctexp2(acctrec_atop.ac_udprsz);
-			api->net.rawsnd = acctexp (acctrec_atop.ac_rawsnd);
-			api->net.rawrcv = acctexp (acctrec_atop.ac_rawrcv);
 
 			strcpy(api->gen.name, acctrec_atop.ac_comm);
 		}

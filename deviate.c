@@ -420,8 +420,6 @@ deviatproc(struct tstat *aproc, int npresent,
 		devstat->net.udpssz   = 0;
 		devstat->net.udprcv   = 0;
 		devstat->net.udprsz   = 0;
-		devstat->net.rawsnd   = 0;
-		devstat->net.rawrcv   = 0;
 		devstat->mem.vmem     = 0;
 		devstat->mem.rmem     = 0;
 		devstat->mem.vgrow    = 0;
@@ -562,10 +560,6 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 		subcount(curstat->net.udprcv, prestat->net.udprcv);
 	devstat->net.udprsz =
 		subcount(curstat->net.udprsz, prestat->net.udprsz);
-	devstat->net.rawsnd =
-		subcount(curstat->net.rawsnd, prestat->net.rawsnd);
-	devstat->net.rawrcv =
-		subcount(curstat->net.rawrcv, prestat->net.rawrcv);
 }
 
 /*
