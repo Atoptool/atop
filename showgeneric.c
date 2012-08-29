@@ -1023,7 +1023,7 @@ generic_samp(time_t curtime, int nsecs,
 			   case MSORTNET:
 				if ( !(supportflags & ATOPNET) )
 				{
-					statmsg = "Kernel module 'atopnet' not "
+					statmsg = "Kernel module 'netatop' not "
 					          "active; request ignored!";
 					break;
 				}
@@ -1080,7 +1080,7 @@ generic_samp(time_t curtime, int nsecs,
 			   case MPROCNET:
 				if ( !(supportflags & ATOPNET) )
 				{
-					statmsg = "Kernel module 'atopnet' not "
+					statmsg = "Kernel module 'netatop' not "
 					          "active; request ignored!";
 					break;
 				}
@@ -1828,9 +1828,6 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 		curusers->cpu.utime  += (*curprocs)->cpu.utime;
 		curusers->cpu.stime  += (*curprocs)->cpu.stime;
 
-		curusers->dsk.rsz    += (*curprocs)->dsk.rsz;
-		curusers->dsk.wsz    += (*curprocs)->dsk.wsz;
-
  		if ((*curprocs)->dsk.wsz > (*curprocs)->dsk.cwsz)
                 	nett_wsz = (*curprocs)->dsk.wsz -(*curprocs)->dsk.cwsz;
 		else
@@ -2121,7 +2118,7 @@ generic_init(void)
 		   case MPROCNET:
 			if ( !(supportflags & ATOPNET) )
 			{
-				fprintf(stderr, "Kernel module 'atopnet' not "
+				fprintf(stderr, "Kernel module 'netatop' not "
 					          "active; request ignored!");
 				sleep(3);
 				break;

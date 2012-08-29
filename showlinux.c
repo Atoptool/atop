@@ -365,6 +365,9 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_MEMBUFFER,
 	&syspdef_MEMSLAB,
 	&syspdef_BLANKBOX,
+	&syspdef_SHMTOT,
+	&syspdef_SHMRSS,
+	&syspdef_SHMSWP,
         0
 };
 sys_printdef *swpsyspdefs[] = {
@@ -503,6 +506,8 @@ proc_printdef *allprocpdefs[]=
 	&procprt_UDPSASZ,
 	&procprt_RNET,
 	&procprt_SNET,
+	&procprt_RNETBW,
+	&procprt_SNETBW,
 	&procprt_SORTITEM,
         0
 };
@@ -741,10 +746,10 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 		struct tstat 	*curstat = *(proclist+i);
 		count_t		nett_wsz;
 
-		psc->availnet += curstat->net.tcpsnd;
-		psc->availnet += curstat->net.tcprcv;
-		psc->availnet += curstat->net.udpsnd;
-		psc->availnet += curstat->net.udprcv;
+		psc->availnet += curstat->net.tcpssz;
+		psc->availnet += curstat->net.tcprsz;
+		psc->availnet += curstat->net.udpssz;
+		psc->availnet += curstat->net.udprsz;
 
 		if (curstat->dsk.wsz > curstat->dsk.cwsz)
 			nett_wsz = curstat->dsk.wsz -
@@ -836,15 +841,16 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 if (memline[0].f == 0)
                 {
                     make_sys_prints(memline, MAXITEMS,
-	                "MEMTOT:2 "
-	                "MEMFREE:5 "
-	                "MEMCACHE:3 "
+	                "MEMTOT:5 "
+	                "MEMFREE:6 "
+	                "MEMCACHE:4 "
 	                "MEMDIRTY:1 "
-	                "MEMBUFFER:3 "
-	                "MEMSLAB:3 "
+	                "MEMBUFFER:4 "
+	                "MEMSLAB:4 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
+	                "SHMTOT:2 "
+	                "SHMRSS:3 "
+	                "SHMSWP:2 "
 	                "BLANKBOX:0", memsyspdefs, "built in memline");
                 }
                 if (swpline[0].f == 0)
@@ -998,8 +1004,10 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
                         "built-in dskprocs");
 
                 make_proc_prints(netprocs, MAXITEMS, 
-                        "PID:10 TID:6 TCPRCV:9 TCPRASZ:4 TCPSND:9 "
-                        "TCPSASZ:4 UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
+                        "PID:10 TID:6 "
+			"TCPRCV:9 TCPRASZ:4 TCPSND:9 TCPSASZ:4 "
+			"UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
+			"RNETBW:10 SNETBW:10 "
                         "SORTITEM:10 CMD:10", 
                         "built-in netprocs");
 
@@ -1034,6 +1042,12 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 	{
 		make_proc_dynamicgen();
 		prev_supportflags = supportflags;
+
+		if (showtype == MPROCNET && !(supportflags&ATOPNET) )
+		{
+			showtype  = MPROCGEN;
+			showorder = MSORTCPU;
+		}
 	}
 
         /*
@@ -1088,7 +1102,7 @@ make_proc_dynamicgen()
 {
 	if ( (supportflags & (IOSTAT|ATOPNET)) == (IOSTAT|ATOPNET)) 
 	{
-		// iostat and atopnet data is available
+		// iostat and netatop data is available
 		make_proc_prints(genprocs, MAXITEMS, 
 			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
 			"VGROW:8 RGROW:8 "
@@ -1111,7 +1125,7 @@ make_proc_dynamicgen()
 	} 
 	else if (supportflags & ATOPNET) 
 	{
-		// only atopnet data is available
+		// only netatop data is available
 		make_proc_prints(genprocs, MAXITEMS, 
 			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
 			"VGROW:8 RGROW:8 "
@@ -1217,10 +1231,10 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
                         if (sb->availnet)
                         {
-                                perc = (double)(curstat->net.tcpsnd +
-                                                curstat->net.tcprcv +
-                                                curstat->net.udpsnd +
-                                                curstat->net.udprcv  ) *
+                                perc = (double)(curstat->net.tcpssz +
+                                                curstat->net.tcprsz +
+                                                curstat->net.udpssz +
+                                                curstat->net.udprsz  ) *
                                                 100.0 / sb->availnet;
 
                                 if (perc > 100.0)
@@ -1749,14 +1763,14 @@ compmem(const void *a, const void *b)
 int
 compnet(const void *a, const void *b)
 {
-        register count_t anet = (*(struct tstat **)a)->net.tcpsnd +
-                                (*(struct tstat **)a)->net.tcprcv +
-                                (*(struct tstat **)a)->net.udpsnd +
-                                (*(struct tstat **)a)->net.udprcv  ;
-        register count_t bnet = (*(struct tstat **)b)->net.tcpsnd +
-                                (*(struct tstat **)b)->net.tcprcv +
-                                (*(struct tstat **)b)->net.udpsnd +
-                                (*(struct tstat **)b)->net.udprcv  ;
+        register count_t anet = (*(struct tstat **)a)->net.tcpssz +
+                                (*(struct tstat **)a)->net.tcprsz +
+                                (*(struct tstat **)a)->net.udpssz +
+                                (*(struct tstat **)a)->net.udprsz  ;
+        register count_t bnet = (*(struct tstat **)b)->net.tcpssz +
+                                (*(struct tstat **)b)->net.tcprsz +
+                                (*(struct tstat **)b)->net.udpssz +
+                                (*(struct tstat **)b)->net.udprsz  ;
 
         if (anet < bnet) return  1;
         if (anet > bnet) return -1;

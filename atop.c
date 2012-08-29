@@ -646,7 +646,7 @@ main(int argc, char *argv[])
 	initifprop();
 
 	/*
- 	** make connection with the atopnet kernel module
+ 	** make connection with the netatop kernel module
 	*/
 	netmodprobe();
 	

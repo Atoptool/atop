@@ -1408,7 +1408,7 @@ procprt_CWRDSK_a(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_CWRDSK = 
-   { " WRDSK", "CWRDSK", procprt_CWRDSK_a, procprt_WRDSK_e, 6 };
+   {" WRDSK", "CWRDSK", procprt_CWRDSK_a, procprt_WRDSK_e, 6 };
 /***************************************************************/
 char *
 procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
@@ -1614,22 +1614,12 @@ proc_printdef procprt_RNET =
    { "RNET", "RNET", procprt_RNET_a, procprt_RNET_e, 4 };
 /***************************************************************/
 char *
-procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
-{
-        return "";   // dummy function
-}
-
-proc_printdef procprt_SORTITEM = 
-   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };
-/***************************************************************/
-char *
 procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
         
         val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd,
                            		buf, 4, avgval, nsecs);
-
         return buf;
 }
 
@@ -1641,3 +1631,94 @@ procprt_SNET_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_SNET = 
    { "SNET", "SNET", procprt_SNET_a, procprt_SNET_e, 4 };
+/***************************************************************/
+char *
+procprt_RNETBW_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[16];
+	char        c;
+	count_t     rkbps = (curstat->net.tcprsz+curstat->net.udprsz)/125/nsecs;
+
+	if (rkbps < 10000)
+	{
+                c='K';
+        }
+        else if (rkbps < (count_t)10000 * 1000)
+        {
+                rkbps/=1000;
+                c = 'M';
+        }
+        else if (rkbps < (count_t)10000 * 1000 * 1000)
+        {
+                rkbps/=1000 * 1000;
+                c = 'G';
+        }
+        else
+        {
+                rkbps = rkbps / 1000 / 1000 / 1000;
+                c = 'T';
+        }
+
+        sprintf(buf, "%4lld %cbps", rkbps, c);
+
+        return buf;
+}
+
+char *
+procprt_RNETBW_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "        -";
+}
+
+proc_printdef procprt_RNETBW = 
+   { "   BANDWI", "RNETBW", procprt_RNETBW_a, procprt_RNETBW_e, 9};
+/***************************************************************/
+char *
+procprt_SNETBW_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[16];
+	char        c;
+	count_t     skbps = (curstat->net.tcpssz+curstat->net.udpssz)/125/nsecs;
+
+	if (skbps < 10000)
+	{
+                c='K';
+        }
+        else if (skbps < (count_t)10000 * 1000)
+        {
+                skbps/=1000;
+                c = 'M';
+        }
+        else if (skbps < (count_t)10000 * 1000 * 1000)
+        {
+                skbps/=1000 * 1000;
+                c = 'G';
+        }
+        else
+        {
+                skbps = skbps / 1000 / 1000 / 1000;
+                c = 'T';
+        }
+
+        sprintf(buf, "%4lld %cbps", skbps, c);
+
+        return buf;
+}
+
+char *
+procprt_SNETBW_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "        -";
+}
+
+proc_printdef procprt_SNETBW = 
+   { "   BANDWO", "SNETBW", procprt_SNETBW_a, procprt_SNETBW_e, 9};
+/***************************************************************/
+char *
+procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "";   // dummy function
+}
+
+proc_printdef procprt_SORTITEM = 
+   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };

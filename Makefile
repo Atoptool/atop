@@ -89,8 +89,8 @@ ifprop.o:	atop.h	            photosyst.h             ifprop.h
 parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
-acctproc.o:	atop.h	photoproc.h              acctproc.h
-acctproc.o:	atop.h	photoproc.h              atopnet.h
+acctproc.o:	atop.h	photoproc.h              acctproc.h netatop.h
+atopnetif.o:	atop.h	photoproc.h                         netatop.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h

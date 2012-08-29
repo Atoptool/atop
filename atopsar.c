@@ -2219,8 +2219,8 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	for (i=0, availnet=0; i < nactproc; i++)
 	{
-		availnet += (*ps+i)->net.tcpsnd + (*ps+i)->net.tcprcv +
-		            (*ps+i)->net.udpsnd + (*ps+i)->net.udprcv;
+		availnet += (*ps+i)->net.tcpssz + (*ps+i)->net.tcprsz +
+		            (*ps+i)->net.udpssz + (*ps+i)->net.udprsz;
 	}
 
 	if (availnet == 0)
@@ -2234,18 +2234,17 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",
 		(ps[0])->gen.pid, (ps[0])->gen.name,
-		(double)((ps[0])->net.tcpsnd + (ps[0])->net.tcprcv +
-		         (ps[0])->net.udpsnd + (ps[0])->net.udprcv  )
+		(double)((ps[0])->net.tcpssz + (ps[0])->net.tcprsz +
+		         (ps[0])->net.udpssz + (ps[0])->net.udprsz  )
 							* 100.0 / availnet,
 		(ps[1])->gen.pid, (ps[1])->gen.name,
-		(double)((ps[1])->net.tcpsnd + (ps[1])->net.tcprcv +
-		         (ps[1])->net.udpsnd + (ps[1])->net.udprcv  )
+		(double)((ps[1])->net.tcpssz + (ps[1])->net.tcprsz +
+		         (ps[1])->net.udpssz + (ps[1])->net.udprsz  )
 							* 100.0 / availnet,
 		(ps[2])->gen.pid, (ps[2])->gen.name,
-		(double)((ps[2])->net.tcpsnd + (ps[2])->net.tcprcv +
-		         (ps[2])->net.udpsnd + (ps[2])->net.udprcv  )
+		(double)((ps[2])->net.tcpssz + (ps[2])->net.tcprsz +
+		         (ps[2])->net.udpssz + (ps[2])->net.udprsz  )
 							* 100.0 / availnet);
-
 	return 1;
 }
 

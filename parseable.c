@@ -626,7 +626,7 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d (%s) %c %c %lld %lld %lld %lld %lld %lld "
-		       "%lld %lld %lld %lld %d %c\n",
+		       "%lld %lld %d %d %d %c\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,

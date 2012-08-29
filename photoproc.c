@@ -208,7 +208,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 	}
 
 	/*
- 	** verify if the atopnet module is available
+ 	** verify if the netatop module is available
 	*/
 	netmodprobe();
 

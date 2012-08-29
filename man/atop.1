@@ -43,9 +43,8 @@ and network.
 .br
 It also shows which processes are responsible for the indicated
 load with respect to cpu- and memory load on process level.
-Disk load is shown if per process "storage accounting" is active in the kernel
-or if the kernel patch `cnt' has been installed.
-Network load is only shown per process if the kernel patch `cnt'
+Disk load is shown per process if "storage accounting" is active in the kernel.
+Network load is shown per process if the kernel module `netatop'
 has been installed.
 .PP
 Every
@@ -238,17 +237,18 @@ of 80 positions:
 process-id, cpu consumption during
 the last interval in system- and user mode, the virtual and resident
 memory growth of the process.
-.br
+
 The subsequent columns depend on the used kernel:
-When the kernel patch `cnt' has been installed, the
-number of read- and write transfers on disk, and the number of received and
-transmitted network packets are shown for each process.
-When the kernel patch is not installed and the kernel supports
-"storage accounting" (>= 2.6.20), the data transfer for read/write
-on disk, the status and exit code are shown for each process.
-When the kernel patch is not installed and the kernel does not support
+.br
+When the kernel supports "storage accounting" (>= 2.6.20), the data
+transfer for read/write on disk, the status and exit code are
+shown for each process.
+When the kernel does not support
 "storage accounting", the username, number of threads in the
 thread group, the status and exit code are shown.
+.br
+When the kernel module 'netatop' is loaded, the data transfer for send/receive
+of network packets is shown for each process.
 .br
 The last columns contain the state, the occupation percentage for the
 chosen resource (default: cpu) and the process name.
@@ -277,14 +277,6 @@ fields are shown:
 process-id, amount of data read from disk, amount of data written to disk,
 amount of data that was written but has been withdrawn again (WCANCL),
 disk occupation percentage and process name.
-
-When the kernel patch `cnt' is installed in the kernel, the following
-fields are shown:
-process-id, number of
-physical disk reads, average size per read (bytes), total size for
-read transfers,
-physical disk writes, average size per write (bytes), total size for
-write transfers, disk occupation percentage and process name.
 .PP
 .TP 5
 .B n
@@ -292,15 +284,16 @@ Show network related output.
 
 Per process the following fields are shown in case of a window-width
 of 80 positions:
-process-id,
+process-id, thread-id,
+total bandwidth for received packets,
+total bandwidth for sent packets,
 number of received TCP packets with the average size per packet (in bytes),
 number of sent TCP packets with the average size per packet (in bytes),
 number of received UDP packets with the average size per packet (in bytes),
 number of sent UDP packets with the average size per packet (in bytes),
-and received and sent raw packets (e.g. ICMP) in one column,
 the network occupation percentage and process name.
 .br
-This information can only be shown when kernel patch `cnt' is installed.
+This information can only be shown when kernel module `netatop' is installed.
 
 When more than 80 positions are available, other information is added.
 .PP
@@ -377,9 +370,9 @@ accumulated cpu consumption during last interval in system- and user mode,
 the current virtual and resident memory space consumed by active processes
 (or all processes of the user if combined with command `a'). 
 .br
-When the kernel patch `cnt' has been installed or "storage accounting" is
-active, the accumulated read- and write throughput on disk is shown.
-When the kernel patch `cnt' has been installed,
+When "storage accounting" is active in the kernel,
+the accumulated read- and write throughput on disk is shown.
+When the kernel module `netatop' has been installed,
 the number of received and sent network packets are shown.
 .br
 The last columns contain the accumulated occupation percentage for the
@@ -395,9 +388,9 @@ accumulated cpu consumption during last interval in system- and user mode,
 the current virtual and resident memory space consumed by active processes
 (or all processes of the user if combined with command `a'). 
 .br
-When the kernel patch `cnt' has been installed or "storage accounting" is
-active, the accumulated read- and write throughput on disk is shown.
-When the kernel patch `cnt' has been installed,
+When "storage accounting" is active in the kernel,
+the accumulated read- and write throughput on disk is shown.
+When the kernel module `netatop' has been installed,
 the number of received and sent network packets are shown.
 .br
 The last columns contain the accumulated occupation percentage for the
@@ -420,7 +413,8 @@ The one-but-last column changes to ``DSK''.
 .PP
 .TP 5
 .B N
-Sort the current list in the order of network packets received/transmitted.
+Sort the current list in the order of network bandwidth (received
+and transmitted).
 The one-but-last column changes to ``NET''.
 .PP
 .TP 5
@@ -436,10 +430,9 @@ the section COLORS.
 This option remains valid until
 another sorting-order is explicitly selected again.
 .br
-A sorting-order for disk is only possible when the kernel patch `cnt'
-is installed or "storage accounting" is active.
-A sorting-order for network is only possible when the kernel patch `cnt'
-is installed.
+A sorting-order for disk is only possible when "storage accounting" is active.
+A sorting-order for network is only possible when the kernel module `netatop'
+is loaded.
 .PP
 Miscellaneous interactive commands:
 .PP
@@ -1036,7 +1029,7 @@ is produced by all processes (i.e. total disk accesses
 by all processes during the last interval).
 .br
 This information is shown when per process "storage accounting" is active
-in the kernel or when the kernel patch `cnt' has been installed.
+in the kernel.
 .PP
 .TP 9
 .B EGID
@@ -1087,10 +1080,10 @@ by reclaiming the requested memory page from the free list of pages.
 .TP 9
 .B NET
 The occupation percentage of this process related to the total load that
-is produced by all processes (i.e. network packets transferred
-by all processes during the last interval).
+is produced by all processes (i.e. consumed network bandwidth
+of all processes during the last interval).
 .br
-This information can only be shown when kernel patch `cnt' is installed.
+This information can only be shown when kernel module `netatop' is loaded.
 .PP
 .TP 9
 .B NICE
@@ -1108,8 +1101,6 @@ Process-id.
 If a process has been started and finished during the last
 interval, a `?' is shown because the process-id is not part of
 the standard process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown properly.
 .PP
 .TP 9
 .B POLI
@@ -1124,8 +1115,6 @@ Parent process-id.
 If a process has been started and finished during the last
 interval, value 0 is shown because the parent process-id is not part of
 the standard process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown properly.
 .PP
 .TP 9
 .B PRI
@@ -1136,37 +1125,10 @@ timesharing processes (variable priority depending on their recent
 CPU consumption and the nice value).
 .PP
 .TP 9
-.B RAWRCV
-The number of raw datagrams received by this process.
-This information can only be shown when kernel patch `cnt' is installed.
-.br
-If a process has finished during the last interval, no value is shown
-since network counters are not registered in the standard
-process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
-.PP
-.TP 9
-.B RAWSND
-The number of raw datagrams sent by this process.
-This information can only be shown when kernel patch `cnt' is installed.
-.br
-If a process has finished during the last interval, no value is shown
-since network counters are not registered in the standard
-process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
-.PP
-.TP 9
 .B RDDSK 
 When the kernel maintains standard io statistics (>= 2.6.20):
 .br
 The read data transfer issued physically on disk (so reading from the
-disk cache is not accounted for).
-
-When the kernel patch `cnt' is installed:
-.br
-The number of read accesses issued physically on disk (so reading from the
 disk cache is not accounted for).
 .PP
 .TP 9
@@ -1187,18 +1149,21 @@ reflects the total resident size of the process at that moment.
 If a process has finished during the last interval, no value is shown
 since resident memory occupation is not part of the standard
 process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
 .PP
 .TP 9
 .B RNET 
 The number of TCP- and UDP packets received by this process.
-This information can only be shown when kernel patch `cnt' is installed.
+This information can only be shown when kernel module `netatop' is installed.
 .br
 If a process has finished during the last interval, no value is shown
 since network counters are not part of the standard process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
+.PP
+.TP 9
+.B BANDWI
+Total bandwidth for received TCP and UDP packets consumed by this process
+(bits-per-second).
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B RSIZE
@@ -1207,8 +1172,6 @@ The total resident memory usage consumed by this process (or user).
 If a process has finished during the last interval, no value is shown
 since resident memory occupation is not part of the standard
 process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
 .PP
 .TP 9
 .B RTPR
@@ -1237,13 +1200,16 @@ The saved group-id of the process.
 .PP
 .TP 9
 .B SNET 
-The number of TCP- and UDP packets transmitted by this process.
-This information can only be shown when kernel patch `cnt' is installed.
-.br
-If a process has finished during the last interval, no value is shown
-since network-counters are not part of the standard process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
+The number of TCP and UDP packets transmitted by this process.
+This information can only be shown when the kernel module `netatop'
+is loaded.
+.PP
+.TP 9
+.B BANDWO
+Total bandwidth for sent TCP and UDP packets consumed by this process
+(bits-per-second).
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B ST
@@ -1296,32 +1262,27 @@ due to system call handling.
 .PP
 .TP 9
 .B TCPRASZ
-The average size of a received TCP buffer in bytes (by the process).
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The average size of a received TCP buffer in bytes. 
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B TCPRCV
-The number of receive requests issued by this process for TCP sockets.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The number of TCP packets received for this process.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B TCPSASZ
-The average size of a transmitted TCP buffer in bytes (by the process).
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The average size of a transmitted TCP buffer in bytes.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B TCPSND
-The number of send requests issued by this process for TCP sockets,
-and the average size per transfer in bytes.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The number of TCP packets transmitted for this process.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B THR
@@ -1344,16 +1305,6 @@ different TID. This value is shown for individual threads in
 multi-threaded processes (when using the key 'y').
 .PP
 .TP 9
-.B TOTRSZ 
-The total amount of data physically read from disk.
-This information can only be shown when kernel patch `cnt' is installed.
-.PP
-.TP 9
-.B TOTWSZ 
-The total amount of data physically written to disk.
-This information can only be shown when kernel patch `cnt' is installed.
-.PP
-.TP 9
 .B TRUN
 Number of threads within this process that are in the state 'running' (R).
 .PP
@@ -1370,31 +1321,26 @@ state 'uninterruptible sleeping' (D).
 .TP 9
 .B UDPRASZ
 The average size of a received UDP packet in bytes.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B UDPRCV
-The number of receive requests issued by this process for UDP sockets.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The number of UDP packets received by this process.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B UDPSASZ
 The average size of a transmitted UDP packets in bytes.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B UDPSND
-The number of send requests issued by this process for TCP sockets,
-and the average size per transfer in bytes.
-This information can only be shown when kernel patch `cnt' is installed.
-When the kernel patch `acct' is installed as well, this value will also be
-shown when a process has finished during the last interval.
+The number of UDP packets transmitted by this process.
+This information can only be shown when the kernel module `netatop'
+is loaded.
 .PP
 .TP 9
 .B USRCPU
@@ -1418,8 +1364,6 @@ reflects the total virtual size of the process at that moment.
 If a process has finished during the last interval, no value is shown
 since virtual memory occupation is not part of the standard
 process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
 .PP
 .TP 9
 .B VSIZE
@@ -1428,8 +1372,6 @@ The total virtual memory usage consumed by this process (or user).
 If a process has finished during the last interval, no value is shown
 since virtual memory occupation is not part of the standard
 process accounting record.
-However when the kernel patch `acct' is installed, this value will be
-shown.
 .PP
 .TP 9
 .B VSLIBS
@@ -1454,24 +1396,10 @@ This counter is maintained for the application process that writes its
 data to the cache (assuming that this data is physically transferred
 to disk later on). Notice that disk I/O needed for swapping is
 not taken into account.
-
-When the kernel patch `cnt' is installed:
-.br
-The number of write accesses issued physically on disk (so writing to the
-disk cache is not accounted for). Usually application processes just transfer
-their data to the cache, while the physical write accesses are done later on
-by kernel daemons like pdflush.
-Note that the number read- and write accesses are not separately maintained
-in the standard process accounting record.
-This means that only one value is given for reads and writes in case a
-process has finished during the last interval. 
-However when the kernel patch `acct' is installed, these values will be
-shown separately.
 .PP
 .TP 9
 .B WCANCL
-When the kernel patch `cnt' is not installed, but the kernel maintains
-standard io statistics (>= 2.6.20):
+When the kernel maintains standard io statistics (>= 2.6.20):
 .br
 The write data transfer previously accounted for this process
 or another process that has been cancelled.
@@ -1492,8 +1420,8 @@ that can be found in the interactive output:
 .br
 For process-level statistics special labels are introduced:
 "PRG" (general), "PRC" (cpu), "PRM" (memory), "PRD" (disk, only if
-the kernel-patch has been installed) and "PRN" (network, only if
-the kernel-patch has been installed). 
+"storage accounting" is active) and "PRN" (network, only if
+the kernel module 'netatop' has been installed). 
 .br
 With the label "ALL", all system- and process-level statistics are shown.
 .PP
@@ -1679,7 +1607,7 @@ For every process one line is shown.
 .br
 Subsequent fields:
 PID, name (between brackets), state,
-kernel-patch installed ('y' or 'n'),
+obsoleted kernel patch installed ('n'),
 standard io statistics used ('y' or 'n'),
 number of reads on disk,
 cumulative number of sectors read,
@@ -1688,19 +1616,17 @@ cumulative number of sectors written,
 cancelled number of written sectors,
 TGID (group number of related tasks/threads) and is_process (y/n).
 .br
-If the kernel patch is not installed and the standard I/O statistics
-(>= 2.6.20) are not used, the disk I/O counters per process are not relevant.
-When the kernel patch is installed, the counter 'cancelled number of
-written sectors' is not relevant.
-When only the standard io statistics are used, the counters 'number of
-reads on disk' and 'number of writes on disk' are not relevant.
+If the standard I/O statistics (>= 2.6.20) are not used,
+the disk I/O counters per process are not relevant.
+The counters 'number of reads on disk' and 'number of writes on disk' are
+obsoleted anyhow.
 .TP 9
 .B PRN
 For every process one line is shown.
 .br
 Subsequent fields:
 PID, name (between brackets), state,
-kernel-patch installed ('y' or 'n'),
+kernel module 'netatop' loaded ('y' or 'n'),
 number of TCP-packets transmitted,
 cumulative size of TCP-packets transmitted,
 number of TCP-packets received,
@@ -1709,11 +1635,11 @@ number of UDP-packets transmitted,
 cumulative size of UDP-packets transmitted,
 number of UDP-packets received,
 cumulative size of UDP-packets transmitted,
-number of raw packets transmitted,
-number of raw packets received,
+number of raw packets transmitted (obsolete, always 0),
+number of raw packets received (obsolete, always 0),
 TGID (group number of related tasks/threads) and is_process (y/n).
 .br
-If the kernel patch is not installed, the network I/O counters
+If the kernel module is not active, the network I/O counters
 per process are not relevant.
 .SH EXAMPLES
 To monitor the current system load interactively with an interval of 5 seconds:

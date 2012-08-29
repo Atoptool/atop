@@ -12,7 +12,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2012 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -169,6 +169,10 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <netinet/in.h>
 #include <netdb.h>
 
+// #define	_GNU_SOURCE
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 #include "atop.h"
 #include "photosyst.h"
 
@@ -270,6 +274,7 @@ photosyst(struct sstat *si)
 	char		linebuf[1024], nam[64], origdir[1024];
 	static char	part_stats = 1; /* per-partition statistics ? */
 	unsigned int	major, minor;
+	struct shm_info	shminfo;
 #if	HTTPSTATS
 	static int	wwwvalid = 1;
 #endif
@@ -986,6 +991,16 @@ photosyst(struct sstat *si)
 		si->dsk.lvm[si->dsk.nlvm].name[0] = '\0'; 
 
 		fclose(fp);
+	}
+
+	/*
+ 	** get information about the shared memory statistics
+	*/
+	if ( shmctl(0, SHM_INFO, (struct shmid_ds *)&shminfo) != -1)
+	{
+		si->mem.shmtot = shminfo.shm_tot;
+		si->mem.shmrss = shminfo.shm_rss;
+		si->mem.shmswp = shminfo.shm_swp;
 	}
 
 	chdir(origdir);

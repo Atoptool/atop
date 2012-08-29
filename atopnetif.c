@@ -4,7 +4,7 @@
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 **
-** This source-file contains functions to interface with the atopnet
+** This source-file contains functions to interface with the netatop
 ** module in the kernel. That module keeps track of network activity
 ** per process and thread.
 ** ================================================================
@@ -35,15 +35,15 @@
 
 #include "atop.h"
 #include "photoproc.h"
-#include "atopnet.h"
+#include "netatop.h"
 
 static int	netsock = -1;
 
 void
 netmodprobe(void)
 {
-	struct atopnetstat	ans;
-	socklen_t		socklen = sizeof ans;
+	struct netpertask	npt;
+	socklen_t		socklen = sizeof npt;
 
 	/*
 	** open a socket to the IP layer
@@ -53,13 +53,13 @@ netmodprobe(void)
 			return;
 
 	/*
-	** probe if the atopnet module is active
+	** probe if the netatop module is active
 	*/
-	ans.id = 1;
+	npt.id = 1;
 
         regainrootprivs();
 
-	if (getsockopt(netsock, SOL_IP, ATOP_GETCNT_TGID, &ans, &socklen)!=0) {
+	if (getsockopt(netsock, SOL_IP, ATOP_GETCNT_TGID, &npt, &socklen)!=0) {
 		if (errno == ENOPROTOOPT || errno == EPERM) {
 			supportflags &= ~ATOPNET;
 
@@ -83,13 +83,13 @@ netmodprobe(void)
 void
 netmodfill(pid_t id, char type, struct tstat *tp)
 {
-	struct atopnetstat	ans;
-	socklen_t		socklen = sizeof ans;
+	struct netpertask	npt;
+	socklen_t		socklen = sizeof npt;
 	int 			cmd = (type == 'g' ?
 					ATOP_GETCNT_TGID :ATOP_GETCNT_PID);
 
 	/*
-	** if kernel module atopnet not active on this system, skip call
+	** if kernel module netatop not active on this system, skip call
 	*/
 	if (netsock == -1 || !(supportflags & ATOPNET) ) {
 		memset(&tp->net, 0, sizeof tp->net);
@@ -99,11 +99,11 @@ netmodfill(pid_t id, char type, struct tstat *tp)
 	/*
  	** get statistics of this process/thread
 	*/
-	ans.id	= id;
+	npt.id	= id;
 
         regainrootprivs();
 
-	if (getsockopt(netsock, SOL_IP, cmd, &ans, &socklen) != 0) {
+	if (getsockopt(netsock, SOL_IP, cmd, &npt, &socklen) != 0) {
 		memset(&tp->net, 0, sizeof tp->net);
 
         	if (! droprootprivs())
@@ -125,14 +125,12 @@ netmodfill(pid_t id, char type, struct tstat *tp)
 	/*
 	** statistics available: fill counters
 	*/
-	tp->net.tcpsnd = ans.tc.tcpsndpacks;
-	tp->net.tcprcv = ans.tc.tcprcvpacks;
-	tp->net.tcpssz = ans.tc.tcpsndbytes;
-	tp->net.tcprsz = ans.tc.tcprcvbytes;
-	tp->net.udpsnd = ans.tc.udpsndpacks;
-	tp->net.udprcv = ans.tc.udprcvpacks;
-	tp->net.udpssz = ans.tc.udpsndbytes;
-	tp->net.udprsz = ans.tc.udprcvbytes;
-	tp->net.rawsnd = 0;
-	tp->net.rawrcv = 0;
+	tp->net.tcpsnd = npt.tc.tcpsndpacks;
+	tp->net.tcprcv = npt.tc.tcprcvpacks;
+	tp->net.tcpssz = npt.tc.tcpsndbytes;
+	tp->net.tcprsz = npt.tc.tcprcvbytes;
+	tp->net.udpsnd = npt.tc.udpsndpacks;
+	tp->net.udprcv = npt.tc.udprcvpacks;
+	tp->net.udpssz = npt.tc.udpsndbytes;
+	tp->net.udprsz = npt.tc.udprcvbytes;
 }

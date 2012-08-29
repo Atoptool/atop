@@ -170,6 +170,9 @@ extern sys_printdef syspdef_MEMCACHE;
 extern sys_printdef syspdef_MEMDIRTY;
 extern sys_printdef syspdef_MEMBUFFER;
 extern sys_printdef syspdef_MEMSLAB;
+extern sys_printdef syspdef_SHMTOT;
+extern sys_printdef syspdef_SHMRSS;
+extern sys_printdef syspdef_SHMSWP;
 extern sys_printdef syspdef_SWPTOT;
 extern sys_printdef syspdef_SWPFREE;
 extern sys_printdef syspdef_SWPCOMMITTED;
@@ -287,8 +290,10 @@ extern proc_printdef procprt_UDPRASZ;
 extern proc_printdef procprt_UDPSND;
 extern proc_printdef procprt_UDPSASZ;
 extern proc_printdef procprt_RNET;
-extern proc_printdef procprt_SORTITEM;
 extern proc_printdef procprt_SNET;
+extern proc_printdef procprt_RNETBW;
+extern proc_printdef procprt_SNETBW;
+extern proc_printdef procprt_SORTITEM;
 
 
 

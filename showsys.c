@@ -1026,6 +1026,42 @@ sysprt_MEMSLAB(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_MEMSLAB = {"MEMSLAB", sysprt_MEMSLAB};
 /*******************************************************************/
 char *
+sysprt_SHMTOT(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="shtot  ";
+	*color = -1;
+        val2memstr(sstat->mem.shmtot * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_SHMTOT = {"SHMTOT", sysprt_SHMTOT};
+/*******************************************************************/
+char *
+sysprt_SHMRSS(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="shrss  ";
+	*color = -1;
+        val2memstr(sstat->mem.shmrss * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_SHMRSS = {"SHMRSS", sysprt_SHMRSS};
+/*******************************************************************/
+char *
+sysprt_SHMSWP(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="shswp  ";
+	*color = -1;
+        val2memstr(sstat->mem.shmswp * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_SHMSWP = {"SHMSWP", sysprt_SHMSWP};
+/*******************************************************************/
+char *
 sysprt_SWPTOT(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
@@ -1561,8 +1597,9 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
                 else
                         busy = (ival + oval) /
                                (sstat->intf.intf[as->index].speed *10);
-        snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%", 
-                 sstat->intf.intf[as->index].name, busy);
+
+	        snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%", 
+       		          sstat->intf.intf[as->index].name, busy);
 
         } 
         else 

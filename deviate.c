@@ -642,6 +642,10 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	dev->mem.totswap	= cur->mem.totswap;
 	dev->mem.freeswap	= cur->mem.freeswap;
 
+	dev->mem.shmtot		= cur->mem.shmtot;
+	dev->mem.shmrss		= cur->mem.shmrss;
+	dev->mem.shmswp		= cur->mem.shmswp;
+
 	dev->mem.swouts		= subcount(cur->mem.swouts,  pre->mem.swouts);
 	dev->mem.swins		= subcount(cur->mem.swins,   pre->mem.swins);
 	dev->mem.pgscans	= subcount(cur->mem.pgscans, pre->mem.pgscans);
@@ -1093,6 +1097,10 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.cachedrt	 = new->mem.cachedrt;
 		tot->mem.totswap	 = new->mem.totswap;
 		tot->mem.freeswap	 = new->mem.freeswap;
+
+		tot->mem.shmtot		 = new->mem.shmtot;
+		tot->mem.shmrss		 = new->mem.shmrss;
+		tot->mem.shmswp		 = new->mem.shmswp;
 
 		tot->mem.swouts		+= new->mem.swouts;
 		tot->mem.swins		+= new->mem.swins;
