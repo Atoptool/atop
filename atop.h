@@ -39,6 +39,7 @@ typedef	long long	count_t;
 
 struct tstat;
 struct sstat;
+struct netpertask;
 
 /* 
 ** miscellaneous flags
@@ -99,7 +100,8 @@ extern int		almostcrit;
 */
 #define	ACCTACTIVE	0x00000001
 #define	IOSTAT		0x00000004
-#define	ATOPNET		0x00000010
+#define	NETATOP		0x00000010
+#define	NETATOPD	0x00000020
 
 /*
 ** structure containing the start-addresses of functions for visualization
@@ -156,5 +158,10 @@ void		prusage(char *);
 int		droprootprivs(void);
 void		regainrootprivs(void);
 
-void		netmodprobe(void);
-void		netmodfill(pid_t, char, struct tstat *);
+void		netatop_signon(void);
+void		netatop_signoff(void);
+void		netatop_gettask(pid_t, char, struct tstat *);
+unsigned int	netatop_exitstore(void);
+void		netatop_exiterase(void);
+void		netatop_exithash(char);
+void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);

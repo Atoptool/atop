@@ -27,7 +27,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
 */
 
 static const char rcsid[] = "$Id: atopsar.c,v 1.28 2010/11/26 06:19:43 gerlof Exp $";
@@ -2208,7 +2207,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		return 0;
 	}
 
-	if ( !(supportflags & ATOPNET) )
+	if ( !(supportflags & NETATOP) )
 	{
 		printf("no per-process network counters available.....\n");
 		return 0;
@@ -2219,8 +2218,8 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	for (i=0, availnet=0; i < nactproc; i++)
 	{
-		availnet += (*ps+i)->net.tcpssz + (*ps+i)->net.tcprsz +
-		            (*ps+i)->net.udpssz + (*ps+i)->net.udprsz;
+		availnet += (*(ps+i))->net.tcpssz + (*(ps+i))->net.tcprsz +
+		            (*(ps+i))->net.udpssz + (*(ps+i))->net.udprsz;
 	}
 
 	if (availnet == 0)
@@ -2229,7 +2228,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in network order
 	*/
-	qsort(*ps, nactproc, sizeof(struct tstat *), compnet);
+	qsort(ps, nactproc, sizeof(struct tstat *), compnet);
 
 	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
 	       "%5d %-8.8s %3.0lf%%\n",

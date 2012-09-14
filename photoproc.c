@@ -208,11 +208,6 @@ photoproc(struct tstat *tasklist, int maxtask)
 	}
 
 	/*
- 	** verify if the netatop module is available
-	*/
-	netmodprobe();
-
-	/*
 	** read all subdirectory-names below the /proc directory
 	*/
 	getcwd(origdir, sizeof origdir);
@@ -258,7 +253,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 		proccmd(curtask);		    /* from /proc/pid/cmdline */
 
-		netmodfill(curtask->gen.tgid, 'g', curtask); /* atop module */
+		// read network stats from netatop
+		netatop_gettask(curtask->gen.tgid, 'g', curtask);
 
 		tval++;		/* increment for process-level info */
 
@@ -326,9 +322,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					curthr->gen.nthr = 1;
 
-					netmodfill(curthr->gen.pid, 't',
-						curthr); /* atop module */
+					// read network stats from netatop
+					netatop_gettask(curthr->gen.pid, 't',
+									curthr);
 
+					// all stats read now
 					tval++;	    /* increment thread-level */
 					chdir("..");	/* leave thread's dir */
 				}

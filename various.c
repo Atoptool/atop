@@ -568,6 +568,8 @@ ptrverify(const void *ptr, const char *errormsg, ...)
 	if (!ptr)
 	{
 		acctswoff();
+		netatop_signoff();
+
 		if (vis.show_end)
 			(vis.show_end)();
 
@@ -586,6 +588,7 @@ void
 cleanstop(exitcode)
 {
 	acctswoff();
+	netatop_signoff();
 	(vis.show_end)();
 	exit(exitcode);
 }

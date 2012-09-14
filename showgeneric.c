@@ -1021,7 +1021,7 @@ generic_samp(time_t curtime, int nsecs,
 			   ** sort in network-activity order
 			   */
 			   case MSORTNET:
-				if ( !(supportflags & ATOPNET) )
+				if ( !(supportflags & NETATOP) )
 				{
 					statmsg = "Kernel module 'netatop' not "
 					          "active; request ignored!";
@@ -1078,7 +1078,7 @@ generic_samp(time_t curtime, int nsecs,
 			   ** network-specific figures per process
 			   */
 			   case MPROCNET:
-				if ( !(supportflags & ATOPNET) )
+				if ( !(supportflags & NETATOP) )
 				{
 					statmsg = "Kernel module 'netatop' not "
 					          "active; request ignored!";
@@ -2116,7 +2116,7 @@ generic_init(void)
 			break;
 
 		   case MPROCNET:
-			if ( !(supportflags & ATOPNET) )
+			if ( !(supportflags & NETATOP) )
 			{
 				fprintf(stderr, "Kernel module 'netatop' not "
 					          "active; request ignored!");

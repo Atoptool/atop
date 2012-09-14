@@ -631,7 +631,7 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->gen.pid,
 				ps->gen.name,
 				ps->gen.state,
-				supportflags & ATOPNET ? 'y' : 'n',
+				supportflags & NETATOP ? 'y' : 'n',
 				ps->net.tcpsnd, ps->net.tcpssz,
 				ps->net.tcprcv, ps->net.tcprsz,
 				ps->net.udpsnd, ps->net.udpssz,

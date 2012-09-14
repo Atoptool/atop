@@ -16,20 +16,22 @@ PMPATH1  = /usr/lib/pm-utils/sleep.d
 PMPATH2  = /usr/lib64/pm-utils/sleep.d
 
 CFLAGS  += -O2 -I. -Wall 	 # -DHTTPSTATS
-LDFLAGS += -lncurses -lm -lz
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
 OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
-OBJMOD4  = atopsar.o  atopnetif.o
+OBJMOD4  = atopsar.o  netatopif.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
-all: 		atop
+all: 		atop atopsar
 
 atop:		atop.o    $(ALLMODS) Makefile
-		$(CC) atop.o $(ALLMODS) -o atop $(LDFLAGS)
+		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lm -lz
+
+atopsar:	atop
+		ln -sf atop atopsar
 
 clean:
 		rm -f *.o
@@ -90,7 +92,7 @@ parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h              acctproc.h netatop.h
-atopnetif.o:	atop.h	photoproc.h                         netatop.h
+netatopif.o:	atop.h	photoproc.h                         netatop.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h

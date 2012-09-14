@@ -207,7 +207,7 @@ deviatproc(struct tstat *aproc, int npresent,
 	struct tstat		prestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
-	char			procsaved = 1;
+	char			procsaved = 1, hashtype = 'p';
 
 	/*
 	** needed for sanity check later on...
@@ -220,8 +220,8 @@ deviatproc(struct tstat *aproc, int npresent,
 
 	/*
 	** make new list of all tasks in the process-database;
-	** after handling all processes, the left-overs
-	** should have disappeared since the previous sample
+	** after handling all processes, the left-overs are processes
+	** that have disappeared since the previous sample
 	*/
 	pdb_makeresidue();
 
@@ -349,6 +349,16 @@ deviatproc(struct tstat *aproc, int npresent,
 	/*
 	** calculate deviations per exited process
 	*/
+	if (nexit > 0 && supportflags&NETATOPD)
+	{
+		if (eproc->gen.pid)
+			hashtype = 'p';
+		else
+			hashtype = 'b';
+
+		netatop_exithash(hashtype);
+	}
+
 	for (c=0; c < nexit; c++)
 	{
 		/*
@@ -394,6 +404,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		** now do the calculations
 		*/
 		devstat = dproc+d;
+		memset(devstat, 0, sizeof *devstat);
 
 		devstat->gen        = curstat->gen;
 
@@ -405,38 +416,6 @@ deviatproc(struct tstat *aproc, int npresent,
 
 		strcpy(devstat->gen.cmdline, prestat.gen.cmdline);
 
-		devstat->cpu.nice     = 0;
-		devstat->cpu.prio     = 0;
-		devstat->cpu.rtprio   = 0;
-		devstat->cpu.policy   = 0;
-		devstat->cpu.curcpu   = 0;
-		devstat->cpu.sleepavg = 0;
-
-		devstat->net.tcpsnd   = 0;
-		devstat->net.tcpssz   = 0;
-		devstat->net.tcprcv   = 0;
-		devstat->net.tcprsz   = 0;
-		devstat->net.udpsnd   = 0;
-		devstat->net.udpssz   = 0;
-		devstat->net.udprcv   = 0;
-		devstat->net.udprsz   = 0;
-		devstat->mem.vmem     = 0;
-		devstat->mem.rmem     = 0;
-		devstat->mem.vgrow    = 0;
-		devstat->mem.rgrow    = 0;
-		devstat->dsk.wio      = 0;
-		devstat->dsk.wsz      = 0;
-		devstat->dsk.cwsz     = 0;
-		devstat->dsk.rsz      = 0;
-		devstat->dsk.rio      = curstat->dsk.rio  -
-					prestat.dsk.rio   - prestat.dsk.wio;
-
-		devstat->cpu.stime  = curstat->cpu.stime  - prestat.cpu.stime;
-		devstat->cpu.utime  = curstat->cpu.utime  - prestat.cpu.utime;
-		devstat->mem.minflt = curstat->mem.minflt - prestat.mem.minflt;
-		devstat->mem.majflt = curstat->mem.majflt - prestat.mem.majflt;
-		devstat->mem.vexec  = 0;
-
 		/*
 		** due to the strange exponent-type storage of values
 		** in the process accounting record, the resource-value
@@ -444,24 +423,38 @@ deviatproc(struct tstat *aproc, int npresent,
 		** stored value of the last registered sample; in that
 		** case the deviation should be set to zero
 		*/
-		if (devstat->cpu.stime < 0)
-			devstat->cpu.stime = 0;
-		if (devstat->cpu.utime < 0)
-			devstat->cpu.utime = 0;
-		if (devstat->dsk.rio    < 0)
-			devstat->dsk.rio   = 0;
-		if (devstat->dsk.rsz    < 0)
-			devstat->dsk.rsz   = 0;
-		if (devstat->dsk.wio    < 0)
-			devstat->dsk.wio   = 0;
-		if (devstat->dsk.wsz    < 0)
-			devstat->dsk.wsz   = 0;
-		if (devstat->dsk.cwsz    < 0)
-			devstat->dsk.cwsz   = 0;
-		if (devstat->mem.minflt < 0)
-			devstat->mem.minflt = 0;
-		if (devstat->mem.majflt < 0)
-			devstat->mem.majflt = 0;
+		if (curstat->cpu.stime > prestat.cpu.stime)
+			devstat->cpu.stime  = curstat->cpu.stime -
+			                      prestat.cpu.stime;
+
+		if (curstat->cpu.utime > prestat.cpu.utime)
+			devstat->cpu.utime  = curstat->cpu.utime -
+			                      prestat.cpu.utime;
+
+		if (curstat->mem.minflt > prestat.mem.minflt)
+			devstat->mem.minflt = curstat->mem.minflt - 
+			                      prestat.mem.minflt;
+
+		if (curstat->mem.majflt > prestat.mem.majflt)
+			devstat->mem.majflt = curstat->mem.majflt -
+			                      prestat.mem.majflt;
+
+		if (curstat->dsk.rio > (prestat.dsk.rio + prestat.dsk.wio))
+			devstat->dsk.rio    = curstat->dsk.rio  -
+			                      prestat.dsk.rio   -
+			                      prestat.dsk.wio;
+
+		/*
+		** try to match the network counters of netatop
+		*/
+		if (supportflags & NETATOPD)
+		{
+			unsigned long	val = (hashtype == 'p' ?
+						curstat->gen.pid :
+						curstat->gen.btime);
+
+			netatop_exitfind(val, devstat, &prestat);
+		}
 
 		d++;
 		(*nactproc)++;

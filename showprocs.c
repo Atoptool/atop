@@ -108,6 +108,7 @@ static const char rcsid[] = "$Id: showprocs.c,v 1.15 2011/09/05 11:44:16 gerlof 
 #include "showgeneric.h"
 #include "showlinux.h"
 
+static void	format_bandw(char *, count_t);
 
 static char     *columnhead[] = {
 	[MSORTCPU]= "CPU", [MSORTMEM]= "MEM",
@@ -1441,7 +1442,16 @@ procprt_TCPRCV_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_TCPRCV_e(struct tstat *curstat, int avgval, int nsecs) 
 {      
-        return "     -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	val2valstr(curstat->net.tcprcv, buf, 6, avgval, nsecs);
+
+        	return buf;
+	}
+	else
+        	return "     -";
 }
 
 
@@ -1463,7 +1473,18 @@ procprt_TCPRASZ_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_TCPRASZ_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "      -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	int avgtcpr = curstat->net.tcprcv ?
+                                  curstat->net.tcprsz / curstat->net.tcprcv : 0;
+
+        	val2valstr(avgtcpr, buf, 7, 0, 0);
+	        return buf;
+	}
+	else
+        	return "      -";
 }
 
 proc_printdef procprt_TCPRASZ = 
@@ -1482,7 +1503,16 @@ procprt_TCPSND_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_TCPSND_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "     -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	val2valstr(curstat->net.tcpsnd, buf, 6, avgval, nsecs);
+
+        	return buf;
+	}
+	else
+        	return "     -";
 }
 
 proc_printdef procprt_TCPSND = 
@@ -1503,7 +1533,18 @@ procprt_TCPSASZ_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_TCPSASZ_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "      -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	int avgtcps = curstat->net.tcpsnd ?
+                                  curstat->net.tcpssz / curstat->net.tcpsnd : 0;
+
+        	val2valstr(avgtcps, buf, 7, 0, 0);
+        	return buf;
+	}
+	else
+        	return "      -";
 }
 
 
@@ -1522,8 +1563,17 @@ procprt_UDPRCV_a(struct tstat *curstat, int avgval, int nsecs)
 
 char *
 procprt_UDPRCV_e(struct tstat *curstat, int avgval, int nsecs) 
-{     
-        return "     -";
+{
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	val2valstr(curstat->net.udprcv, buf, 6, avgval, nsecs);
+
+        	return buf;
+	}
+	else
+        	return "     -";
 }
 
 
@@ -1545,7 +1595,18 @@ procprt_UDPRASZ_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_UDPRASZ_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "      -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	int avgudpr = curstat->net.udprcv ?
+                          curstat->net.udprsz / curstat->net.udprcv : 0;
+
+        	val2valstr(avgudpr, buf, 7, 0, 0);
+        	return buf;
+	}
+	else
+        	return "      -";
 }
 
 
@@ -1565,7 +1626,16 @@ procprt_UDPSND_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_UDPSND_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "     -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	val2valstr(curstat->net.udpsnd, buf, 6, avgval, nsecs);
+
+        	return buf;
+	}
+	else
+        	return "     -";
 }
 
 proc_printdef procprt_UDPSND = 
@@ -1586,7 +1656,18 @@ procprt_UDPSASZ_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_UDPSASZ_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "      -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+        
+        	int avgudps = curstat->net.udpsnd ?
+                                  curstat->net.udpssz / curstat->net.udpsnd : 0;
+
+        	val2valstr(avgudps, buf, 7, 0, 0);
+        	return buf;
+	}
+	else
+        	return "      -";
 }
 
 
@@ -1607,7 +1688,17 @@ procprt_RNET_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_RNET_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "   -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[10];
+ 
+	        val2valstr(curstat->net.tcprcv + curstat->net.udprcv ,
+					buf, 4, avgval, nsecs);
+
+       		return buf;
+	}
+	else
+        	return "   -";
 }
 
 proc_printdef procprt_RNET = 
@@ -1626,7 +1717,16 @@ procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_SNET_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "   -";
+	if (supportflags & NETATOPD)
+	{
+	        static char buf[10];
+        
+       		val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd,
+                           		buf, 4, avgval, nsecs);
+	        return buf;
+	}
+	else
+        	return "   -";
 }
 
 proc_printdef procprt_SNET = 
@@ -1636,38 +1736,26 @@ char *
 procprt_RNETBW_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[16];
-	char        c;
 	count_t     rkbps = (curstat->net.tcprsz+curstat->net.udprsz)/125/nsecs;
 
-	if (rkbps < 10000)
-	{
-                c='K';
-        }
-        else if (rkbps < (count_t)10000 * 1000)
-        {
-                rkbps/=1000;
-                c = 'M';
-        }
-        else if (rkbps < (count_t)10000 * 1000 * 1000)
-        {
-                rkbps/=1000 * 1000;
-                c = 'G';
-        }
-        else
-        {
-                rkbps = rkbps / 1000 / 1000 / 1000;
-                c = 'T';
-        }
-
-        sprintf(buf, "%4lld %cbps", rkbps, c);
-
+	format_bandw(buf, rkbps);
         return buf;
 }
 
 char *
 procprt_RNETBW_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "        -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[16];
+		count_t     rkbps = (curstat->net.tcprsz + curstat->net.udprsz)
+								/125/nsecs;
+
+		format_bandw(buf, rkbps);
+        	return buf;
+	}
+	else
+        	return "        -";
 }
 
 proc_printdef procprt_RNETBW = 
@@ -1677,42 +1765,58 @@ char *
 procprt_SNETBW_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[16];
-	char        c;
 	count_t     skbps = (curstat->net.tcpssz+curstat->net.udpssz)/125/nsecs;
 
-	if (skbps < 10000)
-	{
-                c='K';
-        }
-        else if (skbps < (count_t)10000 * 1000)
-        {
-                skbps/=1000;
-                c = 'M';
-        }
-        else if (skbps < (count_t)10000 * 1000 * 1000)
-        {
-                skbps/=1000 * 1000;
-                c = 'G';
-        }
-        else
-        {
-                skbps = skbps / 1000 / 1000 / 1000;
-                c = 'T';
-        }
-
-        sprintf(buf, "%4lld %cbps", skbps, c);
-
+	format_bandw(buf, skbps);
         return buf;
 }
 
 char *
 procprt_SNETBW_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "        -";
+	if (supportflags & NETATOPD)
+	{
+        	static char buf[16];
+		count_t     skbps = (curstat->net.tcpssz + curstat->net.udpssz)
+								/125/nsecs;
+
+		format_bandw(buf, skbps);
+       		return buf;
+	}
+	else
+        	return "        -";
 }
 
 proc_printdef procprt_SNETBW = 
    { "   BANDWO", "SNETBW", procprt_SNETBW_a, procprt_SNETBW_e, 9};
+/***************************************************************/
+static void
+format_bandw(char *buf, count_t kbps)
+{
+	char        c;
+
+	if (kbps < 10000)
+	{
+                c='K';
+        }
+        else if (kbps < (count_t)10000 * 1000)
+        {
+                kbps/=1000;
+                c = 'M';
+        }
+        else if (kbps < (count_t)10000 * 1000 * 1000)
+        {
+                kbps/=1000 * 1000;
+                c = 'G';
+        }
+        else
+        {
+                kbps = kbps / 1000 / 1000 / 1000;
+                c = 'T';
+        }
+
+        sprintf(buf, "%4lld %cbps", kbps, c);
+}
 /***************************************************************/
 char *
 procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)

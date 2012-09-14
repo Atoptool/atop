@@ -1043,7 +1043,7 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 		make_proc_dynamicgen();
 		prev_supportflags = supportflags;
 
-		if (showtype == MPROCNET && !(supportflags&ATOPNET) )
+		if (showtype == MPROCNET && !(supportflags&NETATOP) )
 		{
 			showtype  = MPROCGEN;
 			showorder = MSORTCPU;
@@ -1100,7 +1100,7 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 static void
 make_proc_dynamicgen()
 {
-	if ( (supportflags & (IOSTAT|ATOPNET)) == (IOSTAT|ATOPNET)) 
+	if ( (supportflags & (IOSTAT|NETATOP)) == (IOSTAT|NETATOP)) 
 	{
 		// iostat and netatop data is available
 		make_proc_prints(genprocs, MAXITEMS, 
@@ -1123,7 +1123,7 @@ make_proc_dynamicgen()
 			"CPUNR:5 SORTITEM:10 CMD:10", 
 			"built-in genprocs");
 	} 
-	else if (supportflags & ATOPNET) 
+	else if (supportflags & NETATOP) 
 	{
 		// only netatop data is available
 		make_proc_prints(genprocs, MAXITEMS, 
@@ -1607,7 +1607,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         else
                                 badness = 0;
 
-                        if (highbadness < badness && (supportflags & ATOPNET) )
+                        if (highbadness < badness && (supportflags & NETATOP) )
                         {
                                 highbadness = badness;
                                 *highorderp = MSORTNET;
