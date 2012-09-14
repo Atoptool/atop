@@ -106,8 +106,7 @@ pdb_gettask(int pid, char isproc, time_t btime, struct pinfo **pinfopp)
 		** and return info
 		*/
 		if (pp->tstat.gen.pid    == pid    && 
-		    pp->tstat.gen.isproc == isproc &&
-		    pp->tstat.gen.btime  == btime    )
+		    pp->tstat.gen.isproc == isproc   )
 		{
 			if (pp->prnext)		/* if part of RESIDUE-list   */
 			{
