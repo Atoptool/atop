@@ -1216,23 +1216,22 @@ isdisk(unsigned int major, unsigned int minor,
 
 /*
 ** LINUX SPECIFIC:
-** Determine boot-time of this system (as number of seconds since 1-1-1970).
+** Determine boot-time of this system (as number of jiffies since 1-1-1970).
 */
-time_t	getbootlinux(long);
-
-time_t
+unsigned long long
 getbootlinux(long hertz)
 {
-	int     	cpid;
-	char  	  	tmpbuf[1280];
-	FILE    	*fp;
-	unsigned long 	startticks;
-	time_t		boottime = 0;
+	int    		 	cpid;
+	char  	  		tmpbuf[1280];
+	FILE    		*fp;
+	unsigned long 		startticks;
+	unsigned long long	bootjiffies = 0;
+	struct timespec		ts;
 
 	/*
 	** dirty hack to get the boottime, since the
 	** Linux 2.6 kernel (2.6.5) does not return a proper
-	** boottime-value with the times() system call :-(
+	** boottime-value with the times() system call   :-(
 	*/
 	if ( (cpid = fork()) == 0 )
 	{
@@ -1244,10 +1243,14 @@ getbootlinux(long hertz)
 	else
 	{
 		/*
-		** parent determines start-time (in clock-ticks since boot) 
-		** of the child and calculates the boottime in seconds
+		** parent determines start-time (in jiffies since boot) 
+		** of the child and calculates the boottime in jiffies
 		** since 1-1-1970
 		*/
+		(void) clock_gettime(CLOCK_REALTIME, &ts);	// get current
+		bootjiffies = ts.tv_sec  * hertz +
+		              ts.tv_nsec * hertz / 1000000000L;
+
 		snprintf(tmpbuf, sizeof tmpbuf, "/proc/%d/stat", cpid);
 
 		if ( (fp = fopen(tmpbuf, "r")) != NULL)
@@ -1257,7 +1260,7 @@ getbootlinux(long hertz)
 			                "%*d %*d %*d %*d %*d %*d %lu",
 			                &startticks) == 1)
 			{
-				boottime = time(0) - startticks / hertz;
+				bootjiffies -= startticks;
 			}
 
 			fclose(fp);
@@ -1270,7 +1273,7 @@ getbootlinux(long hertz)
 		(void) wait((int *)0);
 	}
 
-	return boottime;
+	return bootjiffies;
 }
 
 #if	HTTPSTATS

@@ -520,37 +520,16 @@ numeric(char *ns)
 
 /*
 ** Function getboot() returns the boot-time of this system 
-** (as number of seconds since 1-1-1970).
+** as number of jiffies since 1-1-1970.
 */
-time_t
+unsigned long long
 getboot(void)
 {
-	static time_t	boottime;
+	static unsigned long long	boottime;
+	unsigned long long		getbootlinux(long);
 
 	if (!boottime)		/* do this only once */
-	{
-#ifdef	linux
-		time_t		getbootlinux(long);
-
 		boottime = getbootlinux(hertz);
-#else
-		struct tms	tms;
-		time_t 		boottime_again;
-
-		/*
-		** beware that between time() and times() a one-second
-		** upgrade could have taken place in the kernel, so an
-		** extra check is issued; if we were around a
-		** second-upgrade, just do it again (we just passed
-		** the danger-zone)
-		*/
-		boottime 	= time(0) - (times(&tms) / hertz);
-		boottime_again	= time(0) - (times(&tms) / hertz);
-
-		if (boottime != boottime_again)
-			boottime = time(0) - (times(&tms) / hertz);
-#endif
-	}
 
 	return boottime;
 }

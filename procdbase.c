@@ -108,6 +108,19 @@ pdb_gettask(int pid, char isproc, time_t btime, struct pinfo **pinfopp)
 		if (pp->tstat.gen.pid    == pid    && 
 		    pp->tstat.gen.isproc == isproc   )
 		{
+			int diff = pp->tstat.gen.btime - btime;
+
+			/*
+			** with longer intervals, the same PID might be
+			** found more than once, so also check the start
+			** time of the task
+			*/
+			if (diff > 1 || diff < -1)
+			{
+				pp = pp->phnext;
+				continue;
+			}
+
 			if (pp->prnext)		/* if part of RESIDUE-list   */
 			{
 				(pp->prnext)->prprev = pp->prprev; /* unchain */
@@ -318,10 +331,9 @@ pdb_srchresidue(struct tstat *tstatp, struct pinfo **pinfopp)
 			** the same ----> then we have a match;
 			** however sometimes the start-time may deviate a
 			** second although it IS the process we are looking
-			** for (depending on the fact that atop is started
-			** around a second-upgrade in the kernel), so if
-			** we don't find the exact match, we will check later
-			** on if we found an almost-exact match
+			** for (depending on the rounding of the boot-time),
+			** so if we don't find the exact match, we will check
+			** later on if we found an almost-exact match
 			*/
 			btimediff = pr->tstat.gen.btime - tstatp->gen.btime;
 

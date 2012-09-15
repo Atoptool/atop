@@ -148,7 +148,7 @@ char		rawwrite(time_t, int, struct sstat *, struct tstat *,
 
 int 		numeric(char *);
 void		getalarm(int);
-time_t		getboot(void);
+unsigned long long	getboot(void);
 char 		*getstrvers(void);
 unsigned short 	getnumvers(void);
 void		ptrverify(const void *, const char *, ...);

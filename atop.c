@@ -602,7 +602,7 @@ main(int argc, char *argv[])
 	/*
 	** determine start-time for gathering current statistics
 	*/
-	curtime = getboot();
+	curtime = getboot() / hertz;
 
 	/*
 	** catch signals for proper close-down
@@ -937,7 +937,7 @@ engine(void)
 		{
 			sampcnt = -1;
 
-			curtime = getboot();	/* reset current time */
+			curtime = getboot() / hertz;	// reset current time
 
 			/* set current (will be 'previous') counters to 0 */
 			memset(cursstat, 0,           sizeof(struct sstat));

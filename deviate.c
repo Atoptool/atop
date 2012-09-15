@@ -400,6 +400,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		 	}
 		}
 
+		fprintf(stderr, "%lu %lu\n", curstat->gen.btime, prestat.gen.btime);
 		/*
 		** now do the calculations
 		*/

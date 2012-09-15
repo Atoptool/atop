@@ -161,7 +161,7 @@ static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof 
 #define ATOPSTAT	"%lld %llu %lld %llu %lld %llu %lld %llu "	\
 			"%lld %llu %lld %llu %lld %lld"
 
-static int	procstat(struct tstat *, time_t, char);
+static int	procstat(struct tstat *, unsigned long long, char);
 static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
 static void	proccmd(struct tstat *);
@@ -169,8 +169,8 @@ static void	proccmd(struct tstat *);
 int
 photoproc(struct tstat *tasklist, int maxtask)
 {
-	static int	firstcall = 1;
-	static time_t	bootepoch;
+	static int			firstcall = 1;
+	static unsigned long long	bootepoch;
 
 	register struct tstat	*curtask;
 
@@ -381,7 +381,7 @@ countprocs(void)
 ** open file "stat" and obtain required info
 */
 static int
-procstat(struct tstat *curtask, time_t bootepoch, char isproc)
+procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 {
 	FILE	*fp;
 	int	nr;
@@ -436,7 +436,7 @@ procstat(struct tstat *curtask, time_t bootepoch, char isproc)
 	/*
  	** normalization
 	*/
-	curtask->gen.btime   = curtask->gen.btime/hertz+bootepoch;
+	curtask->gen.btime   = (curtask->gen.btime+bootepoch)/hertz;
 	curtask->cpu.prio   += 100; 	/* was subtracted by kernel */
 	curtask->mem.vmem   /= 1024;
 	curtask->mem.rmem   *= pagesize/1024;
