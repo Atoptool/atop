@@ -13,7 +13,7 @@ then
 	exit 2
 fi
 
-# Make new version.c file
+# Make new version.h file
 #
 rm -f version.c
 
