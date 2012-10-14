@@ -632,7 +632,8 @@ main(int argc, char *argv[])
 	** during heavy CPU load);
 	** ignored if not running under superuser priviliges!
 	*/
-	(void) nice(-20);
+	if ( nice(-20) == -1)
+		;
 
 	/*
 	** switch-on the process-accounting mechanism to register the

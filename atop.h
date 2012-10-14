@@ -157,6 +157,7 @@ void		prusage(char *);
 
 int		droprootprivs(void);
 void		regainrootprivs(void);
+FILE 		*fopen_tryroot(const char *, const char *);
 
 void		netatop_signon(void);
 void		netatop_signoff(void);

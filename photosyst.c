@@ -281,8 +281,11 @@ photosyst(struct sstat *si)
 
 	memset(si, 0, sizeof(struct sstat));
 
-	getcwd(origdir, sizeof origdir);
-	chdir("/proc");
+	if ( getcwd(origdir, sizeof origdir) == NULL)
+		cleanstop(53);
+
+	if ( chdir("/proc") == -1)
+		cleanstop(53);
 
 	/*
 	** gather various general statistics from the file /proc/stat and
@@ -1003,7 +1006,8 @@ photosyst(struct sstat *si)
 		si->mem.shmswp = shminfo.shm_swp;
 	}
 
-	chdir(origdir);
+	if ( chdir(origdir) == -1)
+		cleanstop(53);
 
 	/*
 	** fetch application-specific counters

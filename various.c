@@ -597,3 +597,18 @@ regainrootprivs(void)
 {
 	seteuid(0);
 }
+
+FILE *
+fopen_tryroot(const char *filename, const char *mode)
+{
+	FILE *f;
+
+	regainrootprivs();
+
+	f = fopen(filename, mode);
+
+	if (! droprootprivs())
+		cleanstop(42);
+
+	return f;
+}

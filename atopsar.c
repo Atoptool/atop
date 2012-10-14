@@ -364,8 +364,8 @@ atopsar(int argc, char *argv[])
 	** during heavy CPU load);
 	** ignored if not running under superuser privileges!
 	*/
-	(void) nice(-20);
-
+	if ( nice(-20) == -1)
+		;
 	/*
 	** determine properties (like speed) of all interfaces
 	*/

@@ -311,7 +311,8 @@ rawwrite(time_t curtime, int numsecs,
 	{
 		fprintf(stderr, "%s - ", rawname);
 		perror("write raw record");
-		(void) ftruncate(rawfd, filestat.st_size);
+		if ( ftruncate(rawfd, filestat.st_size) == -1)
+			cleanstop(8);
 		cleanstop(7);
 	}
 
@@ -322,7 +323,8 @@ rawwrite(time_t curtime, int numsecs,
 	{
 		fprintf(stderr, "%s - ", rawname);
 		perror("write raw status record");
-		(void) ftruncate(rawfd, filestat.st_size);
+		if ( ftruncate(rawfd, filestat.st_size) == -1)
+			cleanstop(8);
 		cleanstop(7);
 	}
 
@@ -333,7 +335,8 @@ rawwrite(time_t curtime, int numsecs,
 	{
 		fprintf(stderr, "%s - ", rawname);
 		perror("write raw process record");
-		(void) ftruncate(rawfd, filestat.st_size);
+		if ( ftruncate(rawfd, filestat.st_size) == -1)
+			cleanstop(8);
 		cleanstop(7);
 	}
 

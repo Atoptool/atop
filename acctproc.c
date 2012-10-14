@@ -776,8 +776,8 @@ acctrestarttrial()
 
 	(void) acct(0);		// switch off accounting
 
-	(void) lseek(acctfd, 0, SEEK_SET);
-	(void) truncate(ACCTDIR "/" ACCTFILE, 0);
+	if ( truncate(ACCTDIR "/" ACCTFILE, 0) == 0)
+		(void) lseek(acctfd, 0, SEEK_SET);
 
 	(void) acct(ACCTDIR "/" ACCTFILE);
 

@@ -188,16 +188,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 		/*
 		** check if this kernel offers io-statistics per task
 		*/
-		regainrootprivs();
-
-		if ( (fp = fopen("/proc/1/io", "r")) )
+		if ( (fp = fopen_tryroot("/proc/1/io", "r")) )
 		{
 			supportflags |= IOSTAT;
 			fclose(fp);
 		}
-
-		if (! droprootprivs())
-			cleanstop(42);
 
 		/*
  		** find epoch time of boot moment
@@ -210,8 +205,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 	/*
 	** read all subdirectory-names below the /proc directory
 	*/
-	getcwd(origdir, sizeof origdir);
-	chdir("/proc");
+	if ( getcwd(origdir, sizeof origdir) == NULL)
+		cleanstop(53);
+
+	if ( chdir("/proc") == -1)
+		cleanstop(53);
+
 	dirp = opendir(".");
 
 	while ( (entp = readdir(dirp)) && tval < maxtask )
@@ -235,19 +234,19 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
 		{
-			chdir("..");
+			if ( chdir("..") == -1);
 			continue;
 		}
 
 		if ( !procstatus(curtask) )	    /* from /proc/pid/status  */
 		{
-			chdir("..");
+			if ( chdir("..") == -1);
 			continue;
 		}
 
 		if ( !procio(curtask) )		    /* from /proc/pid/io      */
 		{
-			chdir("..");
+			if ( chdir("..") == -1);
 			continue;
 		}
 
@@ -291,19 +290,19 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					if ( !procstat(curthr, bootepoch, 0))
 					{
-						chdir("..");
+						if ( chdir("..") == -1);
 						continue;
 					}
 			
 					if ( !procstatus(curthr) )
 					{
-						chdir("..");
+						if ( chdir("..") == -1);
 						continue;
 					}
 
 					if ( !procio(curthr) )
 					{
-						chdir("..");
+						if ( chdir("..") == -1);
 						continue;
 					}
 
@@ -328,20 +327,21 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					// all stats read now
 					tval++;	    /* increment thread-level */
-					chdir("..");	/* leave thread's dir */
+					if ( chdir("..") == -1); /* thread */
 				}
 
 				closedir(dirtask);
-				chdir("..");	/* leave "task" directory */
+				if ( chdir("..") == -1); /* leave task */
 			}
 		}
 
-		chdir("..");	/* leave process-level directry */
+		if ( chdir("..") == -1); /* leave process-level directry */
 	}
 
 	closedir(dirp);
 
-	chdir(origdir);
+	if ( chdir(origdir) == -1)
+		cleanstop(53);
 
 	return tval;
 }
@@ -357,8 +357,12 @@ countprocs(void)
 	struct dirent	*entp;
 	char		origdir[1024];
 
-	getcwd(origdir, sizeof origdir);
-	chdir("/proc");
+	if ( getcwd(origdir, sizeof origdir) == NULL)
+		cleanstop(53);
+
+	if ( chdir("/proc") == -1)
+		cleanstop(53);
+
 	dirp = opendir(".");
 
 	while ( (entp = readdir(dirp)) )
@@ -372,7 +376,8 @@ countprocs(void)
 
 	closedir(dirp);
 
-	chdir(origdir);
+	if ( chdir(origdir) == -1)
+		cleanstop(53);
 
 	return nr;
 }
@@ -572,9 +577,7 @@ procio(struct tstat *curtask)
 
 	if (supportflags & IOSTAT)
 	{
-		regainrootprivs();
-
-		if ( (fp = fopen("io", "r")) )
+		if ( (fp = fopen_tryroot("io", "r")) )
 		{
 			while (fgets(line, sizeof line, fp))
 			{
@@ -611,9 +614,6 @@ procio(struct tstat *curtask)
 			curtask->dsk.wio	= dskwsz;  // to enable sort
 			curtask->dsk.cwsz	= dskcwsz;
 		}
-
-		if (! droprootprivs())
-			cleanstop(42);
 	}
 
 	return 1;
