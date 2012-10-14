@@ -84,7 +84,7 @@ netatop_signon(void)
 {
 	struct netpertask	npt;
 	socklen_t		socklen = sizeof npt;
-	struct sembuf   	semdecr = {0, -1, SEM_UNDO};
+	struct sembuf   	semdecr = {1, -1, SEM_UNDO};
 
 	/*
 	** check if netatop kernel module is present
@@ -108,9 +108,17 @@ netatop_signon(void)
 	// set appropriate support flag
 	supportflags |= NETATOP;
 
+
 	/*
 	** check if the netatopd daemon is active to register exited tasks
-	**
+	*/
+	if ( (semid = semget(SEMAKEY, 0, 0)) < 0)
+		return;
+
+	if ( semctl(semid, 0, GETVAL, 0) != 1)
+		return;
+
+	/*
 	** open file with compressed stats of exited tasks
 	** and mmap the start record, mainly to obtain current sequence
 	*/
@@ -121,6 +129,7 @@ netatop_signon(void)
 							netexitfd, 0);
         if (nahp == (void *) -1)
 	{
+		nahp = NULL;
         	close(netexitfd);
 		return;
 	}
@@ -128,16 +137,10 @@ netatop_signon(void)
 	/*
 	** decrement semaphore to indicate that we want to subscribe
 	*/
-	if ( (semid = semget(SEMAKEY, 0, 0)) < 0)
-	{
-		munmap(nahp, sizeof *nahp);
-		close(netexitfd);
-		return;
-	}
-
         if ( semop(semid, &semdecr, 1) == -1)
 	{
 		munmap(nahp, sizeof *nahp);
+		nahp = NULL;
 		close(netexitfd);
 		return;
 	}
@@ -157,9 +160,9 @@ netatop_signon(void)
 void
 netatop_signoff(void)
 {
-	struct sembuf  	semincr = {0, +1, SEM_UNDO};
+	struct sembuf  	semincr = {1, +1, SEM_UNDO};
 
-	if (netsock == -1)
+	if (netsock == -1 || nahp == NULL)
 		return;
 
 	if (supportflags & NETATOPD)
@@ -302,6 +305,7 @@ netatop_exitstore(void)
 	** from the exitfile
 	*/
 	nexitnet = nahp->curseq - lastseq;
+	lastseq  = nahp->curseq;
 
 	if (nexitnet == 0)
 		return 0;

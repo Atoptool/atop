@@ -1248,8 +1248,8 @@ getbootlinux(long hertz)
 		** since 1-1-1970
 		*/
 		(void) clock_gettime(CLOCK_REALTIME, &ts);	// get current
-		bootjiffies = ts.tv_sec  * hertz +
-		              ts.tv_nsec * hertz / 1000000000L;
+		bootjiffies = 1LL * ts.tv_sec  * hertz +
+		              1LL * ts.tv_nsec * hertz / 1000000000LL;
 
 		snprintf(tmpbuf, sizeof tmpbuf, "/proc/%d/stat", cpid);
 

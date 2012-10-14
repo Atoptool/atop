@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Make a new version.c with the actual version and current date filled.
+# Make a new version.h with the actual version and current date filled.
 #
 CURDATE=$(date +%Y\\/%m\\/%d\ %H:%M:%S)
 CURVERS=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
@@ -11,6 +11,5 @@ then
 	exit 1
 fi
 
-cat version.SKEL                     |
-	sed -e "s/CURVERS/$CURVERS/" |
-	sed -e "s/CURDATE/$CURDATE/"  > version.c
+echo "#define	ATOPVERS	\"$CURVERS\""	 > version.h
+echo "#define	ATOPDATE	\"$CURDATE\""	>> version.h

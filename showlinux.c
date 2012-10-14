@@ -841,16 +841,16 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 if (memline[0].f == 0)
                 {
                     make_sys_prints(memline, MAXITEMS,
-	                "MEMTOT:5 "
-	                "MEMFREE:6 "
-	                "MEMCACHE:4 "
-	                "MEMDIRTY:1 "
-	                "MEMBUFFER:4 "
-	                "MEMSLAB:4 "
+	                "MEMTOT:6 "
+	                "MEMFREE:7 "
+	                "MEMCACHE:5 "
+	                "MEMDIRTY:3 "
+	                "MEMBUFFER:5 "
+	                "MEMSLAB:5 "
 	                "BLANKBOX:0 "
 	                "SHMTOT:2 "
-	                "SHMRSS:3 "
-	                "SHMSWP:2 "
+	                "SHMRSS:4 "
+	                "SHMSWP:1 "
 	                "BLANKBOX:0", memsyspdefs, "built in memline");
                 }
                 if (swpline[0].f == 0)

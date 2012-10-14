@@ -92,7 +92,7 @@ parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h              acctproc.h netatop.h
-netatopif.o:	atop.h	photoproc.h                         netatop.h
+netatopif.o:	atop.h	photoproc.h              netatopd.h netatop.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h

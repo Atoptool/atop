@@ -845,11 +845,13 @@ Memory occupation.
 .br
 This line contains the total amount of physical memory
 (`tot'), the amount of memory which is currently free (`free'),
-the amount of memory in use as page cache (`cache'),
-the amount of memory within the page cache that has to be flushed to disk
-(`dirty'),
-the amount of memory used for filesystem meta data (`buff') and the amount of
-memory being used for kernel mallocs (`slab' - always 0 for kernel 2.4).
+the amount of memory in use as page cache (`cache') including
+the resident shared memory, the amount of memory within the
+page cache that has to be flushed to disk (`dirty'), the amount
+of memory used for filesystem meta data (`buff'), the amount of
+memory being used for kernel mallocs, the virtual size of shared
+memory (`shtot`), the resident size of shared memory (`shrss`)
+and the amount of shared memory that is currently swapped (`shswp`).
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -994,6 +996,26 @@ The average size of one read-action on disk.
 The average size of one write-action on disk.
 .PP
 .TP 9
+.B BANDWI
+Total bandwidth for received TCP and UDP packets consumed by this process
+(bits-per-second).
+This value can be compared with the value `si'
+on interface level (used bandwidth per interface).
+.br
+This information will only be shown when the kernel module `netatop'
+is loaded.
+.PP
+.TP 9
+.B BANDWO
+Total bandwidth for sent TCP and UDP packets consumed by this process
+(bits-per-second).
+This value can be compared with the value `so'
+on interface level (used bandwidth per interface).
+.br
+This information will only be shown when the kernel module `netatop'
+is loaded.
+.PP
+.TP 9
 .B CMD
 The name of the process.
 This name can be surrounded by "less/greater than" 
@@ -1083,7 +1105,7 @@ The occupation percentage of this process related to the total load that
 is produced by all processes (i.e. consumed network bandwidth
 of all processes during the last interval).
 .br
-This information can only be shown when kernel module `netatop' is loaded.
+This information will only be shown when kernel module `netatop' is loaded.
 .PP
 .TP 9
 .B NICE
@@ -1153,17 +1175,10 @@ process accounting record.
 .TP 9
 .B RNET 
 The number of TCP- and UDP packets received by this process.
-This information can only be shown when kernel module `netatop' is installed.
+This information will only be shown when kernel module `netatop' is installed.
 .br
 If a process has finished during the last interval, no value is shown
 since network counters are not part of the standard process accounting record.
-.PP
-.TP 9
-.B BANDWI
-Total bandwidth for received TCP and UDP packets consumed by this process
-(bits-per-second).
-This information can only be shown when the kernel module `netatop'
-is loaded.
 .PP
 .TP 9
 .B RSIZE
@@ -1201,14 +1216,7 @@ The saved group-id of the process.
 .TP 9
 .B SNET 
 The number of TCP and UDP packets transmitted by this process.
-This information can only be shown when the kernel module `netatop'
-is loaded.
-.PP
-.TP 9
-.B BANDWO
-Total bandwidth for sent TCP and UDP packets consumed by this process
-(bits-per-second).
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
@@ -1263,25 +1271,25 @@ due to system call handling.
 .TP 9
 .B TCPRASZ
 The average size of a received TCP buffer in bytes. 
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B TCPRCV
 The number of TCP packets received for this process.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B TCPSASZ
 The average size of a transmitted TCP buffer in bytes.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B TCPSND
 The number of TCP packets transmitted for this process.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
@@ -1321,25 +1329,25 @@ state 'uninterruptible sleeping' (D).
 .TP 9
 .B UDPRASZ
 The average size of a received UDP packet in bytes.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B UDPRCV
 The number of UDP packets received by this process.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B UDPSASZ
 The average size of a transmitted UDP packets in bytes.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
 .B UDPSND
 The number of UDP packets transmitted by this process.
-This information can only be shown when the kernel module `netatop'
+This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
