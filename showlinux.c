@@ -1427,7 +1427,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         busy   = (sstat->mem.physmem - sstat->mem.freemem
                                      - sstat->mem.cachemem
                                      - sstat->mem.buffermem
-                                     - sstat->mem.slabreclaim)
+                                     - sstat->mem.slabreclaim
+                                     + sstat->mem.shmrss)
                                                 * 100.0 / sstat->mem.physmem;
 
         if (membadness)
