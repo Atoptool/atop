@@ -192,8 +192,8 @@ considered `critical'.
 An occupation percentage of 90% is considered `critical'.
 Notice that this occupation percentage is the accumulated memory
 consumption of the kernel (including slab) and all processes; the
-memory for the page cache (`cache' and `buff' in the MEM-line) is
-not implied!
+memory for the page cache (`cache' and `buff' in the MEM-line) and the
+reclaimable part of the slab (`slrec`) is not implied!
 .br
 If the number of pages swapped out (`swout' in the PAG-line) is larger
 than 10 per second, the memory resource is considered `critical'.
@@ -849,7 +849,8 @@ the amount of memory in use as page cache (`cache') including
 the resident shared memory, the amount of memory within the
 page cache that has to be flushed to disk (`dirty'), the amount
 of memory used for filesystem meta data (`buff'), the amount of
-memory being used for kernel mallocs, the virtual size of shared
+memory being used for kernel mallocs (`slab'), the amount of
+slab memory that is reclaimable (`slrec'), the virtual size of shared
 memory (`shtot`), the resident size of shared memory (`shrss`)
 and the amount of shared memory that is currently swapped (`shswp`).
 
@@ -1506,8 +1507,9 @@ size of physical memory (pages),
 size of free memory (pages),
 size of page cache (pages),
 size of buffer cache (pages),
-size of slab (pages), and
-number of dirty pages in cache.
+size of slab (pages),
+dirty pages in cache (pages), and
+reclaimable part of slab (pages).
 .TP 9
 .B SWP
 Subsequent fields:

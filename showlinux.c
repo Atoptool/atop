@@ -364,6 +364,7 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_MEMDIRTY,
 	&syspdef_MEMBUFFER,
 	&syspdef_MEMSLAB,
+	&syspdef_RECSLAB,
 	&syspdef_BLANKBOX,
 	&syspdef_SHMTOT,
 	&syspdef_SHMRSS,
@@ -847,6 +848,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "MEMDIRTY:3 "
 	                "MEMBUFFER:5 "
 	                "MEMSLAB:5 "
+	                "RECSLAB:2 "
 	                "BLANKBOX:0 "
 	                "SHMTOT:2 "
 	                "SHMRSS:4 "
@@ -1424,7 +1426,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         */
         busy   = (sstat->mem.physmem - sstat->mem.freemem
                                      - sstat->mem.cachemem
-                                     - sstat->mem.buffermem)
+                                     - sstat->mem.buffermem
+                                     - sstat->mem.slabreclaim)
                                                 * 100.0 / sstat->mem.physmem;
 
         if (membadness)

@@ -604,13 +604,14 @@ photosyst(struct sstat *si)
 	si->mem.buffermem	= (count_t)-1;
 	si->mem.cachemem  	= (count_t)-1;
 	si->mem.slabmem		= (count_t) 0;
+	si->mem.slabreclaim	= (count_t) 0;
 	si->mem.totswap  	= (count_t)-1;
 	si->mem.freeswap 	= (count_t)-1;
 	si->mem.committed 	= (count_t) 0;
 
 	if ( (fp = fopen("meminfo", "r")) != NULL)
 	{
-		int	nrfields = 10;	/* number of fields to be filled */
+		int	nrfields = 11;	/* number of fields to be filled */
 
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL && 
 								nrfields > 0)
@@ -702,6 +703,12 @@ photosyst(struct sstat *si)
 			else	if (strcmp("Slab:", nam) == EQ)
 				{
 					si->mem.slabmem = cnts[0]*1024/pagesize;
+					nrfields--;
+				}
+			else	if (strcmp("SReclaimable:", nam) == EQ)
+				{
+					si->mem.slabreclaim = cnts[0]*1024/
+								pagesize;
 					nrfields--;
 				}
 			else	if (strcmp("Committed_AS:", nam) == EQ)

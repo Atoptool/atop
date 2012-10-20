@@ -628,6 +628,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	dev->mem.freemem	= cur->mem.freemem;
 	dev->mem.buffermem	= cur->mem.buffermem;
 	dev->mem.slabmem	= cur->mem.slabmem;
+	dev->mem.slabreclaim	= cur->mem.slabreclaim;
 	dev->mem.committed	= cur->mem.committed;
 	dev->mem.commitlim	= cur->mem.commitlim;
 	dev->mem.cachemem	= cur->mem.cachemem;
@@ -1084,6 +1085,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.freemem	 = new->mem.freemem;
 		tot->mem.buffermem	 = new->mem.buffermem;
 		tot->mem.slabmem	 = new->mem.slabmem;
+		tot->mem.slabreclaim	 = new->mem.slabreclaim;
 		tot->mem.committed	 = new->mem.committed;
 		tot->mem.commitlim	 = new->mem.commitlim;
 		tot->mem.cachemem	 = new->mem.cachemem;

@@ -1026,6 +1026,18 @@ sysprt_MEMSLAB(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_MEMSLAB = {"MEMSLAB", sysprt_MEMSLAB};
 /*******************************************************************/
 char *
+sysprt_RECSLAB(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="slrec ";
+	*color = -1;
+        val2memstr(sstat->mem.slabreclaim * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_RECSLAB = {"RECSLAB", sysprt_RECSLAB};
+/*******************************************************************/
+char *
 sysprt_SHMTOT(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;

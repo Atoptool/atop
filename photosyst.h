@@ -57,7 +57,7 @@ struct	memstat {
 	count_t	shmrss;		/* resident shared memory (pag)	*/
 	count_t	shmswp;		/* swapped shared memory (pag)	*/
 
-	count_t	cfuture[1];	/* reserved for future use	*/
+	count_t	slabreclaim;	/* reclaimable slab (pages)     */
 };
 
 /************************************************************************/

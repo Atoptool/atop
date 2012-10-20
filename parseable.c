@@ -375,7 +375,7 @@ print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -383,7 +383,8 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.cachemem,
 			ss->mem.buffermem,
 			ss->mem.slabmem,
-			ss->mem.cachedrt);
+			ss->mem.cachedrt,
+			ss->mem.slabreclaim);
 }
 
 void
