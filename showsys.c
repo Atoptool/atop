@@ -1038,16 +1038,16 @@ sysprt_RECSLAB(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_RECSLAB = {"RECSLAB", sysprt_RECSLAB};
 /*******************************************************************/
 char *
-sysprt_SHMTOT(void *p, void *notused, int badness, int *color) 
+sysprt_SHMEM(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
-        static char buf[16]="shtot  ";
+        static char buf[16]="shmem  ";
 	*color = -1;
-        val2memstr(sstat->mem.shmtot * pagesize, buf+6, MBFORMAT, 0, 0);
+        val2memstr(sstat->mem.shmem * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
 }
 
-sys_printdef syspdef_SHMTOT = {"SHMTOT", sysprt_SHMTOT};
+sys_printdef syspdef_SHMEM = {"SHMEM", sysprt_SHMEM};
 /*******************************************************************/
 char *
 sysprt_SHMRSS(void *p, void *notused, int badness, int *color) 

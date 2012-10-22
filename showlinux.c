@@ -366,7 +366,7 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_MEMSLAB,
 	&syspdef_RECSLAB,
 	&syspdef_BLANKBOX,
-	&syspdef_SHMTOT,
+	&syspdef_SHMEM,
 	&syspdef_SHMRSS,
 	&syspdef_SHMSWP,
         0
@@ -850,8 +850,8 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "MEMSLAB:5 "
 	                "RECSLAB:2 "
 	                "BLANKBOX:0 "
-	                "SHMTOT:2 "
-	                "SHMRSS:4 "
+	                "SHMEM:4 "
+	                "SHMRSS:3 "
 	                "SHMSWP:1 "
 	                "BLANKBOX:0", memsyspdefs, "built in memline");
                 }

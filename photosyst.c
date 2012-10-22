@@ -605,13 +605,14 @@ photosyst(struct sstat *si)
 	si->mem.cachemem  	= (count_t)-1;
 	si->mem.slabmem		= (count_t) 0;
 	si->mem.slabreclaim	= (count_t) 0;
+	si->mem.shmem 		= (count_t) 0;
 	si->mem.totswap  	= (count_t)-1;
 	si->mem.freeswap 	= (count_t)-1;
 	si->mem.committed 	= (count_t) 0;
 
 	if ( (fp = fopen("meminfo", "r")) != NULL)
 	{
-		int	nrfields = 11;	/* number of fields to be filled */
+		int	nrfields = 12;	/* number of fields to be filled */
 
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL && 
 								nrfields > 0)
@@ -681,6 +682,11 @@ photosyst(struct sstat *si)
 							cnts[0]*1024/pagesize;
 						nrfields--;
 					}
+				}
+			else	if (strcmp("Shmem:", nam) == EQ)
+				{
+					si->mem.shmem = cnts[0]*1024/pagesize;
+					nrfields--;
 				}
 			else	if (strcmp("SwapTotal:", nam) == EQ)
 				{
@@ -1008,7 +1014,6 @@ photosyst(struct sstat *si)
 	*/
 	if ( shmctl(0, SHM_INFO, (struct shmid_ds *)&shminfo) != -1)
 	{
-		si->mem.shmtot = shminfo.shm_tot;
 		si->mem.shmrss = shminfo.shm_rss;
 		si->mem.shmswp = shminfo.shm_swp;
 	}

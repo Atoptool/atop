@@ -115,6 +115,8 @@
 
 static const char rcsid[] = "$Id: acctproc.c,v 1.28 2010/04/23 12:20:19 gerlof Exp $";
 
+#define	_FILE_OFFSET_BITS	64
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -448,7 +450,7 @@ acctvers(int fd)
 	/*
 	** reposition to actual file-size
 	*/
-	(void)lseek(fd, acctsize, SEEK_SET);
+	(void) lseek(fd, acctsize, SEEK_SET);
 
 	return 1;
 }
@@ -557,7 +559,7 @@ acctprocnt(void)
 		/*
 		** reposition to start of file
 		*/
-		lseek(acctfd, 0, SEEK_SET);
+		(void) lseek(acctfd, 0, SEEK_SET);
 		acctsize = 0;
 	}
 
@@ -578,9 +580,9 @@ acctrepos(unsigned int noverflow)
 		return;
 
 	/*
-	** reposition to start of file
+	** reposition to skip superfluous records
 	*/
-	lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
+	(void) lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
 	acctsize   += noverflow * acctrecsz;
 }
 

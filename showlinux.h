@@ -171,7 +171,7 @@ extern sys_printdef syspdef_MEMDIRTY;
 extern sys_printdef syspdef_MEMBUFFER;
 extern sys_printdef syspdef_MEMSLAB;
 extern sys_printdef syspdef_RECSLAB;
-extern sys_printdef syspdef_SHMTOT;
+extern sys_printdef syspdef_SHMEM;
 extern sys_printdef syspdef_SHMRSS;
 extern sys_printdef syspdef_SHMSWP;
 extern sys_printdef syspdef_SWPTOT;
