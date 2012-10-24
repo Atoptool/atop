@@ -824,7 +824,7 @@ generic_samp(time_t curtime, int nsecs,
                         }
 
 			priphead(firstproc/plistsz+1, (nlist-1)/plistsz+1,
-			       		showtype, curorder,
+			       		&showtype, &curorder,
 					showorder == MSORTAUTO ? 1 : 0);
 
 			if (screen)
@@ -1024,7 +1024,8 @@ generic_samp(time_t curtime, int nsecs,
 				if ( !(supportflags & NETATOP) )
 				{
 					statmsg = "Kernel module 'netatop' not "
-					          "active; request ignored!";
+					          "active or no root privs; "
+					          "request ignored!";
 					break;
 				}
 				showorder = MSORTNET;
@@ -1081,7 +1082,8 @@ generic_samp(time_t curtime, int nsecs,
 				if ( !(supportflags & NETATOP) )
 				{
 					statmsg = "Kernel module 'netatop' not "
-					          "active; request ignored!";
+					          "active or no root privs; "
+					          "request ignored!";
 					break;
 				}
 

@@ -220,6 +220,29 @@ for all resources) can be modified in the configuration file
 (see separate man-page of atoprc).
 .PP
 With the key 'x' (or flag -x), the use of colors can be suppressed.
+.SH NETATOP MODULE
+When the
+.I netatop
+kernel module is loaded,
+.I atop
+verifies for every process or thread if network counters are
+gathered by this module. If so, the number of sent and received packets
+are per process/thread are shown in th generic screen. Besides,
+detailed counters can be requested by pressing the `n' key.
+.br
+When the
+.I netatopd
+daemon is running as well,
+.I atop
+also reads the network counters of exited processes that are logged
+by this daemon (comparable with process accounting).
+.PP
+More information about the optional
+.I netatop
+kernel module and the
+.I netatopd
+daemon can be found in the concerning man-pages and on the website
+mentioned at the end of this manual page.
 .SH INTERACTIVE COMMANDS
 When running
 .I atop
@@ -1728,6 +1751,15 @@ flag.
 .br
 All binary system- and process-level data in this file has been stored
 in compressed format. 
+.PP
+.TP 5
+.BI /var/run/netatop.log
+File that contains the netpertask structs containing the network
+counters of exited processes. These structs are written by the
+.I netatopd
+daemon and read by
+.I atop
+after reading the standard process accounting records.
 .SH SEE ALSO
 .B atopsar(1),
 .B atoprc(5),

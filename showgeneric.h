@@ -132,4 +132,4 @@ int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
 			char *, int, int, int, int, int);
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
-void	priphead(int, int, char, char, char);
+void	priphead(int, int, char *, char *, char);

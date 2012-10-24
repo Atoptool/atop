@@ -203,6 +203,17 @@ photoproc(struct tstat *tasklist, int maxtask)
 	}
 
 	/*
+	** probe if the netatop module and (optionally) the
+	** netatopd daemon are active
+	*/
+	regainrootprivs();
+
+	netatop_probe();
+
+	if (! droprootprivs())
+		cleanstop(42);
+
+	/*
 	** read all subdirectory-names below the /proc directory
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
@@ -573,7 +584,7 @@ procio(struct tstat *curtask)
 {
 	FILE	*fp;
 	char	line[4096];
-	count_t	dskrsz, dskwsz, dskcwsz;
+	count_t	dskrsz=0, dskwsz=0, dskcwsz=0;
 
 	if (supportflags & IOSTAT)
 	{

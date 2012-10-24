@@ -975,7 +975,8 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 ** print the header for the process list
 */
 void
-priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
+priphead(int curlist, int totlist, char *showtype, char *showorder,
+							char autosort)
 {
         static int      firsttime=1;
         static int      prev_supportflags = -1;;
@@ -1045,56 +1046,56 @@ priphead(int curlist, int totlist, char showtype, char showorder, char autosort)
 		make_proc_dynamicgen();
 		prev_supportflags = supportflags;
 
-		if (showtype == MPROCNET && !(supportflags&NETATOP) )
+		if (*showtype == MPROCNET && !(supportflags&NETATOP) )
 		{
-			showtype  = MPROCGEN;
-			showorder = MSORTCPU;
+			*showtype  = MPROCGEN;
+			*showorder = MSORTCPU;
 		}
 	}
 
         /*
         ** print the header line
         */
-        switch (showtype)
+        switch (*showtype)
         {
            case MPROCGEN:
-                showhdrline(genprocs, curlist, totlist, showorder, autosort);
+                showhdrline(genprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCMEM:
-                showhdrline(memprocs, curlist, totlist, showorder, autosort);
+                showhdrline(memprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCDSK:
-                showhdrline(dskprocs, curlist, totlist, showorder, autosort);
+                showhdrline(dskprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCNET:
-                showhdrline(netprocs, curlist, totlist, showorder, autosort);
+                showhdrline(netprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCVAR:
-                showhdrline(varprocs, curlist, totlist, showorder, autosort);
+                showhdrline(varprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCARG:
-                showhdrline(cmdprocs, curlist, totlist, showorder, autosort);
+                showhdrline(cmdprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCOWN:
-                showhdrline(ownprocs, curlist, totlist, showorder, autosort);
+                showhdrline(ownprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCSCH:
-                showhdrline(schedprocs, curlist, totlist, showorder, autosort);
+                showhdrline(schedprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MCUMUSER:
-                showhdrline(totusers, curlist, totlist, showorder, autosort);
+                showhdrline(totusers, curlist, totlist, *showorder, autosort);
                 break;
 
            case MCUMPROC:
-                showhdrline(totprocs, curlist, totlist, showorder, autosort);
+                showhdrline(totprocs, curlist, totlist, *showorder, autosort);
                 break;
         }
 }

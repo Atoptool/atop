@@ -44,8 +44,10 @@ struct netpertask;
 /* 
 ** miscellaneous flags
 */
-#define RRBOOT  0x0001
-#define RRLAST  0x0002
+#define RRBOOT		0x0001
+#define RRLAST  	0x0002
+#define RRNETATOP	0x0004
+#define RRNETATOPD	0x0008
 
 struct visualize {
 	char	(*show_samp)  (time_t, int,
@@ -159,7 +161,8 @@ int		droprootprivs(void);
 void		regainrootprivs(void);
 FILE 		*fopen_tryroot(const char *, const char *);
 
-void		netatop_signon(void);
+void		netatop_ipopen(void);
+void		netatop_probe(void);
 void		netatop_signoff(void);
 void		netatop_gettask(pid_t, char, struct tstat *);
 unsigned int	netatop_exitstore(void);

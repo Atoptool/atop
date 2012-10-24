@@ -647,10 +647,9 @@ main(int argc, char *argv[])
 	initifprop();
 
 	/*
- 	** make connection with the netatop kernel module (if any)
-	** and subscribe to the netatopd daemon (if any)
+ 	** open socket to the IP layer to issue getsockopt() calls later on
 	*/
-	netatop_signon();
+	netatop_ipopen();
 	
 	/*
 	** since priviliged activities are finished now, there is no

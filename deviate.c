@@ -537,22 +537,57 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->mem.majflt =
 		subcount(curstat->mem.majflt, prestat->mem.majflt);
 
-	devstat->net.tcpsnd =
-		subcount(curstat->net.tcpsnd, prestat->net.tcpsnd);
-	devstat->net.tcpssz =
-		subcount(curstat->net.tcpssz, prestat->net.tcpssz);
-	devstat->net.tcprcv =
-		subcount(curstat->net.tcprcv, prestat->net.tcprcv);
-	devstat->net.tcprsz =
-		subcount(curstat->net.tcprsz, prestat->net.tcprsz);
-	devstat->net.udpsnd =
-		subcount(curstat->net.udpsnd, prestat->net.udpsnd);
-	devstat->net.udpssz =
-		subcount(curstat->net.udpssz, prestat->net.udpssz);
-	devstat->net.udprcv =
-		subcount(curstat->net.udprcv, prestat->net.udprcv);
-	devstat->net.udprsz =
-		subcount(curstat->net.udprsz, prestat->net.udprsz);
+	/*
+ 	** network counters: due to an unload/load of the netatop module,
+	** previous counters might be larger than the current
+	*/
+	if (curstat->net.tcpsnd >= prestat->net.tcpsnd)
+		devstat->net.tcpsnd =
+			subcount(curstat->net.tcpsnd, prestat->net.tcpsnd);
+	else
+		devstat->net.tcpsnd = curstat->net.tcpsnd;
+
+	if (curstat->net.tcpssz >= prestat->net.tcpssz)
+		devstat->net.tcpssz =
+			subcount(curstat->net.tcpssz, prestat->net.tcpssz);
+	else
+		devstat->net.tcpssz = curstat->net.tcpssz;
+
+	if (curstat->net.tcprcv >= prestat->net.tcprcv)
+		devstat->net.tcprcv =
+			subcount(curstat->net.tcprcv, prestat->net.tcprcv);
+	else
+		devstat->net.tcprcv = curstat->net.tcprcv;
+
+	if (curstat->net.tcprsz >= prestat->net.tcprsz)
+		devstat->net.tcprsz =
+			subcount(curstat->net.tcprsz, prestat->net.tcprsz);
+	else
+		devstat->net.tcprsz = curstat->net.tcprsz;
+
+	if (curstat->net.udpsnd >= prestat->net.udpsnd)
+		devstat->net.udpsnd =
+			subcount(curstat->net.udpsnd, prestat->net.udpsnd);
+	else
+		devstat->net.udpsnd = curstat->net.udpsnd;
+
+	if (curstat->net.udpssz >= prestat->net.udpssz)
+		devstat->net.udpssz =
+			subcount(curstat->net.udpssz, prestat->net.udpssz);
+	else
+		devstat->net.udpssz = curstat->net.udpssz;
+
+	if (curstat->net.udprcv >= prestat->net.udprcv)
+		devstat->net.udprcv =
+			subcount(curstat->net.udprcv, prestat->net.udprcv);
+	else
+		devstat->net.udprcv = curstat->net.udprcv;
+
+	if (curstat->net.udprsz >= prestat->net.udprsz)
+		devstat->net.udprsz =
+			subcount(curstat->net.udprsz, prestat->net.udprsz);
+	else
+		devstat->net.udprsz = curstat->net.udprsz;
 }
 
 /*

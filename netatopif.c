@@ -46,11 +46,10 @@
 #include "netatop.h"
 #include "netatopd.h"
 
-static int		netsock = -1;
-
-static int		netexitfd;
+static int		netsock   = -1;
+static int		netexitfd = -1;
 static struct naheader	*nahp;
-static int		semid;
+static int		semid     = -1;
 static unsigned long	lastseq;
 
 /*
@@ -75,83 +74,120 @@ static char		 exithash;
 
 static void	fill_networkcnt(struct tstat *, struct tstat *,
         	                struct exitstore *);
+
 /*
-** check if the netatop kernel module and the netatopd daemon
-** are available
+** open a raw socket to the IP layer (root privs required)
 */
 void
-netatop_signon(void)
+netatop_ipopen(void)
 {
-	struct netpertask	npt;
-	socklen_t		socklen = sizeof npt;
+	netsock = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
+}
+
+/*
+** check if at this moment the netatop kernel module is loaded and
+** the netatopd daemon is active
+*/
+void
+netatop_probe(void)
+{
 	struct sembuf   	semdecr = {1, -1, SEM_UNDO};
+	socklen_t		sl = 0;
+	struct stat		exstat;
 
 	/*
-	** check if netatop kernel module is present
-	**
-	** open a raw socket to the IP layer (root perms required)
+ 	** check if IP socket is open
 	*/
-	if ( (netsock = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) == -1)
+	if (netsock == -1)
 		return;
 
 	/*
 	** probe if the netatop module is active
 	*/
-	npt.id = 1;
-
-	if (getsockopt( netsock, SOL_IP, NETATOP_GETCNT_TGID,
-						&npt, &socklen) != 0) {
-		if (errno == ENOPROTOOPT || errno == EPERM)
-			return;
+	if ( getsockopt(netsock, SOL_IP, NETATOP_PROBE, NULL, &sl) != 0)
+	{
+		supportflags &= ~NETATOP;
+		supportflags &= ~NETATOPD;
+		return;
 	}
 
 	// set appropriate support flag
 	supportflags |= NETATOP;
 
-
 	/*
 	** check if the netatopd daemon is active to register exited tasks
+	** and decrement semaphore to indicate that we want to subscribe
 	*/
-	if ( (semid = semget(SEMAKEY, 0, 0)) < 0)
-		return;
+	if (semid == -1)
+	{
+		if ( (semid = semget(SEMAKEY, 0, 0))    == -1 ||
+	                      semop(semid, &semdecr, 1) == -1   )
+		{
+			supportflags &= ~NETATOPD;
+			return;
+		}
+	}
 
-	if ( semctl(semid, 0, GETVAL, 0) != 1)
+	if (semctl(semid, 0, GETVAL, 0) != 1)
+	{
+		supportflags &= ~NETATOPD;
 		return;
+	}
+
+	/*
+	** check if exitfile still open and not removed by netatopd
+	*/
+	if (netexitfd != -1)
+	{
+		if ( fstat(netexitfd, &exstat) == 0 && 
+		     exstat.st_nlink > 0              ) // not removed
+		{
+			supportflags |= NETATOPD;
+			return;
+		}
+		else
+		{
+			(void) close(netexitfd);
+
+			if (nahp)
+				munmap(nahp, sizeof *nahp);
+
+			netexitfd = -1;
+			nahp = NULL;
+		}
+	}
 
 	/*
 	** open file with compressed stats of exited tasks
-	** and mmap the start record, mainly to obtain current sequence
+	** and (re)mmap the start record, mainly to obtain current sequence
 	*/
-	if ( (netexitfd = open(NETEXITFILE, O_RDONLY, 0)) == -1)
-                return;
-
-	nahp = mmap((void *)0, sizeof *nahp, PROT_READ, MAP_SHARED,
-							netexitfd, 0);
-        if (nahp == (void *) -1)
+	if (netexitfd == -1)
 	{
+		if ( (netexitfd = open(NETEXITFILE, O_RDONLY, 0)) == -1)
+		{
+			supportflags &= ~NETATOPD;
+               		return;
+		}
+	}
+
+	if ( (nahp = mmap((void *)0, sizeof *nahp, PROT_READ, MAP_SHARED,
+						netexitfd, 0)) == (void *) -1)
+	{
+        	(void) close(netexitfd);
+		netexitfd = -1;
 		nahp = NULL;
-        	close(netexitfd);
+		supportflags &= ~NETATOPD;
 		return;
 	}
 
 	/*
-	** decrement semaphore to indicate that we want to subscribe
-	*/
-        if ( semop(semid, &semdecr, 1) == -1)
-	{
-		munmap(nahp, sizeof *nahp);
-		nahp = NULL;
-		close(netexitfd);
-		return;
-	}
-
-	/*
+	** if this is a new incarnation of the netatopd daemon,
 	** position seek pointer on first task that is relevant to us
 	** and remember last sequence number to know where to start
 	*/
 	(void) lseek(netexitfd, 0, SEEK_END);
 
-	lastseq = nahp->curseq;
+	lastseq     = nahp->curseq;
 
 	// set appropriate support flag
 	supportflags |= NETATOPD;
@@ -176,8 +212,8 @@ netatop_signoff(void)
        		if (! droprootprivs())
        			cleanstop(42);
 
-		munmap(nahp, sizeof *nahp);
-		close(netexitfd);
+		(void) munmap(nahp, sizeof *nahp);
+		(void) close(netexitfd);
 	}
 }
 
@@ -217,6 +253,7 @@ netatop_gettask(pid_t id, char type, struct tstat *tp)
 		if (errno == ENOPROTOOPT || errno == EPERM)
 		{
 			supportflags &= ~NETATOP;
+			supportflags &= ~NETATOPD;
 			close(netsock);
 			netsock = -1;
 		}
@@ -306,9 +343,6 @@ netatop_exitstore(void)
 	*/
 	nexitnet = nahp->curseq - lastseq;
 	lastseq  = nahp->curseq;
-
-	if (nexitnet == 0)
-		return 0;
 
 	/*
 	** allocate storage for all exited processes
