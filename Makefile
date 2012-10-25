@@ -9,7 +9,7 @@ SCRPATH  = /etc/atop
 LOGPATH  = /var/log/atop
 MAN1PATH = /usr/share/man/man1
 MAN5PATH = /usr/share/man/man5
-INIPATH  = /etc/rc.d/init.d
+INIPATH  = /etc/init.d
 CRNPATH  = /etc/cron.d
 ROTPATH  = /etc/logrotate.d
 PMPATH1  = /usr/lib/pm-utils/sleep.d
@@ -78,6 +78,7 @@ install:	atop
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; then /sbin/chkconfig --add atop; fi
+		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ]; then update-rc.d atop defaults; fi
 
 distr: rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
