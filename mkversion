@@ -2,7 +2,7 @@
 
 # Make a new version.h with the actual version and current date filled.
 #
-CURDATE=$(date +%Y\\/%m\\/%d\ %H:%M:%S)
+CURDATE=$(date +%Y\/%m\/%d\ %H:%M:%S)
 CURVERS=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
 
 if [ "$CURVERS" = master ]

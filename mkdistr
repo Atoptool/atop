@@ -7,6 +7,13 @@
 VERSION=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/-.*//')
 RELEASE=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/.*-//')
 
+if [ "X$VERSION" = "X$RELEASE" ]
+then
+	RELEASE=1
+fi
+
+echo VERSION: $VERSION -- RELEASE $RELEASE
+
 if [ "$VERSION" = master ]
 then
 	echo Not allowed to distribute the MASTER version >&2
@@ -15,15 +22,7 @@ fi
 
 # Make new version.h file
 #
-rm -f version.c
-
-if ./mkversion
-then
-	:
-else
-	echo Not possible to generate version.c >&2
-	exit 3
-fi
+./mkversion
 
 ############################################################################
 # Generate new executables
@@ -49,7 +48,7 @@ cp *.[ch]		/tmp/atop-$VERSION
 cp Makefile    		/tmp/atop-$VERSION
 cp README		/tmp/atop-$VERSION
 cp COPYING		/tmp/atop-$VERSION
-git log >        	/tmp/atop-$VERSION/ChangeLog
+git log --name-status > /tmp/atop-$VERSION/ChangeLog
 cp AUTHOR		/tmp/atop-$VERSION
 cp atop.daily  		/tmp/atop-$VERSION
 cp atop.cron  		/tmp/atop-$VERSION
