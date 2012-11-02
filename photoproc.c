@@ -188,11 +188,16 @@ photoproc(struct tstat *tasklist, int maxtask)
 		/*
 		** check if this kernel offers io-statistics per task
 		*/
-		if ( (fp = fopen_tryroot("/proc/1/io", "r")) )
+		regainrootprivs();
+
+		if ( (fp = fopen("/proc/1/io", "r")) )
 		{
 			supportflags |= IOSTAT;
 			fclose(fp);
 		}
+
+		if (! droprootprivs())
+			cleanstop(42);
 
 		/*
  		** find epoch time of boot moment
@@ -588,7 +593,9 @@ procio(struct tstat *curtask)
 
 	if (supportflags & IOSTAT)
 	{
-		if ( (fp = fopen_tryroot("io", "r")) )
+		regainrootprivs();
+
+		if ( (fp = fopen("io", "r")) )
 		{
 			while (fgets(line, sizeof line, fp))
 			{
@@ -625,6 +632,9 @@ procio(struct tstat *curtask)
 			curtask->dsk.wio	= dskwsz;  // to enable sort
 			curtask->dsk.cwsz	= dskcwsz;
 		}
+
+		if (! droprootprivs())
+			cleanstop(42);
 	}
 
 	return 1;
