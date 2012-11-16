@@ -4,17 +4,12 @@
 # 	exit 1
 # fi
 
-VERSION=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/-.*//')
-RELEASE=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' -e 's/.*-//')
+BRANCH=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
+MAJOR=$(echo $BRANCH | sed -e 's/\..*//')
+MINOR=$(echo $BRANCH | sed -e 's/[0-9]*\.//' -e 's/\..*//')
+REVIS=$(echo $BRANCH | sed -e 's/.*\.//')
 
-if [ "X$VERSION" = "X$RELEASE" ]
-then
-	RELEASE=1
-fi
-
-echo VERSION: $VERSION -- RELEASE $RELEASE
-
-if [ "$VERSION" = master ]
+if [ "$BRANCH" = master ]
 then
 	echo Not allowed to distribute the MASTER version >&2
 	exit 2
@@ -22,7 +17,13 @@ fi
 
 # Make new version.h file
 #
-./mkversion
+if ./mkversion
+then
+	:
+else
+	echo Not possible to generate version.h >&2
+	exit 3
+fi
 
 ############################################################################
 # Generate new executables
@@ -41,114 +42,103 @@ fi
 # Prepare a directory for distribution under /tmp
 # and copy all required stuff 
 ############################################################################
-rm -rf         		/tmp/atop-$VERSION 2> /dev/null
+rm -rf         		/tmp/atop-$BRANCH 2> /dev/null
 
-mkdir          		/tmp/atop-$VERSION
-cp *.[ch]		/tmp/atop-$VERSION
-cp Makefile    		/tmp/atop-$VERSION
-cp README		/tmp/atop-$VERSION
-cp COPYING		/tmp/atop-$VERSION
-git log --name-status > /tmp/atop-$VERSION/ChangeLog
-cp AUTHOR		/tmp/atop-$VERSION
-cp atop.daily  		/tmp/atop-$VERSION
-cp atop.cron  		/tmp/atop-$VERSION
-cp atop.init  		/tmp/atop-$VERSION
-cp atop.service 	/tmp/atop-$VERSION
-cp psaccs_atop 		/tmp/atop-$VERSION
-cp psaccu_atop 		/tmp/atop-$VERSION
-cp 45atoppm  		/tmp/atop-$VERSION
-cp -r man      		/tmp/atop-$VERSION
+mkdir          		/tmp/atop-$BRANCH
+cp *.[ch]		/tmp/atop-$BRANCH
+cp Makefile    		/tmp/atop-$BRANCH
+cp README		/tmp/atop-$BRANCH
+cp COPYING		/tmp/atop-$BRANCH
+git log --name-status > /tmp/atop-$BRANCH/ChangeLog
+cp AUTHOR		/tmp/atop-$BRANCH
+cp atop.daily  		/tmp/atop-$BRANCH
+cp atop.cron  		/tmp/atop-$BRANCH
+cp atop.init  		/tmp/atop-$BRANCH
+cp atop.service 	/tmp/atop-$BRANCH
+cp psaccs_atop 		/tmp/atop-$BRANCH
+cp psaccu_atop 		/tmp/atop-$BRANCH
+cp 45atoppm  		/tmp/atop-$BRANCH
+cp -r man      		/tmp/atop-$BRANCH
 
 ############################################################################
 # All files copied.
-# Make compressed tar-archives with and without release number.
+# Make compressed tar-archives
 ############################################################################
 #
 ORIGDIR=`pwd`
 
 cd /tmp
 
-rm -f			atop-$VERSION.tar 2> /dev/null
-tar cvf 		atop-$VERSION.tar atop-$VERSION
+rm -f			atop-$BRANCH.tar 2> /dev/null
+tar cvf 		atop-$BRANCH.tar atop-$BRANCH
 
-rm -f          		atop-$VERSION.tar.gz 2> /dev/null
-gzip            	atop-$VERSION.tar
-
-
-rm -rf			atop-$VERSION-$RELEASE     2> /dev/null
-mv atop-$VERSION	atop-$VERSION-$RELEASE
-
-rm -f			atop-$VERSION-$RELEASE.tar 2> /dev/null
-tar cvf 		atop-$VERSION-$RELEASE.tar atop-$VERSION-$RELEASE
-rm -rf			atop-$VERSION-$RELEASE     2> /dev/null
-
-rm -f          		atop-$VERSION-$RELEASE.tar.gz 2> /dev/null
-gzip            	atop-$VERSION-$RELEASE.tar
+rm -f          		atop-$BRANCH.tar.gz 2> /dev/null
+gzip            	atop-$BRANCH.tar
 
 ############################################################################
 # Make an RPM-distribution
 ############################################################################
 if [ -d /usr/src/redhat/SOURCES ]
 then
-	cp atop-$VERSION.tar.gz /usr/src/redhat/SOURCES
+	cp atop-$BRANCH.tar.gz /usr/src/redhat/SOURCES
 fi
 
 if [ -d /usr/src/packages/SOURCES ]
 then
-	cp atop-$VERSION.tar.gz /usr/src/packages/SOURCES
+	cp atop-$BRANCH.tar.gz /usr/src/packages/SOURCES
 fi
 
 if [ -d /usr/src/RPM/SOURCES ]
 then
-	cp atop-$VERSION.tar.gz /usr/src/RPM/SOURCES
+	cp atop-$BRANCH.tar.gz /usr/src/RPM/SOURCES
 fi
 
 if [ -d $HOME/rpmbuild/SOURCES ]
 then
-	cp atop-$VERSION.tar.gz $HOME/rpmbuild/SOURCES/atop-$VERSION.tar.gz
+	cp atop-$BRANCH.tar.gz $HOME/rpmbuild/SOURCES
 fi
 
 cd "$ORIGDIR"
 
-sed -e "s/XVERSX/$VERSION/g" -e "s/XRELEX/$RELEASE/g" atop.spec 	\
-					> /tmp/atop-$VERSION-$RELEASE.spec
+sed -e "s/XVERSX/$BRANCH/g" atop.spec 	> /tmp/atop-$BRANCH.spec
 
 cd /tmp
 
-if rpmbuild -ba atop-$VERSION-$RELEASE.spec #  > /dev/null
+if rpmbuild -ba atop-$BRANCH.spec #  > /dev/null
 then
 	if [ -d $HOME/rpmbuild/SOURCES ]
 	then
-	   cp $HOME/rpmbuild/RPMS/x86_64/atop-$VERSION-$RELEASE.x86_64.rpm /tmp
-	   cp $HOME/rpmbuild/RPMS/i586/atop-$VERSION-$RELEASE.i586.rpm     /tmp
-	   cp $HOME/rpmbuild/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
+	   cp $HOME/rpmbuild/RPMS/x86_64/atop-$BRANCH-1.x86_64.rpm /tmp
+	   cp $HOME/rpmbuild/RPMS/i586/atop-$BRANCH-1.i586.rpm     /tmp
+	   cp $HOME/rpmbuild/SRPMS/atop-$BRANCH-1.src.rpm          /tmp
 	fi
 
 	if [ -d /usr/src/packages/SOURCES ]
 	then
-	   cp /usr/src/packages/RPMS/x86_64/atop-$VERSION-$RELEASE.x86_64.rpm /tmp
-	   cp /usr/src/packages/RPMS/i586/atop-$VERSION-$RELEASE.i586.rpm     /tmp
-	   cp /usr/src/packages/SRPMS/atop-$VERSION-$RELEASE.src.rpm          /tmp
+	   cp /usr/src/packages/RPMS/x86_64/atop-$BRANCH-1.x86_64.rpm /tmp
+	   cp /usr/src/packages/RPMS/i586/atop-$BRANCH-1.i586.rpm     /tmp
+	   cp /usr/src/packages/SRPMS/atop-$BRANCH-1.src.rpm          /tmp
 	fi
 
 	echo
-	if [ -f /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ]
+	if [ -f /tmp/atop-$BRANCH-1.x86_64.rpm ]
 	then
-		echo /tmp/atop-$VERSION-$RELEASE.x86_64.rpm ready
+		echo /tmp/atop-$BRANCH-1.x86_64.rpm ready
 	fi
-	if [ -f /tmp/atop-$VERSION-$RELEASE.i586.rpm ]
+	if [ -f /tmp/atop-$BRANCH-1.i586.rpm ]
 	then
-		echo /tmp/atop-$VERSION-$RELEASE.i586.rpm ready
+		echo /tmp/atop-$BRANCH-1.i586.rpm ready
 	fi
-	if [ -f /tmp/atop-$VERSION-$RELEASE.src.rpm ]
+	if [ -f /tmp/atop-$BRANCH-1.src.rpm ]
 	then
-		echo /tmp/atop-$VERSION-$RELEASE.src.rpm  ready
+		echo /tmp/atop-$BRANCH-1.src.rpm  ready
 	fi
 fi
 
 echo
-if [ -f /tmp/atop-$VERSION-$RELEASE.tar.gz ]
+if [ -f /tmp/atop-$BRANCH.tar.gz ]
 then
-	echo /tmp/atop-$VERSION-$RELEASE.tar.gz ready
+	echo /tmp/atop-$BRANCH.tar.gz ready
 fi
+
 exit 0

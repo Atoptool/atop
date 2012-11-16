@@ -1,2 +1,0 @@
-#define	ATOPVERS	"2.0"
-#define	ATOPDATE	"2012/10/25 18:25:12"
