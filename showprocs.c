@@ -530,7 +530,7 @@ procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_SYSCPU = 
-   { " SYSCPU", "SYSCPU", procprt_SYSCPU_ae, procprt_SYSCPU_ae, 7 };
+   { "SYSCPU", "SYSCPU", procprt_SYSCPU_ae, procprt_SYSCPU_ae, 6 };
 /***************************************************************/
 char *
 procprt_USRCPU_ae(struct tstat *curstat, int avgval, int nsecs)
@@ -542,7 +542,7 @@ procprt_USRCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_USRCPU = 
-   { " USRCPU", "USRCPU", procprt_USRCPU_ae, procprt_USRCPU_ae, 7 };
+   { "USRCPU", "USRCPU", procprt_USRCPU_ae, procprt_USRCPU_ae, 6 };
 /***************************************************************/
 char *
 procprt_VGROW_a(struct tstat *curstat, int avgval, int nsecs)
@@ -1680,7 +1680,7 @@ procprt_RNET_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[10];
         
         val2valstr(curstat->net.tcprcv + curstat->net.udprcv ,
-					buf, 4, avgval, nsecs);
+					buf, 5, avgval, nsecs);
 
         return buf;
 }
@@ -1693,16 +1693,16 @@ procprt_RNET_e(struct tstat *curstat, int avgval, int nsecs)
         	static char buf[10];
  
 	        val2valstr(curstat->net.tcprcv + curstat->net.udprcv ,
-					buf, 4, avgval, nsecs);
+					buf, 5, avgval, nsecs);
 
        		return buf;
 	}
 	else
-        	return "   -";
+        	return "    -";
 }
 
 proc_printdef procprt_RNET = 
-   { "RNET", "RNET", procprt_RNET_a, procprt_RNET_e, 4 };
+   { " RNET", "RNET", procprt_RNET_a, procprt_RNET_e, 5 };
 /***************************************************************/
 char *
 procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
@@ -1710,7 +1710,7 @@ procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[10];
         
         val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd,
-                           		buf, 4, avgval, nsecs);
+                           		buf, 5, avgval, nsecs);
         return buf;
 }
 
@@ -1722,15 +1722,15 @@ procprt_SNET_e(struct tstat *curstat, int avgval, int nsecs)
 	        static char buf[10];
         
        		val2valstr(curstat->net.tcpsnd + curstat->net.udpsnd,
-                           		buf, 4, avgval, nsecs);
+                           		buf, 5, avgval, nsecs);
 	        return buf;
 	}
 	else
-        	return "   -";
+        	return "    -";
 }
 
 proc_printdef procprt_SNET = 
-   { "SNET", "SNET", procprt_SNET_a, procprt_SNET_e, 4 };
+   { " SNET", "SNET", procprt_SNET_a, procprt_SNET_e, 5 };
 /***************************************************************/
 char *
 procprt_RNETBW_a(struct tstat *curstat, int avgval, int nsecs)

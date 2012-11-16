@@ -313,19 +313,19 @@ val2elapstr(int value, char *strvalue)
 
 /*
 ** Function val2cpustr() converts a value (number of milliseconds)
-** to an ascii-string of 7 positions in milliseconds or minute-seconds or
-** hours-minutes, stored in strvalue (at least 8 positions).
+** to an ascii-string of 6 positions in milliseconds or minute-seconds or
+** hours-minutes, stored in strvalue (at least 7 positions).
 */
 #define	MAXMSEC		(count_t)100000
-#define	MAXSEC		(count_t)60000
-#define	MAXMIN		(count_t)60000
+#define	MAXSEC		(count_t)6000
+#define	MAXMIN		(count_t)6000
 
 char *
 val2cpustr(count_t value, char *strvalue)
 {
 	if (value < MAXMSEC)
 	{
-		sprintf(strvalue, "%3lld.%02llds", value/1000, value%1000/10);
+		sprintf(strvalue, "%2lld.%02llds", value/1000, value%1000/10);
 	}
 	else
 	{
@@ -336,7 +336,7 @@ val2cpustr(count_t value, char *strvalue)
 
         	if (value < MAXSEC) 
         	{
-               	 	sprintf(strvalue, "%3lldm%02llds", value/60, value%60);
+               	 	sprintf(strvalue, "%2lldm%02llds", value/60, value%60);
 		}
 		else
 		{
@@ -347,7 +347,7 @@ val2cpustr(count_t value, char *strvalue)
 
 			if (value < MAXMIN) 
 			{
-				sprintf(strvalue, "%3lldh%02lldm",
+				sprintf(strvalue, "%2lldh%02lldm",
 							value/60, value%60);
 			}
 			else
@@ -357,7 +357,7 @@ val2cpustr(count_t value, char *strvalue)
 				*/
 				value = (value + 30) / 60;
 
-				sprintf(strvalue, "%3lldd%02lldh",
+				sprintf(strvalue, "%2lldd%02lldh",
 						value/24, value%24);
 			}
 		}

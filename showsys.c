@@ -332,8 +332,8 @@ char *
 sysprt_PRCSYS(void *notused, void *q, int badness, int *color)
 {
         extraparam *as=q;
-        static char buf[15]="sys  ";
-        val2cpustr(as->totst * 1000/hertz, buf+5);
+        static char buf[15]="sys   ";
+        val2cpustr(as->totst * 1000/hertz, buf+6);
         return buf;
 }
 
@@ -343,8 +343,8 @@ char *
 sysprt_PRCUSER(void *notused, void *q, int badness, int *color) 
 {
         extraparam *as=q;
-        static char buf[15]="user ";
-        val2cpustr(as->totut * 1000/hertz, buf+5);
+        static char buf[15]="user  ";
+        val2cpustr(as->totut * 1000/hertz, buf+6);
         return buf;
 }
 
