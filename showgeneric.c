@@ -1846,6 +1846,11 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 		curusers->net.udpsnd += (*curprocs)->net.udpsnd;
 		curusers->net.udprcv += (*curprocs)->net.udprcv;
 
+		curusers->net.tcpssz += (*curprocs)->net.tcpssz;
+		curusers->net.tcprsz += (*curprocs)->net.tcprsz;
+		curusers->net.udpssz += (*curprocs)->net.udpssz;
+		curusers->net.udprsz += (*curprocs)->net.udprsz;
+
 		if ((*curprocs)->gen.state != 'E')
 		{
 			curusers->mem.rmem   += (*curprocs)->mem.rmem;
@@ -1920,6 +1925,11 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 		curprogs->net.tcprcv += (*curprocs)->net.tcprcv;
 		curprogs->net.udpsnd += (*curprocs)->net.udpsnd;
 		curprogs->net.udprcv += (*curprocs)->net.udprcv;
+
+		curprogs->net.tcpssz += (*curprocs)->net.tcpssz;
+		curprogs->net.tcprsz += (*curprocs)->net.tcprsz;
+		curprogs->net.udpssz += (*curprocs)->net.udpssz;
+		curprogs->net.udprsz += (*curprocs)->net.udprsz;
 
 		if ((*curprocs)->gen.state != 'E')
 		{
