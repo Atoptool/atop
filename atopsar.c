@@ -1276,14 +1276,14 @@ taskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		printf("%8.2lf %7.2lf  %7d %7d    %6d %7d %7d\n",
 			(double)ss->cpu.nprocs / deltasec,
 			(double)pexit          / deltasec,
-			ppres, pzombie, ntrun, ntslpi, ntslpu);
+			nactproc-pexit, pzombie, ntrun, ntslpi, ntslpu);
 	}
 	else
 	{
 		printf("%8.2lf %7.2lf  %7d %7d\n",
 			(double)ss->cpu.nprocs / deltasec,
 			(double)pexit          / deltasec,
-			ppres, pzombie);
+			nactproc-pexit, pzombie);
 	}
 
 	return 1;
