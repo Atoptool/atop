@@ -709,7 +709,6 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 		}
 	}
 
-
 	acctsize += nrexit * acctrecsz;
 
 	if (acctsize > ACCTMAXFILESZ)

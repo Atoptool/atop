@@ -867,7 +867,7 @@ engine(void)
 
 			memset(curpexit, 0, nexit * sizeof(struct tstat));
 
-			acctphotoproc(curpexit, nexit);
+			nexit = acctphotoproc(curpexit, nexit);
 
 			/*
  			** reposition offset in accounting file when not
