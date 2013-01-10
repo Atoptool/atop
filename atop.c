@@ -91,18 +91,18 @@
 **	Calculates the differences between the current system-level
 ** 	counters and the corresponding counters of the previous cycle.
 **
-**    -	deviatproc()
+**    -	deviattask()
 **	Calculates the differences between the current task-level
 ** 	counters and the corresponding counters of the previous cycle.
 **	The per-task counters of the previous cycle are stored in the
 **	task-database; this "database" is implemented as a linked list
-**	of task-info structures in memory (so no disk-accesses needed).
+**	of taskinfo structures in memory (so no disk-accesses needed).
 **	Within this linked list hash-buckets are maintained for fast searches.
 **	The entire task-database is handled via a set of well-defined 
 ** 	functions from which the name starts with "pdb_..." (see the
 **	source-file procdbase.c).
 **	The processes which have been finished during the last cycle
-** 	are also treated by deviatproc() in order to calculate what their
+** 	are also treated by deviattask() in order to calculate what their
 **	resource-usage was before they finished.
 **
 ** All information is ready to be visualized now.
@@ -691,17 +691,24 @@ engine(void)
 	/*
 	** reserve space for task-level statistics
 	*/
-	static struct tstat	*curpact;	/* current active list  */
-	static int		curplen;	/* current active size  */
+	static struct tstat	*curtpres;	/* current present list      */
+	static int		 curtlen;	/* size of present list      */
 
-	struct tstat		*curpexit;	/* exited process list	*/
-	struct tstat		*devtstat;	/* deviation list	*/
-	struct tstat		**devpstat;	/* pointers to processes*/
-						/* in deviation list    */
+	struct tstat		*curpexit;	/* exited process list	     */
+	struct tstat		*devtstat;	/* deviation list	     */
+	struct tstat		**devpstat;	/* pointers to processes     */
+						/* in deviation list         */
 
-	unsigned int		ntask, nexit, nexitnet;
-	unsigned int		noverflow, ndeviat, nactproc;
-	int			totproc, totrun, totslpi, totslpu, totzombie;
+	unsigned int		ntaskpres;	/* number of tasks present   */
+	unsigned int		nprocexit;	/* number of exited procs    */
+	unsigned int		nprocexitnet;	/* number of exited procs    */
+						/* via netatopd daemon       */
+
+	unsigned int		ntaskdev;       /* nr of tasks deviated      */
+	unsigned int		nprocdev;       /* nr of procs deviated      */
+	int			nprocpres;	/* nr of procs present       */
+	int			totrun, totslpi, totslpu, totzombie;
+	unsigned int		noverflow;
 
 	/*
 	** initialization: allocate required memory dynamically
@@ -710,13 +717,13 @@ engine(void)
 	presstat = calloc(1, sizeof(struct sstat));
 	devsstat = calloc(1, sizeof(struct sstat));
 
-	curplen  = countprocs() * 3 / 2;	/* add 50% for threads */
-	curpact  = calloc(curplen, sizeof(struct tstat));
+	curtlen  = countprocs() * 3 / 2;	/* add 50% for threads */
+	curtpres = calloc(curtlen, sizeof(struct tstat));
 
 	ptrverify(cursstat, "Malloc failed for current sysstats\n");
 	ptrverify(presstat, "Malloc failed for prev    sysstats\n");
 	ptrverify(devsstat, "Malloc failed for deviate sysstats\n");
-	ptrverify(curpact,  "Malloc failed for %d procstats\n", curplen);
+	ptrverify(curtpres, "Malloc failed for %d procstats\n", curtlen);
 
 	/*
 	** install the signal-handler for ALARM, USR1 and USR2 (triggers
@@ -812,19 +819,19 @@ engine(void)
 		**  --> atop malloc's a minimal amount of space which is
 		**      only extended when needed
 		*/
-		memset(curpact, 0, curplen * sizeof(struct tstat));
+		memset(curtpres, 0, curtlen * sizeof(struct tstat));
 
-		while ( (ntask = photoproc(curpact, curplen)) == curplen)
+		while ( (ntaskpres = photoproc(curtpres, curtlen)) == curtlen)
 		{
-			curplen += PROCCHUNK;
+			curtlen += PROCCHUNK;
 
-			curpact = realloc(curpact,
-					curplen * sizeof(struct tstat));
+			curtpres = realloc(curtpres,
+					curtlen * sizeof(struct tstat));
 
-			ptrverify(curpact,
-			          "Realloc failed for %d tasks\n", curplen);
+			ptrverify(curtpres,
+			          "Realloc failed for %d tasks\n", curtlen);
 
-			memset(curpact, 0, curplen * sizeof(struct tstat));
+			memset(curtpres, 0, curtlen * sizeof(struct tstat));
 		}
 
 		/*
@@ -834,12 +841,12 @@ engine(void)
 		** the number of exited processes is limited to avoid
 		** that atop explodes in memory and introduces OOM killing
 		*/
-		nexit = acctprocnt();	/* number of exited processes */
+		nprocexit = acctprocnt();	/* number of exited processes */
 
-		if (nexit > MAXACCTPROCS)
+		if (nprocexit > MAXACCTPROCS)
 		{
-			noverflow = nexit - MAXACCTPROCS;
-			nexit     = MAXACCTPROCS;
+			noverflow = nprocexit - MAXACCTPROCS;
+			nprocexit = MAXACCTPROCS;
 		}
 		else
 			noverflow = 0;
@@ -849,25 +856,25 @@ engine(void)
 		** for the netatop module (only processes that have
 		** used the network)
 		*/
-		if (nexit > 0 && (supportflags & NETATOPD))
-			nexitnet = netatop_exitstore();
+		if (nprocexit > 0 && (supportflags & NETATOPD))
+			nprocexitnet = netatop_exitstore();
 		else
-			nexitnet = 0;
+			nprocexitnet = 0;
 
 		/*
 		** reserve space for the exited processes and read them
 		*/
-		if (nexit > 0)
+		if (nprocexit > 0)
 		{
-			curpexit = malloc(nexit * sizeof(struct tstat));
+			curpexit = malloc(nprocexit * sizeof(struct tstat));
 
 			ptrverify(curpexit,
 			          "Malloc failed for %d exited processes\n",
-			          nexit);
+			          nprocexit);
 
-			memset(curpexit, 0, nexit * sizeof(struct tstat));
+			memset(curpexit, 0, nprocexit * sizeof(struct tstat));
 
-			nexit = acctphotoproc(curpexit, nexit);
+			nprocexit = acctphotoproc(curpexit, nprocexit);
 
 			/*
  			** reposition offset in accounting file when not
@@ -885,26 +892,27 @@ engine(void)
 		/*
 		** calculate deviations
 		*/
-		devtstat = malloc((ntask+nexit) * sizeof(struct tstat));
+		devtstat = malloc((ntaskpres+nprocexit) * sizeof(struct tstat));
 
-		ptrverify(devtstat, "Malloc failed for %d modified processes\n",
-			          				ntask+nexit);
+		ptrverify(devtstat, "Malloc failed for %d modified tasks\n",
+			          			ntaskpres+nprocexit);
 
-		ndeviat = deviatproc(curpact, ntask, curpexit, nexit, 
-				deviatonly, devtstat, devsstat, &nactproc,
-				&totproc, &totrun, &totslpi, &totslpu, 
-		                &totzombie);
+		ntaskdev = deviattask(curtpres,  ntaskpres,
+		                      curpexit,  nprocexit, deviatonly,
+		                      devtstat,  devsstat,
+		                      &nprocdev, &nprocpres,
+		                      &totrun, &totslpi, &totslpu, &totzombie);
 
   	      	/*
  		** create list of pointers specifically to the process entries
 		** in the task list
 		*/
-       		devpstat = malloc(sizeof (struct tstat *) * nactproc);
+       		devpstat = malloc(sizeof (struct tstat *) * nprocdev);
 
 		ptrverify(devpstat, "Malloc failed for %d process ptrs\n",
-			          				nactproc);
+			          				nprocdev);
 
-		for (i=0, j=0; i < ndeviat; i++)
+		for (i=0, j=0; i < ntaskdev; i++)
 		{
 			if ( (devtstat+i)->gen.isproc)
 				devpstat[j++] = devtstat+i;
@@ -916,18 +924,18 @@ engine(void)
 		*/
 		lastcmd = (vis.show_samp)( curtime,
 				     curtime-pretime > 0 ? curtime-pretime : 1,
-		           	     devsstat, devtstat, devpstat,
-		                     ndeviat, ntask, nactproc,
-		                     totproc, totrun, totslpi, totslpu,
-		                     totzombie, nexit, noverflow, sampcnt==0);
+		           	     devsstat,  devtstat, devpstat,
+		                     ntaskdev,  ntaskpres, nprocdev, nprocpres, 
+		                     totrun, totslpi, totslpu, totzombie, 
+		                     nprocexit, noverflow, sampcnt==0);
 
 		/*
 		** release dynamically allocated memory
 		*/
-		if (nexit > 0)
+		if (nprocexit > 0)
 			free(curpexit);
 
-		if (nexitnet > 0)
+		if (nprocexitnet > 0)
 			netatop_exiterase();
 
 		free(devtstat);
@@ -941,7 +949,7 @@ engine(void)
 
 			/* set current (will be 'previous') counters to 0 */
 			memset(cursstat, 0,           sizeof(struct sstat));
-			memset(curpact,  0, curplen * sizeof(struct tstat));
+			memset(curtpres, 0, curtlen * sizeof(struct tstat));
 
 			/* remove all tasks in database */
 			pdb_makeresidue();

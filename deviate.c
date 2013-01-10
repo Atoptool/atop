@@ -197,10 +197,11 @@ static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 ** calculate the process-activity during the last sample
 */
 int
-deviatproc(struct tstat *aproc, int npresent,
-           struct tstat *eproc, int nexit, int deviatonly,
-	   struct tstat *dproc, struct sstat *dstat, unsigned int *nactproc,
-           int *totproc, int *totrun, int *totslpi, int *totslpu, int *nzombie)
+deviattask(struct tstat *curtpres, int ntaskpres,
+           struct tstat *curpexit, int nprocexit, int deviatonly,
+	   struct tstat *devtstat, struct sstat *devsstat,
+           unsigned int *nprocdev, int *nprocpres,
+           int *totrun, int *totslpi, int *totslpu, int *totzombie)
 {
 	register int		c, d;
 	register struct tstat	*curstat, *devstat, *procstat = 0;
@@ -212,11 +213,11 @@ deviatproc(struct tstat *aproc, int npresent,
 	/*
 	** needed for sanity check later on...
 	*/
-	totusedcpu	= dstat->cpu.all.stime + dstat->cpu.all.utime +
-			  dstat->cpu.all.ntime + dstat->cpu.all.itime +
-			  dstat->cpu.all.wtime + dstat->cpu.all.Itime +
-			  dstat->cpu.all.Stime + dstat->cpu.all.steal +
-			  dstat->cpu.all.guest;
+	totusedcpu	= devsstat->cpu.all.stime + devsstat->cpu.all.utime +
+			  devsstat->cpu.all.ntime + devsstat->cpu.all.itime +
+			  devsstat->cpu.all.wtime + devsstat->cpu.all.Itime +
+			  devsstat->cpu.all.Stime + devsstat->cpu.all.steal +
+			  devsstat->cpu.all.guest;
 
 	/*
 	** make new list of all tasks in the process-database;
@@ -228,21 +229,21 @@ deviatproc(struct tstat *aproc, int npresent,
 	/*
 	** calculate deviations per present process
 	*/
-	*totproc=*totrun=*totslpi=*totslpu=*nzombie= 0;
+	*nprocpres = *totrun = *totslpi = *totslpu = *totzombie = 0;
 
-	for (c=0, d=0, *nactproc=0; c < npresent; c++)
+	for (c=0, d=0, *nprocdev=0; c < ntaskpres; c++)
 	{
 		char	newtask = 0;
 
-		curstat = aproc+c;
+		curstat = curtpres+c;
 
 		if (curstat->gen.isproc)
 		{
-			(*totproc)++;
+			(*nprocpres)++;
 
 			if (curstat->gen.state == 'Z')
 			{
-				(*nzombie)++;
+				(*totzombie)++;
 			}
 			else
 			{
@@ -321,7 +322,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		if (curstat->gen.isproc)
 		{
 			procsaved = 1;
-			(*nactproc)++;
+			(*nprocdev)++;
 		}
 		else
 		{
@@ -330,17 +331,16 @@ deviatproc(struct tstat *aproc, int npresent,
 			*/
 			if (!procsaved)
 			{
-				devstat = dproc+d;
+				devstat = devtstat+d;
 				calcdiff(devstat, procstat, procstat, 0,
 								totusedcpu);
 				procsaved = 1;
-				(*nactproc)++;
+				(*nprocdev)++;
 				d++;
 			}
 		}
 
-		devstat = dproc+d;
-
+		devstat = devtstat+d;
 
 		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
 		d++;
@@ -349,9 +349,9 @@ deviatproc(struct tstat *aproc, int npresent,
 	/*
 	** calculate deviations per exited process
 	*/
-	if (nexit > 0 && supportflags&NETATOPD)
+	if (nprocexit > 0 && supportflags&NETATOPD)
 	{
-		if (eproc->gen.pid)
+		if (curpexit->gen.pid)
 			hashtype = 'p';
 		else
 			hashtype = 'b';
@@ -359,7 +359,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		netatop_exithash(hashtype);
 	}
 
-	for (c=0; c < nexit; c++)
+	for (c=0; c < nprocexit; c++)
 	{
 		/*
 		** check if this process has been started AND
@@ -367,7 +367,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		** if so, it has no use to check if there is still 
 		** existing info present in the process-database
 		*/
-		curstat = eproc+c;
+		curstat = curpexit+c;
 
 		if (curstat->gen.pid)	/* acctrecord contains pid? */
 		{
@@ -403,7 +403,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		/*
 		** now do the calculations
 		*/
-		devstat = dproc+d;
+		devstat = devtstat+d;
 		memset(devstat, 0, sizeof *devstat);
 
 		devstat->gen        = curstat->gen;
@@ -457,7 +457,7 @@ deviatproc(struct tstat *aproc, int npresent,
 		}
 
 		d++;
-		(*nactproc)++;
+		(*nprocdev)++;
 
 		if (prestat.gen.pid > 0)
 			pdb_deltask(prestat.gen.pid, prestat.gen.isproc);
