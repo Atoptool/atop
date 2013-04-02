@@ -221,14 +221,21 @@ for all resources) can be modified in the configuration file
 .PP
 With the key 'x' (or flag -x), the use of colors can be suppressed.
 .SH NETATOP MODULE
-When the
+Per-process and per-thread network activity can be measured by the
 .I netatop
-kernel module is loaded,
+kernel module. You can download this kernel module from the website
+(mentioned at the end of this manual page) and install it on your
+system if the kernel version is 2.6.24 or newer.
+.br
+When
 .I atop
-verifies for every process or thread if network counters are
-gathered by this module. If so, the number of sent and received packets
-are per process/thread are shown in th generic screen. Besides,
-detailed counters can be requested by pressing the `n' key.
+gathers counters for a new interval, it verifies if the
+.I netatop
+module is active and obtains the relevant network counters 
+from this module as well. In that case, the number of sent
+and received packets per process/thread are shown in the generic
+screen. Besides, detailed counters can be requested by
+pressing the `n' key.
 .br
 When the
 .I netatopd
