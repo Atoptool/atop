@@ -231,9 +231,10 @@ When
 .I atop
 gathers counters for a new interval, it verifies if the
 .I netatop
-module is active and obtains the relevant network counters 
-from this module as well. In that case, the number of sent
-and received packets per process/thread are shown in the generic
+module is currently active. If so,
+.I atop
+obtains the relevant network counters from this module and shows
+the number of sent and received packets per process/thread in the generic
 screen. Besides, detailed counters can be requested by
 pressing the `n' key.
 .br
