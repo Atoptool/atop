@@ -369,6 +369,9 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_SHMEM,
 	&syspdef_SHMRSS,
 	&syspdef_SHMSWP,
+	&syspdef_BLANKBOX,
+	&syspdef_HUPTOT,
+	&syspdef_HUPUSE,
         0
 };
 sys_printdef *swpsyspdefs[] = {
@@ -853,6 +856,9 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "SHMEM:4 "
 	                "SHMRSS:3 "
 	                "SHMSWP:1 "
+	                "BLANKBOX:0 "
+	                "HUPTOT:4 "
+	                "HUPUSE:3 "
 	                "BLANKBOX:0", memsyspdefs, "built in memline");
                 }
                 if (swpline[0].f == 0)

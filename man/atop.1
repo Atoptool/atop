@@ -883,7 +883,9 @@ of memory used for filesystem meta data (`buff'), the amount of
 memory being used for kernel mallocs (`slab'), the amount of
 slab memory that is reclaimable (`slrec'), the resident size of shared
 memory including tmpfs (`shmem`), the resident size of shared memory (`shrss`)
-and the amount of shared memory that is currently swapped (`shswp`).
+the amount of shared memory that is currently swapped (`shswp`),
+the amount of memory that is claimed for huge pages (`hptot`),
+and the amount of huge page memory that is really in use (`hpuse`).
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.

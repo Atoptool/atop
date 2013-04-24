@@ -34,30 +34,36 @@
 /************************************************************************/
 
 struct	memstat {
-	count_t	physmem;	/* number of physical pages 	*/
-	count_t	freemem;	/* number of free     pages	*/
-	count_t	buffermem;	/* number of buffer   pages	*/
-	count_t	slabmem;	/* number of slab     pages	*/
-	count_t	cachemem;	/* number of cache    pages	*/
-	count_t	cachedrt;	/* number of cache    pages (dirty)	*/
+	count_t	physmem;	// number of physical pages
+	count_t	freemem;	// number of free     pages
+	count_t	buffermem;	// number of buffer   pages
+	count_t	slabmem;	// number of slab     pages
+	count_t	cachemem;	// number of cache    pages
+	count_t	cachedrt;	// number of cache    pages (dirty)
 
-	count_t	totswap;	/* number of pages in swap	*/
-	count_t	freeswap;	/* number of free swap pages	*/
+	count_t	totswap;	// number of pages in swap
+	count_t	freeswap;	// number of free swap pages
 
-	count_t	pgscans;	/* number of page scans		*/
-	count_t	pgsteal;	/* number of page steals	*/
-	count_t	allocstall;	/* try to free pages forced	*/
-	count_t	swouts;		/* number of pages swapped out	*/
-	count_t	swins;		/* number of pages swapped in	*/
+	count_t	pgscans;	// number of page scans
+	count_t	pgsteal;	// number of page steals
+	count_t	allocstall;	// try to free pages forced
+	count_t	swouts;		// number of pages swapped out
+	count_t	swins;		// number of pages swapped in
 
-	count_t	commitlim;	/* commit limit in pages	*/
-	count_t	committed;	/* number of reserved pages	*/
+	count_t	commitlim;	// commit limit in pages
+	count_t	committed;	// number of reserved pages
 
-	count_t	shmem;		/* tot shmem incl. tmpfs (pag)	*/
-	count_t	shmrss;		/* resident shared memory (pag)	*/
-	count_t	shmswp;		/* swapped shared memory (pag)	*/
+	count_t	shmem;		// tot shmem incl. tmpfs (pages)
+	count_t	shmrss;		// resident shared memory (pages)
+	count_t	shmswp;		// swapped shared memory (pages)
 
-	count_t	slabreclaim;	/* reclaimable slab (pages)     */
+	count_t	slabreclaim;	// reclaimable slab (pages)
+
+	count_t	tothugepage;	// total huge pages (huge pages)
+	count_t	freehugepage;	// free  huge pages (huge pages)
+	count_t	hugepagesz;	// huge page size (bytes)
+
+	count_t	cfuture[8];	// reserved for future use
 };
 
 /************************************************************************/

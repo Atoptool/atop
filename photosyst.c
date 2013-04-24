@@ -612,10 +612,7 @@ photosyst(struct sstat *si)
 
 	if ( (fp = fopen("meminfo", "r")) != NULL)
 	{
-		int	nrfields = 12;	/* number of fields to be filled */
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL && 
-								nrfields > 0)
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
 				"%s %lld %lld %lld %lld %lld %lld %lld "
@@ -633,13 +630,11 @@ photosyst(struct sstat *si)
 				si->mem.physmem	 	= cnts[0] / pagesize; 
 				si->mem.freemem		= cnts[2] / pagesize;
 				si->mem.buffermem	= cnts[4] / pagesize;
-				nrfields -= 3;
 			}
 			else	if ( strcmp("Swap:", nam) == EQ)
 				{
 					si->mem.totswap  = cnts[0] / pagesize;
 					si->mem.freeswap = cnts[2] / pagesize;
-					nrfields -= 2;
 				}
 			else	if (strcmp("Cached:", nam) == EQ)
 				{
@@ -647,14 +642,12 @@ photosyst(struct sstat *si)
 					{
 						si->mem.cachemem  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("Dirty:", nam) == EQ)
 				{
 					si->mem.cachedrt  =
 							cnts[0]*1024/pagesize;
-					nrfields--;
 				}
 			else	if (strcmp("MemTotal:", nam) == EQ)
 				{
@@ -662,7 +655,6 @@ photosyst(struct sstat *si)
 					{
 						si->mem.physmem  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("MemFree:", nam) == EQ)
@@ -671,7 +663,6 @@ photosyst(struct sstat *si)
 					{
 						si->mem.freemem  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("Buffers:", nam) == EQ)
@@ -680,13 +671,11 @@ photosyst(struct sstat *si)
 					{
 						si->mem.buffermem  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("Shmem:", nam) == EQ)
 				{
 					si->mem.shmem = cnts[0]*1024/pagesize;
-					nrfields--;
 				}
 			else	if (strcmp("SwapTotal:", nam) == EQ)
 				{
@@ -694,7 +683,6 @@ photosyst(struct sstat *si)
 					{
 						si->mem.totswap  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("SwapFree:", nam) == EQ)
@@ -703,31 +691,38 @@ photosyst(struct sstat *si)
 					{
 						si->mem.freeswap  =
 							cnts[0]*1024/pagesize;
-						nrfields--;
 					}
 				}
 			else	if (strcmp("Slab:", nam) == EQ)
 				{
 					si->mem.slabmem = cnts[0]*1024/pagesize;
-					nrfields--;
 				}
 			else	if (strcmp("SReclaimable:", nam) == EQ)
 				{
 					si->mem.slabreclaim = cnts[0]*1024/
 								pagesize;
-					nrfields--;
 				}
 			else	if (strcmp("Committed_AS:", nam) == EQ)
 				{
 					si->mem.committed = cnts[0]*1024/
 								pagesize;
-					nrfields--;
 				}
 			else	if (strcmp("CommitLimit:", nam) == EQ)
 				{
 					si->mem.commitlim = cnts[0]*1024/
 								pagesize;
-					nrfields--;
+				}
+			else	if (strcmp("HugePages_Total:", nam) == EQ)
+				{
+					si->mem.tothugepage = cnts[0];
+				}
+			else	if (strcmp("HugePages_Free:", nam) == EQ)
+				{
+					si->mem.freehugepage = cnts[0];
+				}
+			else	if (strcmp("Hugepagesize:", nam) == EQ)
+				{
+					si->mem.hugepagesz = cnts[0]*1024;
 				}
 		}
 

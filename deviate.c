@@ -675,6 +675,10 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	dev->mem.shmrss		= cur->mem.shmrss;
 	dev->mem.shmswp		= cur->mem.shmswp;
 
+	dev->mem.tothugepage	= cur->mem.tothugepage;
+	dev->mem.freehugepage	= cur->mem.freehugepage;
+	dev->mem.hugepagesz	= cur->mem.hugepagesz;
+
 	dev->mem.swouts		= subcount(cur->mem.swouts,  pre->mem.swouts);
 	dev->mem.swins		= subcount(cur->mem.swins,   pre->mem.swins);
 	dev->mem.pgscans	= subcount(cur->mem.pgscans, pre->mem.pgscans);

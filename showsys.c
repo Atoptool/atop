@@ -1074,6 +1074,32 @@ sysprt_SHMSWP(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_SHMSWP = {"SHMSWP", sysprt_SHMSWP};
 /*******************************************************************/
 char *
+sysprt_HUPTOT(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="hptot  ";
+	*color = -1;
+        val2memstr(sstat->mem.tothugepage * sstat->mem.hugepagesz,
+						buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_HUPTOT = {"HUPTOT", sysprt_HUPTOT};
+/*******************************************************************/
+char *
+sysprt_HUPUSE(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="hpuse  ";
+	*color = -1;
+        val2memstr( (sstat->mem.tothugepage - sstat->mem.freehugepage) *
+				sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_HUPUSE = {"HUPUSE", sysprt_HUPUSE};
+/*******************************************************************/
+char *
 sysprt_SWPTOT(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
