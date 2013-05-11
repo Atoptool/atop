@@ -730,6 +730,28 @@ photosyst(struct sstat *si)
 	}
 
 	/*
+	** gather vmware-related statistics from /proc/vmmemctl
+	** (only present if balloon driver enabled)
+	*/ 
+	si->mem.vmwballoon = (count_t) 0;
+
+	if ( (fp = fopen("vmmemctl", "r")) != NULL)
+	{
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			nr = sscanf(linebuf, "%s %lld ", nam, &cnts[0]);
+
+			if ( strcmp("current:", nam) == EQ)
+			{
+				si->mem.vmwballoon = cnts[0];
+				break;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	/*
 	** gather network-related statistics
  	** 	- interface stats from the file /proc/net/dev
  	** 	- IPv4      stats from the file /proc/net/snmp

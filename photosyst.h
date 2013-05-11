@@ -63,6 +63,8 @@ struct	memstat {
 	count_t	freehugepage;	// free  huge pages (huge pages)
 	count_t	hugepagesz;	// huge page size (bytes)
 
+	count_t	vmwballoon;	// vmware claimed balloon pages
+
 	count_t	cfuture[8];	// reserved for future use
 };
 

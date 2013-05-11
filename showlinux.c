@@ -370,6 +370,8 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_SHMRSS,
 	&syspdef_SHMSWP,
 	&syspdef_BLANKBOX,
+	&syspdef_VMWBAL,
+	&syspdef_BLANKBOX,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
         0
@@ -856,6 +858,8 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "SHMEM:4 "
 	                "SHMRSS:3 "
 	                "SHMSWP:1 "
+	                "BLANKBOX:0 "
+	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:4 "
 	                "HUPUSE:3 "

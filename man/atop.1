@@ -884,6 +884,7 @@ memory being used for kernel mallocs (`slab'), the amount of
 slab memory that is reclaimable (`slrec'), the resident size of shared
 memory including tmpfs (`shmem`), the resident size of shared memory (`shrss`)
 the amount of shared memory that is currently swapped (`shswp`),
+the amount of memory that is currently claimed by vmware's balloon driver (`vmbal`),
 the amount of memory that is claimed for huge pages (`hptot`),
 and the amount of huge page memory that is really in use (`hpuse`).
 
@@ -1541,8 +1542,15 @@ size of free memory (pages),
 size of page cache (pages),
 size of buffer cache (pages),
 size of slab (pages),
-dirty pages in cache (pages), and
-reclaimable part of slab (pages).
+dirty pages in cache (pages),
+reclaimable part of slab (pages),
+size of vmware's balloon pages (pages),
+total size of shared memory (pages),
+size of resident shared memory (pages),
+size of swapped shared memory (pages),
+huge page size (in bytes),
+total size of huge pages (huge pages), and
+size of free huge pages (huge pages).
 .TP 9
 .B SWP
 Subsequent fields:

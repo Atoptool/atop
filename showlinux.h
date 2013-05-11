@@ -174,6 +174,7 @@ extern sys_printdef syspdef_RECSLAB;
 extern sys_printdef syspdef_SHMEM;
 extern sys_printdef syspdef_SHMRSS;
 extern sys_printdef syspdef_SHMSWP;
+extern sys_printdef syspdef_VMWBAL;
 extern sys_printdef syspdef_HUPTOT;
 extern sys_printdef syspdef_HUPUSE;
 extern sys_printdef syspdef_SWPTOT;
