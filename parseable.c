@@ -612,7 +612,7 @@ print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %c %c %lld %lld %lld %lld %lld %dn %c\n",
+		printf("%s %d (%s) %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
