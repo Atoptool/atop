@@ -403,7 +403,15 @@ acctswon(void)
 		(void) wait((int *) 0); /* let the parent wait  */
 	}
 
-	acctvers(acctfd);
+	if ( !acctvers(acctfd) )
+	{
+		(void) acct(0);
+		(void) close(acctfd);
+		(void) unlink(ACCTDIR "/" ACCTFILE);
+		(void) rmdir(ACCTDIR);
+
+		return 1;
+	}
 
 	supportflags |= ACCTACTIVE;
 	return 0;
@@ -423,7 +431,10 @@ acctvers(int fd)
 	** the second byte (always contains version number)
 	*/
 	if ( read(fd, &tmprec, sizeof tmprec) < sizeof tmprec)
+ 	{
+		fprintf(stderr, "Accounting switched on, but no contents\n");
 		return 0;
+	}
 
 	switch (tmprec.ac_version & 0x0f)
 	{
