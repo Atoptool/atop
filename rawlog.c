@@ -161,7 +161,7 @@ static const char rcsid[] = "$Id: rawlog.c,v 1.32 2010/11/26 06:06:35 gerlof Exp
 #include "photoproc.h"
 #include "photosyst.h"
 
-#define	BASEPATH	"/var/log/atop/"  
+#define	BASEPATH	"/var/log/atop"  
 
 /*
 ** structure which describes the raw file contents
@@ -659,7 +659,7 @@ rawread(void)
 		     (rh.aversion       & 0xff) != (getnumvers() & 0x7f)   )
 		{
 			try_other_version((rh.aversion >> 8) & 0x7f,
-			                rh.aversion       & 0xff);
+			                   rh.aversion       & 0xff);
 		}
 
 		cleanstop(7);

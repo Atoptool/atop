@@ -856,7 +856,7 @@ reportraw(time_t curtime, int numsecs,
 			printf("%s  ", convtime(curtime, timebuf));
 
 			rv = (pridef[prinow].priline) (&totsyst,
-					(struct tstat *)0, 0,
+					(struct tstat *)0, 0, 0,
 					totalsec, totalsec*hertz, hertz,
 					osvers, osrel, ossub,
 					stampalways ? timebuf : "        ",
