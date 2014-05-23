@@ -1451,7 +1451,6 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 
 	for (i=0; i < nunit; i++, dp++)
 	{
-		char	buf[32];
 		char	*pn;
 		int	len;
 
@@ -1477,7 +1476,6 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 		else
 			pn = dp->name;
 
-        sprintf(buf, "%12.12s", pn);
 		printf("%-14s %3.0lf%% %6.1lf %7.1lf %7.1lf %7.1lf "
 		       "%5.1lf %6.2lf ms",
 		    	pn,
