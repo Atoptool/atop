@@ -738,8 +738,7 @@ totalcap(struct syscap *psc, struct sstat *sstat,
                           sstat->cpu.all.wtime +
                           sstat->cpu.all.Itime +
                           sstat->cpu.all.Stime +
-                          sstat->cpu.all.steal +
-                          sstat->cpu.all.guest;
+                          sstat->cpu.all.steal;
 
         psc->availmem   = sstat->mem.physmem * pagesize/1024;
 
@@ -1342,8 +1341,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         extra.cputot = sstat->cpu.all.stime + sstat->cpu.all.utime +
                        sstat->cpu.all.ntime + sstat->cpu.all.itime +
                        sstat->cpu.all.wtime + sstat->cpu.all.Itime +
-                       sstat->cpu.all.Stime + sstat->cpu.all.steal +
-                       sstat->cpu.all.guest;
+                       sstat->cpu.all.Stime + sstat->cpu.all.steal;
 
         busy   = (extra.cputot - sstat->cpu.all.itime - sstat->cpu.all.wtime)
                                 * 100.0 / extra.cputot;
@@ -1386,8 +1384,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                      sstat->cpu.cpu[extra.index].wtime +
                                      sstat->cpu.cpu[extra.index].Itime +
                                      sstat->cpu.cpu[extra.index].Stime +
-                                     sstat->cpu.cpu[extra.index].steal +
-                                     sstat->cpu.cpu[extra.index].guest;
+                                     sstat->cpu.cpu[extra.index].steal;
 
                         if (extra.percputot ==
 				(sstat->cpu.cpu[extra.index].itime +

@@ -216,8 +216,7 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 	totusedcpu	= devsstat->cpu.all.stime + devsstat->cpu.all.utime +
 			  devsstat->cpu.all.ntime + devsstat->cpu.all.itime +
 			  devsstat->cpu.all.wtime + devsstat->cpu.all.Itime +
-			  devsstat->cpu.all.Stime + devsstat->cpu.all.steal +
-			  devsstat->cpu.all.guest;
+			  devsstat->cpu.all.Stime + devsstat->cpu.all.steal;
 
 	/*
 	** make new list of all tasks in the process-database;

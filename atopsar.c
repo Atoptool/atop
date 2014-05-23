@@ -1149,8 +1149,7 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         cputot = ss->cpu.all.stime + ss->cpu.all.utime +
                  ss->cpu.all.ntime + ss->cpu.all.itime +
                  ss->cpu.all.wtime + ss->cpu.all.Itime +
-                 ss->cpu.all.Stime + ss->cpu.all.steal +
-                 ss->cpu.all.guest;
+                 ss->cpu.all.Stime + ss->cpu.all.steal;
 
 	if (cputot == 0)
 		cputot = 1;	/* avoid divide-by-zero */
@@ -1186,8 +1185,7 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         		cputot = ss->cpu.cpu[i].stime + ss->cpu.cpu[i].utime +
                  	         ss->cpu.cpu[i].ntime + ss->cpu.cpu[i].itime +
                  	         ss->cpu.cpu[i].wtime + ss->cpu.cpu[i].Itime +
-                 	         ss->cpu.cpu[i].Stime + ss->cpu.cpu[i].steal +
-                 	         ss->cpu.cpu[i].guest;
+                 	         ss->cpu.cpu[i].Stime + ss->cpu.cpu[i].steal;
 
 			if (cputot == 0)
 				cputot = 1;	/* avoid divide-by-zero */
@@ -1445,8 +1443,7 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
         mstot  = (ss->cpu.all.stime + ss->cpu.all.utime +
                   ss->cpu.all.ntime + ss->cpu.all.itime +
                   ss->cpu.all.wtime + ss->cpu.all.Itime +
-                  ss->cpu.all.Stime + ss->cpu.all.steal +
-                  ss->cpu.all.guest                      )
+                  ss->cpu.all.Stime + ss->cpu.all.steal  )
 				* (count_t)1000 / hertz / ss->cpu.nrcpu;
 
 	for (i=0; i < nunit; i++, dp++)
@@ -2058,8 +2055,7 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	availcpu  = ss->cpu.all.stime + ss->cpu.all.utime +
 	            ss->cpu.all.ntime + ss->cpu.all.itime +
 	            ss->cpu.all.wtime + ss->cpu.all.Itime +
-		    ss->cpu.all.Stime + ss->cpu.all.steal +
-		    ss->cpu.all.guest; 
+		    ss->cpu.all.Stime + ss->cpu.all.steal;
 
 	availcpu /= ss->cpu.nrcpu;
 
