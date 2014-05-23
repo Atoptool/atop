@@ -1765,7 +1765,11 @@ generic_samp(time_t curtime, int nsecs,
 			   ** handle screen resize
 			   */
 			   case KEY_RESIZE:
-				statmsg = "Window has been resized...";
+				snprintf(statbuf, sizeof statbuf, 
+					"Window resized to %dx%d...",
+			         		COLS, LINES);
+				statmsg = statbuf;
+
 				timeout(0);
 				(void) getch();
 				timeout(-1);
