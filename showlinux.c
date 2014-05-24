@@ -467,6 +467,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_VSTEXT,
 	&procprt_VSIZE,
 	&procprt_RSIZE,
+	&procprt_PSIZE,
 	&procprt_VSLIBS,
 	&procprt_VDATA,
 	&procprt_VSTACK,
@@ -998,7 +999,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
         {
                 make_proc_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
-			"VDATA:4 VSTACK:4 VSIZE:6 RSIZE:7 "
+			"VDATA:4 VSTACK:4 VSIZE:6 RSIZE:7 PSIZE:5 "
                         "VGROW:7 RGROW:8 SWAPSZ:5 RUID:1 EUID:0 "
                         "SORTITEM:9 CMD:10", 
                         "built-in memprocs");
@@ -1035,15 +1036,15 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in cmdprocs");
 
                 make_proc_prints(totusers, MAXITEMS, 
-                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 "
-                        "RSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 RNET:6 SNET:6 "
-                        "SORTITEM:10 RUID:10", 
+                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
+                        "RSIZE:8 PSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
+			"RNET:6 SNET:6 SORTITEM:10 RUID:10", 
                         "built-in totusers");
 
                 make_proc_prints(totprocs, MAXITEMS, 
-                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:8 SWAPSZ:5 "
-                        "RSIZE:8 RDDSK:7 CWRDSK:7 RNET:6 SNET:6" 
-                        "SORTITEM:10 CMD:10", 
+                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
+                        "RSIZE:8 PSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
+			"RNET:6 SNET:6 SORTITEM:10 CMD:10", 
                         "built-in totprocs");
         }
 

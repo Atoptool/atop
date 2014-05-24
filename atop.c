@@ -321,6 +321,7 @@ char		flaglist[MAXFL];
 char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
 char		threadview = 0;	 /* boolean: show individual threads     */
+char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
 
 unsigned short	hertz;
 unsigned int	pagesize;
@@ -516,7 +517,11 @@ main(int argc, char *argv[])
 				break;
 
                            case 'a':		/* all processes per sample ? */
-				deviatonly=0;
+				deviatonly = 0;
+				break;
+
+                           case 'R':		/* all processes per sample ? */
+				calcpss = 1;
 				break;
 
                            case 'b':		/* begin time ?               */
@@ -975,6 +980,8 @@ prusage(char *myname)
 	printf("\tgeneric flags:\n");
 	printf("\t  -%c  show or log all processes (i.s.o. active processes "
 	                "only)\n", MALLPROC);
+	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
+	                MCALCPSS);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");

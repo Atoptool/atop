@@ -468,24 +468,25 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						44 - seclen - utsnodenamelen;
+						45 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
-			threadview                      ? 'y' : '-',
-			fixedhead  			? 'f' : '-',
-			sysnosort  			? 'F' : '-',
-			deviatonly 			? '-' : 'a',
-			usecolors  			? '-' : 'x',
-			avgval     			? '1' : '-',
-			procsel.userid[0] != USERSTUB	? 'U' : '-',
-			procsel.prognamesz		? 'P' : '-',
+			threadview                    ? MTHREAD    : '-',
+			fixedhead  		      ? MSYSFIXED  : '-',
+			sysnosort  		      ? MSYSNOSORT : '-',
+			deviatonly 		      ? '-'        : MALLPROC,
+			usecolors  		      ? '-'        : MCOLORS,
+			avgval     		      ? MAVGVAL    : '-',
+			calcpss     		      ? MCALCPSS   : '-',
+			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
+			procsel.prognamesz	      ? MSELPROC   : '-',
 			syssel.lvmnamesz +
 			syssel.dsknamesz +
-			syssel.itfnamesz		? 'S' : '-',
+			syssel.itfnamesz	      ? MSELSYS    : '-',
 			len2, "", buf);
 
 		if (screen)
@@ -1609,6 +1610,22 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** per-process PSS calculation wanted 
+			   */
+			   case MCALCPSS:
+				if (calcpss)
+				{
+					calcpss    = 0;
+					statmsg    = "PSIZE calculation disabled";
+				}
+				else
+				{
+					calcpss    = 1;
+					statmsg    = "PSIZE calculation enabled";
+				}
+				break;
+
+			   /*
 			   ** screen lines:
 			   **	         toggle for colors
 			   */
@@ -1858,8 +1875,9 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 
 		if ((*curprocs)->gen.state != 'E')
 		{
-			curusers->mem.rmem   += (*curprocs)->mem.rmem;
 			curusers->mem.vmem   += (*curprocs)->mem.vmem;
+			curusers->mem.rmem   += (*curprocs)->mem.rmem;
+			curusers->mem.pmem   += (*curprocs)->mem.pmem;
 			curusers->mem.vlibs  += (*curprocs)->mem.vlibs;
 			curusers->mem.vdata  += (*curprocs)->mem.vdata;
 			curusers->mem.vstack += (*curprocs)->mem.vstack;
@@ -1938,8 +1956,9 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 
 		if ((*curprocs)->gen.state != 'E')
 		{
-			curprogs->mem.rmem   += (*curprocs)->mem.rmem;
 			curprogs->mem.vmem   += (*curprocs)->mem.vmem;
+			curprogs->mem.rmem   += (*curprocs)->mem.rmem;
+			curprogs->mem.pmem   += (*curprocs)->mem.pmem;
 			curprogs->mem.vlibs  += (*curprocs)->mem.vlibs;
 			curprogs->mem.vdata  += (*curprocs)->mem.vdata;
 			curprogs->mem.vstack += (*curprocs)->mem.vstack;
@@ -2193,6 +2212,13 @@ generic_init(void)
 				threadview = 1;
 			break;
 
+		   case MCALCPSS:
+			if (calcpss)
+				calcpss = 0;
+			else
+				calcpss = 1;
+			break;
+
 		   case MCOLORS:
 			if (usecolors)
 				usecolors=0;
@@ -2331,6 +2357,8 @@ static struct helptext {
 								MCOLORS},
 	{"\t'%c'  - show average-per-second i.s.o. total values    (toggle)\n",
 								MAVGVAL},
+	{"\t'%c'  - calculate proportional set size (PSIZE)        (toggle)\n",
+								MCALCPSS},
 	{"\n",							' '},
 	{"Raw file viewing:\n",					' '},
 	{"\t'%c'  - show next     sample in raw file\n",	MSAMPNEXT},

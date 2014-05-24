@@ -250,6 +250,7 @@ extern proc_printdef procprt_MAJFLT;
 extern proc_printdef procprt_VSTEXT;
 extern proc_printdef procprt_VSIZE;
 extern proc_printdef procprt_RSIZE;
+extern proc_printdef procprt_PSIZE;
 extern proc_printdef procprt_VSLIBS;
 extern proc_printdef procprt_VDATA;
 extern proc_printdef procprt_VSTACK;

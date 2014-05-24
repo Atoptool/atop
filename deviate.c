@@ -524,6 +524,7 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->mem.vexec  = curstat->mem.vexec;
 	devstat->mem.vmem   = curstat->mem.vmem;
 	devstat->mem.rmem   = curstat->mem.rmem;
+	devstat->mem.pmem   = curstat->mem.pmem;
 	devstat->mem.vgrow  = curstat->mem.vmem   - prestat->mem.vmem;
 	devstat->mem.rgrow  = curstat->mem.rmem   - prestat->mem.rmem;
 	devstat->mem.vdata  = curstat->mem.vdata;

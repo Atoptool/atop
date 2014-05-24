@@ -145,6 +145,7 @@ static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof 
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -165,6 +166,7 @@ static int	procstat(struct tstat *, unsigned long long, char);
 static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
 static void	proccmd(struct tstat *);
+static void	procsmaps(struct tstat *);
 
 int
 photoproc(struct tstat *tasklist, int maxtask)
@@ -248,25 +250,33 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
 		curtask	= tasklist+tval;
 
-		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
+		if ( !procstat(curtask, bootepoch, 1))	/* from /proc/pid/stat */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		if ( !procstatus(curtask) )	    /* from /proc/pid/status  */
+		if ( !procstatus(curtask) )		/* from /proc/pid/status  */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		if ( !procio(curtask) )		    /* from /proc/pid/io      */
+		if ( !procio(curtask) )			/* from /proc/pid/io      */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		proccmd(curtask);		    /* from /proc/pid/cmdline */
+		proccmd(curtask);			/* from /proc/pid/cmdline */
+
+		/*
+		** reading the smaps file for every process with every sample
+		** is a really 'expensive' from a CPU consumption point-of-view,
+		** so gathering this info is optional
+		*/
+		if (calcpss)
+			procsmaps(curtask);		/* from /proc/pid/smaps */
 
 		// read network stats from netatop
 		netatop_gettask(curtask->gen.tgid, 'g', curtask);
@@ -676,4 +686,45 @@ proccmd(struct tstat *curtask)
 			}
 		}
 	}
+}
+
+/*
+** open file "smaps" and obtain required info
+*/
+static void
+procsmaps(struct tstat *curtask)
+{
+	FILE	*fp;
+	char	line[4096];
+	count_t	pssval;
+
+
+	/*
+ 	** open the file (always succeeds, even if no root privs)
+	*/
+	if ( (fp = fopen("smaps", "r")) == NULL)
+	{
+		curtask->mem.pmem = (unsigned long long)-1LL;
+		return;
+	}
+
+	curtask->mem.pmem = 0;
+
+	while (fgets(line, sizeof line, fp))
+	{
+		if (memcmp(line, "Pss:", 4) != 0)
+			continue;
+
+		// PSS line found to be accumulated
+		sscanf(line, "Pss: %llu", &pssval);
+		curtask->mem.pmem += pssval;
+	}
+
+	/*
+	** verify if fgets returned NULL due to error i.s.o. EOF
+	*/
+	if (ferror(fp))
+		curtask->mem.pmem = (unsigned long long)-1LL;
+
+	fclose(fp);
 }

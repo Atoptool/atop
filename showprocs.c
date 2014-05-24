@@ -659,6 +659,27 @@ proc_printdef procprt_RSIZE =
    { " RSIZE", "RSIZE", procprt_RSIZE_a, procprt_RSIZE_e, 6 };
 /***************************************************************/
 char *
+procprt_PSIZE_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+	if (curstat->mem.pmem == (unsigned long long)-1LL)	
+        	return "    ?K";
+
+       	val2memstr(curstat->mem.pmem*1024, buf, KBFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_PSIZE_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_PSIZE = 
+   { " PSIZE", "PSIZE", procprt_PSIZE_a, procprt_PSIZE_e, 6 };
+/***************************************************************/
+char *
 procprt_VSLIBS_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];

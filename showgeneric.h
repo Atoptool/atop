@@ -85,6 +85,7 @@ struct sselection {
 #define	MSORTAUTO	'A'
 
 #define	MTHREAD		'y'
+#define	MCALCPSS	'R'
 #define	MCOLORS		'x'
 #define	MSYSFIXED	'f'
 #define	MSYSNOSORT	'F'

@@ -90,12 +90,14 @@ struct tstat {
 		count_t	vexec;		/* virtmem execfile (Kb)        */
 		count_t	vmem;		/* virtual  memory  (Kb)	*/
 		count_t	rmem;		/* resident memory  (Kb)	*/
+		count_t	pmem;		/* resident memory  (Kb)	*/
 		count_t vgrow;		/* virtual  growth  (Kb)    	*/
 		count_t rgrow;		/* resident growth  (Kb)     	*/
 		count_t vdata;		/* virtmem data     (Kb)     	*/
 		count_t vstack;		/* virtmem stack    (Kb)     	*/
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
+		count_t	cfuture[4];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/

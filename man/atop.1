@@ -6,7 +6,7 @@
 Interactive usage:
 .P
 .B atop
-[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-afF1x] [-L linelen] [-Plabel[,label]...]
+[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-afF1xR] [-L linelen] [-Plabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I hh:mm
 ] [-e
 .I hh:mm
-] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-fF1x] [-L linelen] [-Plabel[,label]...]
+] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-fF1xR] [-L linelen] [-Plabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -474,6 +474,13 @@ Request for help information (also the key 'h' can be pressed).
 .TP 5
 .B V
 Request for version information (version number and date).
+.PP
+.TP 5
+.B R
+Gather and calculate the proportional set size of processes (toggle).
+Gathering of all values that are needed to calculate the PSIZE of a process
+is a relatively time-consuming task, so this key should only be active when
+analyzing the resident memory consumption of processes.
 .PP
 .TP 5
 .B x
@@ -1184,6 +1191,31 @@ timesharing processes (variable priority depending on their recent
 CPU consumption and the nice value).
 .PP
 .TP 9
+.B PSIZE
+The proportional memory size of this process (or user).
+.br
+Every process shares resident memory with other processes. E.g. when a
+particular program is started several times, the code pages (text) are
+only loaded once in memory and shared by all incarnations. Also the code
+of shared libraries is shared by all processes using that shared library,
+as well as shared memory and memory-mapped files.
+For the PSIZE calculation of a process, the resident memory of a process
+that is shared with other processes is divided by the number of sharers.
+This means, that every process is accounted for a proportional part of
+that memory. Accumulating the PSIZE values of all processes in the
+system gives a reliable impression of the total resident memory consumed
+by all processes.
+.br
+Since gathering of all values that are needed to calculate the PSIZE is a
+relatively time-consuming task, the 'R' key (or '-R' flag) should
+be active. Gathering these values also requires superuser privileges
+(otherwise '?K' is shown in the output).
+.br
+If a process has finished during the last interval, no value is shown
+since the proportional memory size is not part of the standard
+process accounting record.
+.PP
+.TP 9
 .B RDDSK 
 When the kernel maintains standard io statistics (>= 2.6.20):
 .br
@@ -1220,6 +1252,9 @@ since network counters are not part of the standard process accounting record.
 .TP 9
 .B RSIZE
 The total resident memory usage consumed by this process (or user).
+Notice that the RSIZE of a process includes all resident memory used
+by that process, even if certain memory parts are shared with other processes
+(see also the explanation of PSIZE).
 .br
 If a process has finished during the last interval, no value is shown
 since resident memory occupation is not part of the standard
@@ -1653,7 +1688,8 @@ virtual library exec size (Kbytes),
 virtual data size (Kbytes),
 virtual stack size (Kbytes),
 swap space used (Kbytes),
-TGID (group number of related tasks/threads) and is_process (y/n).
+TGID (group number of related tasks/threads), is_process (y/n) and
+proportional set size (Kbytes) if in 'R' option is specified.
 .TP 9
 .B PRD
 For every process one line is shown.

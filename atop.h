@@ -74,6 +74,7 @@ extern char      	acctreason;
 extern char		deviatonly;
 extern char		usecolors;
 extern char		threadview;
+extern char		calcpss;
 extern char		rawname[];
 extern char		rawreadflag;
 extern unsigned int	begintime, endtime;
