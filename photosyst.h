@@ -24,8 +24,8 @@
 #include "netstats.h"
 
 #define	MAXCPU		2048
-#define	MAXDSK		512
-#define	MAXLVM		1024
+#define	MAXDSK		1024
+#define	MAXLVM		2048
 #define	MAXMDD		256
 #define	MAXINTF		128
 
@@ -103,7 +103,7 @@ struct percpu {
 	count_t		steal;	/* steal   time in clock ticks		*/
 	count_t		guest;	/* guest   time in clock ticks		*/
         struct freqcnt	freqcnt;/* frequency scaling info  		*/
-	count_t		cfuture[1];	/* reserved for future use	*/
+	count_t		cfuture[4];	/* reserved for future use	*/
 };
 
 struct	cpustat {
