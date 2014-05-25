@@ -702,29 +702,35 @@ procsmaps(struct tstat *curtask)
 	/*
  	** open the file (always succeeds, even if no root privs)
 	*/
-	if ( (fp = fopen("smaps", "r")) == NULL)
+	regainrootprivs();
+
+	if ( (fp = fopen("smaps", "r")) )
+	{
+		curtask->mem.pmem = 0;
+
+		while (fgets(line, sizeof line, fp))
+		{
+			if (memcmp(line, "Pss:", 4) != 0)
+				continue;
+
+			// PSS line found to be accumulated
+			sscanf(line, "Pss: %llu", &pssval);
+			curtask->mem.pmem += pssval;
+		}
+
+		/*
+		** verify if fgets returned NULL due to error i.s.o. EOF
+		*/
+		if (ferror(fp))
+			curtask->mem.pmem = (unsigned long long)-1LL;
+
+		fclose(fp);
+	}
+	else
 	{
 		curtask->mem.pmem = (unsigned long long)-1LL;
-		return;
 	}
 
-	curtask->mem.pmem = 0;
-
-	while (fgets(line, sizeof line, fp))
-	{
-		if (memcmp(line, "Pss:", 4) != 0)
-			continue;
-
-		// PSS line found to be accumulated
-		sscanf(line, "Pss: %llu", &pssval);
-		curtask->mem.pmem += pssval;
-	}
-
-	/*
-	** verify if fgets returned NULL due to error i.s.o. EOF
-	*/
-	if (ferror(fp))
-		curtask->mem.pmem = (unsigned long long)-1LL;
-
-	fclose(fp);
+	if (! droprootprivs())
+		cleanstop(42);
 }
