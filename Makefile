@@ -28,7 +28,7 @@ VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 all: 		atop atopsar
 
 atop:		atop.o    $(ALLMODS) Makefile
-		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lm -lz -lrt
+		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt
 
 atopsar:	atop
 		ln -sf atop atopsar
