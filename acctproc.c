@@ -142,7 +142,7 @@ static	char 	acctatop;	/* boolean: atop's own accounting busy ?  */
 static	off_t	acctsize;	/* previous size of account file	  */
 static	int	acctrecsz;	/* size of account record		  */
 static	int	acctversion;	/* version of account record layout	  */
-static	int   	acctfd = -1;	/* fd of account file       		  */
+static	int   	acctfd = -1;	/* fd of account file (-1 = not open)     */
 
 static count_t 	acctexp (comp_t  ct);
 static count_t	acctexp2(comp2_t ct);
@@ -226,6 +226,7 @@ acctswon(void)
 			if ( !acctvers(acctfd) )
 			{
 				(void) close(acctfd);
+				acctfd = -1;
 				return 1;
 			}
 
@@ -283,6 +284,7 @@ acctswon(void)
 					if ( !acctvers(acctfd) )
 					{
 						(void) close(acctfd);
+						acctfd = -1;
 						return 1;
 					}
 
@@ -410,7 +412,9 @@ acctswon(void)
 		(void) unlink(ACCTDIR "/" ACCTFILE);
 		(void) rmdir(ACCTDIR);
 
+		acctfd = -1;
 		return 1;
+
 	}
 
 	supportflags |= ACCTACTIVE;
@@ -541,6 +545,7 @@ acctswoff(void)
 	** anyhow close the accounting-file again
 	*/
 	(void) close(acctfd);	/* close account file again */
+	acctfd = -1;
 
 	supportflags &= ~ACCTACTIVE;
 }
