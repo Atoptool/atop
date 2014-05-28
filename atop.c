@@ -1013,6 +1013,8 @@ prusage(char *myname)
 	printf("forced manually by sending signal USR1"
 			" (kill -USR1 pid_atop)\n");
 	printf("or with the keystroke '%c' in interactive mode.\n", MSAMPNEXT);
+	printf("\n");
+	printf("Please refer to the man-page of 'atop' for more details.\n");
 
 	cleanstop(1);
 }

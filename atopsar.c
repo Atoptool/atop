@@ -981,6 +981,12 @@ pratopsaruse(char *myname)
 		fprintf(stderr,
 		"\t  -%c  %s\n", pridef[i].flag, pridef[i].about);
 
+	fprintf(stderr, "\n");
+	fprintf(stderr,
+                "Please refer to the man-page of 'atopsar' "
+	        "for more details.\n");
+
+
 	cleanstop(1);
 }
 
