@@ -1616,12 +1616,12 @@ generic_samp(time_t curtime, int nsecs,
 				if (calcpss)
 				{
 					calcpss    = 0;
-					statmsg    = "PSIZE calculation disabled";
+					statmsg    = "PSIZE gathering disabled";
 				}
 				else
 				{
 					calcpss    = 1;
-					statmsg    = "PSIZE calculation enabled";
+					statmsg    = "PSIZE gathering enabled";
 				}
 				break;
 
