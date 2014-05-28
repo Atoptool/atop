@@ -416,27 +416,44 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 {
 	FILE	*fp;
 	int	nr;
-	char	line[4096], *cmdhead, *cmdtail;
+	char	line[4096], *p, *cmdhead, *cmdtail;
 
 	if ( (fp = fopen("stat", "r")) == NULL)
 		return 0;
 
-	if (fgets(line, sizeof line, fp) == NULL)
+	if ( (nr = fread(line, 1, sizeof line-1, fp)) == 0)
 	{
 		fclose(fp);
 		return 0;
 	}
+
+	line[nr] = '\0';	// terminate string
 
 	/*
     	** fetch command name
 	*/
 	cmdhead = strchr (line, '(');
 	cmdtail = strrchr(line, ')');
+
+	if (!cmdhead || !cmdtail || cmdtail < cmdhead) // parsing failed?
+	{
+		fclose(fp);
+		return 0;
+	}
+
 	if ( (nr = cmdtail-cmdhead-1) > PNAMLEN)
 		nr = PNAMLEN;
 
-	memcpy(curtask->gen.name, cmdhead+1, nr);
-	*(curtask->gen.name+nr) = 0;
+	p = curtask->gen.name;
+
+	memcpy(p, cmdhead+1, nr);
+	*(p+nr) = 0;
+
+	while ( (p = strchr(p, '\n')) != NULL)
+	{
+		*p = '?';
+		p++;
+	}
 
 	/*
   	** fetch other values
