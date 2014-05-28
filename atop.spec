@@ -1,13 +1,15 @@
-Name:      atop
-Version:   XVERSX
-Release:   1
-Source0:   atop-XVERSX.tar.gz
-URL:       http://www.atoptool.nl
-Packager:  Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
-Summary:   Advanced System and Process Monitor
-License:   GPL
-Group:     System Environment
-BuildRoot: /var/tmp/rpm-buildroot-atop
+Name:           atop
+Version:        XVERSX
+Release:        1%{?dist}
+Source0:        %{name}-%{version}.tar.gz
+URL:            http://www.atoptool.nl
+Packager:       Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
+Summary:        Advanced System and Process Monitor
+License:        GPL
+Group: 	        System Environment
+Requires:       zlib, ncurses
+BuildRequires:  zlib-devel, ncurses-devel
+BuildRoot:      /var/tmp/rpm-buildroot-atop
 
 %description
 The program atop is an interactive monitor to view the load on
