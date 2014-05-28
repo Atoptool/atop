@@ -87,7 +87,11 @@ struct pridef {
 	char    *cntcat;        /* used categories of counters            */
 	char    flag;           /* flag on command line                   */
 	void    (*prihead)();   /* print header of list                   */
-	int     (*priline)();   /* print counters per line (excl. time)   */
+	int     (*priline)(struct sstat *, struct tstat *, struct tstat **,
+		           int, time_t, time_t, time_t,
+		           int, int, int, char *,
+        	           int, int, int, int, int, int);
+		                /* print counters per line (excl. time)   */
 	char    *about;         /* statistics about what                  */
 };
 
