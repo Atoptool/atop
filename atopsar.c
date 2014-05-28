@@ -1548,6 +1548,8 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	double		busy;
 	char		busyval[16], dupval;
 	unsigned int	badness;
+	char		*pn;
+	int		len;
 
 	for (i=0; i < ss->intf.nrintf; i++)	/* per interface */
 	{
@@ -1611,11 +1613,16 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		else
 			badness = 0;
 
+		if ( (len = strlen(ss->intf.intf[i].name)) > 6)
+			pn = ss->intf.intf[i].name + len - 6;
+		else
+			pn = ss->intf.intf[i].name;
+
 		preprint(badness);
 
 		printf("%-6s %4s %7.1lf %7.1lf %8.0lf %8.0lf "
 		       "%5lld %5lld %7ld %c", 
-			ss->intf.intf[i].name, busyval,
+			pn, busyval,
 			(double)ss->intf.intf[i].rpack / deltasec,
 			(double)ss->intf.intf[i].spack / deltasec,
 			(double)ss->intf.intf[i].rbyte / 1024 / deltasec,
@@ -1651,6 +1658,8 @@ IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 {
 	static char	firstcall = 1;
 	register long	i, nlines = 0;
+	char		*pn;
+	int		len;
 
 	for (i=0; i < ss->intf.nrintf; i++)	/* per interface */
 	{
@@ -1666,9 +1675,14 @@ IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		if (nlines++)
 			printf("%s  ", tstamp);
 
+		if ( (len = strlen(ss->intf.intf[i].name)) > 6)
+			pn = ss->intf.intf[i].name + len - 6;
+		else
+			pn = ss->intf.intf[i].name;
+
 		printf("%-6s %6.2lf %6.2lf %6.2lf %7.2lf %7.2lf "
 		       "%8.2lf %10.2lf\n", 
-			ss->intf.intf[i].name,
+			pn,
 			(double)ss->intf.intf[i].rerrs    / deltasec,
 			(double)ss->intf.intf[i].serrs    / deltasec,
 			(double)ss->intf.intf[i].scollis  / deltasec,
