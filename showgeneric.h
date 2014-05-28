@@ -58,9 +58,9 @@ struct sselection {
 /*
 ** color names
 */
-#define	COLORLOW	2
-#define	COLORMED	3
-#define	COLORHIGH	4
+#define	COLORINFO	2
+#define	COLORALMOST	3
+#define	COLORCRIT	4
 #define	COLORTHR	5
 
 /*

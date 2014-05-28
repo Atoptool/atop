@@ -358,6 +358,10 @@ void do_maxdisk(char *, char *);
 void do_maxmdd(char *, char *);
 void do_maxlvm(char *, char *);
 void do_maxintf(char *, char *);
+void do_colinfo(char *, char *);
+void do_colalmost(char *, char *);
+void do_colcrit(char *, char *);
+void do_colthread(char *, char *);
 void do_ownsysprcline(char *, char *);
 void do_ownallcpuline(char *, char *);
 void do_ownindivcpuline(char *, char *);
@@ -393,6 +397,10 @@ static struct {
 	{	"maxlinemdd",		do_maxmdd		},
 	{	"maxlinelvm",		do_maxlvm		},
 	{	"maxlineintf",		do_maxintf		},
+	{	"colorinfo",		do_colinfo		},
+	{	"coloralmost",		do_colalmost		},
+	{	"colorcritical",	do_colcrit		},
+	{	"colorthread",		do_colthread		},
 	{	"ownallcpuline",	do_ownallcpuline	},
 	{	"ownonecpuline",	do_ownindivcpuline	},
 	{	"owncplline",		do_owncplline		},

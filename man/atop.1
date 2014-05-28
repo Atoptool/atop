@@ -1,4 +1,4 @@
-.TH ATOP 1 "December 2013" "Linux"
+.TH ATOP 1 "June 2014" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -211,13 +211,16 @@ These default values can be modified in the configuration file
 (see separate man-page of atoprc).
 .PP
 When a resource exceeds its critical occupation percentage, the concerning
-values in the screen line are colored red.
+values in the screen line are colored red by default.
 .br
 When a resource exceeded (default) 80% of its critical percentage
 (so it is almost critical), the concerning values in the screen line
-are colored cyan. This `almost critical percentage' (one value
+are colored cyan by default. This `almost critical percentage' (one value
 for all resources) can be modified in the configuration file
 (see separate man-page of atoprc).
+.br
+The default colors red and cyan can be modified in the configuration file
+as well (see separate man-page of atoprc).
 .PP
 With the key 'x' (or flag -x), the use of colors can be suppressed.
 .SH NETATOP MODULE

@@ -300,6 +300,11 @@ static int	maxmddlines = 999;  /* maximum MDD       lines          */
 static int	maxlvmlines = 999;  /* maximum LVM       lines          */
 static int	maxintlines = 999;  /* maximum interface lines          */
 
+static short	colorinfo   = COLOR_GREEN;
+static short	coloralmost = COLOR_CYAN;
+static short	colorcrit   = COLOR_RED;
+static short	colorthread = COLOR_YELLOW;
+
 static int	cumusers(struct tstat **, struct tstat *, int);
 static int	cumprocs(struct tstat **, struct tstat *, int);
 static int	procsuppress(struct tstat *, struct pselection *);
@@ -577,7 +582,7 @@ generic_samp(time_t curtime, int nsecs,
 			{
 				clrtoeol();
 				if (usecolors)
-					attron(COLOR_PAIR(COLORLOW));
+					attron(COLOR_PAIR(COLORINFO));
 			}
 
 			printg(statmsg);
@@ -585,7 +590,7 @@ generic_samp(time_t curtime, int nsecs,
 			if (screen)
 			{
 				if (usecolors)
-					attroff(COLOR_PAIR(COLORLOW));
+					attroff(COLOR_PAIR(COLORINFO));
 			}
 
 			statmsg = NULL;
@@ -597,7 +602,7 @@ generic_samp(time_t curtime, int nsecs,
 				if (screen)
 				{
 					if (usecolors)
-						attron(COLOR_PAIR(COLORLOW));
+						attron(COLOR_PAIR(COLORINFO));
 
 					attron(A_BLINK);
 
@@ -614,7 +619,7 @@ generic_samp(time_t curtime, int nsecs,
 				if (screen)
 				{
 					if (usecolors)
-						attroff(COLOR_PAIR(COLORLOW));
+						attroff(COLOR_PAIR(COLORINFO));
 					attroff(A_BLINK);
 				}
 			}
@@ -2279,11 +2284,10 @@ generic_init(void)
 			use_default_colors();
 			start_color();
 
-			init_pair(COLORLOW,  COLOR_GREEN,  -1);
-			init_pair(COLORMED,  COLOR_CYAN,   -1);
-			init_pair(COLORHIGH, COLOR_RED,    -1);
-
-			init_pair(COLORTHR,  COLOR_YELLOW,   -1);
+			init_pair(COLORINFO,   colorinfo,   -1);
+			init_pair(COLORALMOST, coloralmost, -1);
+			init_pair(COLORCRIT,   colorcrit,   -1);
+			init_pair(COLORTHR,    colorthread, -1);
 		}
 		else
 		{
@@ -2620,6 +2624,66 @@ void
 do_maxintf(char *name, char *val)
 {
 	maxintlines = get_posval(name, val);
+}
+
+
+struct colmap {
+	char 	*colname;
+	short	colval;
+} colormap[] = {
+	{ "red",	COLOR_RED,	},
+	{ "green",	COLOR_GREEN,	},
+	{ "yellow",	COLOR_YELLOW,	},
+	{ "blue",	COLOR_BLUE,	},
+	{ "magenta",	COLOR_MAGENTA,	},
+	{ "cyan",	COLOR_CYAN,	},
+	{ "black",	COLOR_BLACK,	},
+	{ "white",	COLOR_WHITE,	},
+};
+static short
+modify_color(char *colorname)
+{
+	int i;
+
+	for (i=0; i < sizeof colormap/sizeof colormap[0]; i++)
+	{
+		if ( strcmp(colorname, colormap[i].colname) == 0)
+			return colormap[i].colval;
+	}
+
+	// required color not found
+	fprintf(stderr, "atoprc - invalid color used: %s\n", colorname);
+	fprintf(stderr, "supported colors:");
+	for (i=0; i < sizeof colormap/sizeof colormap[0]; i++)
+		fprintf(stderr, " %s", colormap[i].colname);
+	fprintf(stderr, "\n");
+
+	exit(1);
+}
+
+
+void
+do_colinfo(char *name, char *val)
+{
+	colorinfo = modify_color(val);
+}
+
+void
+do_colalmost(char *name, char *val)
+{
+	coloralmost = modify_color(val);
+}
+
+void
+do_colcrit(char *name, char *val)
+{
+	colorcrit = modify_color(val);
+}
+
+void
+do_colthread(char *name, char *val)
+{
+	colorthread = modify_color(val);
 }
 
 void

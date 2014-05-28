@@ -110,9 +110,9 @@ syscolorlabel(char *labeltext, unsigned int badness)
 
 		        if (usecolors)
 			{
-                        	attron(COLOR_PAIR(COLORHIGH));
+                        	attron(COLOR_PAIR(COLORCRIT));
                         	printg(labeltext);
-                        	attroff(COLOR_PAIR(COLORHIGH));
+                        	attroff(COLOR_PAIR(COLORCRIT));
 			}
 			else
 			{
@@ -123,16 +123,16 @@ syscolorlabel(char *labeltext, unsigned int badness)
 
                         attroff(A_BLINK);
 
-                        return COLORHIGH;
+                        return COLORCRIT;
                 }
 
                 if (almostcrit && badness >= almostcrit)
                 {
 		        if (usecolors)
 			{
-                        	attron(COLOR_PAIR(COLORMED));
+                        	attron(COLOR_PAIR(COLORALMOST));
                         	printg(labeltext);
-                        	attroff(COLOR_PAIR(COLORMED));
+                        	attroff(COLOR_PAIR(COLORALMOST));
 			}
 			else
 			{
@@ -141,7 +141,7 @@ syscolorlabel(char *labeltext, unsigned int badness)
                         	attroff(A_BOLD);
 			}
 
-                        return COLORMED;
+                        return COLORALMOST;
                 }
         }
 
@@ -276,9 +276,9 @@ void showsysline(sys_printpair* elemptr,
 				color = 0;
 
 				if (badness >= 100)
-                               		color = COLORHIGH;
+                               		color = COLORCRIT;
 				else if (almostcrit && badness >= almostcrit)
-					color = COLORMED;
+					color = COLORALMOST;
 			}
 
 			if (color)	// after all: has a color been set?
@@ -401,10 +401,10 @@ sysprt_PRCNZOMBIE(void *notused, void *q, int badness, int *color)
         static char buf[15]="#zombie   ";
 
 	if (as->nzomb > 30)
-		*color = COLORMED;
+		*color = COLORALMOST;
 
 	if (as->nzomb > 50)
-		*color = COLORHIGH;
+		*color = COLORCRIT;
 
         val2valstr(as->nzomb, buf+8, 4, 0, 0);
         return buf;
@@ -424,7 +424,7 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
         {
 		if (as->noverflow)
 		{
-			*color = COLORHIGH;
+			*color = COLORCRIT;
 			buf[6] = '>';
 			val2valstr(as->nexit, buf+7, 5, as->avgval, as->nsecs);
 		}
@@ -439,12 +439,12 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
         {
 		if (firstcall)
 		{
-			*color = COLORHIGH;
+			*color = COLORCRIT;
 			firstcall = 0;
 		}
 		else
 		{
-			*color = COLORLOW;
+			*color = COLORINFO;
 		}
 
 		switch (acctreason)
@@ -886,7 +886,7 @@ sysprt_CPLAVG15(void *p, void *notused, int badness, int *color)
         static char buf[15]="avg15 ";
 
 	if (sstat->cpu.lavg15 > (2 * sstat->cpu.nrcpu) )
-		*color = COLORMED;
+		*color = COLORALMOST;
 
         if (sstat->cpu.lavg15  > 999.0)
         {
@@ -1143,7 +1143,7 @@ sysprt_SWPCOMMITTED(void *p, void *notused, int badness, int *color)
         val2memstr(sstat->mem.committed   * pagesize, buf+6, MBFORMAT, 0, 0);
 
 	if (sstat->mem.commitlim && sstat->mem.committed > sstat->mem.commitlim)
-		*color = COLORMED;
+		*color = COLORALMOST;
 
         return buf;
 }
@@ -1158,7 +1158,7 @@ sysprt_SWPCOMMITLIM(void *p, void *notused, int badness, int *color)
         val2memstr(sstat->mem.commitlim   * pagesize, buf+6, MBFORMAT, 0, 0);
 
 	if (sstat->mem.commitlim && sstat->mem.committed > sstat->mem.commitlim)
-		*color = COLORLOW;
+		*color = COLORINFO;
 
         return buf;
 }

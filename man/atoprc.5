@@ -1,4 +1,4 @@
-.TH ATOPRC 5 "October 2012" "Linux"
+.TH ATOPRC 5 "June 2014" "Linux"
 .SH NAME
 .B atoprc
 - atop/atopsar related rcfile
@@ -147,6 +147,31 @@ is almost critical
 command).
 When this value is zero, no line coloring for `almost critical' is
 performed.
+.PP
+.TP 4
+.B colorinfo
+Definition of color name for information messages (default: green).
+.br
+Allowed colors are: red green yellow blue magenta cyan black white.
+.PP
+.TP 4
+.B colorthread
+Definition of color name for thread-specific lines when using
+the 'y' option (default: yellow).
+.br
+Allowed colors are: red green yellow blue magenta cyan black white.
+.PP
+.TP 4
+.B coloralmost
+Definition of color name for almost critical resources (default: cyan).
+.br
+Allowed colors are: red green yellow blue magenta cyan black white.
+.PP
+.TP 4
+.B colorcritical
+Definition of color name for critical resources (default: red).
+.br
+Allowed colors are: red green yellow blue magenta cyan black white.
 .PP
 .TP 4
 .B atopsarflags
