@@ -21,11 +21,11 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
-int 	acctswon(void);
-void	acctswoff(void);
-int 	acctprocnt(void);
-int 	acctphotoproc(struct tstat *, int);
-void 	acctrepos(unsigned int);
+int 		acctswon(void);
+void		acctswoff(void);
+unsigned long 	acctprocnt(void);
+int 		acctphotoproc(struct tstat *, int);
+void 		acctrepos(unsigned int);
 
 /*
 ** maximum number of records to be read from process accounting file

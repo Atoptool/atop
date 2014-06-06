@@ -5,6 +5,7 @@
 DESTDIR  =
 
 BINPATH  = /usr/bin
+SBINPATH = /usr/sbin
 SCRPATH  = /etc/atop
 LOGPATH  = /var/log/atop
 MAN1PATH = /usr/share/man/man1
@@ -25,7 +26,7 @@ ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
-all: 		atop atopsar
+all: 		atop atopsar atopacctd
 
 atop:		atop.o    $(ALLMODS) Makefile
 		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt
@@ -33,10 +34,13 @@ atop:		atop.o    $(ALLMODS) Makefile
 atopsar:	atop
 		ln -sf atop atopsar
 
+atopacctd:	atopacctd.o netlink.o
+		$(CC) atopacctd.o netlink.o -o atopacctd
+
 clean:
 		rm -f *.o
 
-install:	atop
+install:	atop atopacctd
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 	\
 			then mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(BINPATH) ]; 	\
@@ -64,6 +68,9 @@ install:	atop
 		chown root		$(DESTDIR)$(BINPATH)/atop
 		chmod 04711 		$(DESTDIR)$(BINPATH)/atop
 		ln -sf atop             $(DESTDIR)$(BINPATH)/atopsar
+		cp atopacctd  		$(DESTDIR)$(SBINPATH)/atopacctd
+		chown root		$(DESTDIR)$(SBINPATH)/atopacctd
+		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopacctd
 		cp atop   		$(DESTDIR)$(BINPATH)/atop-$(VERS)
 		ln -sf atop-$(VERS)     $(DESTDIR)$(BINPATH)/atopsar-$(VERS)
 		cp atop.daily    	$(DESTDIR)$(SCRPATH)
@@ -71,6 +78,7 @@ install:	atop
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
+		cp atopacct.init     	$(DESTDIR)$(INIPATH)/atopacct
 		cp atop.init     	$(DESTDIR)$(INIPATH)/atop
 		cp atop.cron     	$(DESTDIR)$(CRNPATH)/atop
 		cp psaccs_atop   	$(DESTDIR)$(ROTPATH)/psaccs_atop
@@ -78,7 +86,9 @@ install:	atop
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; then /sbin/chkconfig --add atop; fi
+		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; then /sbin/chkconfig --add atopacct; fi
 		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ]; then update-rc.d atop defaults; fi
+		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ]; then update-rc.d atopacct defaults; fi
 
 distr: rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
@@ -92,7 +102,7 @@ ifprop.o:	atop.h	            photosyst.h             ifprop.h
 parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
-acctproc.o:	atop.h	photoproc.h              acctproc.h netatop.h
+acctproc.o:	atop.h	photoproc.h atopacctd.h  acctproc.h netatop.h
 netatopif.o:	atop.h	photoproc.h              netatopd.h netatop.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
@@ -100,3 +110,5 @@ showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
+
+atopacctd.o:	atop.h  photoproc.h acctproc.h   version.h     atopacctd.h

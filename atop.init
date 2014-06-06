@@ -2,7 +2,7 @@
 #
 # atop		Startup script for the Atop process logging in background
 #
-# chkconfig: 2345 85 15
+# chkconfig: 2345 96 4
 # description: Advanced system and process activity monitor
 #
 ### BEGIN INIT INFO

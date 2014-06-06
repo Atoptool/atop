@@ -35,10 +35,12 @@ rm    -rf 			  $RPM_BUILD_ROOT
 
 install -Dp -m 04711 atop 	  $RPM_BUILD_ROOT/usr/bin/atop
 ln -s atop                        $RPM_BUILD_ROOT/usr/bin/atopsar
+install -Dp -m 0700 atopacctd 	  $RPM_BUILD_ROOT/usr/sbin/atopacctd
 install -Dp -m 0644 man/atop.1 	  $RPM_BUILD_ROOT/usr/share/man/man1/atop.1
 install -Dp -m 0644 man/atopsar.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopsar.1
 install -Dp -m 0644 man/atoprc.5  $RPM_BUILD_ROOT/usr/share/man/man5/atoprc.5
 install -Dp -m 0755 atop.init 	  $RPM_BUILD_ROOT/etc/init.d/atop
+install -Dp -m 0755 atopacct.init $RPM_BUILD_ROOT/etc/init.d/atopacct
 install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/etc/atop/atop.daily
 install -Dp -m 0711 45atoppm	  $RPM_BUILD_ROOT/etc/atop/45atoppm
 install -Dp -m 0644 atop.cron 	  $RPM_BUILD_ROOT/etc/cron.d/atop
@@ -47,9 +49,10 @@ install -Dp -m 0644 psaccu_atop	  $RPM_BUILD_ROOT/etc/logrotate.d/psaccu_atop
 install -d  -m 0755 		  $RPM_BUILD_ROOT/var/log/atop
 
 %clean
-rm -rf    $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 
 %post
+/sbin/chkconfig --add atopacct
 /sbin/chkconfig --add atop
 
 # save today's logfile (format might be incompatible)
@@ -74,10 +77,12 @@ fi
 /etc/atop/atop.daily
 
 %preun
-killall atop 2> /dev/null || :
+killall atopacctd 2> /dev/null || :
+killall atop      2> /dev/null || :
 
 if [ $1 -eq 0 ]
 then
+        /sbin/chkconfig --del atopacct
         /sbin/chkconfig --del atop
 fi
 
@@ -93,10 +98,12 @@ ln -sf /usr/bin/atop-XVERSX 	/usr/bin/atopsar-XVERSX
 %doc README COPYING AUTHOR ChangeLog
 /usr/bin/atop
 /usr/bin/atopsar
+/usr/sbin/atopacctd
 /usr/share/man/man1/atop.1*
 /usr/share/man/man1/atopsar.1*
 /usr/share/man/man5/atoprc.5*
 %config /etc/init.d/atop
+%config /etc/init.d/atopacct
 /etc/atop/atop.daily
 /etc/atop/45atoppm
 /etc/cron.d/atop

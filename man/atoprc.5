@@ -181,6 +181,23 @@ can be defined here. The flags that are allowed
 are 'S', 'x', 'C', 'M', 'H', 'a', 'A' and the flags to select
 one or more specific reports.
 .PP
+.TP 4
+.B pacctdir
+The name of the topdirectory used by the
+.B atopacctd
+daemon. In this directory, the daemon creates a subdirectory 
+.B pacct_shadow.d
+in which files will be written containing the process accounting records.
+The default topdirectory is
+.B /var/run
+and this option only has to be specified when the
+.B atopacctd
+daemon is started with an alternative topdirectory as command line argument.
+.br
+This option can only be specified in the 
+.B /etc/atoprc
+file (on system level)!
+.PP
 An example of the
 .B /etc/atoprc
 or

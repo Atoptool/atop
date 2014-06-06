@@ -509,7 +509,7 @@ generic_samp(time_t curtime, int nsecs,
 		if (noverflow)
 		{
 			snprintf(statbuf, sizeof statbuf, 
-			         "Only %d exited processes in handled "
+			         "Only %d exited processes handled "
 			         "-- %u skipped!", nexit, noverflow);
 			statmsg = statbuf;
 		}

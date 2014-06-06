@@ -133,6 +133,7 @@ static const char rcsid[] = "$Id: acctproc.c,v 1.28 2010/04/23 12:20:19 gerlof E
 #include "atop.h"
 #include "photoproc.h"
 #include "acctproc.h"
+#include "atopacctd.h"
 
 #define	ACCTDIR		"/tmp/atop.d"
 #define	ACCTFILE	"atop.acct"
@@ -144,10 +145,15 @@ static	int	acctrecsz;	/* size of account record		  */
 static	int	acctversion;	/* version of account record layout	  */
 static	int   	acctfd = -1;	/* fd of account file (-1 = not open)     */
 
+static	long	curshadowseq;	/* current shadow file sequence number    */
+static	long 	maxshadowrec;   /* number of records per shadow file      */
+
+static	char	*pacctdir = PACCTDIR;
+
 static count_t 	acctexp (comp_t  ct);
-static count_t	acctexp2(comp2_t ct);
 static int	acctvers(int);
 static void	acctrestarttrial();
+static void	switchshadow(void);
 
 struct pacctadm {
 	char		*name;
@@ -195,7 +201,7 @@ struct sembuf	semclaim = {0, -1, SEM_UNDO},
 int
 acctswon(void)
 {
-	int			i, j, semid;
+	int			i, j, semid, semacctid;
 	static ushort 		vals[] = {1, SEMTOTAL};
 	union {ushort *array;}	arg = {vals};
 	struct stat		statbuf;
@@ -243,7 +249,93 @@ acctswon(void)
 	}
 
 	/*
-	** check if process-accounting is already switched on 
+ 	** when the atopacctd daemon is active on this system,
+	** it should be the preferred way to read the accounting records
+	*/
+	if ( (semacctid = semget(PACCTPUBKEY, 0, 0)) != -1)
+	{
+		FILE 			*cfp;
+		char    		shadowpath[128];
+        	struct flock            flock;
+
+		if (! droprootprivs() )
+			cleanstop(42);
+
+		(void) semop(semacctid, &semclaim, 1);
+
+		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
+					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
+
+		if ( (cfp = fopen(shadowpath, "r")) )
+		{
+			if (fscanf(cfp, "%ld/%lu",
+					&curshadowseq, &maxshadowrec) == 2)
+			{
+				fclose(cfp);
+
+				snprintf(shadowpath, sizeof shadowpath,
+						PACCTSHADOWF, pacctdir,
+						PACCTSHADOWD, curshadowseq);
+
+				if ( (acctfd = open(shadowpath, O_RDONLY))!=-1)
+				{
+					if ( !acctvers(acctfd) )
+					{
+						int maxcnt = 40;
+
+						if ( fork() == 0 )
+							exit(0);
+
+						(void) wait((int *) 0);
+
+						while ( !acctvers(acctfd) &&
+								      --maxcnt)
+							usleep(50000);
+						
+						if (!acctversion)
+						{
+							(void) close(acctfd);
+							acctfd = -1;
+	
+							(void) semop(semacctid,
+								&semrelse, 1);
+
+							regainrootprivs();
+							return 1;
+						}
+					}
+
+					/*
+					** set read lock on current shadow file
+					*/
+        				flock.l_type    = F_RDLCK;
+        				flock.l_whence  = SEEK_SET;
+        				flock.l_start   = 0;
+        				flock.l_len     = 1;
+
+                			if ( fcntl(acctfd, F_SETLK, &flock)
+									!= -1)
+                			{
+						supportflags |= ACCTACTIVE;
+						regainrootprivs();
+						return 0;
+                			}
+
+                       			(void) close(acctfd);
+				}
+			}
+			else
+			{
+				fclose(cfp);
+				maxshadowrec = 0;
+			}
+		}
+
+		(void) semop(semacctid, &semrelse, 1);
+	}
+
+	/*
+	** check if process accounting is already switched on 
 	** for one of the standard accounting-files; in that case we
 	** open this file and get our info from here ....
 	*/
@@ -435,10 +527,7 @@ acctvers(int fd)
 	** the second byte (always contains version number)
 	*/
 	if ( read(fd, &tmprec, sizeof tmprec) < sizeof tmprec)
- 	{
-		fprintf(stderr, "Accounting switched on, but no contents\n");
 		return 0;
-	}
 
 	switch (tmprec.ac_version & 0x0f)
 	{
@@ -554,10 +643,10 @@ acctswoff(void)
 ** get the number of exited processes written
 ** in the process-account file since the previous sample
 */
-int
+unsigned long
 acctprocnt(void)
 {
-	struct stat 		statacc;
+	struct stat	statacc;
 
 	/*
 	** if accounting not supported, skip call
@@ -566,24 +655,95 @@ acctprocnt(void)
 		return 0;
 
 	/*
-	** determine how many processes exited last interval
+	** determine the current size of the accounting file
 	*/
 	(void) fstat(acctfd, &statacc);
 
-	if (acctsize > statacc.st_size)	/* somebody did reset accounting? */
+	/*
+ 	** handle atopacctd-based process accounting on bases of
+	** fixed-chunk shadow files
+	*/
+	if (maxshadowrec)
 	{
-		/*
-		** reposition to start of file
-		*/
-		(void) lseek(acctfd, 0, SEEK_SET);
-		acctsize = 0;
-	}
+		unsigned long	numrecs = 0;
+		long		newseq;
+		char		shadowpath[128];
+		FILE		*cfp;
 
-	return (statacc.st_size - acctsize) / acctrecsz;
+		/*
+		** verify how many new processes are added to the current
+		** shadow file
+		*/
+		numrecs = (statacc.st_size - acctsize) / acctrecsz;
+
+		/*
+		** verify if subsequent shadow files are involved
+		** (i.e. if the current file is full)
+		*/
+		if (statacc.st_size / acctrecsz < maxshadowrec)
+			return numrecs;
+
+		/*
+ 		** more shadow files available
+		** get current shadow file
+		*/ 	
+		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
+					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
+
+		if ( (cfp = fopen(shadowpath, "r")) )
+		{
+			if (fscanf(cfp, "%ld", &newseq) == 1)
+			{
+				fclose(cfp);
+			}
+			else
+			{
+				fclose(cfp);
+				return numrecs;
+			}
+		}
+		else
+		{
+			return numrecs;
+		}
+
+		if (newseq == curshadowseq)
+			return numrecs;
+
+		snprintf(shadowpath, sizeof shadowpath, PACCTSHADOWF,
+					pacctdir, PACCTSHADOWD, newseq);
+
+		/*
+		** determine the size of newest shadow file
+		*/
+		(void) stat(shadowpath, &statacc);
+
+		numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
+		           (statacc.st_size / acctrecsz);
+
+		return numrecs;
+	}
+	else
+	/*
+ 	** classic process accounting on bases of directly opened
+	** process accounting file
+	*/
+	{
+		if (acctsize > statacc.st_size)	/* accounting reset? */
+		{
+			/*
+			** reposition to start of file
+			*/
+			(void) lseek(acctfd, 0, SEEK_SET);
+			acctsize = 0;
+		}
+
+		return (statacc.st_size - acctsize) / acctrecsz;
+	}
 }
 
 /*
-** reposition the seek-offset in the process-account file to skip
+** reposition the seek offset in the process accounting file to skip
 ** processes that have not been read
 */
 void
@@ -595,17 +755,33 @@ acctrepos(unsigned int noverflow)
 	if (acctfd == -1)
 		return;
 
-	/*
-	** reposition to skip superfluous records
-	*/
-	(void) lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
-	acctsize   += noverflow * acctrecsz;
+	if (maxshadowrec)
+	{
+		int	i;
+		off_t	virtoffset  = acctsize + noverflow * acctrecsz;
+		off_t	maxshadowsz = maxshadowrec * acctrecsz;
+		long	switches    = virtoffset / maxshadowsz;
+		acctsize            = virtoffset % maxshadowsz;
+
+		for (i=0; i < switches; i++)
+			switchshadow();
+
+		(void) lseek(acctfd, acctsize, SEEK_SET);
+	}
+	else
+	{
+		/*
+		** just reposition to skip superfluous records
+		*/
+		(void) lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
+		acctsize   += noverflow * acctrecsz;
+	}
 }
 
 
 /*
-** read process-records from the account-file,
-** which are written since the previous cycle
+** read the process records from the process accounting file,
+** that are written since the previous cycle
 */
 int
 acctphotoproc(struct tstat *accproc, int nrprocs)
@@ -614,7 +790,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	register struct tstat 	*api;
 	struct acct 		acctrec;
 	struct acct_v3 		acctrec_v3;
-	struct acct_atop	acctrec_atop;
+	struct stat		statacc;
 
 	/*
 	** if accounting not supported, skip call
@@ -623,10 +799,37 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 		return 0;
 
 	/*
+	** determine the size of the (current) account file
+	** and the current offset within that file
+	*/
+	(void) fstat(acctfd, &statacc);
+
+	/*
 	** check all exited processes in accounting file
 	*/
-	for  (nrexit=0, api=accproc; nrexit < nrprocs; nrexit++, api++)
+	for  (nrexit=0, api=accproc; nrexit < nrprocs;
+				nrexit++, api++, acctsize += acctrecsz)
 	{
+		/*
+		** in case of shadow accounting files, we might have to
+		** switch from the current accouting file to the next
+		*/
+		if (maxshadowrec && acctsize >= statacc.st_size)
+		{
+			switchshadow();
+
+			/*
+			** determine the size of the new (current) account file
+			** and initialize the current offset within that file
+			*/
+			(void) fstat(acctfd, &statacc);
+
+			acctsize  = 0;
+		}
+
+		/*
+		** read the next record
+		*/
 		switch (acctversion)
 		{
 		   case 2:
@@ -682,62 +885,19 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strcpy(api->gen.name, acctrec_v3.ac_comm);
 			break;
-
-		   case 6:
-			if ( read(acctfd, &acctrec_atop, acctrecsz) <acctrecsz)
-				break;	/* unexpected end of account file */
-
-			/*
-			** fill process info from accounting-record
-			*/
-			api->gen.state  = 'E';
-			api->gen.pid    = acctrec_atop.ac_pid;
-			api->gen.tgid   = acctrec_atop.ac_pid;
-			api->gen.ppid   = acctrec_atop.ac_ppid;
-			api->gen.nthr   = 1;
-			api->gen.isproc = 1;
-			api->gen.excode = acctrec_atop.ac_exitcode;
-			api->gen.ruid   = acctrec_atop.ac_uid;
-			api->gen.rgid   = acctrec_atop.ac_gid;
-			api->gen.btime  = acctrec_atop.ac_btime;
-			api->gen.elaps  = acctrec_atop.ac_etime;
-			api->cpu.stime  = acctexp (acctrec_atop.ac_stime);
-			api->cpu.utime  = acctexp (acctrec_atop.ac_utime);
-			api->mem.minflt = acctexp (acctrec_atop.ac_minflt);
-			api->mem.majflt = acctexp (acctrec_atop.ac_majflt);
-			api->mem.vmem   = acctexp (acctrec_atop.ac_mem);
-			api->mem.rmem   = acctexp (acctrec_atop.ac_rss);
-			api->mem.vswap  = 0;
-			api->dsk.rio    = acctexp (acctrec_atop.ac_bread);
-			api->dsk.wio    = acctexp (acctrec_atop.ac_bwrite);
-			api->dsk.rsz    = acctexp2(acctrec_atop.ac_dskrsz);
-			api->dsk.wsz    = acctexp2(acctrec_atop.ac_dskwsz);
-			api->net.tcpsnd = acctexp (acctrec_atop.ac_tcpsnd);
-			api->net.tcprcv = acctexp (acctrec_atop.ac_tcprcv);
-			api->net.tcpssz = acctexp2(acctrec_atop.ac_tcpssz);
-			api->net.tcprsz = acctexp2(acctrec_atop.ac_tcprsz);
-			api->net.udpsnd = acctexp (acctrec_atop.ac_udpsnd);
-			api->net.udprcv = acctexp (acctrec_atop.ac_udprcv);
-			api->net.udpssz = acctexp2(acctrec_atop.ac_udpssz);
-			api->net.udprsz = acctexp2(acctrec_atop.ac_udprsz);
-
-			strcpy(api->gen.name, acctrec_atop.ac_comm);
 		}
 	}
 
-	acctsize += nrexit * acctrecsz;
-
-	if (acctsize > ACCTMAXFILESZ)
+	if (acctsize > ACCTMAXFILESZ && !maxshadowrec)
 		acctrestarttrial();
 
 	return nrexit;
 }
 
 /*
-** when the size of the accounting file exceeds a certain limit,
+** when the size of the private accounting file exceeds a certain limit,
 ** it might be useful to stop process accounting, truncate the
-** process accounting file to zero and start process accounting
-** again
+** process accounting file to zero and start process accounting again
 **
 ** this will only be done if this atop process is the only one
 ** that is currently using the accounting file
@@ -824,17 +984,121 @@ acctexp(comp_t ct)
         return val;
 }
 
-static count_t
-acctexp2(comp2_t ct)
+/*
+** switch to the next accounting shadow file
+*/
+static void
+switchshadow(void)
 {
-	count_t exp;
-	count_t val;
+	int		tmpfd;
+	char		shadowpath[128];
+	struct flock	flock;
 
-	exp = (ct >> 20) & 0xfff;         /* obtain  5 bits base-2 exponent */
-	val =  ct & 0xfffff;              /* obtain 20 bits mantissa        */
+	/*
+	** determine path name of new shadow file
+	*/
+	curshadowseq++;
 
-	while (exp-- > 0)
-		val <<= 2;
+	snprintf(shadowpath, sizeof shadowpath, PACCTSHADOWF,
+					pacctdir, PACCTSHADOWD, curshadowseq);
 
-	return val;
+	/*
+	** open new shadow file, while the previous is also kept open
+	** (to keep the read lock until a read lock is set for the new
+	** shadow file)
+	*/
+	if ( (tmpfd = open(shadowpath, O_RDONLY)) != -1)
+	{
+		/*
+		** set read lock on new shadow file
+		*/
+        	flock.l_type    = F_RDLCK;
+        	flock.l_whence  = SEEK_SET;
+        	flock.l_start   = 0;
+        	flock.l_len     = 1;
+
+                if ( fcntl(tmpfd, F_SETLK, &flock) != -1)
+		{
+			(void) close(acctfd);	// implicit release read lock
+			acctfd = tmpfd;
+			return;
+		}
+		else
+		{
+			(void) close(tmpfd);
+		}
+	}
+}
+
+/*
+** handle the option 'pacctdir' in the /etc/atoprc file
+*/
+void
+do_pacctdir(char *tagname, char *tagvalue)
+{
+	char		shadowpath[128];
+	struct stat	dirstat;
+
+	/*
+	** copy the directory pathname to an own buffer
+	*/
+	if ( (pacctdir = malloc(strlen(tagvalue)+1)) == NULL )
+	{
+		perror("malloc pacctdir");
+		exit(11);
+	}
+
+	strcpy(pacctdir, tagvalue);
+
+	/*
+	** verify if the atopacctd daemon is active
+	*/
+	if ( semget(PACCTPUBKEY, 0, 0) == -1)
+	{
+		fprintf(stderr, "Warning: option '%s' specified "
+		                "while atopacctd not running!\n", tagname);
+		sleep(2);
+		return;
+	}
+
+	/*
+	** verify that the topdirectory exists
+	*/
+        if ( stat(pacctdir, &dirstat) == -1 )
+        {
+		fprintf(stderr, "Warning: option '%s' specified - ", tagname);
+		perror(pacctdir);
+                sleep(2);
+		return;
+        }
+
+        if (! S_ISDIR(dirstat.st_mode) )
+        {
+		fprintf(stderr, "Warning: option '%s' specified - ", tagname);
+                fprintf(stderr, "%s not a directory\n", pacctdir);
+                sleep(2);
+		return;
+        }
+
+	/*
+	** verify that the topdirectory contains the required subdirectory
+	*/
+	snprintf(shadowpath, sizeof shadowpath, "%s/%s",
+						pacctdir, PACCTSHADOWD);
+
+        if ( stat(shadowpath, &dirstat) == -1 )
+        {
+		fprintf(stderr, "Warning: option '%s' specified - ", tagname);
+		perror(shadowpath);
+                sleep(2);
+		return;
+        }
+
+        if (! S_ISDIR(dirstat.st_mode) )
+        {
+		fprintf(stderr, "Warning: option '%s' specified - ", tagname);
+                fprintf(stderr, "%s not a directory\n", shadowpath);
+                sleep(2);
+		return;
+        }
 }

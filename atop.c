@@ -346,7 +346,7 @@ static char		midnightflag;
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
 */
-static void		readrc(char *);
+static void		readrc(char *, int);
 
 void do_flags(char *, char *);
 void do_interval(char *, char *);
@@ -382,46 +382,49 @@ void do_netcritperc(char *, char *);
 void do_swoutcritsec(char *, char *);
 void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
+void do_pacctdir(char *, char *);
 
 static struct {
 	char	*tag;
 	void	(*func)(char *, char *);
+	int	sysonly;
 } manrc[] = {
-	{	"flags",		do_flags		},
-	{	"interval",		do_interval		},
-	{	"linelen",		do_linelength		},
-	{	"username",		do_username		},
-	{	"procname",		do_procname		},
-	{	"maxlinecpu",		do_maxcpu		},
-	{	"maxlinedisk",		do_maxdisk		},
-	{	"maxlinemdd",		do_maxmdd		},
-	{	"maxlinelvm",		do_maxlvm		},
-	{	"maxlineintf",		do_maxintf		},
-	{	"colorinfo",		do_colinfo		},
-	{	"coloralmost",		do_colalmost		},
-	{	"colorcritical",	do_colcrit		},
-	{	"colorthread",		do_colthread		},
-	{	"ownallcpuline",	do_ownallcpuline	},
-	{	"ownonecpuline",	do_ownindivcpuline	},
-	{	"owncplline",		do_owncplline		},
-	{	"ownmemline",		do_ownmemline		},
-	{	"ownswpline",		do_ownswpline		},
-	{	"ownpagline",		do_ownpagline		},
-	{	"owndskline",		do_owndskline		},
-	{	"ownnettrline",		do_ownnettransportline	},
-	{	"ownnetnetline",	do_ownnetnetline	},
-	{	"ownnetifline",	        do_ownnetinterfaceline	},
-	{	"ownprocline",		do_ownprocline		},
-	{	"ownsysprcline",	do_ownsysprcline	},
-	{	"owndskline",	        do_owndskline		},
-	{	"cpucritperc",		do_cpucritperc		},
-	{	"memcritperc",		do_memcritperc		},
-	{	"swpcritperc",		do_swpcritperc		},
-	{	"dskcritperc",		do_dskcritperc		},
-	{	"netcritperc",		do_netcritperc		},
-	{	"swoutcritsec",		do_swoutcritsec		},
-	{	"almostcrit",		do_almostcrit		},
-	{	"atopsarflags",		do_atopsarflags		},
+	{	"flags",		do_flags,		0, },
+	{	"interval",		do_interval,		0, },
+	{	"linelen",		do_linelength,		0, },
+	{	"username",		do_username,		0, },
+	{	"procname",		do_procname,		0, },
+	{	"maxlinecpu",		do_maxcpu,		0, },
+	{	"maxlinedisk",		do_maxdisk,		0, },
+	{	"maxlinemdd",		do_maxmdd,		0, },
+	{	"maxlinelvm",		do_maxlvm,		0, },
+	{	"maxlineintf",		do_maxintf,		0, },
+	{	"colorinfo",		do_colinfo,		0, },
+	{	"coloralmost",		do_colalmost,		0, },
+	{	"colorcritical",	do_colcrit,		0, },
+	{	"colorthread",		do_colthread,		0, },
+	{	"ownallcpuline",	do_ownallcpuline,	0, },
+	{	"ownonecpuline",	do_ownindivcpuline,	0, },
+	{	"owncplline",		do_owncplline,		0, },
+	{	"ownmemline",		do_ownmemline,		0, },
+	{	"ownswpline",		do_ownswpline,		0, },
+	{	"ownpagline",		do_ownpagline,		0, },
+	{	"owndskline",		do_owndskline,		0, },
+	{	"ownnettrline",		do_ownnettransportline,	0, },
+	{	"ownnetnetline",	do_ownnetnetline,	0, },
+	{	"ownnetifline",	        do_ownnetinterfaceline,	0, },
+	{	"ownprocline",		do_ownprocline,		0, },
+	{	"ownsysprcline",	do_ownsysprcline,	0, },
+	{	"owndskline",	        do_owndskline,		0, },
+	{	"cpucritperc",		do_cpucritperc,		0, },
+	{	"memcritperc",		do_memcritperc,		0, },
+	{	"swpcritperc",		do_swpcritperc,		0, },
+	{	"dskcritperc",		do_dskcritperc,		0, },
+	{	"netcritperc",		do_netcritperc,		0, },
+	{	"swoutcritsec",		do_swoutcritsec,	0, },
+	{	"almostcrit",		do_almostcrit,		0, },
+	{	"atopsarflags",		do_atopsarflags,	0, },
+	{	"pacctdir",		do_pacctdir,		1, },
 };
 
 /*
@@ -456,7 +459,7 @@ main(int argc, char *argv[])
 	/*
 	** read defaults-files /etc/atoprc en $HOME/.atoprc (if any)
 	*/
-	readrc("/etc/atoprc");
+	readrc("/etc/atoprc", 1);
 
 	if ( (p = getenv("HOME")) )
 	{
@@ -464,7 +467,7 @@ main(int argc, char *argv[])
 
 		snprintf(path, sizeof path, "%s/.atoprc", p);
 
-		readrc(path);
+		readrc(path, 0);
 	}
 
 	/*
@@ -1071,7 +1074,7 @@ do_linelength(char *name, char *val)
 ** read RC-file and modify defaults accordingly
 */
 static void
-readrc(char *path)
+readrc(char *path, int syslevel)
 {
 	int	i, nr, line=0, errorcnt = 0;
 
@@ -1136,8 +1139,20 @@ readrc(char *path)
 			*/
 			for (i=0; i < sizeof manrc/sizeof manrc[0]; i++)
 			{
-				if ( strcmp(tagname, manrc[i].tag) ==0)
+				if ( strcmp(tagname, manrc[i].tag) == 0)
 				{
+					if (manrc[i].sysonly && !syslevel)
+					{
+						fprintf(stderr,
+						   "%s: warning at line %2d "
+						   "- tag name %s not allowed "
+						   "in private atoprc\n",
+							path, line, tagname);
+
+						errorcnt++;
+						break;
+					}
+
 					manrc[i].func(tagname, tagvalue);
 					break;
 				}
