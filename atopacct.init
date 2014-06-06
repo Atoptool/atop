@@ -1,0 +1,86 @@
+#!/bin/sh
+#
+# atopacctd	Startup script for the atopacctd daemon 
+#
+# chkconfig: 2345 92 8
+# description: Process accounting control
+#
+### BEGIN INIT INFO
+# Provides:             atopacct
+# Required-Start:	$local_fs
+# Required-Stop:	$local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description: This daemon switches on process accounting and
+#                    transfers the process accounting records 'realtime'
+#                    to small shadow files to avoid huge disk space usage
+# Description: Process accounting control
+### END INIT INFO
+
+# Check existance of binaries 
+[ -f /usr/sbin/atopacctd ] || exit 0
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+	# Check if process accounting already in use via psacct
+	#
+	for PACCTFILE in /var/account/pacct /var/log/pacct
+	do
+		if [ -f "$PACCTFILE" ]	# file exists?
+		then
+			BEFORSIZE=$(ls -lL "$PACCTFILE" | awk '{print $5}')
+			AFTERSIZE=$(ls -lL "$PACCTFILE" | awk '{print $5}')
+
+			# verify if accounting file grows, so is in use
+			#
+			if [ $BEFORSIZE -lt $AFTERSIZE ]
+			then
+			   echo Process accounting already used by psacct! >&2
+			   exit $RETVAL		# do not start atopacctd
+			fi
+		fi
+	done
+
+
+	# Check if atopacctd runs already
+	#
+	if ps -e | grep -q atopacctd$
+	then
+		:
+	else
+		# Start atopacctd
+		rm -rf /var/run/pacct_shadow.d 2> /dev/null
+		/usr/sbin/atopacctd
+	fi
+
+	touch /var/lock/subsys/atopacctd
+	;;
+
+  stop)
+	# Check if atopacctd runs
+	#
+	if ps -e | grep -q atopacctd$
+	then
+		kill $(ps -e | grep atopacctd$ | sed 's/^ *//' | cut -d' ' -f1)
+	fi
+	rm /var/lock/subsys/atopacctd
+	;;
+
+  status)
+	;;
+
+  reload)
+	;;
+
+  restart)
+	;;
+
+  *)
+	echo "Usage: $0 [start|stop]"
+	exit 1
+esac
+
+exit $RETVAL
