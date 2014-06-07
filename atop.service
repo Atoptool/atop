@@ -3,7 +3,7 @@ Description=advanced interactive monitor
 Documentation=man:atop(1)
 
 [Service]
-ExecStart=/bin/sh -c '/usr/bin/atop -a R -w /var/log/atop/atop_$(date +%Y%m%d) 600'
+ExecStart=/bin/sh -c '/usr/bin/atop -a -R -w /var/log/atop/atop_$(date +%Y%m%d) 600'
 
 [Install]
 WantedBy=multi-user.target

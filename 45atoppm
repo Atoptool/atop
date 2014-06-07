@@ -47,7 +47,7 @@ resume_atop()
 
 	# start atop
 	#
-	$BINPATH/atop -a -w $LOGPATH/atop_$CURDAY $INTERVAL \
+	$BINPATH/atop -a -R -w $LOGPATH/atop_$CURDAY $INTERVAL \
 					 > $LOGPATH/daily.log 2>&1 &
 	echo $! > $PIDFILE
 	
