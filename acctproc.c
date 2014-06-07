@@ -179,8 +179,8 @@ struct pacctadm {
 **         and the file removed
 **	   (Yes, I know: it's not proper usage of the semaphore-principle).
 */ 
-#define	SEMAKEY		3121959
-#define	SEMTOTAL	100
+#define	ATOPACCTKEY	3121959
+#define	ATOPACCTTOT	100
 
 struct sembuf	semclaim = {0, -1, SEM_UNDO},
 		semrelse = {0, +1, SEM_UNDO},
@@ -201,8 +201,8 @@ struct sembuf	semclaim = {0, -1, SEM_UNDO},
 int
 acctswon(void)
 {
-	int			i, j, semid, semacctid;
-	static ushort 		vals[] = {1, SEMTOTAL};
+	int			i, j, sematopid, sempacctpubid;
+	static ushort 		vals[] = {1, ATOPACCTTOT};
 	union {ushort *array;}	arg = {vals};
 	struct stat		statbuf;
 	char			*ep;
@@ -252,7 +252,7 @@ acctswon(void)
  	** when the atopacctd daemon is active on this system,
 	** it should be the preferred way to read the accounting records
 	*/
-	if ( (semacctid = semget(PACCTPUBKEY, 0, 0)) != -1)
+	if ( (sempacctpubid = semget(PACCTPUBKEY, 0, 0)) != -1)
 	{
 		FILE 			*cfp;
 		char    		shadowpath[128];
@@ -261,7 +261,7 @@ acctswon(void)
 		if (! droprootprivs() )
 			cleanstop(42);
 
-		(void) semop(semacctid, &semclaim, 1);
+		(void) semop(sempacctpubid, &semclaim, 1);
 
 		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
 					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
@@ -297,7 +297,7 @@ acctswon(void)
 							(void) close(acctfd);
 							acctfd = -1;
 	
-							(void) semop(semacctid,
+							semop(sempacctpubid,
 								&semrelse, 1);
 
 							regainrootprivs();
@@ -331,7 +331,7 @@ acctswon(void)
 			}
 		}
 
-		(void) semop(semacctid, &semrelse, 1);
+		(void) semop(sempacctpubid, &semrelse, 1);
 	}
 
 	/*
@@ -395,26 +395,26 @@ acctswon(void)
 	** this is the first atop-incarnation since boot and the semaphore group
 	** should be initialized`
 	*/
-	if ( (semid = semget(SEMAKEY, 2, 0600|IPC_CREAT|IPC_EXCL)) >= 0)
-		(void) semctl(semid, 0, SETALL, arg);
+	if ( (sematopid = semget(ATOPACCTKEY, 2, 0600|IPC_CREAT|IPC_EXCL)) >= 0)
+		(void) semctl(sematopid, 0, SETALL, arg);
 	else
-		semid = semget(SEMAKEY, 0, 0);
+		sematopid = semget(ATOPACCTKEY, 0, 0);
 
 	/*
 	** check if we got access to the semaphore group
 	*/
-	if (semid == -1)
+	if (sematopid == -1)
 		return 3;
 
 	/*
 	** the semaphore group is opened now; claim exclusive rights
 	*/
-	(void) semop(semid, &semclaim, 1);
+	(void) semop(sematopid, &semclaim, 1);
 
    	/*
    	** are we the first to use the accounting-mechanism ?
    	*/
-	if (semctl(semid, 1, GETVAL, 0) == SEMTOTAL)
+	if (semctl(sematopid, 1, GETVAL, 0) == ATOPACCTTOT)
 	{
 		/*
 		** create a new separate directory below /tmp
@@ -436,7 +436,7 @@ acctswon(void)
 				/*
 				** persistent failure
 				*/
-				(void) semop(semid, &semrelse, 1);
+				(void) semop(sematopid, &semrelse, 1);
 				return 4;
 			}
 		}
@@ -453,7 +453,7 @@ acctswon(void)
 		{
 			(void) unlink(ACCTDIR "/" ACCTFILE);
 			(void) rmdir(ACCTDIR);
-			(void) semop(semid, &semrelse, 1);
+			(void) semop(sematopid, &semrelse, 1);
 
 			return 5;
 		}
@@ -469,15 +469,15 @@ acctswon(void)
 		(void) unlink(ACCTDIR "/" ACCTFILE);
 		(void) rmdir(ACCTDIR);
 
-		(void) semop(semid, &semrelse, 1);
+		(void) semop(sematopid, &semrelse, 1);
 		return 1;
 	}
 
 	/*
 	** accounting successfully switched on
 	*/
-	(void) semop(semid, &semdecre, 1);
-	(void) semop(semid, &semrelse, 1);
+	(void) semop(sematopid, &semdecre, 1);
+	(void) semop(sematopid, &semrelse, 1);
 
 	acctatop = 1;
 
@@ -565,7 +565,7 @@ acctvers(int fd)
 void
 acctswoff(void)
 {
-	int		semid;
+	int		sematopid;
 	struct stat	before, after;
 
 	/*
@@ -585,15 +585,15 @@ acctswoff(void)
 		** claim the semaphore to get exclusive rights for
 		** the accounting-manipulation
 		*/
-		semid = semget(SEMAKEY, 0, 0);
+		sematopid = semget(ATOPACCTKEY, 0, 0);
 
-		(void) semop(semid, &semclaim, 1);
-		(void) semop(semid, &semincre, 1);
+		(void) semop(sematopid, &semclaim, 1);
+		(void) semop(sematopid, &semincre, 1);
 
 		/*
 		** check if we were the last user of accounting
 		*/
-		if (semctl(semid, 1, GETVAL, 0) == SEMTOTAL)
+		if (semctl(sematopid, 1, GETVAL, 0) == ATOPACCTTOT)
 		{
 			/*
 			** switch off private accounting
@@ -627,7 +627,7 @@ acctswoff(void)
 			}
 		}
 
-		(void) semop(semid, &semrelse, 1);
+		(void) semop(sematopid, &semrelse, 1);
 	}
 
 	/*
@@ -906,7 +906,7 @@ static void
 acctrestarttrial()
 {
 	struct stat 	statacc;
-	int		semid;
+	int		sematopid;
 
 	/*
 	** not private accounting-file in use?
@@ -929,16 +929,16 @@ acctrestarttrial()
 	** claim the semaphore to get exclusive rights for
 	** the accounting-manipulation
 	*/
-	semid = semget(SEMAKEY, 0, 0);
+	sematopid = semget(ATOPACCTKEY, 0, 0);
 
-	(void) semop(semid, &semclaim, 1);
+	(void) semop(sematopid, &semclaim, 1);
 
 	/*
 	** check if there are more users of accounting file
 	*/
-	if (semctl(semid, 1, GETVAL, 0) < SEMTOTAL-1)
+	if (semctl(sematopid, 1, GETVAL, 0) < ATOPACCTTOT-1)
 	{
-		(void) semop(semid, &semrelse, 1);
+		(void) semop(sematopid, &semrelse, 1);
 		return;		// do not restart
 	}
 
@@ -963,7 +963,7 @@ acctrestarttrial()
 
 	acctsize = 0;
 
-	(void) semop(semid, &semrelse, 1);
+	(void) semop(sematopid, &semrelse, 1);
 }
 
 /*
