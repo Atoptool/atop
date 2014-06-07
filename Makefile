@@ -37,6 +37,9 @@ atopsar:	atop
 atopacctd:	atopacctd.o netlink.o
 		$(CC) atopacctd.o netlink.o -o atopacctd
 
+netlink.o:	netlink.c
+		$(CC) -I. -Wall -c netlink.c
+
 clean:
 		rm -f *.o
 
