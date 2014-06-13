@@ -452,6 +452,7 @@ photosyst(struct sstat *si)
 
                                 if (f > maxfreq)
                         		maxfreq=f;
+                        	didone=1;
                         }
 
 	                si->cpu.cpu[i].freqcnt.maxfreq	= maxfreq;
@@ -459,7 +460,6 @@ photosyst(struct sstat *si)
 	                si->cpu.cpu[i].freqcnt.ticks	= hits;
 
                         fclose(fp);
-                        didone=1;
                 }
 		else
 		{    // governor statistics not available
@@ -475,7 +475,6 @@ photosyst(struct sstat *si)
 	                                si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
                                 }
 
-                                didone=1;
                                 fclose(fp);
                         }
                         else 
@@ -494,17 +493,15 @@ photosyst(struct sstat *si)
    					// convert KHz to MHz
                                         si->cpu.cpu[i].freqcnt.cnt   = f/1000;
                                         si->cpu.cpu[i].freqcnt.ticks = 0;
+                                        didone=1;
                                 }
 
                                 fclose(fp);
-                                didone=1;
                         }
                         else
                         {
-                                si->cpu.cpu[i].freqcnt.maxfreq	= 0;
                                 si->cpu.cpu[i].freqcnt.cnt	= 0;
                                 si->cpu.cpu[i].freqcnt.ticks 	= 0;
-                                break;    // use cpuinfo
                         }
                 }
         } // for all CPUs
