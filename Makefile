@@ -67,6 +67,8 @@ install:	atop atopacctd
 			then cp 45atoppm $(DESTDIR)$(PMPATH2); 	\
 			chmod 0711 $(DESTDIR)$(PMPATH2)/45atoppm; fi
 		#
+		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; then /sbin/chkconfig --del atop 2> /dev/null; fi
+		#
 		cp atop   		$(DESTDIR)$(BINPATH)/atop
 		chown root		$(DESTDIR)$(BINPATH)/atop
 		chmod 04711 		$(DESTDIR)$(BINPATH)/atop
