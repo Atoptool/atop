@@ -96,7 +96,7 @@ main(int argc, char *argv[])
 	char			abuf[8192], nbuf[8192];
 	char			shadowdir[128], accountpath[128];
 	int			arecsize = 0;
-	unsigned long long	atotsize = 0, stotsize = 0, maxshadowsz;
+	unsigned long long	atotsize = 0, stotsize = 0, maxshadowsz = 0;
 	long			oldshadow = 0, curshadow = 0;
 	time_t			gclast = time(0);  // last garbage collection
 
