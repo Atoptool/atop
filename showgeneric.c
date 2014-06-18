@@ -290,6 +290,7 @@ static int	paused;     	/* boolean: currently in pause-mode     */
 static int	fixedhead;	/* boolean: fixate header-lines         */
 static int	sysnosort;	/* boolean: suppress sort of resources  */
 static int	avgval;		/* boolean: average values i.s.o. total */
+static int	supexits;	/* boolean: suppress exited processes   */
 
 static char	showtype  = MPROCGEN;
 static char	showorder = MSORTCPU;
@@ -391,7 +392,7 @@ generic_samp(time_t curtime, int nsecs,
 	/*
 	** sellist contains the pointers to the structs in tstat
 	** that are currently selected on basis of a particular
-	** username or program name (both regexp's)
+	** username, program name (both regexp's) or suppressed exited procs
 	**
 	** this list will be allocated 'lazy'
 	*/
@@ -473,11 +474,11 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						45 - seclen - utsnodenamelen;
+						46 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -487,6 +488,7 @@ generic_samp(time_t curtime, int nsecs,
 			usecolors  		      ? '-'        : MCOLORS,
 			avgval     		      ? MAVGVAL    : '-',
 			calcpss     		      ? MCALCPSS   : '-',
+			supexits     		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
 			syssel.lvmnamesz +
@@ -636,12 +638,11 @@ generic_samp(time_t curtime, int nsecs,
 		   case MCUMUSER:
 			threadallowed = 0;
 
-			if (ucumlist)	/* list already available? */
+			if (ucumlist)	/* previous list still available? */
 			{
-				curlist   = ucumlist;
-				nlist     = nucum;
-				lastsortp = &ulastorder;
-				break;
+                                free(ucumlist);
+                                free(tucumlist);
+				ulastorder = 0;
 			}
 
 			/*
@@ -670,12 +671,11 @@ generic_samp(time_t curtime, int nsecs,
 		   case MCUMPROC:
 			threadallowed = 0;
 
-			if (pcumlist)	/* list already available? */
+			if (pcumlist)	/* previous list still available? */
 			{
-				curlist   = pcumlist;
-				nlist     = npcum;
-				lastsortp = &plastorder;
-				break;
+                                free(pcumlist);
+                                free(tpcumlist);
+				plastorder = 0;
 			}
 
 			/*
@@ -703,7 +703,9 @@ generic_samp(time_t curtime, int nsecs,
 		   default:
 			threadallowed = 1;
 
-			if (procsel.userid[0] ==USERSTUB && !procsel.prognamesz)
+			if ( procsel.userid[0] == USERSTUB &&
+			    !procsel.prognamesz            &&
+			    !supexits                        )
 			{	/* no selection wanted */
 				curlist   = proclist;
 				nlist     = nactproc;
@@ -728,6 +730,9 @@ generic_samp(time_t curtime, int nsecs,
 			for (i=nsel=0; i < nactproc; i++)
 			{
 				if (procsuppress(*(proclist+i), &procsel))
+					continue;
+
+				if ((proclist[i])->gen.state == 'E' && supexits)
 					continue;
 
 				sellist[nsel++] = proclist[i]; 
@@ -1631,6 +1636,26 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** suppression of exited processes in output
+			   */
+			   case MSUPEXITS:
+				if (supexits)
+				{
+					supexits    = 0;
+					statmsg    = "Exited processes will "
+					             "be shown/accumulated";
+					firstproc  = 0;
+				}
+				else
+				{
+					supexits    = 1;
+					statmsg    = "Exited processes will "
+					             "not be shown/accumulated";
+					firstproc  = 0;
+				}
+				break;
+
+			   /*
 			   ** screen lines:
 			   **	         toggle for colors
 			   */
@@ -1840,6 +1865,9 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 		if (procsuppress(*curprocs, &procsel))
 			continue;
 
+		if ((*curprocs)->gen.state == 'E' && supexits)
+			continue;
+ 
 		if ( curusers->gen.ruid != (*curprocs)->gen.ruid )
 		{
 			if (curusers->gen.pid)
@@ -1919,6 +1947,9 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 	for (numprogs=i=0; i < numprocs; i++, curprocs++)
 	{
 		if (procsuppress(*curprocs, &procsel))
+			continue;
+
+		if ((*curprocs)->gen.state == 'E' && supexits)
 			continue;
 
 		if ( strcmp(curprogs->gen.name, (*curprocs)->gen.name) != 0)
@@ -2101,7 +2132,7 @@ generic_init(void)
 
 	/*
 	** check if default sort order and/or showtype are overruled
-	** by commando-line flags
+	** by command-line flags
 	*/
 	for (i=0; flaglist[i]; i++)
 	{
@@ -2222,6 +2253,13 @@ generic_init(void)
 				calcpss = 0;
 			else
 				calcpss = 1;
+			break;
+
+		   case MSUPEXITS:
+			if (supexits)
+				supexits = 0;
+			else
+				supexits = 1;
 			break;
 
 		   case MCOLORS:
@@ -2357,6 +2395,8 @@ static struct helptext {
 								MSYSFIXED},
 	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
 								MSYSNOSORT},
+	{"\t'%c'  - suppress exited processes in output            (toggle)\n",
+								MSUPEXITS},
 	{"\t'%c'  - no colors to indicate high occupation          (toggle)\n",
 								MCOLORS},
 	{"\t'%c'  - show average-per-second i.s.o. total values    (toggle)\n",
@@ -2469,6 +2509,8 @@ generic_usage(void)
 			MSYSFIXED);
 	printf("\t  -%c  suppress sorting of system resources\n",
 			MSYSNOSORT);
+	printf("\t  -%c  suppress exited processes in output\n",
+			MSUPEXITS);
 	printf("\t  -%c  show limited number of lines for certain resources\n",
 			MSYSLIMIT);
 	printf("\t  -%c  show individual threads\n", MTHREAD);
@@ -2764,7 +2806,7 @@ do_flags(char *name, char *val)
 			break;
 
 		   case MALLPROC:
-			deviatonly  = 0;
+			deviatonly = 0;
 			break;
 
 		   case MAVGVAL:
@@ -2772,11 +2814,11 @@ do_flags(char *name, char *val)
 			break;
 
 		   case MSYSFIXED:
-			fixedhead=1;
+			fixedhead = 1;
 			break;
 
 		   case MSYSNOSORT:
-			sysnosort=1;
+			sysnosort = 1;
 			break;
 
 		   case MTHREAD:
@@ -2784,7 +2826,15 @@ do_flags(char *name, char *val)
 			break;
 
 		   case MCOLORS:
-			usecolors=0;
+			usecolors = 0;
+			break;
+
+		   case MCALCPSS:
+			calcpss = 1;
+			break;
+
+		   case MSUPEXITS:
+			supexits = 1;
 			break;
 		}
 	}

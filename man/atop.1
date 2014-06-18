@@ -6,7 +6,7 @@
 Interactive usage:
 .P
 .B atop
-[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-afF1xR] [-L linelen] [-Plabel[,label]...]
+[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-afFG1xR] [-L linelen] [-Plabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I hh:mm
 ] [-e
 .I hh:mm
-] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-fF1xR] [-L linelen] [-Plabel[,label]...]
+] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-fFG1xR] [-L linelen] [-Plabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -577,6 +577,16 @@ Whether this key is active or not can be seen in the header line.
 The `all/active' key can be used to toggle between only showing/accumulating
 the processes that were active during the last interval (default) or
 showing/accumulating all processes.
+.br
+Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B G
+By default, 
+.I atop
+shows/accumulates the processes that are alive and the processes
+that are exited during the last interval. With this key (toggle),
+showing/accumulating the processes that are exited can be suppressed.
 .br
 Whether this key is active or not can be seen in the header line.
 .PP
