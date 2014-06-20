@@ -1,0 +1,147 @@
+.TH ATOPACCTD 8 "June 2014" "Linux"
+.SH NAME
+.B atopacctd
+- process accounting daemon
+.SH SYNOPSIS
+.P
+.B atopacctd
+[-v | topdirectory]
+.P
+.SH DESCRIPTION
+The
+.I atopacctd
+daemon switches on the process accounting feature in the kernel
+and let the process accounting records be written to a file,
+called the source file from now.
+After process accounting is actived, the
+.I atopacctd
+daemon transfers every process accounting record that is available
+in the source file to a shadow file.
+Client processes (like
+.I atop
+processes) will read the shadow files instead of the
+process accounting source file.
+.br
+In this way, the
+.I atopacctd
+daemon operates as a 'layer' between the process accounting file
+that is written by the kernel and the shadow accounting files that are read by
+.I atop
+processes.
+.PP
+This approach has the following advantages:
+.PP
+.TP 3
+.B o
+The
+.I atopacctd
+daemon takes care that the source file is kept to a limited size.
+As soon as its maximum size is reached, it is truncated to a size
+of zero again (this is not noticed by the
+.I atop
+processes).
+.PP
+.TP 3
+.B o
+The
+.I atopacct
+daemon takes care that a shadow file is kept to a limited size.
+As soon as the current shadow file reaches this maximum size, the
+.I atopacctd
+daemon creates a new (subsequent) shadow file.
+While client processes still have the possibility to read the previous
+shadow file(s), the
+.I atopacctd
+daemon continues writing accounting records to the newest (current)
+shadow file.
+For this reason, the name of a shadow file consists of a 10-digit
+sequence number followed by the extension '.paf' (process acounting file).
+Old shadow files that are not used by client processes any more, are
+automatically removed by the garbage collector in the
+.I atopacctd
+daemon.
+.PP
+.TP 3
+.B o
+When no client processes are active (any more), all shadow files
+will be deleted and no records will be transferred to a shadow file
+any more. As soon as at least one client is activate again, the
+.I atopacctd
+daemon continues writing shadow files.
+.PP
+The directory
+.B /var/run
+is used as the default topdirectory.
+Below this top-directory, the source file
+.B pacct_source
+is created to which the kernel writes the process accounting records.
+.br
+Furthermore, the subdirectory
+.B pacct_shadow.d
+is created as a 'container' for the shadow files.
+Apart from the shadow files, also the file
+.B current
+is maintained in this subdirectory, containing the sequence number of the
+current (newest) shadow file and the maximum number of records that will be
+written in each shadow file.
+.PP
+An alternative topdirectory can be specified as command line argument.
+When an alternative topdirectory is defined, also modify the
+configuration file
+.B /etc/atoprc
+to inform
+.I atop
+clients about this alternative location (see the 
+.B atoprc
+man page).
+Such alternative topdirectory should be owned by root and may not be
+writable for the group or others (security reasons).
+.PP
+Notice that the kernel suspends writing process accounting records
+when the free space of the filesystem on which the process accounting file
+resides drops below 2%. Writing is resumed when the free space is 4% or more.
+These lowwater and highwater percentages can be configured via the
+.B /proc/sys/kernel/acct
+pseudo-file.
+.br
+The
+.I atopacctd
+daemon suspends transferring process accounting records to shadow files
+when the free space of the filesystem on which the process accounting file
+resides drops below 5%. Transfer is resumed when the free space is 5% or more.
+Log messages are generated via syslog when writing to the current shadow
+file is suspended or resumed.
+.PP
+The
+.B -v
+flag can be used to verify the version of the
+.I atopacctd
+daemon.
+.PP
+.SH FILES
+.PP
+.TP 5
+.B /var/run/pacct_source
+Regular file to which the kernel writes the process accounting records.
+This file will be regularly truncated.
+.PP
+.TP 5
+.B /var/run/pacct_shadow.d/current
+Regular file containing the sequence number of the current shadow file
+and the maximum number of records per shadow file.
+.PP
+.TP 5
+.B /var/run/pacct_shadow.d/N.paf
+Regular files containing the process accounting records that have
+been copied transparently from the source file (N represents a 10-digit
+sequence number).
+.SH SEE ALSO
+.B atop(1),
+.B atopsar(1),
+.B atoprc(5),
+.B netatop(4),
+.B netatopd(8)
+.br
+.B http://www.atoptool.nl
+.SH AUTHOR
+Gerlof Langeveld (gerlof.langeveld@atoptool.nl)
