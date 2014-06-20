@@ -54,6 +54,7 @@ cp AUTHOR		/tmp/atop-$BRANCH
 cp atop.daily  		/tmp/atop-$BRANCH
 cp atop.cron  		/tmp/atop-$BRANCH
 cp atop.init  		/tmp/atop-$BRANCH
+cp atopacct.init 	/tmp/atop-$BRANCH
 cp atop.service 	/tmp/atop-$BRANCH
 cp psaccs_atop 		/tmp/atop-$BRANCH
 cp psaccu_atop 		/tmp/atop-$BRANCH
