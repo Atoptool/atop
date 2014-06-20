@@ -1,18 +1,34 @@
 /*
 ** The atopacctd daemon switches on the process accounting feature
-** in the kernel and passes all process accounting records to a
-** shadow file whenever they have been written by the kernel.
-** Client processes (like atop) can read the shadow files instead of
-** the original process accounting file.
-** This has the following advantages:
-** - The original process accounting file is kept to a limited size
+** in the kernel and let the process accounting records be written to
+** a file, called the source file. After process accounting is active,
+** the atopacctd daemon transfers every process accounting record that
+** is available in the source file to a shadow file.
+** Client processes (like atop) can read the shadow file instead of
+** the original process accounting source file.
+**
+** This approach has the following advantages:
+**
+** - The atopacctd daemon keeps the source file to a limited size
 **   by truncating it regularly.
-** - When no client processes are active, no shadow files will be written.
-** - A shadow file has a limited size. The name of a shadow file contains
-**   a sequence number. When the current shadow file reaches its maximum
-**   size, writing continues in the next shadow file.
+**
+** - The atopacct daemon takes care that a shadow file has a limited size.
+**   As soon as the current shadow file reaches its maximum size, the
+**   atopacctd daemon creates a subsequent shadow file. Therefor, the name
+**   of a shadow file contains a sequence number.
 **   Shadow files that are not used by client processes any more, are
-**   automatically removed.
+**   automatically removed by the atopacctd daemon.
+**
+** - When no client processes are active (any more), all shadow files
+**   will be deleted and no records will be transferred to shadow files
+**   any more. As soon as at least one client is activated again, the
+**   atopacctd daemon start writing shadow files again.
+**
+** The directory /var/run is used as the default top-directory. An
+** alternative top-directory can be specified as command line argument
+** (in that case, also modify /etc/atoprc to inform atop as a client).
+** Below this top-directory the source file pacct_source is created and
+** the subdirectory pacct_shadow.d as a 'container' for the shadow files.
 ** ----------------------------------------------------------------------
 ** Copyright (C) 2014    Gerlof Langeveld (gerlof.langeveld@atoptool.nl)
 **
@@ -71,6 +87,8 @@ static char		atopacctddate[]    = ATOPDATE;
 static unsigned long	maxshadowrec = MAXSHADOWREC;
 static char		*pacctdir    = PACCTDIR;
 
+static char		cleanup_and_go = 0;
+
 /*
 ** function prototypes
 */
@@ -79,6 +97,7 @@ static int		pass2shadow(int, char *, int);
 static void		gcshadows(long *, long);
 static void		setcurrent(long);
 static int		acctsize(struct acct *);
+static void		cleanup(int);
 
 int			netlink_open(void);	// from netlink.c
 
@@ -94,7 +113,8 @@ main(int argc, char *argv[])
 	struct sembuf		semincr = {0, +1, SEM_UNDO};
 
 	char			abuf[8192], nbuf[8192];
-	char			shadowdir[128], accountpath[128];
+	char			shadowdir[128], shadowpath[128];
+	char			accountpath[128];
 	int			arecsize = 0;
 	unsigned long long	atotsize = 0, stotsize = 0, maxshadowsz = 0;
 	long			oldshadow = 0, curshadow = 0;
@@ -336,6 +356,15 @@ main(int argc, char *argv[])
 	(void) close(2);
 
 	/*
+	** signal handling
+	*/
+	(void) signal(SIGHUP, SIG_IGN);
+
+	(void) signal(SIGINT,  cleanup);
+	(void) signal(SIGQUIT, cleanup);
+	(void) signal(SIGTERM, cleanup);
+
+	/*
 	** main loop
 	*/
 	for (EVER)
@@ -343,10 +372,21 @@ main(int argc, char *argv[])
 		int maxcnt = 50;	// retry counter
 
 		/*
+		** check if termination is required by receiving signal
+		*/
+		if (cleanup_and_go)
+			break;
+
+		/*
  		** wait for info from NETLINK indicating that at least
 		** one process has finished; the real contents of the
 		** NETLINK message is ignored, it is only used as trigger
 		** that something can be read from the accounting file
+		**
+		** notice that it is not possible to use inotify() on the
+		** source file as a trigger that a new accounting record
+		** has been written (does not work if the kernel writes
+		** itself)
 		*/
 		nsz = recv(nfd, nbuf, sizeof nbuf, 0);
 
@@ -463,8 +503,8 @@ main(int argc, char *argv[])
 			shadowbusy = 1;
 
 			/*
- 			** pass process accounting data to shadow file
-			** but be careful to fill a shadow file exactly
+ 			** transfer process accounting data to shadow file
+			** but take care to fill a shadow file exactly
 			** to its maximum and not more...
 			*/
 			if (stotsize + asz <= maxshadowsz) 	// would fit?
@@ -482,13 +522,14 @@ main(int argc, char *argv[])
 			{
 				/*
 				** calculate the remainder that has to
-				** be written to a new shadow file
+				** be written to the next shadow file
 				*/
 				partsz = maxshadowsz - stotsize;
 				remsz  = asz - partsz;
 
 				/*
-				** pass first part of the data
+				** transfer first part of the data to current
+				** shadow file
 				*/
 				if ( (ssz = pass2shadow(sfd, abuf, partsz)) > 0)
 					stotsize += ssz;
@@ -509,7 +550,7 @@ main(int argc, char *argv[])
 				stotsize = 0;
 
 				/*
-				** pass remaining part of the data
+				** transfer remaining part of the data
 				*/
 				if (remsz)
 				{
@@ -531,9 +572,32 @@ main(int argc, char *argv[])
 		}
 	}
 
-	(void) acct(0);
-	(void) unlink(accountpath);
-	return 0;
+	/*
+	** cleanup and terminate
+	*/
+	(void) acct(0);			// disable process accounting
+	(void) unlink(accountpath);	// remove source file
+
+	for (; oldshadow <= curshadow; oldshadow++)	// remove shadow files
+	{
+		/*
+		** assemble path name of shadow file (starting by oldest)
+		*/
+		snprintf(shadowpath, sizeof shadowpath, PACCTSHADOWF,
+					pacctdir, PACCTSHADOWD, oldshadow);
+
+		(void) unlink(shadowpath);
+	}
+
+	snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
+			pacctdir, PACCTSHADOWD, PACCTSHADOWC);
+	(void) unlink(shadowpath);	// remove file 'current'
+
+	(void) rmdir(shadowdir);	// remove shadow.d directory
+
+	syslog(LOG_INFO, "Terminated by signal %d\n", cleanup_and_go);
+
+	return cleanup_and_go + 128;	// exit code: signal number + 128
 }
 
 /*
@@ -561,7 +625,7 @@ createshadow(long seq)
 }
 
 /*
-** pass process accounting data to shadow file
+** transfer process accounting data to shadow file
 */
 static int
 pass2shadow(int sfd, char *sbuf, int ssz)
@@ -574,7 +638,8 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 	*/
 	if ( fstatvfs(sfd, &statvfs) != -1)
 	{
-		if (statvfs.f_bfree * 100 / statvfs.f_blocks < 5)
+		if (statvfs.f_blocks == 0 			||
+		    statvfs.f_bfree * 100 / statvfs.f_blocks < 5  )
 		{
 			if (nrskipped == 0)	// first skip?
 			{
@@ -588,6 +653,11 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 		}
 	}
 
+	/*
+  	** there is enough space in the filesystem (again)
+	** verify if writing has been suspended due to lack of space (if so,
+	** write a log message)
+	*/
 	if (nrskipped)
 	{
 		syslog(LOG_ERR, "Pacct writing continued (%llu skipped)\n",
@@ -596,11 +666,11 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 	}
 
 	/*
- 	** pass process accounting record(s) to shadow file
+ 	** transfer process accounting record(s) to shadow file
 	*/
 	if ( write(sfd, sbuf, ssz) == -1 )
 	{
-		syslog(LOG_ERR, "unexpected write error to shadow file: %s\n",
+		syslog(LOG_ERR, "Unexpected write error to shadow file: %s\n",
  		     					strerror(errno));
 		exit(7);
 	}
@@ -671,14 +741,25 @@ gcshadows(long *oldshadow, long curshadow)
 static void
 setcurrent(long curshadow)
 {
-	int	cfd, len;
-	char	currentpath[128], currentdata[128];
+	static int	cfd = -1;
+	char		currentpath[128], currentdata[128];
+	int		len;
 
 	/*
-	** assemble file name of currency file
+	** assemble file name of currency file and open (only once)
 	*/
-	snprintf(currentpath, sizeof currentpath, "%s/%s/%s",
+	if (cfd == -1)
+	{
+		snprintf(currentpath, sizeof currentpath, "%s/%s/%s",
 			pacctdir, PACCTSHADOWD, PACCTSHADOWC);
+
+		if ( (cfd = creat(currentpath, 0644)) == -1)
+		{
+			syslog(LOG_ERR, "Could not create currency file: %s\n",
+ 		     					strerror(errno));
+			return;
+		}
+	}
 
 	/*
 	** assemble ASCII string to be written: seqnumber/maxrecords
@@ -687,18 +768,11 @@ setcurrent(long curshadow)
 					curshadow, maxshadowrec);
 
 	/*
-	** create new currency file and write assembled string
+	** wipe currency file and write new assembled string
 	*/
-	if ( (cfd = creat(currentpath, 0644)) != -1)
-	{
-		(void) write(cfd, currentdata, len);
-		close(cfd);
-	}
-	else
-	{
-		syslog(LOG_ERR, "current number could not be written: %s\n",
- 		     					strerror(errno));
-	}
+	(void) ftruncate(cfd, 0);
+	(void) lseek(cfd, 0, SEEK_SET);
+	(void) write(cfd, currentdata, len);
 }
 
 /*
@@ -732,4 +806,14 @@ getstrvers(void)
 		atopacctdversion, atopacctddate);
 
 	return vers;
+}
+
+/*
+** signal catcher:
+**    set flag to be verified in main loop to cleanup and terminate
+*/
+void
+cleanup(int sig)
+{
+	cleanup_and_go = sig;
 }

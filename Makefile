@@ -10,6 +10,7 @@ SCRPATH  = /etc/atop
 LOGPATH  = /var/log/atop
 MAN1PATH = /usr/share/man/man1
 MAN5PATH = /usr/share/man/man5
+MAN8PATH = /usr/share/man/man8
 INIPATH  = /etc/init.d
 CRNPATH  = /etc/cron.d
 ROTPATH  = /etc/logrotate.d
@@ -54,6 +55,8 @@ install:	atop atopacctd
 			then mkdir -p $(DESTDIR)$(MAN1PATH); fi
 		if [ ! -d $(DESTDIR)$(MAN5PATH) ]; 	\
 			then mkdir -p $(DESTDIR)$(MAN5PATH); fi
+		if [ ! -d $(DESTDIR)$(MAN8PATH) ]; 	\
+			then mkdir -p $(DESTDIR)$(MAN8PATH); fi
 		if [ ! -d $(DESTDIR)$(INIPATH) ]; 	\
 			then mkdir -p $(DESTDIR)$(INIPATH); fi
 		if [ ! -d $(DESTDIR)$(CRNPATH) ]; 	\
@@ -83,6 +86,7 @@ install:	atop atopacctd
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
+		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
 		cp atopacct.init     	$(DESTDIR)$(INIPATH)/atopacct
 		cp atop.init     	$(DESTDIR)$(INIPATH)/atop
 		cp atop.cron     	$(DESTDIR)$(CRNPATH)/atop

@@ -99,27 +99,94 @@ mode (see section INTERACTIVE COMMANDS).
 Additional flags are available to support storage of atop-data in raw 
 format (see section RAW DATA STORAGE).
 .SH PROCESS ACCOUNTING
-When 
+With every interval,
 .I atop
-is started, it activates the process accounting mechanism in
-the kernel. This forces the kernel to write a record with
-accounting information to the accounting file whenever a process ends.
-With every interval, 
+reads the kernel administration to obtain information about all
+running processes.
+However, it is likely that during the interval also processes have terminated.
+These processes might have consumed system resources during
+this interval as well before they terminated.
+Therefor,
 .I atop
-reads the kernel administration concerning the running processes and 
-the accounting records on disk concerning the exited processes.
-In this way 
+tries to read the process accounting records that contain the accounting
+information of terminated processes and report these processes too.
+Only when the process accounting mechanism in the kernel is activated,
+the kernel writes such process accounting record to a file
+for every process that terminates.
+.PP
+There are various ways for
 .I atop
-also shows the remaining activity of a process during the interval
-in which it is finished.
+to get access to the process accounting records (tried in this order):
+.PP
+.TP 4
+1.
+When the environment variable ATOPACCT is set,
+it specifies the name of the process accounting file.
+In that case, process accounting for this file
+should have been activated on beforehand.
+Before opening this file for reading,
+.I atop
+drops its root privileges (if any).
 .br
-Whenever the last incarnation of
+When this environment variable is present but its
+contents is empty, process accounting will not be used at all.
+.PP
+.TP 4
+2.
+.B This is the preferred way of handling process accounting records!
+.br
+When the
+.I atopacctd
+daemon is active, it has activated the process accounting mechanism in
+the kernel and transfers to original accounting records to shadow files.
+In that case,
 .I atop
-stops (either by pressing `q' or by `kill -15'), it deactivates the
-process accounting mechanism again. Therefore you should never terminate
+drops its root privileges and opens the current shadow file for reading.
+.br
+This way is preferred, because the
+.I atopacctd
+daemon maintains full control of the sizes of the original process
+accounting file (written by the kernel) and the shadow files (read by the
+.I atop
+processes). For further information, refer to the
+.B atopacctd
+man page.
+.PP
+.TP 4
+3.
+When the
+.I atopacctd
+daemon is not active, 
+.I atop
+verifies if the process accounting mechanism has been switched on
+via the separate
+.B psacct
+package. In that case, the file
+.B /var/account/pacct
+is in use as process accounting file and 
+.I atop
+opens this file for reading.
+.PP
+.TP 4
+4.
+As a last possibility,
+.I atop
+itself tries to activate the process accounting mechanism (requires root
+privileges) using the file
+.B /tmp/atop.d/atop.acct
+(to be written by the kernel, to be read by
+.I atop
+itself). Process accounting remains active as long as
+at least one
+.I atop
+process is alive.
+Whenever the last
+.I atop
+process stops (either by pressing `q' or by `kill -15'), it deactivates the
+process accounting mechanism again. Therefor you should never terminate
 .I atop
 by `kill -9', because then it has no chance to stop process accounting.
-As a result the accounting file may consume a lot of 
+As a result, the accounting file may consume a lot of 
 disk space after a while.
 .br
 To avoid that the process accounting file consumes too much disk space,
@@ -128,38 +195,34 @@ verifies at the end of every sample if the size of the process accounting
 file exceeds 200 MiB and if this
 .I atop
 process is the only one that is currently using the file.
-In that case the file is truncated to a size of zero again.
+In that case the file is truncated to a size of zero.
+
+Notice that root-privileges are required to switch on/off process accounting
+in the kernel. You can start
+.I atop
+as a root user or specify setuid-root privileges to the executable file.
+In the latter case,
+.I atop
+switches on process accounting and drops the root-privileges again.
 .br
+If
+.I atop
+does not run with root-privileges, it does not show information
+about finished processes.
+It indicates this situation with the message
+message `no procacct` in the top-right corner (instead of the counter that
+shows the number of exited processes).
+.PP
 When during one interval a lot of processes have finished,
 .I atop
 might grow tremendously in memory when reading all process accounting
 records at the end of the interval. To avoid such excessive growth,
 .I atop
 will never read more than 50 MiB with process information from the
-process accounting file per interval (approx. 72000 finished processes).
+process accounting file per interval (approx. 70000 finished processes).
 In interactive mode a warning is given whenever processes have been skipped
 for this reason.
 .PP
-With the environment variable ATOPACCT the name of a specific process
-accounting file can be specified (accounting should have been activated
-on beforehand). When this environment variable is present but its
-contents is empty, process accounting will not be used at all.
-.PP
-Notice that root-privileges are required to switch on process accounting
-in the kernel. You can start
-.I atop
-as root or specify setuid-root privileges to the executable file.
-In the latter case, 
-.I atop
-switches on process accounting and immediately drops the root-privileges
-again.
-.br
-If
-.I atop
-does not run with root-privileges, it does not show information
-about finished processes. It indicates this situation with the message
-message `no procacct` in the top-right corner (instead of the counter that
-shows the number of exited processes).
 .SH COLORS
 For the resource consumption on system level,
 .I atop
@@ -755,8 +818,9 @@ with the contents
 .br
 .B \ \ \ \ \ \ \ \ 0 0 * * * root /etc/atop/atop.daily
 .PP
-When the RPM `psacct' is installed, the process accounting is
-automatically restarted via the
+When the package
+.B psacct
+is installed, the process accounting is automatically restarted via the
 .B logrotate
 mechanism. The file
 .B /etc/logrotate.d/psaccs_atop
@@ -768,8 +832,9 @@ and the file
 takes care that
 .B atop
 is restarted again after the rotation.
-When the RPM `psacct' is not installed, these logrotate-files
-have no effect.
+When the package
+.B psacct
+is not installed, these logrotate-files have no effect.
 .SH OUTPUT DESCRIPTION
 The first sample shows the system level activity since boot
 (the elapsed time in the header shows the time since boot).
@@ -1787,13 +1852,19 @@ View the contents of the standard logfile of 2012, June 7 from
 .SH FILES
 .PP
 .TP 5
+.B /var/run/pacct_shadow.d/
+Directory containing the process accounting shadow files that are
+used by
+.I atop
+when the
+.I atopacctd
+daemon is active.
+.PP
+.TP 5
 .B /tmp/atop.d/atop.acct
-File in which the kernel writes the accounting records if the standard
-accounting to the file
-.B /var/log/pacct
-or
-.B /var/account/pacct
-is not used.
+File in which the kernel writes the accounting records when
+.I atop
+itself has activated the process accounting mechanism.
 .PP
 .TP 5
 .B /etc/atoprc
@@ -1832,6 +1903,7 @@ after reading the standard process accounting records.
 .SH SEE ALSO
 .B atopsar(1),
 .B atoprc(5),
+.B atopacctd(8),
 .B netatop(4),
 .B netatopd(8),
 .B logrotate(8)

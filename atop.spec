@@ -39,6 +39,7 @@ install -Dp -m 0700 atopacctd 	  $RPM_BUILD_ROOT/usr/sbin/atopacctd
 install -Dp -m 0644 man/atop.1 	  $RPM_BUILD_ROOT/usr/share/man/man1/atop.1
 install -Dp -m 0644 man/atopsar.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopsar.1
 install -Dp -m 0644 man/atoprc.5  $RPM_BUILD_ROOT/usr/share/man/man5/atoprc.5
+install -Dp -m 0644 man/atopacctd.8  $RPM_BUILD_ROOT/usr/share/man/man8/atopacctd.5
 install -Dp -m 0755 atop.init 	  $RPM_BUILD_ROOT/etc/init.d/atop
 install -Dp -m 0755 atopacct.init $RPM_BUILD_ROOT/etc/init.d/atopacct
 install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/etc/atop/atop.daily
@@ -102,6 +103,7 @@ ln -sf /usr/bin/atop-XVERSX 	/usr/bin/atopsar-XVERSX
 /usr/share/man/man1/atop.1*
 /usr/share/man/man1/atopsar.1*
 /usr/share/man/man5/atoprc.5*
+/usr/share/man/man8/atopacctd.8*
 %config /etc/init.d/atop
 %config /etc/init.d/atopacct
 /etc/atop/atop.daily
