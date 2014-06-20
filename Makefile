@@ -98,6 +98,7 @@ install:	atop atopacctd
 		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; then /sbin/chkconfig --add atopacct; fi
 		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ]; then update-rc.d atop defaults; fi
 		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ]; then update-rc.d atopacct defaults; fi
+		if [ -z "$(DESTDIR)" -a -f /sbin/service ]; then /sbin/service atopacct start; fi
 
 distr: rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
