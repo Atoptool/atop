@@ -1299,6 +1299,11 @@ When the kernel maintains standard io statistics (>= 2.6.20):
 .br
 The read data transfer issued physically on disk (so reading from the
 disk cache is not accounted for).
+.br
+Unfortunately, the kernel aggregates the
+data tranfer of a process to the data transfer of its parent process when
+terminating, so you might see transfers for (parent) processes like
+cron, bash or init, that are not really issued by them.
 .PP
 .TP 9
 .B RGID
@@ -1554,6 +1559,11 @@ This counter is maintained for the application process that writes its
 data to the cache (assuming that this data is physically transferred
 to disk later on). Notice that disk I/O needed for swapping is
 not taken into account.
+.br
+Unfortunately, the kernel aggregates the
+data tranfer of a process to the data transfer of its parent process when
+terminating, so you might see transfers for (parent) processes like
+cron, bash or init, that are not really issued by them.
 .PP
 .TP 9
 .B WCANCL
