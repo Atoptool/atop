@@ -49,6 +49,7 @@
 #include <sys/sem.h>
 #include <errno.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
@@ -60,7 +61,12 @@
 #include "version.h"
 #include "atopacctd.h"
 
-#define	EVER	;;
+#define	RETRYCNT	25	// # retries to read account record
+#define	RETRYMS		10	// timeout (millisec) to read account record
+
+#define	NRINTERVAL	60	// no-record-available interval (seconds)
+
+#define GCINTERVAL      60      // garbage collection interval (seconds)
 
 /*
 ** Semaphore-handling
@@ -92,9 +98,11 @@ static char		cleanup_and_go = 0;
 /*
 ** function prototypes
 */
+static int		awaitprocterm(int, int, int, char *, int *,
+					unsigned long *, unsigned long *);
 static int		createshadow(long);
 static int		pass2shadow(int, char *, int);
-static void		gcshadows(long *, long);
+static void		gcshadows(unsigned long *, unsigned long);
 static void		setcurrent(long);
 static int		acctsize(struct acct *);
 static void		cleanup(int);
@@ -105,20 +113,17 @@ int			netlink_open(void);	// from netlink.c
 int
 main(int argc, char *argv[])
 {
-	int			i, nfd, afd, sfd, asz, nsz, ssz;
-	int			partsz, remsz;
-	int 			shadowbusy = 0;
-	struct stat		dirstat;
+	int		i, nfd, afd, sfd;
+	struct stat	dirstat;
+	struct rlimit	rlim;
 
-	struct sembuf		semincr = {0, +1, SEM_UNDO};
+	struct sembuf	semincr = {0, +1, SEM_UNDO};
 
-	char			abuf[8192], nbuf[8192];
-	char			shadowdir[128], shadowpath[128];
-	char			accountpath[128];
-	int			arecsize = 0;
-	unsigned long long	atotsize = 0, stotsize = 0, maxshadowsz = 0;
-	long			oldshadow = 0, curshadow = 0;
-	time_t			gclast = time(0);  // last garbage collection
+	char		shadowdir[128], shadowpath[128];
+	char		accountpath[128];
+	unsigned long	oldshadow = 0, curshadow = 0;
+	int 		shadowbusy = 0;
+	time_t		gclast = time(0);
 
 	/*
 	** argument passed?
@@ -146,7 +151,7 @@ main(int argc, char *argv[])
 		}
 
 		/*
-		** if first argument is not a flags, it should be the name
+		** if first argument is not a flag, it should be the name
 		** of an alternative top directory (to be validated later on)
 		*/
 		pacctdir = argv[1];
@@ -200,17 +205,17 @@ main(int argc, char *argv[])
 	if (dirstat.st_mode & (S_IWGRP|S_IWOTH))
 	{
 		fprintf(stderr,
-			"atopacctd: directory %s must not be writable "
+			"atopacctd: directory %s may not be writable "
 			"for group/others\n", pacctdir);
 		exit(2);
 	}
 
 	/*
 	** create the semaphore groups and initialize the semaphores;
-	** if the private group already exists, verify if another
+	** if the private semaphore already exists, verify if another
 	** atopacctd daemon is already running
 	*/
-	if ( (semprv = semget(PACCTPUBKEY-1, 0, 0)) >= 0)	// exists?
+	if ( (semprv = semget(PACCTPRVKEY, 0, 0)) >= 0)	// exists?
 	{
 		if ( semctl(semprv, 0, GETVAL, 0) > 0)
 		{
@@ -220,7 +225,7 @@ main(int argc, char *argv[])
 	}
 	else
 	{
-		if ( (semprv = semget(PACCTPUBKEY-1, 1,
+		if ( (semprv = semget(PACCTPRVKEY, 1,
 					0600|IPC_CREAT|IPC_EXCL)) >= 0)
 		{
 			(void) semctl(semprv, 0, SETVAL, 0);
@@ -248,24 +253,30 @@ main(int argc, char *argv[])
 
 	/*
 	** daemonize this process
+	** i.e. be sure that the daemon is no session leader (any more)
+	** and get rid of a possible bad context that might have been
+	** inherited from ancestors
 	*/
-	if ( fork() )
-		exit(0);	// implicitly switch to background
+	if ( fork() )			// implicitly switch to background
+		exit(0);		// continue in child process
 
-	setsid();
+	setsid();			// become session leader to lose ctty
 
-	if ( fork() )
-		exit(0);
+	if ( fork() )			// continue in child process
+		exit(0);		// --> no session leader, no ctty
 
-	for (i=0; i < 1024; i++)
+
+	getrlimit(RLIMIT_NOFILE, &rlim);
+
+	for (i=0; i < rlim.rlim_cur; i++)	// close all files, but
 	{
-		if (i != 2)	// stderr will be closed later on
+		if (i != 2)			// close stderr later on
 			close(i);
 	}
 
 	umask(022);
 
-	chdir("/tmp");
+	chdir("/tmp");				// go to a safe place
 
 	/*
 	** increase semaphore to define that atopacctd is running
@@ -304,8 +315,7 @@ main(int argc, char *argv[])
 	/*
  	** create directory to store the shadow files
 	*/
-	snprintf(shadowdir, sizeof shadowdir, "%s/%s",
-					pacctdir, PACCTSHADOWD);
+	snprintf(shadowdir, sizeof shadowdir, "%s/%s", pacctdir, PACCTSHADOWD);
 
 	if ( mkdir(shadowdir, 0755) == -1)
        	{
@@ -327,7 +337,7 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** open syslog interface for failure messages
+	** open syslog interface 
 	*/
 	openlog("atopacctd", LOG_PID, LOG_DAEMON);
 	syslog(LOG_INFO, "%s  <gerlof.langeveld@atoptool.nl>", getstrvers());
@@ -351,7 +361,7 @@ main(int argc, char *argv[])
 
 	/*
 	** close stderr
-	** from now on, only messages via syslog
+	** from now on, only generate messages via syslog
 	*/
 	(void) close(2);
 
@@ -367,199 +377,19 @@ main(int argc, char *argv[])
 	/*
 	** main loop
 	*/
-	for (EVER)
+	while (! cleanup_and_go)
 	{
-		int maxcnt = 50;	// retry counter
+		int	state;
 
 		/*
-		** check if termination is required by receiving signal
+		** await termination of (at least) one process and
+		** copy the process accounting record(s)
 		*/
-		if (cleanup_and_go)
+		state = awaitprocterm(nfd, afd, sfd, accountpath,
+					&shadowbusy, &oldshadow, &curshadow);
+
+		if (state == -1)	// irrecoverable error?
 			break;
-
-		/*
- 		** wait for info from NETLINK indicating that at least
-		** one process has finished; the real contents of the
-		** NETLINK message is ignored, it is only used as trigger
-		** that something can be read from the accounting file
-		**
-		** notice that it is not possible to use inotify() on the
-		** source file as a trigger that a new accounting record
-		** has been written (does not work if the kernel writes
-		** itself)
-		*/
-		nsz = recv(nfd, nbuf, sizeof nbuf, 0);
-
-		switch (nsz)
-		{
-		   case 0:		// EOF?
-			break;
-
-		   case -1:		// failure?
-			switch (errno)
-			{
-			   // acceptable errors that might indicate that
-			   // processes have terminated
-			   case EINTR:
-			   case ENOMEM:
-			   case ENOBUFS:
-				break;
-
-			   default:
-				syslog(LOG_ERR, "unexpected recv error: %s\n",
-							strerror(errno));
-				exit(8);
-			}
-		}
-
-		/*
- 		** read process accounting record(s)
-		** such record may not immediately be available (timing matter)
-		*/
-		while ((asz = read(afd, abuf, sizeof abuf)) == 0 && maxcnt--)
-			usleep(10000);
-
-		switch (asz)
-		{
-		   case 0:		// EOF?
-			continue;	// wait for NETLINK again
-
-		   case -1:		// failure?
-			syslog(LOG_INFO, "%s - unexpected read error: %s\n",
-						accountpath, strerror(errno));
-			break;
-
-		   default:
-			/*
- 			** only once: determine the size of an accounting
-			** record and calculate the maximum size for each
-			** shadow file
-			*/
-			if (!arecsize)
-			{
-				arecsize = acctsize((struct acct *)abuf);
-
-				if (arecsize)
-				{
-					maxshadowsz = maxshadowrec * arecsize;
-				}
-				else
-				{
-					syslog(LOG_ERR,
-					   "cannot determine size of record\n");
-					exit(9);
-				}
-			}
-
-			/*
- 			** truncate process accounting file regularly
-			*/
-			atotsize += asz;	// maintain current size
-
-			if (atotsize >= MAXORIGSZ)
-			{
-				if (truncate(accountpath, 0) != -1)
-				{
-					lseek(afd, 0, SEEK_SET);
-					atotsize = 0;
-				}
-			}
-
-			/*
- 			** determine if any client is using the shadow
-			** accounting files; if not, verify if clients
-			** have been using the shadow files till now and
-			** cleanup has to be performed
-			*/
-			if (NUMCLIENTS == 0)
-			{
-				/*
-				** did last client just disappeared?
-				*/
-				if (shadowbusy)
-				{
-					/*
-					** remove all shadow files
-					*/
-					gcshadows(&oldshadow, curshadow+1);
-					oldshadow = 0;
-					curshadow = 0;
-					stotsize  = 0;
-
-					/*
- 					** create new file with sequence 0
-					*/
-					(void) close(sfd);
-
-					sfd = createshadow(curshadow);
-					setcurrent(curshadow);
-
-					shadowbusy = 0;
-				}
-		
-				continue;
-			}
-
-			shadowbusy = 1;
-
-			/*
- 			** transfer process accounting data to shadow file
-			** but take care to fill a shadow file exactly
-			** to its maximum and not more...
-			*/
-			if (stotsize + asz <= maxshadowsz) 	// would fit?
-			{
-				/*
-				** pass all data
-				*/
-				if ( (ssz = pass2shadow(sfd, abuf, asz)) > 0)
-					stotsize += ssz;
-
-				remsz  = 0;
-				partsz = 0;
-			}
-			else
-			{
-				/*
-				** calculate the remainder that has to
-				** be written to the next shadow file
-				*/
-				partsz = maxshadowsz - stotsize;
-				remsz  = asz - partsz;
-
-				/*
-				** transfer first part of the data to current
-				** shadow file
-				*/
-				if ( (ssz = pass2shadow(sfd, abuf, partsz)) > 0)
-					stotsize += ssz;
-			}
-
-			/*
- 			** verify if current shadow file has reached its
-			** maximum size; if so, switch to next sequence number
-			** and write remaining data (if any)
-			*/
-			if (stotsize >= maxshadowsz)
-			{
-				close(sfd);
-
-				sfd = createshadow(++curshadow);
-				setcurrent(curshadow);
-
-				stotsize = 0;
-
-				/*
-				** transfer remaining part of the data
-				*/
-				if (remsz)
-				{
-					if ( (ssz = pass2shadow(sfd,
-						    abuf+partsz, remsz)) > 0)
-						stotsize += ssz;
-				}
-			}
-		}
 
 		/*
  		** verify if garbage collection is needed
@@ -595,10 +425,246 @@ main(int argc, char *argv[])
 
 	(void) rmdir(shadowdir);	// remove shadow.d directory
 
-	syslog(LOG_INFO, "Terminated by signal %d\n", cleanup_and_go);
-
-	return cleanup_and_go + 128;	// exit code: signal number + 128
+	if (cleanup_and_go)
+	{
+		syslog(LOG_NOTICE, "Terminated by signal %d\n", cleanup_and_go);
+		return cleanup_and_go + 128;
+	}
+	else
+	{
+		syslog(LOG_NOTICE, "Terminated!\n");
+		return 13;
+	}
 }
+
+
+/*
+** wait for at least one process termination and copy process accounting
+** record(s) from the source process accounting file to the current
+** shadow accounting file
+**
+** return code:	0 - no process accounting record read
+**              1 - at least one process accounting record read
+**             -1 - irrecoverable failure
+*/
+static int
+awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
+	int *shadowbusyp, unsigned long *oldshadowp, unsigned long *curshadowp)
+{
+	static int			arecsize;
+	static unsigned long long	atotsize, stotsize, maxshadowsz;
+	static time_t			reclast;
+
+	int	asz, nsz, ssz;
+	char	abuf[8192], nbuf[8192];
+	int	retrycnt = RETRYCNT;
+	int	partsz, remsz;
+
+	/*
+	** neutral state:
+	**
+ 	** wait for info from NETLINK indicating that at least
+	** one process has finished; the real contents of the
+	** NETLINK message is ignored, it is only used as trigger
+	** that something can be read from the process accounting file
+	**
+	** unfortunately it is not possible to use inotify() on the
+	** source file as a trigger that a new accounting record
+	** has been written (does not work if the kernel itself
+	** writes to the file)
+	*/
+	nsz = recv(nfd, nbuf, sizeof nbuf, 0);
+
+	if (nsz == 0) 		// EOF?
+	{
+		syslog(LOG_ERR, "unexpected EOF on NETLINK\n");
+		return -1;
+	}
+
+	if (nsz == -1)		// failure?
+	{
+		switch (errno)
+		{
+		   // acceptable errors that might indicate that
+		   // processes have terminated
+		   case EINTR:
+		   case ENOMEM:
+		   case ENOBUFS:
+			break;
+
+		   default:
+			syslog(LOG_ERR, "unexpected error on NETLINK: %s\n",
+						strerror(errno));
+			return -1;
+		}
+	}
+
+	/*
+ 	** read new process accounting record(s)
+	** such record(s) may not immediately be available (timing)
+	*/
+	while ((asz = read(afd, abuf, sizeof abuf)) == 0 && --retrycnt)
+		usleep(RETRYMS*1000);
+
+	switch (asz)
+	{
+	   case 0:		// EOF (no records available)?
+		if (time(0) > reclast + NRINTERVAL)
+		{
+			syslog(LOG_WARNING, "reactivate process accounting\n");
+
+			if (truncate(accountpath, 0) != -1)
+			{
+				lseek(afd, 0, SEEK_SET);
+				atotsize = 0;
+				(void) acct(accountpath);
+			}
+
+			reclast = time(0);
+		}
+
+		return 0;	// wait for NETLINK again
+
+	   case -1:		// failure?
+		syslog(LOG_ERR, "%s - unexpected read error: %s\n",
+					accountpath, strerror(errno));
+		return -1;
+	}
+
+	reclast = time(0);
+
+	/*
+ 	** only once: determine the size of an accounting
+	** record and calculate the maximum size for each
+	** shadow file
+	*/
+	if (!arecsize)
+	{
+		arecsize = acctsize((struct acct *)abuf);
+
+		if (arecsize)
+		{
+			maxshadowsz = maxshadowrec * arecsize;
+		}
+		else
+		{
+			syslog(LOG_ERR,
+			       "cannot determine size of account record\n");
+			return -1;
+		}
+	}
+
+	/*
+ 	** truncate process accounting file regularly
+	*/
+	atotsize += asz;	// maintain current size
+
+	if (atotsize >= MAXORIGSZ)
+	{
+		if (truncate(accountpath, 0) != -1)
+		{
+			lseek(afd, 0, SEEK_SET);
+			atotsize = 0;
+		}
+	}
+
+	/*
+ 	** determine if any client is using the shadow
+	** accounting files; if not, verify if clients
+	** have been using the shadow files till now and
+	** cleanup has to be performed
+	*/
+	if (NUMCLIENTS == 0)
+	{
+		/*
+		** did last client just disappeared?
+		*/
+		if (*shadowbusyp)
+		{
+			/*
+			** remove all shadow files
+			*/
+			gcshadows(oldshadowp, (*curshadowp)+1);
+			*oldshadowp = 0;
+			*curshadowp = 0;
+			stotsize    = 0;
+
+			/*
+ 			** create new file with sequence 0
+			*/
+			(void) close(sfd);
+
+			sfd = createshadow(*curshadowp);
+			setcurrent(*curshadowp);
+
+			*shadowbusyp = 0;
+		}
+
+		return 1;
+	}
+
+	*shadowbusyp = 1;
+
+	/*
+ 	** transfer process accounting data to shadow file
+	** but take care to fill a shadow file exactly
+	** to its maximum and not more...
+	*/
+	if (stotsize + asz <= maxshadowsz) 	// would fit?
+	{
+		/*
+		** pass all data
+		*/
+		if ( (ssz = pass2shadow(sfd, abuf, asz)) > 0)
+			stotsize += ssz;
+
+		remsz  = 0;
+		partsz = 0;
+	}
+	else
+	{
+		/*
+		** calculate the remainder that has to
+		** be written to the next shadow file
+		*/
+		partsz = maxshadowsz - stotsize;
+		remsz  = asz - partsz;
+
+		/*
+		** transfer first part of the data to current
+		** shadow file
+		*/
+		if ( (ssz = pass2shadow(sfd, abuf, partsz)) > 0)
+			stotsize += ssz;
+	}
+
+	/*
+ 	** verify if current shadow file has reached its
+	** maximum size; if so, switch to next sequence number
+	** and write remaining data (if any)
+	*/
+	if (stotsize >= maxshadowsz)
+	{
+		close(sfd);
+
+		sfd = createshadow(++(*curshadowp));
+		setcurrent(*curshadowp);
+
+		stotsize = 0;
+
+		/*
+		** transfer remaining part of the data
+		*/
+		if (remsz)
+		{
+			if ( (ssz = pass2shadow(sfd, abuf+partsz, remsz)) > 0)
+				stotsize += ssz;
+		}
+	}
+
+	return 1;
+}
+
 
 /*
 ** create first shadow file with requested sequence number
@@ -643,8 +709,9 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 		{
 			if (nrskipped == 0)	// first skip?
 			{
-				syslog(LOG_ERR, "Filesystem > 95%% full; "
-						"pacct writing skipped\n");
+				syslog(LOG_WARNING,
+					"Filesystem > 95%% full; "
+					"pacct writing skipped\n");
 			}
 
 			nrskipped++;
@@ -660,7 +727,7 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 	*/
 	if (nrskipped)
 	{
-		syslog(LOG_ERR, "Pacct writing continued (%llu skipped)\n",
+		syslog(LOG_WARNING, "Pacct writing continued (%llu skipped)\n",
 								nrskipped);
 		nrskipped = 0;
 	}
@@ -690,12 +757,11 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 ** in use by at least one reader.
 */
 static void
-gcshadows(long *oldshadow, long curshadow)
+gcshadows(unsigned long *oldshadowp, unsigned long curshadow)
 {
 	struct flock	flock;
 	int		tmpsfd;
 	char		shadowpath[128];
-	long 		save_old;
 
 	/*
 	** fill flock structure: write lock on first byte
@@ -705,13 +771,13 @@ gcshadows(long *oldshadow, long curshadow)
 	flock.l_start 	= 0;
 	flock.l_len 	= 1;
 	
-	for (save_old = *oldshadow; *oldshadow < curshadow; (*oldshadow)++)
+	for (; *oldshadowp < curshadow; (*oldshadowp)++)
 	{
 		/*
 		** assemble path name of shadow file (starting by oldest)
 		*/
 		snprintf(shadowpath, sizeof shadowpath, PACCTSHADOWF,
-					pacctdir, PACCTSHADOWD, *oldshadow);
+					pacctdir, PACCTSHADOWD, *oldshadowp);
 
 		/*
 		** try to open oldest existing file for write

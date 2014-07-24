@@ -1,8 +1,8 @@
 /*
-** key to access the semaphore that reflects the number
-** of clients using the shadow file(s)
+** keys to access the semaphores
 */
-#define PACCTPUBKEY	1071980
+#define PACCTPUBKEY	1071980		// # clients using shadow files
+#define PACCTPRVKEY	(PACCTPUBKEY-1)	// # atopacctd daemons busy (max. 1)
 
 /*
 ** directory containing the source accounting file and
@@ -28,5 +28,3 @@
 						// sequence and MAXSHADOWREC
 
 #define MAXSHADOWREC	10000 	// number of accounting records per shadow file
-
-#define	GCINTERVAL	60	// garbage collection interval (seconds)
