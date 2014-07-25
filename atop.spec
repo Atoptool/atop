@@ -75,6 +75,8 @@ then
 fi
 
 # activate daily logging for today
+/usr/sbin/atopacctd
+sleep 2
 /etc/atop/atop.daily
 
 %preun
