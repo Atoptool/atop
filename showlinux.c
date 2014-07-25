@@ -862,8 +862,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:4 "
-	                "HUPUSE:3 "
-	                "BLANKBOX:0", memsyspdefs, "built in memline");
+	                "HUPUSE:3 ", memsyspdefs, "built in memline");
                 }
                 if (swpline[0].f == 0)
                 {
