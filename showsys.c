@@ -182,7 +182,7 @@ void showsysline(sys_printpair* elemptr,
         // >>>> | datadatadata<<<<<
         //     012345678901234
         
-        /* how items will fit on one line? */
+        /* how many items will fit on one line? */
         int avail = (maxw-5)/15;
 
         syscolorlabel(labeltext, badness);
@@ -218,7 +218,6 @@ void showsysline(sys_printpair* elemptr,
                         (nitems-lowestprio_index)* sizeof(sys_printpair));   
                        // also copies final 0 entry
                 nitems--;
-                
         }
 
         /* 
@@ -228,9 +227,10 @@ void showsysline(sys_printpair* elemptr,
          * bars
          */
         double slackitemsover;
+
         if (nitems >1)
         {
-                slackitemsover=(double)(avail-nitems)/(nitems-1);
+                slackitemsover=(double)(avail-nitems)/(nitems);
         }
         else 
         {
@@ -240,16 +240,15 @@ void showsysline(sys_printpair* elemptr,
 
         // charslack: the slack in characters after using as many
         // items as possible
-        double charslackover = screen ? ((COLS - 5) % 15) : 0.0;
-
+        double charslackover = screen ? ((COLS - 5) % 15) : ((linelen - 5) %15);
 
         // two places per items where blanks can be added
         charslackover /= (avail * 2);    
 
-
         double charslackused=0.0;
         double itemslackused=0.0;
         elemptr=newelems;
+
         while ((curelem=elemptr->f)!=0) 
         {
 		char 	*itemp;
@@ -300,18 +299,16 @@ void showsysline(sys_printpair* elemptr,
                                 attroff(A_BOLD);
 		}
 
-                if (screen)
+                itemslackused+=slackitemsover;
+                while (itemslackused>0.5)
                 {
-                        itemslackused+=slackitemsover;
-                        while (itemslackused>0.5)
-                        {
-                                addblanks(&charslackused, &charslackover);
-                                printg(" | ");
-                                printg("%s", sysprt_BLANKBOX(0, 0, 0, 0));
-                                addblanks(&charslackused, &charslackover);
-                                itemslackused-=1;
-                        }
+                        addblanks(&charslackused, &charslackover);
+                        printg(" | ");
+                        printg("%s", sysprt_BLANKBOX(0, 0, 0, 0));
+                        addblanks(&charslackused, &charslackover);
+                        itemslackused-=1;
                 }
+
                 elemptr++;
 
                 addblanks(&charslackused, &charslackover);
