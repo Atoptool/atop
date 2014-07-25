@@ -2433,7 +2433,7 @@ static int helplines = sizeof(helptext)/sizeof(struct helptext);
 static void
 showhelp(int helpline)
 {
-	int	winlines = LINES-helpline, lin;
+	int	winlines = LINES-helpline, shown, tobeshown=1, i;
 	WINDOW	*helpwin;
 
 	/*
@@ -2446,24 +2446,33 @@ showhelp(int helpline)
 	/*
 	** show help-lines 
 	*/
-	for (lin=0; lin < helplines; lin++)
+	for (i=0, shown=0; i < helplines; i++, shown++)
 	{
-		wprintw(helpwin, helptext[lin].helpline, helptext[lin].helparg);
+		wprintw(helpwin, helptext[i].helpline, helptext[i].helparg);
 
 		/*
 		** when the window is full, start paging interactively
 		*/
-		if (lin >= winlines-2)
+		if (i >= winlines-2 && shown >= tobeshown)
 		{
 			wmove    (helpwin, winlines-1, 0);
 			wclrtoeol(helpwin);
-			wprintw  (helpwin, "Press any key for next line or "
-			                   "'q' to leave help .......");
+			wprintw  (helpwin, "Press 'q' to leave help, " 
+					"space for next page or "
+					"other key for next line... ");
 
-			if (wgetch(helpwin) == 'q')
+			switch (wgetch(helpwin))
 			{
+			   case 'q':
 				delwin(helpwin);
 				return;
+			   case ' ':
+				shown = 0;
+				tobeshown = winlines-1;
+				break;
+			   default:
+				shown = 0;
+				tobeshown = 1;
 			}
 
 			wmove  (helpwin, winlines-1, 0);
@@ -2472,8 +2481,8 @@ showhelp(int helpline)
 
 	wmove    (helpwin, winlines-1, 0);
 	wclrtoeol(helpwin);
-	wprintw  (helpwin, "End of help - press any key to continue....");
-	(void) wgetch(helpwin);
+	wprintw  (helpwin, "End of help - press 'q' to leave help... ");
+        while ( wgetch(helpwin) != 'q' );
 	delwin   (helpwin);
 }
 
