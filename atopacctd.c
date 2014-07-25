@@ -276,7 +276,7 @@ main(int argc, char *argv[])
 
 	umask(022);
 
-	chdir("/tmp");				// go to a safe place
+	(void) chdir("/tmp");			// go to a safe place
 
 	/*
 	** increase semaphore to define that atopacctd is running
