@@ -1,12 +1,12 @@
-.TH ATOP 1 "June 2014" "Linux"
+.TH ATOP 1 "August 2014" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
 .SH SYNOPSIS
-Interactive usage:
+Interactive Usage:
 .P
 .B atop
-[-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-afFG1xR] [-L linelen] [-Plabel[,label]...]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]...]
 [
 .I interval
 [
@@ -16,9 +16,9 @@ Interactive usage:
 Writing and reading raw logfiles:
 .P
 .B atop
--w
+\-w
 .I rawfile
-[-a] [-S]
+[\-a] [\-S]
 [
 .I interval
 [
@@ -26,13 +26,13 @@ Writing and reading raw logfiles:
 ]]
 .br
 .B atop
--r [
+\-r [
 .I rawfile
-] [-b 
+] [\-b 
 .I hh:mm
-] [-e
+] [\-e
 .I hh:mm
-] [-g|-m|-d|-n|-u|-p|-s|-c|-v|-o|-y] [-C|-M|-D|-N|-A] [-fFG1xR] [-L linelen] [-Plabel[,label]...]
+] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -42,7 +42,7 @@ It shows the occupation of the most critical hardware resources
 and network.
 .br
 It also shows which processes are responsible for the indicated
-load with respect to cpu- and memory load on process level.
+load with respect to cpu and memory load on process level.
 Disk load is shown per process if "storage accounting" is active in the kernel.
 Network load is shown per process if the kernel module `netatop'
 has been installed.
@@ -182,10 +182,10 @@ at least one
 process is alive.
 Whenever the last
 .I atop
-process stops (either by pressing `q' or by `kill -15'), it deactivates the
+process stops (either by pressing `q' or by `kill \-15'), it deactivates the
 process accounting mechanism again. Therefor you should never terminate
 .I atop
-by `kill -9', because then it has no chance to stop process accounting.
+by `kill \-9', because then it has no chance to stop process accounting.
 As a result, the accounting file may consume a lot of 
 disk space after a while.
 .br
@@ -229,10 +229,10 @@ For the resource consumption on system level,
 uses colors to indicate that a critical occupation percentage has
 been (almost) reached. 
 A critical occupation percentage means that is likely that this load
-causes a noticable negative performance influence for applications using
+causes a noticeable negative performance influence for applications using
 this resource. The critical percentage depends on the type of resource:
 e.g. the performance influence of a disk with a busy percentage of 80%
-might be more noticable for applications/user than a CPU with a busy
+might be more noticeable for applications/user than a CPU with a busy
 percentage of 90%.
 .br
 Currently
@@ -285,7 +285,7 @@ for all resources) can be modified in the configuration file
 The default colors red and cyan can be modified in the configuration file
 as well (see separate man-page of atoprc).
 .PP
-With the key 'x' (or flag -x), the use of colors can be suppressed.
+With the key 'x' (or flag \-x), the use of colors can be suppressed.
 .SH NETATOP MODULE
 Per-process and per-thread network activity can be measured by the
 .I netatop
@@ -332,7 +332,7 @@ Show generic output (default).
 Per process the following fields are shown in case of a window-width
 of 80 positions:
 process-id, cpu consumption during
-the last interval in system- and user mode, the virtual and resident
+the last interval in system and user mode, the virtual and resident
 memory growth of the process.
 
 The subsequent columns depend on the used kernel:
@@ -463,12 +463,12 @@ Show the process activity accumulated per user.
 
 Per user the following fields are shown: number of processes active
 or terminated during last interval (or in total if combined with command `a'),
-accumulated cpu consumption during last interval in system- and user mode,
+accumulated cpu consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
 (or all processes of the user if combined with command `a'). 
 .br
 When "storage accounting" is active in the kernel,
-the accumulated read- and write throughput on disk is shown.
+the accumulated read and write throughput on disk is shown.
 When the kernel module `netatop' has been installed,
 the number of received and sent network packets are shown.
 .br
@@ -481,12 +481,12 @@ Show the process activity accumulated per program (i.e. process name).
 
 Per program the following fields are shown: number of processes active
 or terminated during last interval (or in total if combined with command `a'),
-accumulated cpu consumption during last interval in system- and user mode,
+accumulated cpu consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
 (or all processes of the user if combined with command `a'). 
 .br
 When "storage accounting" is active in the kernel,
-the accumulated read- and write throughput on disk is shown.
+the accumulated read and write throughput on disk is shown.
 When the kernel module `netatop' has been installed,
 the number of received and sent network packets are shown.
 .br
@@ -735,11 +735,11 @@ With the arrow-up key the list can be scrolled upwards with single lines.
 .B ^L
 Redraw the screen.
 .SH RAW DATA STORAGE
-In order to store system- and process level statistics for long-term
+In order to store system and process level statistics for long-term
 analysis (e.g. to check the system load and the active processes running
 yesterday between 3:00 and 4:00 PM),
 .I atop
-can store the system- and process level statistics in
+can store the system and process level statistics in
 compressed binary format in a raw file with the flag
 .B -w
 followed by the filename.
@@ -1041,17 +1041,16 @@ For the transport layer,
 counters are shown concerning the number of received TCP segments
 including those received in error (`tcpi'),
 the number of transmitted TCP segments excluding
-those containing only retransmitted octets (`tcpo'), the number of
-UDP datagrams received (`udpi'),
+those containing only retransmitted octets (`tcpo'),
+the number of UDP datagrams received (`udpi'),
 the number of UDP datagrams transmitted (`udpo'),
 the number of active TCP opens (`tcpao'),
 the number of passive TCP opens (`tcppo'),
 the number of TCP output retransmissions (`tcprs'),
 the number of TCP input errors (`tcpie'),
-the number of TCP output resets (`tcpie'),
-the number of TCP output retransmissions (`tcpor'),
+the number of TCP output resets (`tcpor'),
 the number of UDP no ports (`udpnp'), and
-the number of UDP input errors (`tcpie').
+the number of UDP input errors (`udpie').
 .br
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -1101,7 +1100,7 @@ The number of lines showing the network interfaces can be limited.
 .SH OUTPUT DESCRIPTION - PROCESS LEVEL
 Following the system level information, the processes are shown from which the
 resource utilization has changed during the last interval. These processes
-might have used cpu time or issued disk- or network requests. However a process
+might have used cpu time or issued disk or network requests. However a process
 is also shown if part of it has been paged out due to lack of memory (while
 the process itself was in sleep state).
 .PP
@@ -1190,6 +1189,10 @@ Time that the process has been finished. If the process is still running,
 this field shows `active'.
 .PP
 .TP 9
+.B ENVID
+Virtual environment identified (OpenVZ only).
+.PP
+.TP 9
 .B EUID
 Effective user-id under which this process executes.
 .PP
@@ -1231,7 +1234,7 @@ This information will only be shown when kernel module `netatop' is loaded.
 .PP
 .TP 9
 .B NICE
-The more or less static priority that can be given to a proces on a
+The more or less static priority that can be given to a process on a
 scale from -20 (high priority) to +19 (low priority).
 .PP
 .TP 9
@@ -1591,7 +1594,7 @@ For process-level statistics special labels are introduced:
 "storage accounting" is active) and "PRN" (network, only if
 the kernel module 'netatop' has been installed). 
 .br
-With the label "ALL", all system- and process-level statistics are shown.
+With the label "ALL", all system and process level statistics are shown.
 .PP
 For every interval all requested lines are shown whereafter
 .B atop
@@ -1831,7 +1834,7 @@ processes sorted on memory consumption:
 .TP 12
 .B \  atop -M 60 30 > /log/atop.mem
 .PP
-Store information about the system- and process activity in binary compressed
+Store information about the system and process activity in binary compressed
 form to a file with an interval of ten minutes during an hour:
 .PP
 .TP 12
@@ -1841,7 +1844,7 @@ View the contents of this file interactively:
 .PP
 .B \  atop -r /tmp/atop.raw
 .PP
-View the processor- and disk-utilization of this file in parseable format:
+View the processor and disk utilization of this file in parseable format:
 .PP
 .B \  atop -PCPU,DSK -r /tmp/atop.raw
 .PP
@@ -1854,10 +1857,10 @@ interactively:
 .PP
 .B \  atop -r yy
 .PP
-View the contents of the standard logfile of 2012, June 7 from
+View the contents of the standard logfile of 2014, June 7 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20120607 -b 14:00
+.B \  atop -r 20140607 -b 14:00
 .PP
 .SH FILES
 .PP
@@ -1899,7 +1902,7 @@ as default name for the input file when using the
 .B -r
 flag.
 .br
-All binary system- and process-level data in this file has been stored
+All binary system and process level data in this file has been stored
 in compressed format. 
 .PP
 .TP 5

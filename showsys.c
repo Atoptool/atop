@@ -1495,7 +1495,7 @@ sysprt_NETUDPINERR(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="udpip  ";
+        static char buf[16]="udpie  ";
         val2valstr(sstat->net.udpv4.InErrors,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
 }

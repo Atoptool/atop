@@ -30,13 +30,13 @@ VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 all: 		atop atopsar atopacctd
 
 atop:		atop.o    $(ALLMODS) Makefile
-		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt
+		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt $(LDFLAGS)
 
 atopsar:	atop
 		ln -sf atop atopsar
 
 atopacctd:	atopacctd.o netlink.o
-		$(CC) atopacctd.o netlink.o -o atopacctd
+		$(CC) atopacctd.o netlink.o -o atopacctd $(LDFLAGS)
 
 netlink.o:	netlink.c
 		$(CC) -I. -Wall -c netlink.c

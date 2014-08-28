@@ -1,23 +1,23 @@
-.TH ATOPSAR 1 "June 2014" "Linux"
+.TH ATOPSAR 1 "August 2014" "Linux"
 .SH NAME
 .B atopsar
 - Advanced System Activity Report (atop related)
 .SH SYNOPSIS
 .P
 .B atopsar
-[-flags...]
-[-r
+[\-flags...]
+[\-r
 .I file|date
-] [-R
+] [\-R
 .I cnt
-] [-b
+] [\-b
 .I hh:mm
-] [-e
+] [\-e
 .I hh:mm
 ]
 .br
 .B atopsar
-[-flags...]
+[\-flags...]
 .I interval
 [
 .I samples
@@ -155,7 +155,7 @@ on the number of lines); for output to a file or pipe this value is 23.
 Summarize
 .I cnt
 samples into one sample. When the logfile contains e.g. samples of 10 minutes,
-the use of the flag '-R 6' shows a report with one sample for every hour.
+the use of the flag '\-R 6' shows a report with one sample for every hour.
 .PP
 Other flags are used to define which reports are required:
 .PP
@@ -561,7 +561,7 @@ Number of IP datagrams that local higher-layer protocols
 supplied to IP in requests for transmission per second (ipOutRequests).
 .TP 12
 .B indeliver/s
-Number of received IP datagrams that have been succesfully delivered to
+Number of received IP datagrams that have been successfully delivered to
 higher protocol-layers per second (ipInDelivers).
 .TP 12
 .B forward/s
@@ -570,7 +570,7 @@ their final IP destination, as a result of which an attempt was made to
 forward (ipForwDatagrams).
 .TP 12
 .B reasmok/s
-Number of IP datagrams succesfully reassembled per second (ipReasmOKs).
+Number of IP datagrams successfully reassembled per second (ipReasmOKs).
 .TP 12
 .B fragcreat/s
 Number of IP datagram fragments generated per second at this entity
@@ -735,11 +735,11 @@ Number of multicast packets per second that have been transmitted to the
 interface (ipv6IfStatsOutMcastPkts).
 .TP 12
 .B indeliv/s
-Number of IP datagrams succesfully delivered per second to
+Number of IP datagrams successfully delivered per second to
 IPv6 user-protocols, including ICMP (ipv6IfStatsInDelivers).
 .TP 12
 .B reasmok/s
-Number of IPv6 datagrams succesfully reassembled per second
+Number of IPv6 datagrams successfully reassembled per second
 (ipv6IfStatsReasmOKs).
 .TP 12
 .B fragcre/s
