@@ -561,6 +561,12 @@ procstatus(struct tstat *curtask)
 			continue;
 		}
 
+		if (memcmp(line, "envID:", 6) ==0)
+		{
+			sscanf(line, "envID: %d", &(curtask->gen.envid));
+			continue;
+		}
+
 		if (memcmp(line, "Threads:", 8)==0)
 		{
 			sscanf(line, "Threads: %d", &(curtask->gen.nthr));

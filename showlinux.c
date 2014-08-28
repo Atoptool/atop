@@ -481,6 +481,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_EGID,
 	&procprt_SGID,
 	&procprt_FSGID,
+	&procprt_ENVID,
 	&procprt_STDATE,
 	&procprt_STTIME,
 	&procprt_ENDATE,
@@ -1004,7 +1005,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in memprocs");
 
                 make_proc_prints(schedprocs, MAXITEMS, 
-                        "PID:10 TID:6 TRUN:7 TSLPI:7 TSLPU:7 POLI:8 "
+                        "PID:10 TID:6 ENVID:5 TRUN:7 TSLPI:7 TSLPU:7 POLI:8 "
                         "NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 EXC:8 "
                         "S:8 SORTITEM:10 CMD:10", 
                         "built-in schedprocs");
@@ -1024,7 +1025,8 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in netprocs");
 
                 make_proc_prints(varprocs, MAXITEMS,
-                        "PID:10 TID:4 PPID:9 RUID:8 RGID:8 EUID:5 EGID:4 "
+                        "PID:10 TID:4 PPID:9 ENVID:1 "
+			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
                         "STDATE:7 STTIME:7 ENDATE:5 ENTIME:5 "
 			"ST:6 EXC:6 S:6 SORTITEM:10 CMD:10", 

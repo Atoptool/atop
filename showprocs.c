@@ -521,6 +521,24 @@ proc_printdef procprt_PPID =
 
 /***************************************************************/
 char *
+procprt_ENVID_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[32];
+
+        sprintf(buf, "%5d", curstat->gen.envid);
+        return buf;
+}
+
+char *
+procprt_ENVID_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    -";
+}
+
+proc_printdef procprt_ENVID = 
+   { "ENVID", "ENVID", procprt_ENVID_a, procprt_ENVID_e, 5 };
+/***************************************************************/
+char *
 procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];

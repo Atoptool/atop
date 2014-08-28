@@ -264,6 +264,7 @@ extern proc_printdef procprt_RGID;
 extern proc_printdef procprt_EGID;
 extern proc_printdef procprt_SGID;
 extern proc_printdef procprt_FSGID;
+extern proc_printdef procprt_ENVID;
 extern proc_printdef procprt_STDATE;
 extern proc_printdef procprt_STTIME;
 extern proc_printdef procprt_ENDATE;
