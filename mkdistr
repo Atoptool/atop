@@ -122,18 +122,18 @@ then
 	fi
 
 	echo
-	if [ -f /tmp/atop-$BRANCH-1*.x86_64.rpm ]
-	then
-		echo /tmp/atop-$BRANCH-1*.x86_64.rpm ready
-	fi
-	if [ -f /tmp/atop-$BRANCH-1*.i586.rpm ]
-	then
-		echo /tmp/atop-$BRANCH-1*.i586.rpm ready
-	fi
-	if [ -f /tmp/atop-$BRANCH-1.src.rpm ]
-	then
-		echo /tmp/atop-$BRANCH-1*.src.rpm  ready
-	fi
+#	if [ -f /tmp/atop-$BRANCH-1*.x86_64.rpm ]
+#	then
+#		echo /tmp/atop-$BRANCH-1*.x86_64.rpm ready
+#	fi
+#	if [ -f /tmp/atop-$BRANCH-1*.i586.rpm ]
+#	then
+#		echo /tmp/atop-$BRANCH-1*.i586.rpm ready
+#	fi
+#	if [ -f /tmp/atop-$BRANCH-1.src.rpm ]
+#	then
+#		echo /tmp/atop-$BRANCH-1*.src.rpm  ready
+#	fi
 fi
 
 echo
