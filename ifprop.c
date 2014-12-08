@@ -150,20 +150,12 @@ initifprop(void)
 				continue;
 		}
 
-		switch (ethcmd.speed)
-		{
-		   case SPEED_10:
-			ifprops[i].speed	= 10;
-			break;
-		   case SPEED_100:
-			ifprops[i].speed	= 100;
-			break;
-		   case SPEED_1000:
-			ifprops[i].speed	= 1000;
-			break;
-		   default:
-			ifprops[i].speed	= 0;
-		}
+
+		if (ethcmd.speed == SPEED_UNKNOWN)
+			ifprops[i].speed = 0;
+		else
+			ifprops[i].speed = ethcmd.speed;
+
 
 		switch (ethcmd.duplex)
 		{
