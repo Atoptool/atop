@@ -1,0 +1,2 @@
+# daily restart of atop at midnight
+0 0 * * * root systemctl restart atop
