@@ -17,7 +17,7 @@
 	    then
 	        :
 	    else
-	        /etc/atop/atop.daily
+	        /etc/atop/atop.daily&
 	    fi
 	fi
     endscript

@@ -621,6 +621,11 @@ main(int argc, char *argv[])
 	curtime = getboot() / hertz;
 
 	/*
+	** be sure to be leader of an own process group
+	*/
+	(void) setpgid(0, 0);
+
+	/*
 	** catch signals for proper close-down
 	*/
 	signal(SIGHUP,  cleanstop);

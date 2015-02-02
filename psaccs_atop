@@ -29,9 +29,7 @@
 	            if [ -e $PIDFILE ] && \
 	                   ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
 	            then
-			kill -USR1 `cat $PIDFILE` # take final sample
-			sleep 3
-	                kill -TERM `cat $PIDFILE`
+			kill -USR2 `cat $PIDFILE` # take final sample
 	                rm $PIDFILE
 			sleep 1
 	            fi

@@ -1,4 +1,5 @@
 #!/bin/bash
+
 CURDAY=`date +%Y%m%d`
 LOGPATH=/var/log/atop
 BINPATH=/usr/bin
@@ -28,13 +29,13 @@ then
 	rm $PIDFILE
 fi
 
-# start atop for all processes with interval of 10 minutes
-#
-$BINPATH/atop -a -R -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1 &
-echo $! > $PIDFILE
-
 # delete logfiles older than four weeks
+# start a child shell that activates another child shell in
+# the background to avoid a zombie
 #
-(sleep 3; find $LOGPATH -name 'atop_*' -mtime +28 -exec rm {} \; )&
+( (sleep 3; find $LOGPATH -name 'atop_*' -mtime +28 -exec rm {} \;)& )
 
-exit 0
+# activate atop with interval of 10 minutes, replacing the current shell
+#
+echo $$ > $PIDFILE
+exec $BINPATH/atop -a -R -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1
