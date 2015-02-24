@@ -47,29 +47,23 @@ clean:
 
 install:	atop atopacctd
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(LOGPATH); 		\
-		fi
+		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(BINPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(BINPATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(BINPATH); fi
+		if [ ! -d $(DESTDIR)$(SBINPATH) ]; 		\
+		then mkdir -p $(DESTDIR)$(SBINPATH); fi
 		if [ ! -d $(DESTDIR)$(SCRPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(SCRPATH);		\
-		fi	
+		then	mkdir -p $(DESTDIR)$(SCRPATH); fi	
 		if [ ! -d $(DESTDIR)$(MAN1PATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(MAN1PATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(MAN1PATH);	fi
 		if [ ! -d $(DESTDIR)$(MAN5PATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(MAN5PATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(MAN5PATH);	fi
 		if [ ! -d $(DESTDIR)$(MAN8PATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(MAN8PATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(MAN8PATH);	fi
 		if [ ! -d $(DESTDIR)$(CRNPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(CRNPATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(CRNPATH);	fi
 		if [ ! -d $(DESTDIR)$(ROTPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(ROTPATH);		\
-		fi
+		then	mkdir -p $(DESTDIR)$(ROTPATH);	fi
 		#
 		# determine if current system is systemd based
 		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 		\
@@ -121,20 +115,15 @@ install:	atop atopacctd
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 		#
 		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; 		\
-		then	/sbin/chkconfig --add atop; 			\
-		fi
+		then	/sbin/chkconfig --add atop; fi
 		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ];		\
-		then	/sbin/chkconfig --add atopacct;			\
-		fi
+		then	/sbin/chkconfig --add atopacct; fi
 		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ];	\
-		then	update-rc.d atop defaults;			\
-		fi
+		then	update-rc.d atop defaults; fi
 		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ];	\
-		then	update-rc.d atopacct defaults;			\
-		fi
+		then	update-rc.d atopacct defaults; fi
 		if [ -z "$(DESTDIR)" -a -f /sbin/service ];		\
-		then	/sbin/service atopacct start;			\
-		fi
+		then	/sbin/service atopacct start; fi
 
 distr: rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
