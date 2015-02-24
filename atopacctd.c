@@ -14,8 +14,8 @@
 **
 ** - The atopacct daemon takes care that a shadow file has a limited size.
 **   As soon as the current shadow file reaches its maximum size, the
-**   atopacctd daemon creates a subsequent shadow file. Therefor, the name
-**   of a shadow file contains a sequence number.
+**   atopacctd daemon creates a subsequent shadow file. For this reason,
+**   the name of a shadow file contains a sequence number.
 **   Shadow files that are not used by client processes any more, are
 **   automatically removed by the atopacctd daemon.
 **
@@ -61,17 +61,16 @@
 #include "version.h"
 #include "atopacctd.h"
 
-#define	RETRYCNT	25	// # retries to read account record
-#define	RETRYMS		10	// timeout (millisec) to read account record
-
-#define	NRINTERVAL	60	// no-record-available interval (seconds)
+#define	RETRYCNT	10	// # retries to read account record
+#define	RETRYMS		25	// timeout (millisec) to read account record
+#define	NORECINTERVAL	3600	// no-record-available interval (seconds)
 
 #define GCINTERVAL      60      // garbage collection interval (seconds)
 
 /*
 ** Semaphore-handling
 **
-** Two semaphore groups are created with one semaphores each.
+** Two semaphore groups are created with one semaphore each.
 **
 ** The private semaphore (group) specifies the number of atopacctd processes
 ** running (to be sure that only one daemon is active at the time).
@@ -177,7 +176,7 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** verify that the top directory is not word-writable
+	** verify that the top directory is not world-writable
 	** and owned by root
 	*/
 	if ( stat(pacctdir, &dirstat) == -1 )
@@ -454,11 +453,11 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	static int			arecsize;
 	static unsigned long long	atotsize, stotsize, maxshadowsz;
 	static time_t			reclast;
-
-	int	asz, nsz, ssz;
-	char	abuf[8192], nbuf[8192];
-	int	retrycnt = RETRYCNT;
-	int	partsz, remsz;
+	struct timespec			retrytimer = {0, RETRYMS/2*1000000};
+	int				retrycount = RETRYCNT;
+	int				asz, nsz, ssz;
+	char				abuf[16000], nbuf[16000];
+	int				partsz, remsz;
 
 	/*
 	** neutral state:
@@ -500,16 +499,26 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	}
 
 	/*
- 	** read new process accounting record(s)
-	** such record(s) may not immediately be available (timing)
+ 	** get rid of all other waiting finished processes via netlink
+	** before handling the process accounting record(s)
 	*/
-	while ((asz = read(afd, abuf, sizeof abuf)) == 0 && --retrycnt)
-		usleep(RETRYMS*1000);
+	while (recv(nfd, nbuf, sizeof nbuf, MSG_DONTWAIT) > 0);
+
+	/*
+ 	** read new process accounting record(s)
+	** such record(s) may not immediately be available (timing matter),
+	** so some retries might be necessary 
+	*/
+	while ((asz = read(afd, abuf, sizeof abuf)) == 0 && --retrycount)
+	{
+		nanosleep(&retrytimer, (struct timespec *)0);
+		retrytimer.tv_nsec = RETRYMS*1000000;
+	}
 
 	switch (asz)
 	{
 	   case 0:		// EOF (no records available)?
-		if (time(0) > reclast + NRINTERVAL)
+		if (time(0) > reclast + NORECINTERVAL)
 		{
 			syslog(LOG_WARNING, "reactivate process accounting\n");
 
