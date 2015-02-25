@@ -2,7 +2,7 @@
 #
 # atopacctd	Startup script for the atopacctd daemon 
 #
-# chkconfig: 2345 92 8
+# chkconfig: 2345 91 9
 # description: Process accounting control
 #
 ### BEGIN INIT INFO

@@ -46,20 +46,22 @@ rm -rf         		/tmp/atop-$BRANCH 2> /dev/null
 
 mkdir          		/tmp/atop-$BRANCH
 cp *.[ch]		/tmp/atop-$BRANCH
+git log --name-status > /tmp/atop-$BRANCH/ChangeLog
+cp 45atoppm  		/tmp/atop-$BRANCH
+cp atop-pm.sh  		/tmp/atop-$BRANCH
 cp Makefile    		/tmp/atop-$BRANCH
 cp README		/tmp/atop-$BRANCH
-cp COPYING		/tmp/atop-$BRANCH
-git log --name-status > /tmp/atop-$BRANCH/ChangeLog
 cp AUTHOR		/tmp/atop-$BRANCH
-cp atop.daily  		/tmp/atop-$BRANCH
+cp COPYING		/tmp/atop-$BRANCH
+cp atopacct.init 	/tmp/atop-$BRANCH
+cp atopacct.service 	/tmp/atop-$BRANCH
 cp atop.cronsysv  	/tmp/atop-$BRANCH
 cp atop.cronsystemd 	/tmp/atop-$BRANCH
+cp atop.daily  		/tmp/atop-$BRANCH
 cp atop.init  		/tmp/atop-$BRANCH
 cp atop.service 	/tmp/atop-$BRANCH
-cp atopacct.init 	/tmp/atop-$BRANCH
 cp psaccs_atop 		/tmp/atop-$BRANCH
 cp psaccu_atop 		/tmp/atop-$BRANCH
-cp 45atoppm  		/tmp/atop-$BRANCH
 cp -r man      		/tmp/atop-$BRANCH
 
 ############################################################################

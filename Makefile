@@ -17,6 +17,7 @@ CRNPATH  = /etc/cron.d
 ROTPATH  = /etc/logrotate.d
 PMPATH1  = /usr/lib/pm-utils/sleep.d
 PMPATH2  = /usr/lib64/pm-utils/sleep.d
+PMPATHD  = /usr/lib/systemd/system-sleep
 
 CFLAGS  += -O2 -I. -Wall 	 # -DHTTPSTATS
 OBJMOD0  = version.o
@@ -45,7 +46,73 @@ netlink.o:	netlink.c
 clean:
 		rm -f *.o
 
-install:	atop atopacctd
+install:
+		@echo Choose either \'make systemdinstall\' or \'make sysvinstall\'
+
+systemdinstall:	genericinstall
+		if [ ! -d $(DESTDIR)$(SYSDPATH) ]; 			\
+		then	mkdir -p $(DESTDIR)$(SYSDPATH); fi
+		if [ ! -d $(DESTDIR)$(PMPATHD) ]; 			\
+		then	mkdir -p $(DESTDIR)$(PMPATHD); fi
+		#
+		cp atop.service       $(DESTDIR)$(SYSDPATH)
+		chmod 0644            $(DESTDIR)$(SYSDPATH)/atop.service
+		cp atopacct.service   $(DESTDIR)$(SYSDPATH)
+		chmod 0644            $(DESTDIR)$(SYSDPATH)/atopacct.service
+		cp atop.cronsystemd   $(DESTDIR)$(CRNPATH)/atop
+		cp atop-pm.sh         $(DESTDIR)$(PMPATHD)
+		chmod 0711            $(DESTDIR)$(PMPATHD)/atop-pm.sh
+		#
+		# only when making on target system:
+		#
+		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 		\
+		then	/bin/systemctl stop    atop     2> /dev/null;	\
+			/bin/systemctl disable atop     2> /dev/null;	\
+			/bin/systemctl stop    atopacct 2> /dev/null;	\
+			/bin/systemctl disable atopacct 2> /dev/null;	\
+			/bin/systemctl enable  atopacct;		\
+			/bin/systemctl start   atopacct;		\
+			/bin/systemctl enable  atop;			\
+			/bin/systemctl start   atop;			\
+		fi
+
+sysvinstall:	genericinstall
+		if [ ! -d $(DESTDIR)$(INIPATH) ]; 			\
+		then	mkdir -p  $(DESTDIR)$(INIPATH); fi
+		#
+		cp atop.init      $(DESTDIR)$(INIPATH)/atop
+		cp atopacct.init  $(DESTDIR)$(INIPATH)/atopacct
+		cp atop.cronsysv  $(DESTDIR)$(CRNPATH)/atop
+		#
+		if [   -d $(DESTDIR)$(PMPATH1) ]; 			\
+		then	cp 45atoppm $(DESTDIR)$(PMPATH1); 		\
+			chmod 0711  $(DESTDIR)$(PMPATH1)/45atoppm;	\
+		fi
+		if [ -d $(DESTDIR)$(PMPATH2) ]; 			\
+		then	cp 45atoppm $(DESTDIR)$(PMPATH2);		\
+			chmod 0711  $(DESTDIR)$(PMPATH2)/45atoppm;	\
+		fi
+		#
+		#
+		# only when making on target system:
+		#
+		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ];		\
+		then 	/sbin/chkconfig --del atop     2> /dev/null;	\
+			/sbin/chkconfig --add atop;			\
+			/sbin/chkconfig --del atopacct 2> /dev/null;	\
+			/sbin/chkconfig --add atopacct;			\
+		fi
+		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ];	\
+		then	update-rc.d atop defaults;			\
+			update-rc.d atopacct defaults;			\
+		fi
+		if [ -z "$(DESTDIR)" -a -f /sbin/service ];		\
+		then	/sbin/service atopacct start;			\
+			sleep 2;					\
+			/sbin/service atop     start;			\
+		fi
+
+genericinstall:	atop atopacctd
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(BINPATH) ]; 		\
@@ -65,34 +132,6 @@ install:	atop atopacctd
 		if [ ! -d $(DESTDIR)$(ROTPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(ROTPATH);	fi
 		#
-		# determine if current system is systemd based
-		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 		\
-		then 					 		\
-			if [ ! -d $(DESTDIR)$(SYSDPATH) ]; 		\
-			then	mkdir -p $(DESTDIR)$(SYSDPATH);		\
-				cp atop.service $(DESTDIR)$(SYSDPATH)	\
-				chmod 0611 $(DESTDIR)$(SYSDPATH)/atop.service;\
-			fi						\
-			cp atop.cronsystemd $(DESTDIR)$(CRNPATH)/atop	\
-		else 							\
-			if [ ! -d $(DESTDIR)$(INIPATH) ]; 		\
-			then	mkdir -p $(DESTDIR)$(INIPATH);		\
-				cp atop.init $(DESTDIR)$(INIPATH)/atop	\
-			fi;						\
-			if [ -d $(DESTDIR)$(PMPATH1) ]; 		\
-			then	cp 45atoppm $(DESTDIR)$(PMPATH1); 	\
-				chmod 0711 $(DESTDIR)$(PMPATH1)/45atoppm;\
-			fi;						\
-			if [ -d $(DESTDIR)$(PMPATH2) ]; 		\
-			then	cp 45atoppm $(DESTDIR)$(PMPATH2); 	\
-		 		chmod 0711 $(DESTDIR)$(PMPATH2)/45atoppm;\
-			fi;						\
-			cp atop.cronsysv  $(DESTDIR)$(CRNPATH)/atop	\
-		fi
-		#
-		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ];	\
-			then /sbin/chkconfig --del atop 2> /dev/null; fi
-		#
 		cp atop   		$(DESTDIR)$(BINPATH)/atop
 		chown root		$(DESTDIR)$(BINPATH)/atop
 		chmod 04711 		$(DESTDIR)$(BINPATH)/atop
@@ -108,24 +147,14 @@ install:	atop atopacctd
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
-		cp atopacct.init     	$(DESTDIR)$(INIPATH)/atopacct
 		cp psaccs_atop   	$(DESTDIR)$(ROTPATH)/psaccs_atop
 		cp psaccu_atop  	$(DESTDIR)$(ROTPATH)/psaccu_atop
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
-		#
-		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ]; 		\
-		then	/sbin/chkconfig --add atop; fi
-		if [ -z "$(DESTDIR)" -a -f /sbin/chkconfig ];		\
-		then	/sbin/chkconfig --add atopacct; fi
-		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ];	\
-		then	update-rc.d atop defaults; fi
-		if [ -z "$(DESTDIR)" -a -f /usr/sbin/update-rc.d ];	\
-		then	update-rc.d atopacct defaults; fi
-		if [ -z "$(DESTDIR)" -a -f /sbin/service ];		\
-		then	/sbin/service atopacct start; fi
 
-distr: rm -f *.o atop
+
+distr:
+		rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
 ##########################################################################
 

@@ -115,6 +115,7 @@ main(int argc, char *argv[])
 	int		i, nfd, afd, sfd;
 	struct stat	dirstat;
 	struct rlimit	rlim;
+	FILE		*pidf;
 
 	struct sembuf	semincr = {0, +1, SEM_UNDO};
 
@@ -372,6 +373,15 @@ main(int argc, char *argv[])
 	(void) signal(SIGINT,  cleanup);
 	(void) signal(SIGQUIT, cleanup);
 	(void) signal(SIGTERM, cleanup);
+
+	/*
+ 	** create PID file
+	*/
+	if ( (pidf = fopen(PIDFILE, "w")) )
+	{
+		fprintf(pidf, "%d\n", getpid());
+		fclose(pidf);
+	}
 
 	/*
 	** main loop

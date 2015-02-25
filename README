@@ -1,7 +1,11 @@
 For interactive use, it is sufficient to install ATOP with the command
 (as root):
 
-	make install
+	make systemdinstall
+
+		or
+
+	make sysvinstall
 
 For automatic logging in compressed binary format, see the 
 description in the manual-page.

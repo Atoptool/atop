@@ -6,7 +6,7 @@ Documentation=man:atop(1)
 Type=simple
 ExecStart=/etc/atop/atop.daily
 KillSignal=SIGUSR2
-ExecStopPost=/usr/bin/sleep 3
+#ExecStopPost=/usr/bin/sleep 3
 
 [Install]
 WantedBy=multi-user.target

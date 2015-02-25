@@ -5,6 +5,11 @@
 #define PACCTPRVKEY	(PACCTPUBKEY-1)	// # atopacctd daemons busy (max. 1)
 
 /*
+** name of the PID file
+*/
+#define	PIDFILE		"/var/run/atopacctd.pid"
+
+/*
 ** directory containing the source accounting file and
 ** the subdirectory (PACCTSHADOWD) containing the shadow file(s)
 ** this directory can be overruled by a command line parameter (atopacctd)
