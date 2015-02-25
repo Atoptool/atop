@@ -1248,12 +1248,18 @@ char *
 sysprt_DSKBUSY(void *p, void *q, int badness, int *color) 
 {
         extraparam	*as=q;
+	double		perc;
         static char 	buf[16]="busy  ";
 
 	*color = -1;
 
-        sprintf(buf+5,"%6.0lf%%", 
-                   (as->perdsk[as->index].io_ms * 100.0 / as->mstot));
+	perc = as->perdsk[as->index].io_ms * 100.0 / as->mstot;
+
+	if (perc >= 0.0 && perc < 1000000.0)
+        	sprintf(buf+5, "%6.0lf%%", perc);
+	else
+        	sprintf(buf+5, "%6.0lf%%", 999999.0);
+
         return buf;
 }
 
@@ -1267,8 +1273,9 @@ sysprt_DSKNREAD(void *p, void *q, int badness, int *color)
 
 	*color = -1;
 
-        val2valstr(as->perdsk[as->index].nread,  
-                   buf+5, 7, as->avgval, as->nsecs);
+        val2valstr(as->perdsk[as->index].nread >= 0 ?
+			as->perdsk[as->index].nread : 0,  
+                   	buf+5, 7, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -1282,8 +1289,9 @@ sysprt_DSKNWRITE(void *p, void *q, int badness, int *color)
 
 	*color = -1;
 
-        val2valstr(as->perdsk[as->index].nwrite, 
-        	           buf+6, 6, as->avgval, as->nsecs);
+        val2valstr(as->perdsk[as->index].nwrite >= 0 ?
+			as->perdsk[as->index].nwrite : 0,  
+			buf+6, 6, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -1296,7 +1304,7 @@ sysprt_DSKKBPERWR(void *p, void *q, int badness, int *color)
         static char	buf[16]="KiB/w ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
-        val2valstr(dp->nwrite ?  dp->nwsect / dp->nwrite / 2 : 0,
+        val2valstr(dp->nwrite > 0 ?  dp->nwsect / dp->nwrite / 2 : 0,
                    buf+6, 6, 0, as->nsecs);
         return buf;
 }
@@ -1310,7 +1318,7 @@ sysprt_DSKKBPERRD(void *p, void *q, int badness, int *color)
         static char	buf[16]="KiB/r ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
-        val2valstr(dp->nread ?  dp->nrsect / dp->nread / 2 : 0,
+        val2valstr(dp->nread > 0 ?  dp->nrsect / dp->nread / 2 : 0,
                    buf+6, 6, 0, as->nsecs);
         return buf;
 }
@@ -1351,7 +1359,7 @@ sysprt_DSKAVQUEUE(void *p, void *q, int badness, int *color)
         static char	buf[16]="avq  ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
-	sprintf(buf+4, "%8.2f", dp->io_ms  ?
+	sprintf(buf+4, "%8.2f", dp->io_ms > 0 ?
                                 (double)dp->avque / dp->io_ms : 0.0);
         return buf;
 }
@@ -1363,8 +1371,8 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
 {
         extraparam	*as=q;
         static char	buf[16]="avio  ";
-        double 		tim= as->iotot ? 
-                     	 (double)(as->perdsk[as->index].io_ms) / as->iotot : 0;
+        double 		tim = as->iotot > 0 ? 
+                     	(double)(as->perdsk[as->index].io_ms)/as->iotot : 0.0;
 
 	*color = -1;
 
