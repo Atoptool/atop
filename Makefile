@@ -46,6 +46,11 @@ netlink.o:	netlink.c
 clean:
 		rm -f *.o
 
+distr:
+		rm -f *.o atop
+		tar czvf /tmp/atop.tar.gz *
+
+
 install:
 		@echo Choose either \'make systemdinstall\' or \'make sysvinstall\'
 
@@ -152,10 +157,6 @@ genericinstall:	atop atopacctd
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 
-
-distr:
-		rm -f *.o atop
-		tar czvf /tmp/atop.tar.gz *
 ##########################################################################
 
 atop.o:		atop.h	photoproc.h photosyst.h  acctproc.h showgeneric.h
