@@ -1538,6 +1538,55 @@ dskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 }
 
 /*
+** NFS client statistics
+*/
+static void
+nfchead(int osvers, int osrel, int ossub)
+{
+	printf("     rpc/s   retrans/s  autrefresh/s                    "
+               "        _nfc_");
+}
+
+static int
+nfcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	printf("%10.2lf  %10.2lf  %12.2lf\n",
+		(double)ss->nfs.client.rpccnt        / deltasec,
+		(double)ss->nfs.client.rpcretrans    / deltasec,
+		(double)ss->nfs.client.rpcautrefresh / deltasec);
+
+	return 1;
+}
+
+static void
+nfshead(int osvers, int osrel, int ossub)
+{
+	printf("  rpc/s  nettcp/s  netudp/s  MBcr/s  MBcw/s rchits/s rcmiss/s "
+               "  _nfs_");
+}
+
+static int
+nfsline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	printf("%7.2lf %9.2lf %9.2lf %7.2lf %7.2lf %8.3lf %8.3lf\n",
+		(double)ss->nfs.server.rpccnt    / deltasec,
+		(double)ss->nfs.server.nettcpcnt / deltasec,
+		(double)ss->nfs.server.netudpcnt / deltasec,
+		(double)ss->nfs.server.nrbytes / 1024.0 / 1024.0 / deltasec,
+		(double)ss->nfs.server.nwbytes / 1024.0 / 1024.0 / deltasec,
+		(double)ss->nfs.server.rchits    / deltasec,
+		(double)ss->nfs.server.rcmiss    / deltasec);
+
+	return 1;
+}
+
+/*
 ** network-interface statistics
 */
 static void
@@ -2311,6 +2360,8 @@ struct pridef pridef[] =
    {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },
    {0,  "cd", 'f',  mddhead,	mddline,	"multiple device activity",},
    {0,  "cd", 'd',  dskhead,	dskline,	"disk activity",          },
+   {0,  "n",  'j',  nfchead,	nfcline,	"NFS client activity",    },
+   {0,  "n",  'J',  nfshead,	nfsline,	"NFS server activity",    },
    {0,  "n",  'i',  ifhead,	ifline,		"net-interf (general)",   },
    {0,  "n",  'I',  IFhead,	IFline,		"net-interf (errors)",    },
    {0,  "n",  'w',  ipv4head,	ipv4line,	"ip   v4    (general)",   },

@@ -1032,6 +1032,103 @@ photosyst(struct sstat *si)
 		si->mem.shmswp = shminfo.shm_swp;
 	}
 
+	/*
+	** NFS server statistics
+	*/
+	if ( (fp = fopen("net/rpc/nfsd", "r")) != NULL)
+	{
+		char    label[32];
+		count_t	cnt[4];
+
+		/*
+		** every line starts with a small label,
+		** followed by upto 60 counters
+		*/
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			memset(cnt, 0, sizeof cnt);
+
+			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld",
+			      label, &cnt[0],  &cnt[1],  &cnt[2],  &cnt[3]);
+
+			if (nr < 2)		// unexpected empty line ?
+				continue;
+
+		   	if (strcmp(label, "rc") == 0)
+		   	{
+				si->nfs.server.rchits = cnt[0];
+				si->nfs.server.rcmiss = cnt[1];
+				si->nfs.server.rcnoca = cnt[2];
+
+				continue;
+			}
+
+		   	if (strcmp(label, "io") == 0)
+		   	{
+				si->nfs.server.nrbytes = cnt[0];
+				si->nfs.server.nwbytes = cnt[1];
+
+				continue;
+			}
+
+		   	if (strcmp(label, "net") == 0)
+		   	{
+				si->nfs.server.netcnt    = cnt[0];
+				si->nfs.server.netudpcnt = cnt[1];
+				si->nfs.server.nettcpcnt = cnt[2];
+				si->nfs.server.nettcpcon = cnt[3];
+
+				continue;
+			}
+
+		   	if (strcmp(label, "rpc") == 0)
+		   	{
+				si->nfs.server.rpccnt    = cnt[0];
+				si->nfs.server.rpcbadfmt = cnt[1];
+				si->nfs.server.rpcbadaut = cnt[2];
+				si->nfs.server.rpcbadcln = cnt[3];
+
+				continue;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	/*
+	** NFS client statistics
+	*/
+	if ( (fp = fopen("net/rpc/nfs", "r")) != NULL)
+	{
+		char    label[32];
+		count_t	cnt[3];
+
+		/*
+		** every line starts with a small label,
+		** followed by counters
+		*/
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			memset(cnt, 0, sizeof cnt);
+
+			nr = sscanf(linebuf, "%31s %lld %lld %lld",
+			      label, &cnt[0],  &cnt[1],  &cnt[2]);
+
+			if (nr < 2)		// unexpected empty line ?
+				continue;
+
+		   	if (strcmp(label, "rpc") == 0)
+		   	{
+				si->nfs.client.rpccnt        = cnt[0];
+				si->nfs.client.rpcretrans    = cnt[1];
+				si->nfs.client.rpcautrefresh = cnt[2];
+				break;
+			}
+		}
+
+		fclose(fp);
+	}
+
 	if ( chdir(origdir) == -1)
 		cleanstop(53);
 

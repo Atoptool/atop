@@ -1848,6 +1848,192 @@ sysprt_NETSNDDROP(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_NETSNDDROP = {"NETSNDDROP", sysprt_NETSNDDROP};
 /*******************************************************************/
 char *
+sysprt_NFCRPCCNT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="rpc   ";
+        val2valstr(sstat->nfs.client.rpccnt,
+                   buf+4, 8, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFCRPCCNT = {"NFCRPCCNT", sysprt_NFCRPCCNT};
+/*******************************************************************/
+char *
+sysprt_NFCRPCRET(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="retxmit ";
+        val2valstr(sstat->nfs.client.rpcretrans,
+                   buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFCRPCRET = {"NFCRPCRET", sysprt_NFCRPCRET};
+/*******************************************************************/
+char *
+sysprt_NFCRPCARF(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="autref  ";
+        val2valstr(sstat->nfs.client.rpcautrefresh,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFCRPCARF = {"NFCRPCARF", sysprt_NFCRPCARF};
+/*******************************************************************/
+char *
+sysprt_NFSRPCCNT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="rpc   ";
+        val2valstr(sstat->nfs.server.rpccnt,
+                   buf+4, 8, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRPCCNT = {"NFSRPCCNT", sysprt_NFSRPCCNT};
+/*******************************************************************/
+char *
+sysprt_NFSBADFMT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="badfmt   ";
+        val2valstr(sstat->nfs.server.rpcbadfmt,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSBADFMT = {"NFSBADFMT", sysprt_NFSBADFMT};
+/*******************************************************************/
+char *
+sysprt_NFSBADAUT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="badaut   ";
+        val2valstr(sstat->nfs.server.rpcbadaut,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSBADAUT = {"NFSBADAUT", sysprt_NFSBADAUT};
+/*******************************************************************/
+char *
+sysprt_NFSBADCLN(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="badcln   ";
+        val2valstr(sstat->nfs.server.rpcbadcln,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSBADCLN = {"NFSBADCLN", sysprt_NFSBADCLN};
+/*******************************************************************/
+char *
+sysprt_NFSNETTCP(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="nettcp   ";
+        val2valstr(sstat->nfs.server.nettcpcnt,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSNETTCP = {"NFSNETTCP", sysprt_NFSNETTCP};
+/*******************************************************************/
+char *
+sysprt_NFSNETUDP(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="netudp   ";
+        val2valstr(sstat->nfs.server.netudpcnt,
+                   buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSNETUDP = {"NFSNETUDP", sysprt_NFSNETUDP};
+/*******************************************************************/
+char *
+sysprt_NFSNRBYTES(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam	*as=q;
+        static char	buf[32]="MBcr/s ";
+
+        sprintf(buf+7, "%5.1lf",
+		sstat->nfs.server.nrbytes / 1024.0 / 1024.0 / as->nsecs);
+
+        return buf;
+}
+
+sys_printdef syspdef_NFSNRBYTES = {"NFSNRBYTES", sysprt_NFSNRBYTES};
+/*******************************************************************/
+char *
+sysprt_NFSNWBYTES(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam	*as=q;
+        static char	buf[32]="MBcw/s ";
+
+        sprintf(buf+7, "%5.1lf",
+		sstat->nfs.server.nwbytes / 1024.0 / 1024.0 / as->nsecs);
+
+        return buf;
+}
+
+sys_printdef syspdef_NFSNWBYTES = {"NFSNWBYTES", sysprt_NFSNWBYTES};
+/*******************************************************************/
+char *
+sysprt_NFSRCHITS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="rchits   ";
+        val2valstr(sstat->nfs.server.rchits,
+                   buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRCHITS = {"NFSRCHITS", sysprt_NFSRCHITS};
+/*******************************************************************/
+char *
+sysprt_NFSRCMISS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="rcmiss   ";
+        val2valstr(sstat->nfs.server.rcmiss,
+                   buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRCMISS = {"NFSRCMISS", sysprt_NFSRCMISS};
+/*******************************************************************/
+char *
+sysprt_NFSRCNOCA(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="rcnoca   ";
+        val2valstr(sstat->nfs.server.rcnoca,
+                   buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRCNOCA = {"NFSRCNOCA", sysprt_NFSRCNOCA};
+/*******************************************************************/
+char *
 sysprt_BLANKBOX(void *p, void *notused, int badness, int *color) 
 {
         return "            ";

@@ -91,6 +91,8 @@ void 	print_PAG();
 void 	print_LVM();
 void 	print_MDD();
 void 	print_DSK();
+void 	print_NFC();
+void 	print_NFS();
 void 	print_NET();
 
 void 	print_PRG();
@@ -119,6 +121,8 @@ static struct labeldef	labeldef[] = {
 	{ "LVM",	0,	print_LVM },
 	{ "MDD",	0,	print_MDD },
 	{ "DSK",	0,	print_DSK },
+	{ "NFC",	0,	print_NFC },
+	{ "NFS",	0,	print_NFS },
 	{ "NET",	0,	print_NET },
 
 	{ "PRG",	0,	print_PRG },
@@ -472,6 +476,37 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->dsk.dsk[i].nwrite,
 			ss->dsk.dsk[i].nwsect);
 	}
+}
+
+void
+print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	printf(	"%s %lld %lld %lld\n",
+			hp,
+			ss->nfs.client.rpccnt,
+			ss->nfs.client.rpcretrans,
+			ss->nfs.client.rpcautrefresh);
+}
+
+void
+print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	printf(	"%s %lld %lld %lld %lld %lld %lld %lld %lld "
+	        "%lld %lld %lld %lld %lld\n",
+			hp,
+			ss->nfs.server.rpccnt,
+			ss->nfs.server.rpcbadfmt,
+			ss->nfs.server.rpcbadaut,
+			ss->nfs.server.rpcbadcln,
+			ss->nfs.server.netcnt,
+			ss->nfs.server.nettcpcnt,
+			ss->nfs.server.netudpcnt,
+			ss->nfs.server.nettcpcon,
+			ss->nfs.server.rchits,
+			ss->nfs.server.rcmiss,
+			ss->nfs.server.rcnoca,
+			ss->nfs.server.nrbytes,
+			ss->nfs.server.nwbytes);
 }
 
 void

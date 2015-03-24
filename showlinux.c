@@ -407,6 +407,28 @@ sys_printdef *dsksyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *nfcsyspdefs[] = {
+	&syspdef_NFCRPCCNT,
+	&syspdef_NFCRPCRET,
+	&syspdef_NFCRPCARF,
+	&syspdef_BLANKBOX,
+        0
+};
+sys_printdef *nfssyspdefs[] = {
+	&syspdef_NFSRPCCNT,
+	&syspdef_NFSNRBYTES,
+	&syspdef_NFSNWBYTES,
+	&syspdef_NFSNETTCP,
+	&syspdef_NFSNETUDP,
+	&syspdef_NFSBADFMT,
+	&syspdef_NFSBADAUT,
+	&syspdef_NFSBADCLN,
+	&syspdef_NFSRCHITS,
+	&syspdef_NFSRCMISS,
+	&syspdef_NFSRCNOCA,
+	&syspdef_BLANKBOX,
+        0
+};
 sys_printdef *nettranssyspdefs[] = {
 	&syspdef_NETTRANSPORT,
 	&syspdef_NETTCPI,
@@ -555,6 +577,8 @@ sys_printpair dskline[MAXITEMS];
 sys_printpair nettransportline[MAXITEMS];
 sys_printpair netnetline[MAXITEMS];
 sys_printpair netinterfaceline[MAXITEMS];
+sys_printpair nfcline[MAXITEMS];
+sys_printpair nfsline[MAXITEMS];
 
 typedef struct {
         const char *name;
@@ -907,6 +931,36 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "DSKAVQUEUE:1 "
 	                "DSKAVIO:5", dsksyspdefs, "built in dskline");
                 }
+                if (nfcline[0].f == 0)
+                {
+                    make_sys_prints(nfcline, MAXITEMS,
+	                "NFCRPCCNT:8 "
+	                "NFCRPCRET:7 "
+	                "NFCRPCARF:7 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 ", nfcsyspdefs, "built in nfcline");
+		}
+                if (nfsline[0].f == 0)
+                {
+                    make_sys_prints(nfsline, MAXITEMS,
+	                "NFSRPCCNT:8 "
+	                "NFSNETTCP:7 "
+	                "NFSNETUDP:7 "
+	                "BLANKBOX:0 "
+	                "NFSNRBYTES:7 "
+	                "NFSNWBYTES:7 "
+	                "BLANKBOX:0 "
+	                "NFSRCHITS:4 "
+	                "NFSRCMISS:3 "
+	                "NFSRCNOCA:2 "
+	                "BLANKBOX:0 "
+	                "NFSBADFMT:5 "
+	                "NFSBADAUT:5 "
+	                "NFSBADCLN:5 ", nfssyspdefs, "built in nfsline");
+		}
                 if (nettransportline[0].f == 0)
                 {
                     make_sys_prints(nettransportline, MAXITEMS,
@@ -1541,6 +1595,29 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	pridisklike(&extra, sstat->dsk.dsk, "DSK", highorderp, maxdsklines,
 			&highbadness, &curline, fixedhead,
 			selp->dsknamesz ? &(selp->dskregex) : (void *) 0);
+
+        /*
+        ** NFS server and client statistics
+        */
+        if (sstat->nfs.client.rpccnt ||
+            fixedhead )
+        {
+		if (screen)
+                	move(curline, 0);
+
+                showsysline(nfcline, sstat, &extra, "NFC", 0);
+                curline++;
+        }
+
+        if (sstat->nfs.server.rpccnt ||
+            fixedhead )
+        {
+		if (screen)
+                	move(curline, 0);
+
+                showsysline(nfsline, sstat, &extra, "NFS", 0);
+                curline++;
+        }
 
         /*
         ** NET statistics

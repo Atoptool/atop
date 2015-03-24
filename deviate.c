@@ -1046,6 +1046,46 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	dev->dsk.nlvm = i;
 
 	/*
+	** calculate deviations for NFS
+	*/
+	dev->nfs.server.netcnt    = subcount(cur->nfs.server.netcnt,
+	                                     pre->nfs.server.netcnt);
+	dev->nfs.server.netudpcnt = subcount(cur->nfs.server.netudpcnt,
+	                                     pre->nfs.server.netudpcnt);
+	dev->nfs.server.nettcpcnt = subcount(cur->nfs.server.nettcpcnt,
+	                                     pre->nfs.server.nettcpcnt);
+	dev->nfs.server.nettcpcon = subcount(cur->nfs.server.nettcpcon,
+	                                     pre->nfs.server.nettcpcon);
+
+	dev->nfs.server.rpccnt    = subcount(cur->nfs.server.rpccnt,
+	                                     pre->nfs.server.rpccnt);
+	dev->nfs.server.rpcbadfmt = subcount(cur->nfs.server.rpcbadfmt,
+	                                     pre->nfs.server.rpcbadfmt);
+	dev->nfs.server.rpcbadaut = subcount(cur->nfs.server.rpcbadaut,
+	                                     pre->nfs.server.rpcbadaut);
+	dev->nfs.server.rpcbadcln = subcount(cur->nfs.server.rpcbadcln,
+	                                     pre->nfs.server.rpcbadcln);
+	
+	dev->nfs.server.rchits    = subcount(cur->nfs.server.rchits,
+	                                     pre->nfs.server.rchits);
+	dev->nfs.server.rcmiss    = subcount(cur->nfs.server.rcmiss,
+	                                     pre->nfs.server.rcmiss);
+	dev->nfs.server.rcnoca    = subcount(cur->nfs.server.rcnoca,
+	                                     pre->nfs.server.rcnoca);
+
+	dev->nfs.server.nrbytes   = subcount(cur->nfs.server.nrbytes,
+	                                     pre->nfs.server.nrbytes);
+	dev->nfs.server.nwbytes   = subcount(cur->nfs.server.nwbytes,
+	                                     pre->nfs.server.nwbytes);
+
+	dev->nfs.client.rpccnt        = subcount(cur->nfs.client.rpccnt,
+	                                         pre->nfs.client.rpccnt);
+	dev->nfs.client.rpcretrans    = subcount(cur->nfs.client.rpcretrans,
+	                                         pre->nfs.client.rpcretrans);
+	dev->nfs.client.rpcautrefresh = subcount(cur->nfs.client.rpcautrefresh,
+	                                         pre->nfs.client.rpcautrefresh);
+
+	/*
 	** application-specific counters
 	*/
 #if	HTTPSTATS
@@ -1145,8 +1185,29 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		break;
 
 	   case 'n':	/* accumulate network-related counters */
+		tot->nfs.server.rpccnt     += new->nfs.server.rpccnt;
+		tot->nfs.server.rpcbadfmt  += new->nfs.server.rpcbadfmt;
+		tot->nfs.server.rpcbadaut  += new->nfs.server.rpcbadaut;
+		tot->nfs.server.rpcbadcln  += new->nfs.server.rpcbadcln;
+
+		tot->nfs.server.netcnt     += new->nfs.server.netcnt;
+		tot->nfs.server.nettcpcnt  += new->nfs.server.nettcpcnt;
+		tot->nfs.server.netudpcnt  += new->nfs.server.netudpcnt;
+		tot->nfs.server.nettcpcon  += new->nfs.server.nettcpcon;
+
+		tot->nfs.server.rchits     += new->nfs.server.rchits;
+		tot->nfs.server.rcmiss     += new->nfs.server.rcmiss;
+		tot->nfs.server.rcnoca     += new->nfs.server.rcnoca;
+
+		tot->nfs.server.nrbytes    += new->nfs.server.nrbytes;
+		tot->nfs.server.nwbytes    += new->nfs.server.nwbytes;
+
+		tot->nfs.client.rpccnt        += new->nfs.client.rpccnt;
+		tot->nfs.client.rpcretrans    += new->nfs.client.rpcretrans;
+		tot->nfs.client.rpcautrefresh += new->nfs.client.rpcautrefresh;
+
 		/*
-		** structures with network-related counters are considered
+		** other structures with network counters are considered
 		** as tables of frequency-counters that will be accumulated;
 		** values that do not represent a frequency are corrected
 		** afterwards

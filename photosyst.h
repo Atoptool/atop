@@ -178,6 +178,39 @@ struct intfstat {
 };
 
 /************************************************************************/
+
+struct nfsstat {
+	struct {
+        	count_t	netcnt;
+		count_t netudpcnt;
+		count_t nettcpcnt;
+		count_t nettcpcon;
+
+		count_t rpccnt;
+		count_t rpcbadfmt;
+		count_t rpcbadaut;
+		count_t rpcbadcln;
+
+	   	count_t	rchits;		/* repcache hits	*/
+	   	count_t	rcmiss;		/* repcache misses	*/
+	   	count_t	rcnoca;		/* uncached requests	*/
+
+	   	count_t	nrbytes;	/* read bytes		*/
+	   	count_t	nwbytes;	/* written bytes	*/
+
+		count_t	future[8];
+	} server;
+
+	struct {
+		count_t	rpccnt;
+		count_t rpcretrans;
+		count_t rpcautrefresh;
+
+		count_t	future[8];
+	} client;
+};
+
+/************************************************************************/
 /*
 ** experimental stuff for access to local HTTP daemons
 */
@@ -202,6 +235,7 @@ struct	sstat {
 	struct netstat	net;
 	struct intfstat	intf;
 	struct dskstat  dsk;
+	struct nfsstat  nfs;
 
 	struct wwwstat	www;
 };

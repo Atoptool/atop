@@ -226,6 +226,20 @@ extern sys_printdef syspdef_NETRCVERR;
 extern sys_printdef syspdef_NETSNDERR;
 extern sys_printdef syspdef_NETRCVDROP;
 extern sys_printdef syspdef_NETSNDDROP;
+extern sys_printdef syspdef_NFCRPCCNT;
+extern sys_printdef syspdef_NFCRPCRET;
+extern sys_printdef syspdef_NFCRPCARF;
+extern sys_printdef syspdef_NFSRPCCNT;
+extern sys_printdef syspdef_NFSBADFMT;
+extern sys_printdef syspdef_NFSBADAUT;
+extern sys_printdef syspdef_NFSBADCLN;
+extern sys_printdef syspdef_NFSNETTCP;
+extern sys_printdef syspdef_NFSNETUDP;
+extern sys_printdef syspdef_NFSNRBYTES;
+extern sys_printdef syspdef_NFSNWBYTES;
+extern sys_printdef syspdef_NFSRCHITS;
+extern sys_printdef syspdef_NFSRCMISS;
+extern sys_printdef syspdef_NFSRCNOCA;
 extern sys_printdef syspdef_BLANKBOX;
 
 
