@@ -409,6 +409,8 @@ sys_printdef *dsksyspdefs[] = {
 };
 sys_printdef *nfcsyspdefs[] = {
 	&syspdef_NFCRPCCNT,
+	&syspdef_NFCRPCREAD,
+	&syspdef_NFCRPCWRITE,
 	&syspdef_NFCRPCRET,
 	&syspdef_NFCRPCARF,
 	&syspdef_BLANKBOX,
@@ -416,6 +418,8 @@ sys_printdef *nfcsyspdefs[] = {
 };
 sys_printdef *nfssyspdefs[] = {
 	&syspdef_NFSRPCCNT,
+	&syspdef_NFSRPCREAD,
+	&syspdef_NFSRPCWRITE,
 	&syspdef_NFSNRBYTES,
 	&syspdef_NFSNWBYTES,
 	&syspdef_NFSNETTCP,
@@ -935,8 +939,10 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 {
                     make_sys_prints(nfcline, MAXITEMS,
 	                "NFCRPCCNT:8 "
-	                "NFCRPCRET:7 "
-	                "NFCRPCARF:7 "
+	                "NFCRPCREAD:7 "
+	                "NFCRPCWRITE:7 "
+	                "NFCRPCRET:5 "
+	                "NFCRPCARF:5 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
@@ -947,19 +953,22 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 {
                     make_sys_prints(nfsline, MAXITEMS,
 	                "NFSRPCCNT:8 "
-	                "NFSNETTCP:7 "
-	                "NFSNETUDP:7 "
+	                "NFSRPCREAD:6 "
+	                "NFSRPCWRITE:6 "
 	                "BLANKBOX:0 "
 	                "NFSNRBYTES:7 "
 	                "NFSNWBYTES:7 "
 	                "BLANKBOX:0 "
-	                "NFSRCHITS:4 "
-	                "NFSRCMISS:3 "
-	                "NFSRCNOCA:2 "
+	                "NFSNETTCP:5 "
+	                "NFSNETUDP:5 "
 	                "BLANKBOX:0 "
-	                "NFSBADFMT:5 "
-	                "NFSBADAUT:5 "
-	                "NFSBADCLN:5 ", nfssyspdefs, "built in nfsline");
+	                "NFSRCHITS:3 "
+	                "NFSRCMISS:2 "
+	                "NFSRCNOCA:1 "
+	                "BLANKBOX:0 "
+	                "NFSBADFMT:4 "
+	                "NFSBADAUT:4 "
+	                "NFSBADCLN:4 ", nfssyspdefs, "built in nfsline");
 		}
                 if (nettransportline[0].f == 0)
                 {

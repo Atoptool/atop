@@ -519,10 +519,12 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 			/*
 			** print header-line
 			*/
+			printf("\n");
+
 			if (usecolors)
 				printf(COLSETHEAD);
 
-			printf("\n%s  ", convtime(curtime-numsecs, timebuf));
+			printf("%s  ", convtime(curtime-numsecs, timebuf));
 	
 			(pridef[i].prihead)(osvers, osrel, ossub);
 	
@@ -582,10 +584,12 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 			/*
 			** print header-line
 			*/
+			printf("\n");
+
 			if (usecolors)
 				printf(COLSETHEAD);
 
-			printf("\n%s  ", convtime(curtime, timebuf));
+			printf("%s  ", convtime(curtime, timebuf));
 	
 			(pridef[i].prihead)(osvers, osrel, ossub);
 
@@ -627,10 +631,12 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 			/*
 			** print header-line
 			*/
+			printf("\n");
+
 			if (usecolors)
 				printf(COLSETHEAD);
 
-			printf("\n%s  ", convtime(curtime, timebuf));
+			printf("%s  ", convtime(curtime, timebuf));
 	
 			(pridef[i].prihead)(osvers, osrel, ossub);
 
@@ -721,10 +727,12 @@ reportraw(time_t curtime, int numsecs,
 		/*
 		** print header-line
 		*/
+		printf("\n");
+
 		if (usecolors)
 			printf(COLSETHEAD);
 
-		printf("\n%s  ", convtime(pretime, timebuf));
+		printf("%s  ", convtime(pretime, timebuf));
 
 		(pridef[prinow].prihead)(osvers, osrel, ossub);
 
@@ -1543,8 +1551,8 @@ dskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 nfchead(int osvers, int osrel, int ossub)
 {
-	printf("     rpc/s   retrans/s  autrefresh/s                    "
-               "        _nfc_");
+	printf("     rpc/s   rpcread/s  rpcwrite/s  retrans/s  autrefresh/s   "
+               "  _nfc_");
 }
 
 static int
@@ -1553,8 +1561,10 @@ nfcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%10.2lf  %10.2lf  %12.2lf\n",
+	printf("%10.2lf  %10.2lf  %10.2lf %10.2lf  %12.2lf\n",
 		(double)ss->nfs.client.rpccnt        / deltasec,
+		(double)ss->nfs.client.rpcread       / deltasec,
+		(double)ss->nfs.client.rpcwrite      / deltasec,
 		(double)ss->nfs.client.rpcretrans    / deltasec,
 		(double)ss->nfs.client.rpcautrefresh / deltasec);
 
@@ -1564,8 +1574,8 @@ nfcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 nfshead(int osvers, int osrel, int ossub)
 {
-	printf("  rpc/s  nettcp/s  netudp/s  MBcr/s  MBcw/s rchits/s rcmiss/s "
-               "  _nfs_");
+	printf("  rpc/s  rpcread/s rpcwrite/s MBcr/s  MBcw/s  "
+               "nettcp/s netudp/s _nfs_");
 }
 
 static int
@@ -1574,14 +1584,14 @@ nfsline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.2lf %9.2lf %9.2lf %7.2lf %7.2lf %8.3lf %8.3lf\n",
+	printf("%7.2lf %10.2lf %10.2lf %6.2lf %7.2lf %9.2lf %8.2lf\n",
 		(double)ss->nfs.server.rpccnt    / deltasec,
-		(double)ss->nfs.server.nettcpcnt / deltasec,
-		(double)ss->nfs.server.netudpcnt / deltasec,
+		(double)ss->nfs.server.rpcread   / deltasec,
+		(double)ss->nfs.server.rpcwrite  / deltasec,
 		(double)ss->nfs.server.nrbytes / 1024.0 / 1024.0 / deltasec,
 		(double)ss->nfs.server.nwbytes / 1024.0 / 1024.0 / deltasec,
-		(double)ss->nfs.server.rchits    / deltasec,
-		(double)ss->nfs.server.rcmiss    / deltasec);
+		(double)ss->nfs.server.nettcpcnt / deltasec,
+		(double)ss->nfs.server.netudpcnt / deltasec);
 
 	return 1;
 }

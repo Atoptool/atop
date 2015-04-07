@@ -1038,7 +1038,7 @@ photosyst(struct sstat *si)
 	if ( (fp = fopen("net/rpc/nfsd", "r")) != NULL)
 	{
 		char    label[32];
-		count_t	cnt[4];
+		count_t	cnt[40];
 
 		/*
 		** every line starts with a small label,
@@ -1048,8 +1048,25 @@ photosyst(struct sstat *si)
 		{
 			memset(cnt, 0, sizeof cnt);
 
-			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld",
-			      label, &cnt[0],  &cnt[1],  &cnt[2],  &cnt[3]);
+			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld",
+			            label,
+			            &cnt[0],  &cnt[1],  &cnt[2],  &cnt[3],
+			            &cnt[4],  &cnt[5],  &cnt[6],  &cnt[7],
+			            &cnt[8],  &cnt[9],  &cnt[10], &cnt[11],
+			            &cnt[12], &cnt[13], &cnt[14], &cnt[15],
+			            &cnt[16], &cnt[17], &cnt[18], &cnt[19],
+			            &cnt[20], &cnt[21], &cnt[22], &cnt[23],
+			            &cnt[24], &cnt[25], &cnt[26], &cnt[27],
+			            &cnt[28], &cnt[29], &cnt[30], &cnt[31],
+			            &cnt[32], &cnt[33], &cnt[34], &cnt[35],
+			            &cnt[36], &cnt[37], &cnt[38], &cnt[39]);
 
 			if (nr < 2)		// unexpected empty line ?
 				continue;
@@ -1090,6 +1107,27 @@ photosyst(struct sstat *si)
 
 				continue;
 			}
+			//
+			// first counter behind 'proc..' is number of
+			// counters that follow
+		   	if (strcmp(label, "proc2") == 0)
+		   	{
+				si->nfs.server.rpcread  += cnt[7]; // offset+1
+				si->nfs.server.rpcwrite += cnt[9]; // offset+1
+				continue;
+			}
+		   	if (strcmp(label, "proc3") == 0)
+		   	{
+				si->nfs.server.rpcread  += cnt[7]; // offset+1
+				si->nfs.server.rpcwrite += cnt[8]; // offset+1
+				continue;
+			}
+		   	if (strcmp(label, "proc4ops") == 0)
+		   	{
+				si->nfs.server.rpcread  += cnt[26]; // offset+1
+				si->nfs.server.rpcwrite += cnt[39]; // offset+1
+				continue;
+			}
 		}
 
 		fclose(fp);
@@ -1101,7 +1139,7 @@ photosyst(struct sstat *si)
 	if ( (fp = fopen("net/rpc/nfs", "r")) != NULL)
 	{
 		char    label[32];
-		count_t	cnt[3];
+		count_t	cnt[10];
 
 		/*
 		** every line starts with a small label,
@@ -1111,8 +1149,12 @@ photosyst(struct sstat *si)
 		{
 			memset(cnt, 0, sizeof cnt);
 
-			nr = sscanf(linebuf, "%31s %lld %lld %lld",
-			      label, &cnt[0],  &cnt[1],  &cnt[2]);
+			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld %lld"
+			                          "%lld %lld %lld %lld %lld",
+			            label,
+			            &cnt[0], &cnt[1], &cnt[2], &cnt[3],
+			            &cnt[4], &cnt[5], &cnt[6], &cnt[7],
+			            &cnt[8], &cnt[9]);
 
 			if (nr < 2)		// unexpected empty line ?
 				continue;
@@ -1122,7 +1164,28 @@ photosyst(struct sstat *si)
 				si->nfs.client.rpccnt        = cnt[0];
 				si->nfs.client.rpcretrans    = cnt[1];
 				si->nfs.client.rpcautrefresh = cnt[2];
-				break;
+				continue;
+			}
+
+			// first counter behind 'proc..' is number of
+			// counters that follow
+		   	if (strcmp(label, "proc2") == 0)
+		   	{
+				si->nfs.client.rpcread  += cnt[7]; // offset+1
+				si->nfs.client.rpcwrite += cnt[9]; // offset+1
+				continue;
+			}
+		   	if (strcmp(label, "proc3") == 0)
+		   	{
+				si->nfs.client.rpcread  += cnt[7]; // offset+1
+				si->nfs.client.rpcwrite += cnt[8]; // offset+1
+				continue;
+			}
+		   	if (strcmp(label, "proc4") == 0)
+		   	{
+				si->nfs.client.rpcread  += cnt[2]; // offset+1
+				si->nfs.client.rpcwrite += cnt[3]; // offset+1
+				continue;
 			}
 		}
 

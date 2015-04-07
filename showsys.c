@@ -1861,6 +1861,32 @@ sysprt_NFCRPCCNT(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_NFCRPCCNT = {"NFCRPCCNT", sysprt_NFCRPCCNT};
 /*******************************************************************/
 char *
+sysprt_NFCRPCREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="read   ";
+        val2valstr(sstat->nfs.client.rpcread,
+                   buf+5, 7, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFCRPCREAD = {"NFCRPCREAD", sysprt_NFCRPCREAD};
+/*******************************************************************/
+char *
+sysprt_NFCRPCWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="write   ";
+        val2valstr(sstat->nfs.client.rpcwrite,
+                   buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFCRPCWRITE = {"NFCRPCWRITE", sysprt_NFCRPCWRITE};
+/*******************************************************************/
+char *
 sysprt_NFCRPCRET(void *p, void *q, int badness, int *color) 
 {
         struct sstat *sstat=p;
@@ -1898,6 +1924,32 @@ sysprt_NFSRPCCNT(void *p, void *q, int badness, int *color)
 }
 
 sys_printdef syspdef_NFSRPCCNT = {"NFSRPCCNT", sysprt_NFSRPCCNT};
+/*******************************************************************/
+char *
+sysprt_NFSRPCREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="cread   ";
+        val2valstr(sstat->nfs.server.rpcread,
+                   buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRPCREAD = {"NFSRPCREAD", sysprt_NFSRPCREAD};
+/*******************************************************************/
+char *
+sysprt_NFSRPCWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="cwrit   ";
+        val2valstr(sstat->nfs.server.rpcwrite,
+                   buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFSRPCWRITE = {"NFSRPCWRITE", sysprt_NFSRPCWRITE};
 /*******************************************************************/
 char *
 sysprt_NFSBADFMT(void *p, void *q, int badness, int *color) 

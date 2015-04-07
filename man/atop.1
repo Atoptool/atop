@@ -1035,7 +1035,9 @@ shown any more for that class.
 Network Filesystem (NFS) client side counters.
 .br
 This line contains the number of RPC calls transmitted to 
-NFS servers (`rpc'), the number of RPC calls being retransmitted (`retxmit')
+NFS servers (`rpc'), the number of read RPC calls (`read`),
+the number of write RPC calls (`rpwrite'), the number of RPC calls
+being retransmitted (`retxmit')
 and the number of authorization refreshes (`autref').
 .PP
 .TP 5
@@ -1044,6 +1046,8 @@ Network Filesystem (NFS) server side counters.
 .br
 This line contains the number of RPC calls received from 
 NFS clients (`rpc'),
+the number of read RPC calls received (`cread`),
+the number of write RPC calls received (`cwrit'),
 the number of network requests handled via TCP (`nettcp'), 
 the number of network requests handled via UDP (`netudp'),
 the number of Megabytes/second returned to read requests by clients (`MBcr/s`),
@@ -1739,12 +1743,18 @@ and number of sectors transferred for write.
 .B NFC
 Subsequent fields:
 number of transmitted RPCs,
+number of transmitted read RPCs,
+number of transmitted write RPCs,
 number of RPC retransmissions, and
 number of authorization refreshes.
 .TP 9
 .B NFS
 Subsequent fields:
 number of handled RPCs,
+number of received read RPCs,
+number of received write RPCs,
+number of bytes read by clients,
+number of bytes written by clients,
 number of RPCs with bad format,
 number of RPCs with bad authorization,
 number of RPCs from bad client,
@@ -1753,10 +1763,8 @@ number of handled network requests via TCP,
 number of handled network requests via UDP,
 number of handled TCP connections,
 number of hits on reply cache,
-number of misses on reply cache,
-number of uncached requests,
-number of bytes read by clients, and
-number of bytes written by clients.
+number of misses on reply cache, and
+number of uncached requests.
 .TP 9
 .B NET
 First one line is produced for the upper layers of the TCP/IP stack.

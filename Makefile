@@ -19,7 +19,7 @@ PMPATH1  = /usr/lib/pm-utils/sleep.d
 PMPATH2  = /usr/lib64/pm-utils/sleep.d
 PMPATHD  = /usr/lib/systemd/system-sleep
 
-CFLAGS  += -O2 -I. -Wall 	 # -DHTTPSTATS
+CFLAGS  += -O2 -I. -Wall  	 # -DHTTPSTATS
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o

@@ -1059,6 +1059,10 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 
 	dev->nfs.server.rpccnt    = subcount(cur->nfs.server.rpccnt,
 	                                     pre->nfs.server.rpccnt);
+	dev->nfs.server.rpcread   = subcount(cur->nfs.server.rpcread,
+	                                     pre->nfs.server.rpcread);
+	dev->nfs.server.rpcwrite  = subcount(cur->nfs.server.rpcwrite,
+	                                     pre->nfs.server.rpcwrite);
 	dev->nfs.server.rpcbadfmt = subcount(cur->nfs.server.rpcbadfmt,
 	                                     pre->nfs.server.rpcbadfmt);
 	dev->nfs.server.rpcbadaut = subcount(cur->nfs.server.rpcbadaut,
@@ -1080,6 +1084,10 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 
 	dev->nfs.client.rpccnt        = subcount(cur->nfs.client.rpccnt,
 	                                         pre->nfs.client.rpccnt);
+	dev->nfs.client.rpcread       = subcount(cur->nfs.client.rpcread,
+	                                         pre->nfs.client.rpcread);
+	dev->nfs.client.rpcwrite      = subcount(cur->nfs.client.rpcwrite,
+	                                         pre->nfs.client.rpcwrite);
 	dev->nfs.client.rpcretrans    = subcount(cur->nfs.client.rpcretrans,
 	                                         pre->nfs.client.rpcretrans);
 	dev->nfs.client.rpcautrefresh = subcount(cur->nfs.client.rpcautrefresh,
@@ -1186,6 +1194,8 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 
 	   case 'n':	/* accumulate network-related counters */
 		tot->nfs.server.rpccnt     += new->nfs.server.rpccnt;
+		tot->nfs.server.rpcread    += new->nfs.server.rpcread;
+		tot->nfs.server.rpcwrite   += new->nfs.server.rpcwrite;
 		tot->nfs.server.rpcbadfmt  += new->nfs.server.rpcbadfmt;
 		tot->nfs.server.rpcbadaut  += new->nfs.server.rpcbadaut;
 		tot->nfs.server.rpcbadcln  += new->nfs.server.rpcbadcln;
@@ -1203,6 +1213,8 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->nfs.server.nwbytes    += new->nfs.server.nwbytes;
 
 		tot->nfs.client.rpccnt        += new->nfs.client.rpccnt;
+		tot->nfs.client.rpcread       += new->nfs.client.rpcread;
+		tot->nfs.client.rpcwrite      += new->nfs.client.rpcwrite;
 		tot->nfs.client.rpcretrans    += new->nfs.client.rpcretrans;
 		tot->nfs.client.rpcautrefresh += new->nfs.client.rpcautrefresh;
 

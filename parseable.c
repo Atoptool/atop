@@ -481,9 +481,11 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %lld %lld %lld\n",
+	printf(	"%s %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->nfs.client.rpccnt,
+			ss->nfs.client.rpcread,
+			ss->nfs.client.rpcwrite,
 			ss->nfs.client.rpcretrans,
 			ss->nfs.client.rpcautrefresh);
 }
@@ -491,10 +493,14 @@ print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %lld %lld %lld %lld %lld %lld %lld %lld "
+	printf(	"%s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 	        "%lld %lld %lld %lld %lld\n",
 			hp,
 			ss->nfs.server.rpccnt,
+			ss->nfs.client.rpcread,
+			ss->nfs.client.rpcwrite,
+			ss->nfs.server.nrbytes,
+			ss->nfs.server.nwbytes,
 			ss->nfs.server.rpcbadfmt,
 			ss->nfs.server.rpcbadaut,
 			ss->nfs.server.rpcbadcln,
@@ -504,9 +510,7 @@ print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->nfs.server.nettcpcon,
 			ss->nfs.server.rchits,
 			ss->nfs.server.rcmiss,
-			ss->nfs.server.rcnoca,
-			ss->nfs.server.nrbytes,
-			ss->nfs.server.nwbytes);
+			ss->nfs.server.rcnoca);
 }
 
 void

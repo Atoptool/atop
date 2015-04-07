@@ -485,6 +485,12 @@ contains information about NFS client activity:
 .B rpc/s
 Number of RPC calls per second issued to NFS server(s).
 .TP 12
+.B rpcread/s
+Number of read RPC calls per second issued to NFS server(s).
+.TP 12
+.B rpcwrite/s
+Number of write RPC calls per second issued to NFS server(s).
+.TP 12
 .B retrans/s
 Number of retransmitted RPC calls per second.
 .TP 12
@@ -498,11 +504,11 @@ contains information about NFS server activity:
 .B rpc/s
 Number of RPC calls per second received from NFS client(s).
 .TP 12
-.B nettcp/s
-Number of requests per second handled via TCP.
+.B rpcread/s
+Number of read RPC calls per second received from NFS client(s).
 .TP 12
-.B netudp/s
-Number of requests per second handled via UDP.
+.B rpcwrite/s
+Number of write RPC calls per second received from NFS client(s).
 .TP 12
 .B MBcr/s
 Number of Megabytes per second returned to read requests by clients.
@@ -510,11 +516,11 @@ Number of Megabytes per second returned to read requests by clients.
 .B MBcw/s
 Number of Megabytes per second passed in write requests by clients.
 .TP 12
-.B rchits/s
-Number of reply cache hits per second.
+.B nettcp/s
+Number of requests per second handled via TCP.
 .TP 12
-.B rcmiss/s
-Number of reply cache misses per second.
+.B netudp/s
+Number of requests per second handled via UDP.
 .PP
 The output for the flag
 .B -i

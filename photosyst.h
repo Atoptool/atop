@@ -191,6 +191,9 @@ struct nfsstat {
 		count_t rpcbadaut;
 		count_t rpcbadcln;
 
+		count_t rpcread;
+		count_t rpcwrite;
+
 	   	count_t	rchits;		/* repcache hits	*/
 	   	count_t	rcmiss;		/* repcache misses	*/
 	   	count_t	rcnoca;		/* uncached requests	*/
@@ -205,6 +208,9 @@ struct nfsstat {
 		count_t	rpccnt;
 		count_t rpcretrans;
 		count_t rpcautrefresh;
+
+		count_t rpcread;
+		count_t rpcwrite;
 
 		count_t	future[8];
 	} client;
