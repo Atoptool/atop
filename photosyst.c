@@ -1192,6 +1192,104 @@ photosyst(struct sstat *si)
 		fclose(fp);
 	}
 
+	/*
+	** Container statistics (if any)
+	*/
+	if ( (fp = fopen("user_beancounters", "r")) != NULL)
+	{
+		unsigned long	ctid;
+		char    	label[32];
+		count_t		cnt;
+
+		i = -1;
+
+		/*
+		** lines introducing a new container have an extra
+		** field with the container id at the beginning.
+		*/
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			nr = sscanf(linebuf, "%lu: %31s %lld",
+			            		&ctid, label, &cnt);
+
+			if (nr == 3)		// new container ?
+			{
+				if (++i >= MAXCONTAINER)
+					break;
+
+				si->cfs.cont[i].ctid = ctid;
+			}
+			else
+			{
+				nr = sscanf(linebuf, "%31s %lld", label, &cnt);
+
+				if (nr != 2)
+					continue;
+			}
+
+			if (i == -1)	// no container defined yet
+				continue;
+
+	   		if (strcmp(label, "numproc") == 0)
+	   		{
+				si->cfs.cont[i].numproc = cnt;
+				continue;
+			}
+
+	   		if (strcmp(label, "physpages") == 0)
+	   		{
+				si->cfs.cont[i].physpages = cnt;
+				continue;
+			}
+		}
+
+		fclose(fp);
+
+		si->cfs.nrcontainer = i+1;
+
+		if ( (fp = fopen("vz/vestat", "r")) != NULL)
+		{
+			unsigned long	ctid;
+			count_t		cnt[8];
+
+			/*
+			** relevant lines start with container id
+			*/
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			{
+				nr = sscanf(linebuf, "%lu  %lld %lld %lld %lld"
+			                             "%lld %lld %lld %lld %lld",
+			            	&ctid,
+					&cnt[0], &cnt[1], &cnt[2], &cnt[3],
+			            	&cnt[4], &cnt[5], &cnt[6], &cnt[7],
+					&cnt[8]);
+
+				if (nr < 9)	// irrelevant contents
+					continue;
+
+				// relevant stats: search for containerid
+				for (i=0; i < si->cfs.nrcontainer; i++)
+				{
+					if (si->cfs.cont[i].ctid == ctid)
+						break;
+				}
+
+				if (i >= si->cfs.nrcontainer)
+					continue;	// container not found
+
+				si->cfs.cont[i].user   = cnt[0];
+				si->cfs.cont[i].nice   = cnt[1];
+				si->cfs.cont[i].system = cnt[2];
+				si->cfs.cont[i].uptime = cnt[3];
+			}
+
+			fclose(fp);
+		}
+	}
+
+	/*
+ 	** return to original directory
+	*/
 	if ( chdir(origdir) == -1)
 		cleanstop(53);
 

@@ -466,21 +466,21 @@ procprt_TID_ae(struct tstat *curstat, int avgval, int nsecs)
         static char buf[10];
 
 	if (curstat->gen.isproc)
-        	sprintf(buf, "    -");
+        	sprintf(buf, "     -");
 	else
-        	sprintf(buf, "%5d", curstat->gen.pid);
+        	sprintf(buf, "%6d", curstat->gen.pid);
         return buf;
 }
 
 proc_printdef procprt_TID = 
-   { "  TID", "TID", procprt_TID_ae, procprt_TID_ae, 5 };
+   { "   TID", "TID", procprt_TID_ae, procprt_TID_ae, 6 };
 /***************************************************************/
 char *
 procprt_PID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        sprintf(buf, "%5d", curstat->gen.tgid);
+        sprintf(buf, "%6d", curstat->gen.tgid);
         return buf;
 }
 
@@ -490,14 +490,14 @@ procprt_PID_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[10];
 
         if (curstat->gen.pid == 0)
-                return "    ?";
+                return "     ?";
 
-        sprintf(buf, "%5d", curstat->gen.tgid);
+        sprintf(buf, "%6d", curstat->gen.tgid);
         return buf;
 }
 
 proc_printdef procprt_PID = 
-   { "  PID", "PID", procprt_PID_a, procprt_PID_e, 5 };
+   { "   PID", "PID", procprt_PID_a, procprt_PID_e, 6 };
 
 /***************************************************************/
 char *
@@ -505,7 +505,7 @@ procprt_PPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        sprintf(buf, "%5d", curstat->gen.ppid);
+        sprintf(buf, "%6d", curstat->gen.ppid);
         return buf;
 }
 
@@ -513,30 +513,48 @@ procprt_PPID_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_PPID_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "    -";
+        return "     -";
 }
 
 proc_printdef procprt_PPID = 
-   { " PPID", "PPID", procprt_PPID_a, procprt_PPID_e, 5 };
+   { "  PPID", "PPID", procprt_PPID_a, procprt_PPID_e, 6 };
 
 /***************************************************************/
 char *
-procprt_ENVID_a(struct tstat *curstat, int avgval, int nsecs)
+procprt_CTID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[32];
 
-        sprintf(buf, "%5d", curstat->gen.envid);
+        sprintf(buf, "%5d", curstat->gen.ctid);
         return buf;
 }
 
 char *
-procprt_ENVID_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_CTID_e(struct tstat *curstat, int avgval, int nsecs)
 {
         return "    -";
 }
 
-proc_printdef procprt_ENVID = 
-   { "ENVID", "ENVID", procprt_ENVID_a, procprt_ENVID_e, 5 };
+proc_printdef procprt_CTID = 
+   { " CTID", "CTID", procprt_CTID_a, procprt_CTID_e, 5 };
+/***************************************************************/
+char *
+procprt_VPID_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[32];
+
+        sprintf(buf, "%6d", curstat->gen.vpid);
+        return buf;
+}
+
+char *
+procprt_VPID_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "     -";
+}
+
+proc_printdef procprt_VPID = 
+   { "  VPID", "VPID", procprt_VPID_a, procprt_VPID_e, 6 };
 /***************************************************************/
 char *
 procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)

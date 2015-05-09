@@ -142,6 +142,7 @@ int		compnam(const void *, const void *);
 int		cpucompar (const void *, const void *);
 int		diskcompar(const void *, const void *);
 int		intfcompar(const void *, const void *);
+int		contcompar(const void *, const void *);
 
 count_t		subcount(count_t, count_t);
 void  		rawread(void);

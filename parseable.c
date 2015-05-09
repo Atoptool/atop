@@ -561,7 +561,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d (%s) %c %d %d %d %d %d %ld (%s) %d %d %d %d "
- 		       "%d %d %d %d %d %d %ld %c\n",
+ 		       "%d %d %d %d %d %d %ld %c %d %d\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
@@ -584,7 +584,9 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->gen.fsuid,
 				ps->gen.fsgid,
 				ps->gen.elaps,
-				ps->gen.isproc ? 'y':'n');
+				ps->gen.isproc ? 'y':'n',
+				ps->gen.vpid,
+				ps->gen.ctid);
 	}
 }
 

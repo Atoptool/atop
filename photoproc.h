@@ -55,8 +55,11 @@ struct tstat {
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */
-		int	envid;		/* OpenVZ support		*/
-		int	ifuture[4];     /* reserved                     */
+
+		int	ctid;		/* OpenVZ container ID		*/
+		int	vpid;		/* OpenVZ virtual PID		*/
+
+		int	ifuture[5];     /* reserved                     */
 	} gen;
 
 	/* CPU STATISTICS						*/

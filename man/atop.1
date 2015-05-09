@@ -1196,6 +1196,13 @@ The identification of the CPU the (main) thread is running on
 or has recently been running on.  
 .PP
 .TP 9
+.B CTID
+Container-id.
+If a process has been started and finished during the last
+interval, a `?' is shown because the container-id is not part of
+the standard process accounting record.
+.PP
+.TP 9
 .B DSK
 The occupation percentage of this process related to the total load that
 is produced by all processes (i.e. total disk accesses
@@ -1562,6 +1569,13 @@ since virtual memory occupation is not part of the standard
 process accounting record.
 .PP
 .TP 9
+.B VPID
+Virtual process-id (within a container).
+If a process has been started and finished during the last
+interval, a `?' is shown because the virtual process-id is not part of
+the standard process accounting record.
+.PP
+.TP 9
 .B VSIZE
 The total virtual memory usage consumed by this process (or user).
 .br
@@ -1805,7 +1819,8 @@ number of threads in state 'interruptible sleeping' (S),
 number of threads in state 'uninterruptible sleeping' (D),
 effective uid, effective gid,
 saved uid, saved gid,
-filesystem uid, filesystem gid, elapsed time (hertz) and is_process (y/n).
+filesystem uid, filesystem gid, elapsed time (hertz),
+is_process (y/n), virtual pid and container id.
 .TP 9
 .B PRC
 For every process one line is shown.

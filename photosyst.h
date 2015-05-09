@@ -28,6 +28,7 @@
 #define	MAXLVM		2048
 #define	MAXMDD		256
 #define	MAXINTF		128
+#define	MAXCONTAINER	128
 
 #define	MAXDKNAM	32
 
@@ -217,6 +218,25 @@ struct nfsstat {
 };
 
 /************************************************************************/
+
+struct  percontainer {
+        unsigned long	ctid;		/* container id			*/
+        unsigned long	numproc;	/* number of processes		*/
+
+        count_t system;  	/* */
+        count_t user;  		/* */
+        count_t nice;  		/* */
+        count_t uptime; 	/* */
+
+        count_t physpages; 	/* */
+};
+
+struct contstat {
+        int             	nrcontainer;
+        struct percontainer	cont[MAXCONTAINER];
+};
+
+/************************************************************************/
 /*
 ** experimental stuff for access to local HTTP daemons
 */
@@ -242,6 +262,7 @@ struct	sstat {
 	struct intfstat	intf;
 	struct dskstat  dsk;
 	struct nfsstat  nfs;
+	struct contstat cfs;
 
 	struct wwwstat	www;
 };

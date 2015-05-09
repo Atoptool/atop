@@ -1224,6 +1224,80 @@ sysprt_PAGSWOUT(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT};
 /*******************************************************************/
 char *
+sysprt_CONTNAME(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam 	*as=q;
+        static char 	buf[32] = "ctid ";
+
+	*color = -1;
+
+        sprintf(buf+5, "%7lu", sstat->cfs.cont[as->index].ctid);
+        return buf;
+}
+
+sys_printdef syspdef_CONTNAME = {"CONTNAME", sysprt_CONTNAME};
+/*******************************************************************/
+char *
+sysprt_CONTNPROC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam      *as=q;
+        static char buf[16]="nproc  ";
+
+	*color = -1;
+
+        val2valstr(sstat->cfs.cont[as->index].numproc, 
+                 	  buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_CONTNPROC = {"CONTNPROC", sysprt_CONTNPROC};
+/*******************************************************************/
+char *
+sysprt_CONTCPU(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam      *as=q;
+        static char buf[16];
+	float  perc;
+
+	count_t	used = sstat->cfs.cont[as->index].system + 
+                       sstat->cfs.cont[as->index].user + 
+                       sstat->cfs.cont[as->index].nice;
+
+	*color = -1;
+
+	if (sstat->cfs.cont[as->index].uptime)
+	{
+		perc = used * 100.0 / sstat->cfs.cont[as->index].uptime;
+        	sprintf(buf, "cpubusy %3.0f%%", perc);
+	}
+	else
+        	sprintf(buf, "cpubusy   ?%%");
+
+        return buf;
+}
+
+sys_printdef syspdef_CONTCPU = {"CONTCPU", sysprt_CONTCPU};
+/*******************************************************************/
+char *
+sysprt_CONTMEM(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam      *as=q;
+        static char buf[16]="mem   ";
+
+	*color = -1;
+
+        val2memstr(sstat->cfs.cont[as->index].physpages * pagesize,
+						buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_CONTMEM = {"CONTMEM", sysprt_CONTMEM};
+/*******************************************************************/
+char *
 sysprt_DSKNAME(void *p, void *q, int badness, int *color) 
 {
         extraparam 	*as=q;

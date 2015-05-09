@@ -1094,6 +1094,49 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	                                         pre->nfs.client.rpcautrefresh);
 
 	/*
+	** calculate deviations for containers
+	*/
+	for (i=j=0; i < cur->cfs.nrcontainer; i++, j++)
+	{
+		/*
+ 		** check if containers have been added or removed since
+		** previous interval
+		*/
+		if (cur->cfs.cont[i].ctid != pre->cfs.cont[j].ctid)
+		{
+			for (j=0; pre->cfs.nrcontainer; j++)
+			{
+				if (cur->cfs.cont[i].ctid ==
+						pre->cfs.cont[j].ctid)
+					break;
+			}
+
+			/*
+			** either the corresponding entry has been found
+			** in the case that a container has been removed,
+			** or an empty entry has been found (all counters
+			** on zero) in the case that a container has
+			** been added during the last sample
+			*/
+		}
+
+		dev->cfs.nrcontainer     = cur->cfs.nrcontainer;
+		dev->cfs.cont[i].ctid    = cur->cfs.cont[i].ctid;
+		dev->cfs.cont[i].numproc = cur->cfs.cont[i].numproc;
+
+		dev->cfs.cont[i].system  = subcount(cur->cfs.cont[i].system,
+		                                    pre->cfs.cont[i].system);
+		dev->cfs.cont[i].user    = subcount(cur->cfs.cont[i].user,
+		                                    pre->cfs.cont[i].user);
+		dev->cfs.cont[i].nice    = subcount(cur->cfs.cont[i].nice,
+		                                    pre->cfs.cont[i].nice);
+		dev->cfs.cont[i].uptime  = subcount(cur->cfs.cont[i].uptime,
+		                                    pre->cfs.cont[i].uptime);
+
+		dev->cfs.cont[i].physpages = cur->cfs.cont[i].physpages;
+	}
+
+	/*
 	** application-specific counters
 	*/
 #if	HTTPSTATS

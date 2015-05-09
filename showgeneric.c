@@ -300,6 +300,7 @@ static int	maxdsklines = 999;  /* maximum disk      lines          */
 static int	maxmddlines = 999;  /* maximum MDD       lines          */
 static int	maxlvmlines = 999;  /* maximum LVM       lines          */
 static int	maxintlines = 999;  /* maximum interface lines          */
+static int	maxcontlines = 999; /* maximum container lines          */
 
 static short	colorinfo   = COLOR_GREEN;
 static short	coloralmost = COLOR_CYAN;
@@ -444,6 +445,10 @@ generic_samp(time_t curtime, int nsecs,
 		if (sstat->intf.nrintf > 1 && maxintlines > 0)
 			qsort(sstat->intf.intf, sstat->intf.nrintf,
 		  	       sizeof sstat->intf.intf[0], intfcompar);
+
+		if (sstat->cfs.nrcontainer > 1 && maxcontlines > 0)
+			qsort(sstat->cfs.cont, sstat->cfs.nrcontainer,
+		  	       sizeof sstat->cfs.cont[0], contcompar);
 	}
 
 	/*
@@ -529,7 +534,7 @@ generic_samp(time_t curtime, int nsecs,
 		curline = prisyst(sstat, curline, nsecs, avgval,
 		                  fixedhead, &syssel, &autoorder,
 		                  maxcpulines, maxdsklines, maxmddlines,
-		                  maxlvmlines, maxintlines);
+		                  maxlvmlines, maxintlines, maxcontlines);
 
 		/*
  		** if system-wide statistics do not fit,
@@ -549,7 +554,7 @@ generic_samp(time_t curtime, int nsecs,
 			curline = prisyst(sstat, curline, nsecs, avgval,
 					fixedhead,  &syssel, &autoorder,
 					maxcpulines, maxdsklines, maxmddlines,
-					maxlvmlines, maxintlines);
+					maxlvmlines, maxintlines, maxcontlines);
 
 			/*
  			** if system-wide statistics still do not fit,
@@ -1720,6 +1725,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 					    maxintlines, statline);
 
+				maxcontlines =
+				  getnumval("Maximum lines for container "
+				            "statistics (now %d): ",
+					    maxcontlines, statline);
+
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
@@ -2052,11 +2062,12 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 static void
 limitedlines(void)
 {
-	maxcpulines = 0;
-	maxdsklines = 3;
-	maxmddlines = 4;
-	maxlvmlines = 5;
-	maxintlines = 3;
+	maxcpulines  = 0;
+	maxdsklines  = 3;
+	maxmddlines  = 4;
+	maxlvmlines  = 5;
+	maxintlines  = 3;
+	maxcontlines = 0;
 }
 
 /*
@@ -2675,6 +2686,12 @@ void
 do_maxintf(char *name, char *val)
 {
 	maxintlines = get_posval(name, val);
+}
+
+void
+do_maxcont(char *name, char *val)
+{
+	maxcontlines = get_posval(name, val);
 }
 
 

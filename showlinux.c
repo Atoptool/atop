@@ -393,6 +393,14 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *contsyspdefs[] = {
+	&syspdef_CONTNAME,
+	&syspdef_CONTNPROC,
+	&syspdef_CONTCPU,
+	&syspdef_CONTMEM,
+	&syspdef_BLANKBOX,
+	0
+};
 sys_printdef *dsksyspdefs[] = {
 	&syspdef_DSKNAME,
 	&syspdef_DSKBUSY,
@@ -507,7 +515,8 @@ proc_printdef *allprocpdefs[]=
 	&procprt_EGID,
 	&procprt_SGID,
 	&procprt_FSGID,
-	&procprt_ENVID,
+	&procprt_CTID,
+	&procprt_VPID,
 	&procprt_STDATE,
 	&procprt_STTIME,
 	&procprt_ENDATE,
@@ -577,6 +586,7 @@ sys_printpair cplline[MAXITEMS];
 sys_printpair memline[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
+sys_printpair contline[MAXITEMS];
 sys_printpair dskline[MAXITEMS];
 sys_printpair nettransportline[MAXITEMS];
 sys_printpair netnetline[MAXITEMS];
@@ -921,6 +931,16 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "PAGSWIN:3 "
 	                "PAGSWOUT:4", pagsyspdefs, "built in pagline");
                 }
+                if (contline[0].f == 0)
+                {
+                    make_sys_prints(contline, MAXITEMS,
+	                "CONTNAME:8 "
+	                "CONTNPROC:7 "
+	                "CONTCPU:6 "
+	                "CONTMEM:6 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 ", contsyspdefs, "builtin contline");
+                }
                 if (dskline[0].f == 0)
                 {
                     make_sys_prints(dskline, MAXITEMS,
@@ -1068,8 +1088,8 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in memprocs");
 
                 make_proc_prints(schedprocs, MAXITEMS, 
-                        "PID:10 TID:6 ENVID:5 TRUN:7 TSLPI:7 TSLPU:7 POLI:8 "
-                        "NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 EXC:8 "
+                        "PID:10 TID:6 VPID:5 CTID:5 TRUN:7 TSLPI:7 TSLPU:7 "
+			"POLI:8 NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 EXC:8 "
                         "S:8 SORTITEM:10 CMD:10", 
                         "built-in schedprocs");
 
@@ -1088,7 +1108,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in netprocs");
 
                 make_proc_prints(varprocs, MAXITEMS,
-                        "PID:10 TID:4 PPID:9 ENVID:1 "
+                        "PID:10 TID:4 PPID:9 VPID:1 CTID:1 "
 			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
                         "STDATE:7 STTIME:7 ENDATE:5 ENTIME:5 "
@@ -1390,7 +1410,7 @@ int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxdsklines, int maxmddlines,
-	int maxlvmlines, int maxintlines)
+	int maxlvmlines, int maxintlines, int maxcontlines)
 {
         extraparam      extra;
         int             lin;
@@ -1588,6 +1608,27 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 showsysline(pagline, sstat, &extra,"PAG", badness);
                 curline++;
         }
+
+	/*
+ 	** Container statistics (if any)
+	*/
+        for (extra.index=0, lin=0;
+	     extra.index < sstat->cfs.nrcontainer && lin < maxcontlines;
+             extra.index++)
+	{
+        	if (fixedhead             		||
+	            sstat->cfs.cont[extra.index].system	||
+	            sstat->cfs.cont[extra.index].user	||
+	            sstat->cfs.cont[extra.index].nice	  )
+		{
+			if (screen)
+                		move(curline, 0);
+
+                        showsysline(contline, sstat, &extra, "CON", badness);
+                        curline++;
+                        lin++;
+		}
+	}
 
         /*
         ** DISK statistics
@@ -1981,6 +2022,20 @@ intfcompar(const void *a, const void *b)
                 return -1;
         else
                 return  1;
+}
+
+int
+contcompar(const void *a, const void *b)
+{
+        const struct percontainer *ca = a;
+        const struct percontainer *cb = b;
+
+        register count_t aused = ca->system + ca->user + ca->nice;
+        register count_t bused = cb->system + cb->user + cb->nice;
+
+        if (aused < bused) return  1;
+        if (aused > bused) return -1;
+                           return  0;
 }
 
 /*
