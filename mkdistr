@@ -104,6 +104,13 @@ fi
 
 cd "$ORIGDIR"
 
+if ps -p1 | grep -q systemd
+then
+	ln -s atop.specsystemd atop.spec
+else
+	ln -s atop.specsysv    atop.spec
+fi
+
 sed -e "s/XVERSX/$BRANCH/g" atop.spec 	> /tmp/atop-$BRANCH.spec
 
 cd /tmp
