@@ -52,6 +52,10 @@ typedef __u16	u16;
 typedef __u8	u8;
 #include <linux/ethtool.h>
 
+#ifndef	SPEED_UNKNOWN
+#define	SPEED_UNKNOWN	-1
+#endif
+
 #include "atop.h"
 #include "ifprop.h"
 #include "photosyst.h"
