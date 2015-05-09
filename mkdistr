@@ -146,6 +146,8 @@ then
 #	fi
 fi
 
+rm atop.spec 2> /dev/null
+
 echo
 if [ -f /tmp/atop-$BRANCH.tar.gz ]
 then

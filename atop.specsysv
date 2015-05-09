@@ -83,7 +83,7 @@ fi
 # activate daily logging for today
 /usr/sbin/atopacctd
 sleep 2
-/etc/atop/atop.daily
+/etc/atop/atop.daily&
 
 %preun
 killall atopacctd 2> /dev/null || :
