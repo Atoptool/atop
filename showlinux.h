@@ -222,6 +222,7 @@ extern sys_printdef syspdef_NETICMPOUT;
 extern sys_printdef syspdef_NETNAME;
 extern sys_printdef syspdef_NETPCKI;
 extern sys_printdef syspdef_NETPCKO;
+extern sys_printdef syspdef_NETSPEEDMAX;
 extern sys_printdef syspdef_NETSPEEDIN;
 extern sys_printdef syspdef_NETSPEEDOUT;
 extern sys_printdef syspdef_NETCOLLIS;

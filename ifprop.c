@@ -51,6 +51,7 @@ typedef __u32	u32;
 typedef __u16	u16;
 typedef __u8	u8;
 #include <linux/ethtool.h>
+#include <linux/wireless.h>
 
 #ifndef	SPEED_UNKNOWN
 #define	SPEED_UNKNOWN	-1
@@ -83,6 +84,7 @@ getifprop(struct ifprop *ifp)
 		}
 	}
 
+	ifp->type	= '?';
 	ifp->speed	= 0;
 	ifp->fullduplex	= 0;
 
@@ -101,8 +103,9 @@ initifprop(void)
 	FILE 			*fp;
 	char 			*cp, linebuf[2048];
 	int			i=0, sockfd;
-	struct ifreq	 	ifreq;
 	struct ethtool_cmd 	ethcmd;
+	struct ifreq	 	ifreq;
+	struct iwreq	 	iwreq;
 
 	/*
 	** open /proc/net/dev to obtain all interface names and open
@@ -134,7 +137,7 @@ initifprop(void)
 		sscanf(linebuf, "%15s", ifprops[i].name);
 
 		/*
-		** determine properties of interface
+		** determine properties of ethernet interface
 		*/
 		memset(&ifreq,  0, sizeof ifreq);
 		memset(&ethcmd, 0, sizeof ethcmd);
@@ -146,29 +149,54 @@ initifprop(void)
 
 		ethcmd.cmd = ETHTOOL_GSET;
 
-		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == -1) 
+		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0) 
 		{
+			ifprops[i].type  = 'e';	// type ethernet
+			ifprops[i].speed = ethtool_cmd_speed(&ethcmd);
+
+			if (ifprops[i].speed == (u32)SPEED_UNKNOWN)
+				ifprops[i].speed = 0;
+
+			switch (ethcmd.duplex)
+			{
+		   	   case DUPLEX_FULL:
+				ifprops[i].fullduplex	= 1;
+				break;
+		   	   default:
+				ifprops[i].fullduplex	= 0;
+			}
+
 			if (++i >= MAXINTF-1)
 				break;
 			else
 				continue;
 		}
 
+		/*
+		** determine properties of wireless interface
+		*/
+		memset(&iwreq,  0, sizeof iwreq);
 
-		if (ethcmd.speed == SPEED_UNKNOWN)
-			ifprops[i].speed = 0;
-		else
-			ifprops[i].speed = ethcmd.speed;
+		strncpy(iwreq.ifr_ifrn.ifrn_name, ifprops[i].name,
+				sizeof iwreq.ifr_ifrn.ifrn_name-1);
 
-
-		switch (ethcmd.duplex)
+		if ( ioctl(sockfd, SIOCGIWRATE, &iwreq) == 0) 
 		{
-		   case DUPLEX_FULL:
-			ifprops[i].fullduplex	= 1;
-			break;
-		   default:
-			ifprops[i].fullduplex	= 0;
+			ifprops[i].type       = 'w';	// type wireless
+			ifprops[i].fullduplex = 0;
+
+			ifprops[i].speed =
+				(iwreq.u.bitrate.value + 500000) / 1000000;
+
+			if (++i >= MAXINTF-1)
+				break;
+			else
+				continue;
 		}
+
+		ifprops[i].type       = '?';	// type unknown
+		ifprops[i].fullduplex = 0;
+		ifprops[i].speed      = 0;
 
 		if (++i >= MAXINTF-1)
 			break;

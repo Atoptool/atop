@@ -598,6 +598,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 {
 	register int	i, j;
 	count_t		*cdev, *ccur, *cpre;
+	struct ifprop	ifprop;
 
 	dev->cpu.nrcpu     = cur->cpu.nrcpu;
 	dev->cpu.devint    = subcount(cur->cpu.devint, pre->cpu.devint);
@@ -772,57 +773,68 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 
 	/*
 	** calculate deviations for interfaces
+	**
+	** refresh all interface properties
 	*/
+        regainrootprivs();	/* get root privileges      */
+
+	initifprop();		/* refresh interface info   */
+
+	if (! droprootprivs())  /* drop setuid-root privs   */
+		cleanstop(42);
+
+	for (i=0; cur->intf.intf[i].name[0]; i++)
+	{
+		strcpy(ifprop.name, cur->intf.intf[i].name);
+
+		getifprop(&ifprop);
+
+		cur->intf.intf[i].type   = ifprop.type;
+		cur->intf.intf[i].speed  = ifprop.speed;
+		cur->intf.intf[i].speedp = ifprop.speed;
+		cur->intf.intf[i].duplex = ifprop.fullduplex;
+	}
+
 	if (pre->intf.intf[0].name[0] == '\0')	/* first sample? */
 	{
-		struct ifprop	ifprop;
-
 		for (i=0; cur->intf.intf[i].name[0]; i++)
 		{
 			strcpy(pre->intf.intf[i].name, cur->intf.intf[i].name);
 
-			strcpy(ifprop.name, cur->intf.intf[i].name);
-
-			getifprop(&ifprop);
-
-			pre->intf.intf[i].speed         = ifprop.speed;
-			pre->intf.intf[i].duplex        = ifprop.fullduplex;
+			pre->intf.intf[i].type   = cur->intf.intf[i].type;
+			pre->intf.intf[i].speed  = cur->intf.intf[i].speed;
+			pre->intf.intf[i].speedp = cur->intf.intf[i].speedp;
+			pre->intf.intf[i].duplex = cur->intf.intf[i].duplex;
  		}
 	}
 	
-	for (i=0; cur->intf.intf[i].name[0]; i++)
+	for (i=0, j=0; cur->intf.intf[i].name[0]; i++, j++)
 	{
 		/*
-		** check if an interface has been added or removed;
-		** in that case, skip further handling for this sample
+		** be sure that we have the same interface
+		** (interfaces could have been added or removed since
+		** previous sample)
 		*/
-		if (strcmp(cur->intf.intf[i].name, pre->intf.intf[i].name) != 0)
+		if (strcmp(cur->intf.intf[i].name, pre->intf.intf[j].name) != 0)
 		{
-			int		j;
-			struct ifprop	ifprop;
-
-			/*
-			** take care that interface properties are
-			** corrected for future samples
-			*/
-                        regainrootprivs();	/* get root privileges      */
-
-		        initifprop();		/* refresh interface info   */
-
-			if (! droprootprivs())  /* drop setuid-root privs   */
-				cleanstop(42);
-
-			for (j=0; cur->intf.intf[j].name[0]; j++)
+			// try to resync
+			for (j=0; pre->intf.intf[j].name[0]; j++)
 			{
-				strcpy(ifprop.name, cur->intf.intf[j].name);
-
-				getifprop(&ifprop);
-
-				cur->intf.intf[j].speed  = ifprop.speed;
-				cur->intf.intf[j].duplex = ifprop.fullduplex;
+				if (strcmp(cur->intf.intf[i].name,
+				           pre->intf.intf[j].name) == 0)
+					break;
 			}
 
-			break;
+			// resync not succeeded?
+			if (! pre->intf.intf[j].name[0])
+			{
+				memcpy(&dev->intf.intf[i],
+				       &cur->intf.intf[i],
+				       sizeof cur->intf.intf[i]);
+
+				j = 0;
+				continue;
+			}
 		}
 
 		/*
@@ -831,47 +843,45 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 		strcpy(dev->intf.intf[i].name, cur->intf.intf[i].name);
 
 		dev->intf.intf[i].rbyte = subcount(cur->intf.intf[i].rbyte,
-           	                                   pre->intf.intf[i].rbyte);
+           	                                   pre->intf.intf[j].rbyte);
 		dev->intf.intf[i].rpack = subcount(cur->intf.intf[i].rpack,
-		                                   pre->intf.intf[i].rpack);
+		                                   pre->intf.intf[j].rpack);
 		dev->intf.intf[i].rerrs = subcount(cur->intf.intf[i].rerrs,
-		                                   pre->intf.intf[i].rerrs);
+		                                   pre->intf.intf[j].rerrs);
 		dev->intf.intf[i].rdrop = subcount(cur->intf.intf[i].rdrop,
-		                                   pre->intf.intf[i].rdrop);
+		                                   pre->intf.intf[j].rdrop);
 		dev->intf.intf[i].rfifo = subcount(cur->intf.intf[i].rfifo,
-		                                   pre->intf.intf[i].rfifo);
+		                                   pre->intf.intf[j].rfifo);
 		dev->intf.intf[i].rframe= subcount(cur->intf.intf[i].rframe,
-		                                   pre->intf.intf[i].rframe);
+		                                   pre->intf.intf[j].rframe);
 		dev->intf.intf[i].rcompr= subcount(cur->intf.intf[i].rcompr,
-		                                   pre->intf.intf[i].rcompr);
+		                                   pre->intf.intf[j].rcompr);
 		dev->intf.intf[i].rmultic=subcount(cur->intf.intf[i].rmultic,
-		                                   pre->intf.intf[i].rmultic);
+		                                   pre->intf.intf[j].rmultic);
 
 		dev->intf.intf[i].sbyte = subcount(cur->intf.intf[i].sbyte,
-		                                   pre->intf.intf[i].sbyte);
+		                                   pre->intf.intf[j].sbyte);
 		dev->intf.intf[i].spack = subcount(cur->intf.intf[i].spack,
-		                                   pre->intf.intf[i].spack);
+		                                   pre->intf.intf[j].spack);
 		dev->intf.intf[i].serrs = subcount(cur->intf.intf[i].serrs,
-		                                   pre->intf.intf[i].serrs);
+		                                   pre->intf.intf[j].serrs);
 		dev->intf.intf[i].sdrop = subcount(cur->intf.intf[i].sdrop,
-		                                   pre->intf.intf[i].sdrop);
+		                                   pre->intf.intf[j].sdrop);
 		dev->intf.intf[i].sfifo = subcount(cur->intf.intf[i].sfifo,
-		                                   pre->intf.intf[i].sfifo);
+		                                   pre->intf.intf[j].sfifo);
 		dev->intf.intf[i].scollis= subcount(cur->intf.intf[i].scollis,
-		                                   pre->intf.intf[i].scollis);
+		                                   pre->intf.intf[j].scollis);
 		dev->intf.intf[i].scarrier= subcount(cur->intf.intf[i].scarrier,
-		                                   pre->intf.intf[i].scarrier);
+		                                   pre->intf.intf[j].scarrier);
 		dev->intf.intf[i].scompr= subcount(cur->intf.intf[i].scompr,
-		                                   pre->intf.intf[i].scompr);
+		                                   pre->intf.intf[j].scompr);
 
-		dev->intf.intf[i].speed 	= pre->intf.intf[i].speed;
-		dev->intf.intf[i].duplex	= pre->intf.intf[i].duplex;
+		dev->intf.intf[i].type  	= cur->intf.intf[i].type;
+		dev->intf.intf[i].duplex	= cur->intf.intf[i].duplex;
+		dev->intf.intf[i].speed 	= cur->intf.intf[i].speed;
+		dev->intf.intf[i].speedp 	= pre->intf.intf[j].speed;
 
-		/*
-		** save interface properties for next interval
-		*/
-		cur->intf.intf[i].speed 	= pre->intf.intf[i].speed;
-		cur->intf.intf[i].duplex	= pre->intf.intf[i].duplex;
+		cur->intf.intf[i].speedp 	= pre->intf.intf[j].speed;
 	}
 
 	dev->intf.intf[i].name[0] = '\0';
@@ -1381,6 +1391,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			tot->intf.intf[i].scarrier+= new->intf.intf[i].scarrier;
 			tot->intf.intf[i].scompr  += new->intf.intf[i].scompr;
 	
+			tot->intf.intf[i].type     = new->intf.intf[i].type;
 			tot->intf.intf[i].speed    = new->intf.intf[i].speed;
 			tot->intf.intf[i].duplex   = new->intf.intf[i].duplex;
 		}

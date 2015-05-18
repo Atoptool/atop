@@ -470,6 +470,7 @@ sys_printdef *netnetsyspdefs[] = {
 };
 sys_printdef *netintfsyspdefs[] = {
 	&syspdef_NETNAME,
+	&syspdef_NETSPEEDMAX,
 	&syspdef_NETPCKI,
 	&syspdef_NETPCKO,
 	&syspdef_NETSPEEDIN,
@@ -1024,16 +1025,17 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 {
                     make_sys_prints(netinterfaceline, MAXITEMS,
 	                "NETNAME:8 "
+	                "NETSPEEDMAX:5 "
 	                "NETPCKI:7 "
 	                "NETPCKO:7 "
 	                "NETSPEEDIN:6 "
 	                "NETSPEEDOUT:6 "
-                        "NETCOLLIS:3 "
+                        "NETCOLLIS:2 "
                         "NETMULTICASTIN:2 "
-                        "NETRCVERR:5 "
-                        "NETSNDERR:5 "
-                        "NETRCVDROP:4 "
-                        "NETSNDDROP:4", netintfsyspdefs, "built in netinterfaceline");
+                        "NETRCVERR:4 "
+                        "NETSNDERR:4 "
+                        "NETRCVDROP:3 "
+                        "NETSNDDROP:3", netintfsyspdefs, "built in netinterfaceline");
                 }
         }  // firsttime
 
@@ -1983,10 +1985,10 @@ intfcompar(const void *a, const void *b)
         if (aspeed)
         {
                 if (aduplex)
-                        afactor = (arbyte > asbyte ? arbyte : asbyte) /
-                                                                (aspeed / 10);
+                        afactor = (arbyte > asbyte ? arbyte : asbyte) 
+                                                                * 10 / aspeed;
                 else
-                        afactor = (arbyte + asbyte) /           (aspeed / 10);
+                        afactor = (arbyte + asbyte)             * 10 / aspeed;
         }
 
         /*
@@ -1995,10 +1997,10 @@ intfcompar(const void *a, const void *b)
         if (bspeed)
         {
                 if (bduplex)
-                        bfactor = (brbyte > bsbyte ? brbyte : bsbyte) /
-                                                                (bspeed / 10);
+                        bfactor = (brbyte > bsbyte ? brbyte : bsbyte)
+                                                                * 10 / bspeed;
                 else
-                        bfactor = (brbyte + bsbyte) /           (bspeed / 10);
+                        bfactor = (brbyte + bsbyte)             * 10 / bspeed;
         }
 
         /*

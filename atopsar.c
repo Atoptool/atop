@@ -1653,6 +1653,25 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 				busy = (ival + oval) * 100 /
 				        ss->intf.intf[i].speed;
 
+			// especially with wireless, the speed might have
+			// dropped temporarily to a very low value (snapshot)
+			// it might be better to take the speed of the
+			// previous sample
+			if (busy > 100 && ss->intf.intf[i].speed <
+			                  	ss->intf.intf[i].speedp )
+			{
+				ss->intf.intf[i].speed =
+					ss->intf.intf[i].speedp;
+
+				if (ss->intf.intf[i].duplex)
+					busy = (ival > oval ?
+						ival*100 : oval*100) /
+				        	ss->intf.intf[i].speed;
+				else
+					busy = (ival + oval) * 100 /
+				        	ss->intf.intf[i].speed;
+			}
+
 			snprintf(busyval, sizeof busyval,
 						"%3.0lf%%", busy);
 		}

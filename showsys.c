@@ -1713,8 +1713,8 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
         count_t ival = sstat->intf.intf[as->index].rbyte/125/as->nsecs;
         count_t oval = sstat->intf.intf[as->index].sbyte/125/as->nsecs;
 
-        static char buf[16]="ethxxxx ----";
-                      //     012345678901
+        static char buf[16] = "ethxxxx ----";
+                      //       012345678901
 
 	*color = -1;
 
@@ -1726,6 +1726,24 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
                 else
                         busy = (ival + oval) /
                                (sstat->intf.intf[as->index].speed *10);
+
+		// especially with wireless, the speed might have dropped
+		// temporarily to a very low value (snapshot)
+		// then it might be better to take the speed of the previous
+		// sample
+		if (busy > 100 && sstat->intf.intf[as->index].speed <
+					sstat->intf.intf[as->index].speedp)
+		{
+			sstat->intf.intf[as->index].speed =
+				sstat->intf.intf[as->index].speedp;
+
+                	if (sstat->intf.intf[as->index].duplex)
+                        	busy = (ival > oval ? ival : oval) /
+                               		(sstat->intf.intf[as->index].speed *10);
+                	else
+                        	busy = (ival + oval) /
+                               		(sstat->intf.intf[as->index].speed *10);
+		}
 
 	        snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%", 
        		          sstat->intf.intf[as->index].name, busy);
@@ -1812,7 +1830,31 @@ char *makenetspeed(count_t val, int nsecs)
         return buf;
 }
 /*******************************************************************/
+char *
+sysprt_NETSPEEDMAX(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat = p;
+        extraparam *as = q;
+        static char buf[16];
+        count_t speed = sstat->intf.intf[as->index].speed;
 
+	*color = -1;
+
+	if (speed < 10000)
+	{
+        	snprintf(buf, sizeof buf, "sp %4lld Mbps", speed);
+	}
+	else
+	{
+		speed /= 1000;
+        	snprintf(buf, sizeof buf, "sp %4lld Gbps", speed);
+	}
+
+        return buf;
+}
+
+sys_printdef syspdef_NETSPEEDMAX = {"NETSPEEDMAX", sysprt_NETSPEEDMAX};
+/*******************************************************************/
 char *
 sysprt_NETSPEEDIN(void *p, void *q, int badness, int *color) 
 {
@@ -1821,9 +1863,10 @@ sysprt_NETSPEEDIN(void *p, void *q, int badness, int *color)
 
 	*color = -1;
 
-        char *pr=makenetspeed(sstat->intf.intf[as->index].rbyte,as->nsecs);
-        pr[1]='i';
-        return pr;
+        char *ps=makenetspeed(sstat->intf.intf[as->index].rbyte,as->nsecs);
+        ps[0]='s';
+        ps[1]='i';
+        return ps;
 }
 
 sys_printdef syspdef_NETSPEEDIN = {"NETSPEEDIN", sysprt_NETSPEEDIN};
@@ -1837,6 +1880,7 @@ sysprt_NETSPEEDOUT(void *p, void *q, int badness, int *color)
 	*color = -1;
 
         char *ps=makenetspeed(sstat->intf.intf[as->index].sbyte,as->nsecs);
+        ps[0]='s';
         ps[1]='o';
         return ps;
 }

@@ -1,5 +1,7 @@
 struct ifprop	{
-	char		name[16];	/* name of interface  		*/
+	char		type;		/* type: 'e' (ethernet)		*/
+					/*       'w' (wireless)  	*/
+	char		name[31];	/* name of interface  		*/
 	long int	speed;		/* in megabits per second	*/
 	char		fullduplex;	/* boolean			*/
 };
