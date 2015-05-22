@@ -1459,7 +1459,7 @@ static struct {
 	{ "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
 	{ "^fio[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "/host.*/bus.*/target.*/lun.*/disc",	{0},  abbrevname1, DSKTYPE, },
-	{ "^xvd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
+	{ "^xvd[a-z][a-z]*[1-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
 	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, DSKTYPE, },
 	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, DSKTYPE, },
