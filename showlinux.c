@@ -1774,6 +1774,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 #if     HTTPSTATS
         if (sstat->www.accesses > 1 || fixedhead )
         {
+		char format1[8], format2[8], format3[8], format4[8], format5[8];
+
 		if (screen)
                		move(curline, 0);
 
