@@ -605,13 +605,11 @@ typedef struct {
 ** example: input: "ABCD:3  EFG:1   QWE:16"
 **         output: { { "ABCD", 3 }, {"EFG", 1},  { "QWE", 16}, { 0, 0 }  }
 */
-name_prio *
-makeargv(char *line, const char *linename) 
+static void
+makeargv(char *line, const char *linename, name_prio *vec) 
 {
-        int i=0;
+        int   i=0;
         char *p=line;
-        static name_prio vec[MAXITEMS];    // max MAXITEMS items
-
         char *name=0;
         char *prio=0;
 
@@ -671,8 +669,6 @@ makeargv(char *line, const char *linename)
         }
                 
         vec[i].name=0;
-        return vec;
-
 }
 
 
@@ -684,13 +680,13 @@ void
 make_sys_prints(sys_printpair *ar, int maxn, const char *pairs, 
                 sys_printdef *permissables[], const char *linename)
 {
-        name_prio *items;
+        name_prio items[MAXITEMS];
         int n=strlen(pairs);
 
         char str[n+1];
         strcpy(str, pairs);
 
-        items=makeargv(str, linename);
+        makeargv(str, linename, items);
 
         int i;
         for(i=0; items[i].name && i<maxn-1; ++i) 
@@ -727,13 +723,13 @@ void
 make_proc_prints(proc_printpair *ar, int maxn, const char *pairs, 
 const char *linename)
 {
-        name_prio *items;
+        name_prio items[MAXITEMS];
         int n=strlen(pairs);
 
         char str[n+1];
         strcpy(str, pairs);
 
-        items=makeargv(str, linename);
+        makeargv(str, linename, items);
 
         int i;
         for(i=0; items[i].name && i<maxn-1; ++i) 

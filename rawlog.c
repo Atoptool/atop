@@ -868,7 +868,10 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 	ptrverify(compbuf, "Malloc failed for reading compressed sysstats\n");
 
 	if ( read(rawfd, compbuf, complen) < complen)
+	{
+		free(compbuf);
 		return 0;
+	}
 
 	rv = uncompress((Byte *)sp, &uncomplen, compbuf, complen);
 
@@ -894,7 +897,10 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 	ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
 
 	if ( read(rawfd, compbuf, complen) < complen)
+	{
+		free(compbuf);
 		return 0;
+	}
 
 	rv = uncompress((Byte *)pp, &uncomplen, compbuf, complen);
 

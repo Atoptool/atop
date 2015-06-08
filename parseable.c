@@ -263,12 +263,12 @@ parseout(time_t curtime, int numsecs,
 /*
 ** print functions for system-level statistics
 */
-void 
+void
 calc_freqscale(count_t maxfreq, count_t cnt, count_t ticks, 
-               count_t *freq, int* freqperc)
+               count_t *freq, int *freqperc)
 {
         // if ticks != 0, do full calcs
-        if (ticks) 
+        if (maxfreq && ticks) 
         {
             *freq=cnt/ticks;
             *freqperc=100* *freq / maxfreq;

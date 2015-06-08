@@ -237,6 +237,8 @@ atopsar(int argc, char *argv[])
 			}
 		}
 
+		free(flaglist);
+
 		/*
 		** get optional interval-value and
 		** optional number of samples	

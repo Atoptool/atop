@@ -284,34 +284,24 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 int
 val2elapstr(int value, char *strvalue)
 {
-        char	*p=strvalue, doshow=0;
+        char	*p=strvalue;
 
-        if (value > DAYSECS) 
+        if (value >= DAYSECS) 
         {
                 p+=sprintf(p, "%dd", value/DAYSECS);
-                value %= DAYSECS;
-		doshow = 1;
         }
 
-        if (value > HOURSECS || doshow) 
+        if (value >= HOURSECS) 
         {
-                p+=sprintf(p, "%dh", value/HOURSECS);
-                value %= HOURSECS;
-		doshow = 1;
+                p+=sprintf(p, "%dh", (value%DAYSECS)/HOURSECS);
         }
 
-        if (value > MINSECS || doshow) 
+        if (value >= MINSECS) 
         {
-                p+=sprintf(p, "%dm", value/MINSECS);
-                value %= MINSECS;
-		doshow = 1;
+                p+=sprintf(p, "%dm", (value%HOURSECS)/MINSECS);
         }
 
-        if (value || doshow) 
-        {
-                p+=sprintf(p, "%ds", value);
-		doshow = 1;
-        }
+        p+=sprintf(p, "%ds", (value%MINSECS));
 
         return p-strvalue;
 }
