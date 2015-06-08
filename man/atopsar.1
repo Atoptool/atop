@@ -197,6 +197,10 @@ Report about utilization of multiple devices.
 Report about utilization of disks.
 .PP
 .TP 5
+.B -n
+Report about NFS mounted filesystems on NFS client.
+.PP
+.TP 5
 .B -j
 Report about NFS client activity.
 .PP
@@ -477,6 +481,21 @@ that the unit is busy.
 .B avserv
 Average number of milliseconds needed by a request on this unit
 (seek, latency and data-transfer).
+.PP
+The output for the flag
+.B -n
+contains information about activity on NFS mounted filesystems (client):
+.TP 12
+.B mounted_device
+Mounted device containing server name and server directory being mounted.
+.TP 12
+.B KBread/s
+Kilobytes data read from the NFS server by processes running on the
+NFS client.
+.TP 12
+.B KBwrite/s
+Kilobytes data written to the NFS server by processes running on the
+NFS client.
 .PP
 The output for the flag
 .B -j

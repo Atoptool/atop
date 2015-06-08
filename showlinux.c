@@ -415,6 +415,20 @@ sys_printdef *dsksyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *nfsmntsyspdefs[] = {
+	&syspdef_NFMPATH,
+	&syspdef_NFMSERVER,
+	&syspdef_NFMTOTREAD,
+	&syspdef_NFMTOTWRITE,
+	&syspdef_NFMNREAD,
+	&syspdef_NFMNWRITE,
+	&syspdef_NFMDREAD,
+	&syspdef_NFMDWRITE,
+	&syspdef_NFMMREAD,
+	&syspdef_NFMMWRITE,
+	&syspdef_BLANKBOX,
+        0
+};
 sys_printdef *nfcsyspdefs[] = {
 	&syspdef_NFCRPCCNT,
 	&syspdef_NFCRPCREAD,
@@ -592,6 +606,7 @@ sys_printpair dskline[MAXITEMS];
 sys_printpair nettransportline[MAXITEMS];
 sys_printpair netnetline[MAXITEMS];
 sys_printpair netinterfaceline[MAXITEMS];
+sys_printpair nfsmountline[MAXITEMS];
 sys_printpair nfcline[MAXITEMS];
 sys_printpair nfsline[MAXITEMS];
 
@@ -833,7 +848,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "PRCNZOMBIE:5 "
                         "PRCCLONES:4 "
 	                "BLANKBOX:0 "
-                        "PRCNNEXIT:6", prcsyspdefs, "built in sysprcline");
+                        "PRCNNEXIT:6", prcsyspdefs, "builtin sysprcline");
                 }
                 if (allcpuline[0].f == 0)
                 {
@@ -848,7 +863,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "CPUSTEAL:2 "
                         "CPUGUEST:3 "
                         "CPUFREQ:4 "
-                        "CPUSCALE:4 ", cpusyspdefs, "built in allcpuline");
+                        "CPUSCALE:4 ", cpusyspdefs, "builtin allcpuline");
                 }
 
                 if (indivcpuline[0].f == 0)
@@ -864,7 +879,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "CPUISTEAL:2 "
                         "CPUIGUEST:3 "
                         "CPUIFREQ:4 "
-                        "CPUISCALE:4 ", cpisyspdefs, "built in indivcpuline");
+                        "CPUISCALE:4 ", cpisyspdefs, "builtin indivcpuline");
                 }
 
                 if (cplline[0].f == 0)
@@ -877,7 +892,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "CPLCSW:6 "
 	                "CPLINTR:5 "
 	                "BLANKBOX:0 "
-	                "CPLNUMCPU:1", cplsyspdefs, "built in cplline");
+	                "CPLNUMCPU:1", cplsyspdefs, "builtin cplline");
                 }
 
                 if (memline[0].f == 0)
@@ -898,7 +913,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:4 "
-	                "HUPUSE:3 ", memsyspdefs, "built in memline");
+	                "HUPUSE:3 ", memsyspdefs, "builtin memline");
                 }
                 if (swpline[0].f == 0)
                 {
@@ -912,7 +927,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "SWPCOMMITTED:5 "
-	                "SWPCOMMITLIM:6", swpsyspdefs, "built in swpline");
+	                "SWPCOMMITLIM:6", swpsyspdefs, "builtin swpline");
                 }
                 if (pagline[0].f == 0)
                 {
@@ -926,7 +941,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "PAGSWIN:3 "
-	                "PAGSWOUT:4", pagsyspdefs, "built in pagline");
+	                "PAGSWOUT:4", pagsyspdefs, "builtin pagline");
                 }
                 if (contline[0].f == 0)
                 {
@@ -950,7 +965,26 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "DSKMBPERSECRD:5 "
                         "DSKMBPERSECWR:5 "
 	                "DSKAVQUEUE:1 "
-	                "DSKAVIO:5", dsksyspdefs, "built in dskline");
+	                "DSKAVIO:5", dsksyspdefs, "builtin dskline");
+                }
+                if (nfsmountline[0].f == 0)
+                {
+                    make_sys_prints(nfsmountline, MAXITEMS,
+	                "NFMPATH:8 "
+	                "NFMSERVER:8 "
+			"NFMTOTREAD:8 "
+			"NFMTOTWRITE:8 "
+	                "BLANKBOX:0 "
+			"NFMNREAD:7 "
+			"NFMNWRITE:6 "
+	                "BLANKBOX:0 "
+			"NFMDREAD:5 "
+			"NFMDWRITE:4 "
+	                "BLANKBOX:0 "
+			"NFMMREAD:3 "
+			"NFMMWRITE:2 "
+	                "BLANKBOX:0 "
+                        "BLANKBOX:0", nfsmntsyspdefs, "builtin nfsmountline");
                 }
                 if (nfcline[0].f == 0)
                 {
@@ -964,7 +998,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 ", nfcsyspdefs, "built in nfcline");
+	                "BLANKBOX:0 ", nfcsyspdefs, "builtin nfcline");
 		}
                 if (nfsline[0].f == 0)
                 {
@@ -985,7 +1019,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "BLANKBOX:0 "
 	                "NFSBADFMT:4 "
 	                "NFSBADAUT:4 "
-	                "NFSBADCLN:4 ", nfssyspdefs, "built in nfsline");
+	                "NFSBADCLN:4 ", nfssyspdefs, "builtin nfsline");
 		}
                 if (nettransportline[0].f == 0)
                 {
@@ -1001,7 +1035,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "NETTCPINERR:3 "
                         "NETTCPORESET:2 "
                         "NETUDPNOPORT:1 "
-                        "NETUDPINERR:3", nettranssyspdefs, "built in nettransportline");
+                        "NETUDPINERR:3", nettranssyspdefs, "builtin nettransportline");
                 }
                 if (netnetline[0].f == 0)
                 {
@@ -1015,7 +1049,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
                         "NETICMPIN:1 "
-                        "NETICMPOUT:1 ", netnetsyspdefs, "built in netnetline");
+                        "NETICMPOUT:1 ", netnetsyspdefs, "builtin netnetline");
                 }
                 if (netinterfaceline[0].f == 0)
                 {
@@ -1031,7 +1065,7 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                         "NETRCVERR:4 "
                         "NETSNDERR:4 "
                         "NETRCVDROP:3 "
-                        "NETSNDDROP:3", netintfsyspdefs, "built in netinterfaceline");
+                        "NETSNDDROP:3", netintfsyspdefs, "builtin netinterfaceline");
                 }
         }  // firsttime
 
@@ -1408,7 +1442,7 @@ int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxdsklines, int maxmddlines,
-	int maxlvmlines, int maxintlines, int maxcontlines)
+	int maxlvmlines, int maxintlines, int maxnfslines, int maxcontlines)
 {
         extraparam      extra;
         int             lin;
@@ -1622,7 +1656,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 			if (screen)
                 		move(curline, 0);
 
-                        showsysline(contline, sstat, &extra, "CON", badness);
+                        showsysline(contline, sstat, &extra, "CON", 0);
                         curline++;
                         lin++;
 		}
@@ -1647,8 +1681,32 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         /*
         ** NFS server and client statistics
         */
-        if (sstat->nfs.client.rpccnt ||
-            fixedhead )
+	for (extra.index=0, lin=0;
+	     extra.index < sstat->nfs.nfsmounts.nrmounts && lin < maxnfslines;
+								extra.index++)
+	{
+		int i = extra.index;
+
+		if ( (sstat->nfs.nfsmounts.nfsmnt[i].bytesread     +
+		      sstat->nfs.nfsmounts.nfsmnt[i].byteswrite    +
+		      sstat->nfs.nfsmounts.nfsmnt[i].bytesdread    +
+		      sstat->nfs.nfsmounts.nfsmnt[i].bytesdwrite   +
+		      sstat->nfs.nfsmounts.nfsmnt[i].bytestotread  +
+		      sstat->nfs.nfsmounts.nfsmnt[i].bytestotwrite +
+		      sstat->nfs.nfsmounts.nfsmnt[i].pagesmread    +
+		      sstat->nfs.nfsmounts.nfsmnt[i].pagesmwrite    )
+			|| fixedhead)
+		{
+			if (screen)
+                		move(curline, 0);
+
+                        showsysline(nfsmountline, sstat, &extra, "NFM", 0);
+                        curline++;
+                        lin++;
+		}
+	}
+
+        if (sstat->nfs.client.rpccnt || fixedhead )
         {
 		if (screen)
                 	move(curline, 0);
@@ -1657,8 +1715,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 curline++;
         }
 
-        if (sstat->nfs.server.rpccnt ||
-            fixedhead )
+        if (sstat->nfs.server.rpccnt || fixedhead )
         {
 		if (screen)
                 	move(curline, 0);
@@ -1754,6 +1811,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
 			if (screen)
                 		move(curline, 0);
+
                         showsysline(netinterfaceline, sstat, &extra, 
                                       			"NET", badness);
                         curline++;
@@ -2022,6 +2080,26 @@ intfcompar(const void *a, const void *b)
                 return -1;
         else
                 return  1;
+}
+
+int
+nfsmcompar(const void *a, const void *b)
+{
+        const struct pernfsmount *na = a;
+        const struct pernfsmount *nb = b;
+
+        register count_t aused = na->bytesread    + na->byteswrite    + 
+	                         na->bytesdread   + na->bytesdwrite   +
+	                         na->bytestotread + na->bytestotwrite +
+                                 na->pagesmread   + na->pagesmwrite;
+        register count_t bused = nb->bytesread    + nb->byteswrite    + 
+	                         nb->bytesdread   + nb->bytesdwrite   +
+	                         nb->bytestotread + nb->bytestotwrite +
+                                 nb->pagesmread   + nb->pagesmwrite;
+
+        if (aused < bused) return  1;
+        if (aused > bused) return -1;
+                           return  0;
 }
 
 int

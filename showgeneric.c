@@ -300,6 +300,7 @@ static int	maxdsklines = 999;  /* maximum disk      lines          */
 static int	maxmddlines = 999;  /* maximum MDD       lines          */
 static int	maxlvmlines = 999;  /* maximum LVM       lines          */
 static int	maxintlines = 999;  /* maximum interface lines          */
+static int	maxnfslines = 999;  /* maximum nfs mount lines          */
 static int	maxcontlines = 999; /* maximum container lines          */
 
 static short	colorinfo   = COLOR_GREEN;
@@ -446,6 +447,12 @@ generic_samp(time_t curtime, int nsecs,
 			qsort(sstat->intf.intf, sstat->intf.nrintf,
 		  	       sizeof sstat->intf.intf[0], intfcompar);
 
+		if (sstat->nfs.nfsmounts.nrmounts > 1 && maxnfslines > 0)
+			qsort(sstat->nfs.nfsmounts.nfsmnt,
+		              sstat->nfs.nfsmounts.nrmounts,
+		  	      sizeof sstat->nfs.nfsmounts.nfsmnt[0],
+				nfsmcompar);
+
 		if (sstat->cfs.nrcontainer > 1 && maxcontlines > 0)
 			qsort(sstat->cfs.cont, sstat->cfs.nrcontainer,
 		  	       sizeof sstat->cfs.cont[0], contcompar);
@@ -534,7 +541,8 @@ generic_samp(time_t curtime, int nsecs,
 		curline = prisyst(sstat, curline, nsecs, avgval,
 		                  fixedhead, &syssel, &autoorder,
 		                  maxcpulines, maxdsklines, maxmddlines,
-		                  maxlvmlines, maxintlines, maxcontlines);
+		                  maxlvmlines, maxintlines, maxnfslines,
+		                  maxcontlines);
 
 		/*
  		** if system-wide statistics do not fit,
@@ -554,7 +562,8 @@ generic_samp(time_t curtime, int nsecs,
 			curline = prisyst(sstat, curline, nsecs, avgval,
 					fixedhead,  &syssel, &autoorder,
 					maxcpulines, maxdsklines, maxmddlines,
-					maxlvmlines, maxintlines, maxcontlines);
+		                        maxlvmlines, maxintlines, maxnfslines,
+		                        maxcontlines);
 
 			/*
  			** if system-wide statistics still do not fit,
@@ -1725,6 +1734,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 					    maxintlines, statline);
 
+				maxnfslines =
+				  getnumval("Maximum lines for NFS mount "
+				            "statistics (now %d): ",
+					    maxnfslines, statline);
+
 				maxcontlines =
 				  getnumval("Maximum lines for container "
 				            "statistics (now %d): ",
@@ -2064,9 +2078,10 @@ limitedlines(void)
 {
 	maxcpulines  = 0;
 	maxdsklines  = 3;
-	maxmddlines  = 4;
-	maxlvmlines  = 5;
-	maxintlines  = 3;
+	maxmddlines  = 3;
+	maxlvmlines  = 4;
+	maxintlines  = 2;
+	maxnfslines  = 2;
 	maxcontlines = 0;
 }
 
@@ -2686,6 +2701,12 @@ void
 do_maxintf(char *name, char *val)
 {
 	maxintlines = get_posval(name, val);
+}
+
+void
+do_maxnfsm(char *name, char *val)
+{
+	maxnfslines = get_posval(name, val);
 }
 
 void

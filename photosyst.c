@@ -1193,6 +1193,80 @@ photosyst(struct sstat *si)
 	}
 
 	/*
+	** NFS client: per-mount statistics
+	*/
+	regainrootprivs();
+
+	if ( (fp = fopen("self/mountstats", "r")) != NULL)
+	{
+		char 	mountdev[128], fstype[32], label[32];
+                count_t	cnt[8];
+
+		i = 0;
+
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			// if 'device' line, just remember the mounted device
+			if (sscanf(linebuf,
+				"device %127s mounted on %*s with fstype %31s",
+				mountdev, fstype) == 2)
+			{
+				continue;
+			}
+
+			if (strcmp(fstype, "nfs") != 0)
+				continue;
+
+			// this is line with NFS client stats
+			nr = sscanf(linebuf,
+                                "%31s %lld %lld %lld %lld %lld %lld %lld %lld",
+				label, &cnt[0], &cnt[1], &cnt[2], &cnt[3],
+				       &cnt[4], &cnt[5], &cnt[6], &cnt[7]);
+
+			if (nr >= 2 )
+			{
+		   		if (strcmp(label, "age:") == 0)
+				{
+				    strcpy(si->nfs.nfsmounts.nfsmnt[i].mountdev,
+				           mountdev);
+
+				    si->nfs.nfsmounts.nfsmnt[i].age = cnt[0];
+				}
+
+		   		if (strcmp(label, "bytes:") == 0)
+				{
+				    si->nfs.nfsmounts.nfsmnt[i].bytesread =
+									cnt[0];
+				    si->nfs.nfsmounts.nfsmnt[i].byteswrite =
+									cnt[1];
+				    si->nfs.nfsmounts.nfsmnt[i].bytesdread =
+									cnt[2];
+				    si->nfs.nfsmounts.nfsmnt[i].bytesdwrite =
+									cnt[3];
+				    si->nfs.nfsmounts.nfsmnt[i].bytestotread =
+									cnt[4];
+				    si->nfs.nfsmounts.nfsmnt[i].bytestotwrite =
+									cnt[5];
+				    si->nfs.nfsmounts.nfsmnt[i].pagesmread =
+									cnt[6];
+				    si->nfs.nfsmounts.nfsmnt[i].pagesmwrite =
+									cnt[7];
+
+				    if (++i >= MAXNFSMOUNT-1)
+					break;
+				}
+			}
+		}
+
+		si->nfs.nfsmounts.nrmounts = i;
+
+		fclose(fp);
+	}
+
+	if (! droprootprivs())
+		cleanstop(42);
+
+	/*
 	** Container statistics (if any)
 	*/
 	if ( (fp = fopen("user_beancounters", "r")) != NULL)

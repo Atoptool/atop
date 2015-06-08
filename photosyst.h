@@ -29,6 +29,7 @@
 #define	MAXMDD		256
 #define	MAXINTF		128
 #define	MAXCONTAINER	128
+#define	MAXNFSMOUNT	64
 
 #define	MAXDKNAM	32
 
@@ -182,6 +183,22 @@ struct intfstat {
 
 /************************************************************************/
 
+struct  pernfsmount {
+        char 	mountdev[128];		/* mountdevice 			*/
+        count_t	age;			/* number of seconds mounted	*/
+	
+	count_t	bytesread;		/* via normal reads		*/
+	count_t	byteswrite;		/* via normal writes		*/
+	count_t	bytesdread;		/* via direct reads		*/
+	count_t	bytesdwrite;		/* via direct writes		*/
+	count_t	bytestotread;		/* via reads			*/
+	count_t	bytestotwrite;		/* via writes			*/
+	count_t	pagesmread;		/* via mmap  reads		*/
+	count_t	pagesmwrite;		/* via mmap  writes		*/
+
+	count_t	future[8];
+};
+
 struct nfsstat {
 	struct {
         	count_t	netcnt;
@@ -217,6 +234,11 @@ struct nfsstat {
 
 		count_t	future[8];
 	} client;
+
+	struct {
+        	int             	nrmounts;
+       		struct pernfsmount	nfsmnt[MAXNFSMOUNT];
+	} nfsmounts;
 };
 
 /************************************************************************/
@@ -273,5 +295,5 @@ struct	sstat {
 ** prototypes
 */
 void	photosyst (struct sstat *);
-void	deviatsyst(struct sstat *, struct sstat *, struct sstat *);
+void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);

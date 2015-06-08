@@ -91,6 +91,7 @@ void 	print_PAG();
 void 	print_LVM();
 void 	print_MDD();
 void 	print_DSK();
+void 	print_NFM();
 void 	print_NFC();
 void 	print_NFS();
 void 	print_NET();
@@ -121,6 +122,7 @@ static struct labeldef	labeldef[] = {
 	{ "LVM",	0,	print_LVM },
 	{ "MDD",	0,	print_MDD },
 	{ "DSK",	0,	print_DSK },
+	{ "NFM",	0,	print_NFM },
 	{ "NFC",	0,	print_NFC },
 	{ "NFS",	0,	print_NFS },
 	{ "NET",	0,	print_NET },
@@ -475,6 +477,27 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->dsk.dsk[i].nrsect,
 			ss->dsk.dsk[i].nwrite,
 			ss->dsk.dsk[i].nwsect);
+	}
+}
+
+void
+print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int	i;
+
+        for (i=0; i < ss->nfs.nfsmounts.nrmounts; i++)
+	{
+		printf("%s %s %lld %lld %lld %lld %lld %lld %lld %lld\n",
+			hp,
+			ss->nfs.nfsmounts.nfsmnt[i].mountdev,
+			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
+			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
+			ss->nfs.nfsmounts.nfsmnt[i].bytesread,
+			ss->nfs.nfsmounts.nfsmnt[i].byteswrite,
+			ss->nfs.nfsmounts.nfsmnt[i].bytesdread,
+			ss->nfs.nfsmounts.nfsmnt[i].bytesdwrite,
+			ss->nfs.nfsmounts.nfsmnt[i].pagesmread,
+			ss->nfs.nfsmounts.nfsmnt[i].pagesmwrite);
 	}
 }
 

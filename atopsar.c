@@ -477,7 +477,8 @@ engine(void)
 
 		photosyst(cursstat);	/* obtain new counters      */
 
-		deviatsyst(cursstat, presstat, devsstat);
+		deviatsyst(cursstat, presstat, devsstat,
+				 curtime-pretime > 0 ? curtime-pretime : 1);
 
 		/*
 		** activate the report-function to visualize the deviations
@@ -1551,6 +1552,62 @@ dskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 ** NFS client statistics
 */
 static void
+nfmhead(int osvers, int osrel, int ossub)
+{
+	printf("mounted_device                    KBread/s   KBwrite/s       "
+               "   _nfm_");
+}
+
+static int
+nfmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	static char	firstcall = 1;
+	register long	i, nlines = 0;
+	char		*pn;
+	int		len;
+
+	for (i=0; i < ss->nfs.nfsmounts.nrmounts; i++)	/* per NFS mount */
+	{
+		/*
+		** print for the first sample all mounts that
+		** are found; afterwards print only the mounts
+		** that were really active during the interval
+		*/
+		if (!firstcall && !allresources &&
+		    !ss->nfs.nfsmounts.nfsmnt[i].bytestotread &&
+		    !ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite  )
+			continue;
+
+		if (nlines++)
+			printf("%s  ", tstamp);
+
+		if ( (len = strlen(ss->nfs.nfsmounts.nfsmnt[i].mountdev)) > 30)
+			pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev + len - 30;
+		else
+			pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev;
+
+		printf("%-30s %11.3lf %11.3lf\n", 
+			pn,
+			(double)ss->nfs.nfsmounts.nfsmnt[i].bytestotread  /
+							1024 / deltasec,
+			(double)ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite /
+							1024 / deltasec);
+	}
+
+	if (nlines == 0)
+	{
+		printf("\n");
+		nlines++;
+	}
+
+	firstcall= 0;
+	return nlines;
+}
+
+static void
 nfchead(int osvers, int osrel, int ossub)
 {
 	printf("     rpc/s   rpcread/s  rpcwrite/s  retrans/s  autrefresh/s   "
@@ -2391,6 +2448,7 @@ struct pridef pridef[] =
    {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },
    {0,  "cd", 'f',  mddhead,	mddline,	"multiple device activity",},
    {0,  "cd", 'd',  dskhead,	dskline,	"disk activity",          },
+   {0,  "n",  'n',  nfmhead,	nfmline,	"NFS client mounts",      },
    {0,  "n",  'j',  nfchead,	nfcline,	"NFS client activity",    },
    {0,  "n",  'J',  nfshead,	nfsline,	"NFS server activity",    },
    {0,  "n",  'i',  ifhead,	ifline,		"net-interf (general)",   },

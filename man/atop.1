@@ -1031,6 +1031,21 @@ By specifying the value 0 for a particular class, no lines will be
 shown any more for that class.
 .PP
 .TP 5
+.B NFM
+Network Filesystem (NFS) mount at the client side.
+.br
+For each NFS-mounted filesystem, a line is shown that contains 
+the mounted server directory, the name of the server (`srv'),
+the total number of KiB read from the server (`readK'),
+the total number of KiB written to the server (`writK'),
+the number of Kilobytes read via normal read() system calls (`nreadK'),
+the number of Kilobytes written via normal read() system calls (`nwritK'),
+the number of Kilobytes read via direct I/O (`dreadK'),
+the number of Kilobytes written via direct I/O (`dwritK'),
+the number of Kilobytes read via memory mapped I/O pages (`mreadK'), and
+the number of Kilobytes written via memory mapped I/O pages (`mwritK').
+.PP
+.TP 5
 .B NFC
 Network Filesystem (NFS) client side counters.
 .br
@@ -1632,8 +1647,8 @@ parseable output is produced for each sample.
 The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
-"CPU", "cpu" "CPL" "MEM", "SWP", "PAG", "LVM", "MDD", "DSK", "NFC", "NFS"
-and "NET".
+"CPU", "cpu" "CPL" "MEM", "SWP", "PAG", "LVM", "MDD", "DSK", "NFM",
+"NFC", "NFS" and "NET".
 .br
 For process-level statistics special labels are introduced:
 "PRG" (general), "PRC" (cpu), "PRM" (memory), "PRD" (disk, only if
@@ -1754,6 +1769,18 @@ number of reads issued,
 number of sectors transferred for reads,
 number of writes issued,
 and number of sectors transferred for write.
+.TP 9
+.B NFM
+Subsequent fields:
+mounted NFS filesystem,
+total number of bytes read,
+total number of bytes written,
+number of bytes read by normal system calls,
+number of bytes written by normal system calls,
+number of bytes read by direct I/O,
+number of bytes written by direct I/O,
+number of pages read by memory-mapped I/O, and
+number of pages written by memory-mapped I/O.
 .TP 9
 .B NFC
 Subsequent fields:

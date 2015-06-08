@@ -1966,6 +1966,167 @@ sysprt_NETSNDDROP(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_NETSNDDROP = {"NETSNDDROP", sysprt_NETSNDDROP};
 /*******************************************************************/
 char *
+sysprt_NFMSERVER(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+	static char buf[16] = "srv ";
+        char mntdev[128], *ps;
+
+        memcpy(mntdev, sstat->nfs.nfsmounts.nfsmnt[as->index].mountdev,
+								sizeof mntdev);
+
+	if ( (ps = strchr(mntdev, ':')) )		// colon found?
+		*ps = '\0';
+	else
+		strcpy(mntdev, "?");
+
+	sprintf(buf+4, "%8.8s", mntdev);
+        return buf;
+}
+
+sys_printdef syspdef_NFMSERVER = {"NFMSERVER", sysprt_NFMSERVER};
+/*******************************************************************/
+char *
+sysprt_NFMPATH(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+	static char buf[16];
+        char mntdev[128], *ps;
+	int len;
+
+        memcpy(mntdev, sstat->nfs.nfsmounts.nfsmnt[as->index].mountdev,
+								sizeof mntdev);
+
+	if ( (ps = strchr(mntdev, ':')) )		// colon found?
+		ps++;
+	else
+		ps = mntdev;
+
+	len = strlen(ps);
+        if (len > 12)
+		ps = ps + len - 12;
+
+	sprintf(buf, "%12.12s", ps);
+        return buf;
+}
+
+sys_printdef syspdef_NFMPATH = {"NFMPATH", sysprt_NFMPATH};
+/*******************************************************************/
+char *
+sysprt_NFMTOTREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="readK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotread/1024,
+					buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMTOTREAD = {"NFMTOTREAD", sysprt_NFMTOTREAD};
+/*******************************************************************/
+char *
+sysprt_NFMTOTWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="writK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotwrite/1024,
+					buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMTOTWRITE = {"NFMTOTWRITE", sysprt_NFMTOTWRITE};
+/*******************************************************************/
+char *
+sysprt_NFMNREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="nreadK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesread/1024,
+					buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMNREAD = {"NFMNREAD", sysprt_NFMNREAD};
+/*******************************************************************/
+char *
+sysprt_NFMNWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="nwritK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].byteswrite/1024,
+					buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMNWRITE = {"NFMNWRITE", sysprt_NFMNWRITE};
+/*******************************************************************/
+char *
+sysprt_NFMDREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="dreadK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdread/1024,
+					buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMDREAD = {"NFMDREAD", sysprt_NFMDREAD};
+/*******************************************************************/
+char *
+sysprt_NFMDWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="dwritK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdwrite/1024,
+					buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMDWRITE = {"NFMDWRITE", sysprt_NFMDWRITE};
+/*******************************************************************/
+char *
+sysprt_NFMMREAD(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="mreadK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmread *
+			pagesize/1024, buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMMREAD = {"NFMMREAD", sysprt_NFMMREAD};
+/*******************************************************************/
+char *
+sysprt_NFMMWRITE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="mwritK   ";
+
+        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmwrite *
+			pagesize/1024, buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NFMMWRITE = {"NFMMWRITE", sysprt_NFMMWRITE};
+/*******************************************************************/
+char *
 sysprt_NFCRPCCNT(void *p, void *q, int badness, int *color) 
 {
         struct sstat *sstat=p;

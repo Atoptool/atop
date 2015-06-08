@@ -594,7 +594,8 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 ** calculate the system-activity during the last sample
 */
 void
-deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
+deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
+							long interval)
 {
 	register int	i, j;
 	count_t		*cdev, *ccur, *cpre;
@@ -1103,6 +1104,78 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 	dev->nfs.client.rpcautrefresh = subcount(cur->nfs.client.rpcautrefresh,
 	                                         pre->nfs.client.rpcautrefresh);
 
+
+	for (i=j=0; i < cur->nfs.nfsmounts.nrmounts; i++, j++)
+	{
+		/*
+ 		** check if nfsmounts have been added or removed since
+		** previous interval
+		*/
+		if ( strcmp(cur->nfs.nfsmounts.nfsmnt[i].mountdev,
+		            pre->nfs.nfsmounts.nfsmnt[j].mountdev) != 0)
+		{
+			for (j=0; j < pre->nfs.nfsmounts.nrmounts; j++)
+			{
+			    if ( strcmp(cur->nfs.nfsmounts.nfsmnt[i].mountdev,
+		                        pre->nfs.nfsmounts.nfsmnt[j].mountdev)
+									== 0)
+					break;
+			}
+
+			/*
+			** either the corresponding entry has been found
+			** in the case that a container has been removed,
+			** or an empty entry has been found (all counters
+			** on zero) in the case that a container has
+			** been added during the last sample
+			*/
+		}
+
+		strcpy(dev->nfs.nfsmounts.nfsmnt[i].mountdev,
+		       cur->nfs.nfsmounts.nfsmnt[i].mountdev);
+
+                dev->nfs.nfsmounts.nfsmnt[i].age = 
+                                    cur->nfs.nfsmounts.nfsmnt[i].age;
+
+		if (dev->nfs.nfsmounts.nfsmnt[i].age <= interval)
+			memset(&(pre->nfs.nfsmounts.nfsmnt[j]), 0, 
+					sizeof(struct percontainer));
+
+                dev->nfs.nfsmounts.nfsmnt[i].bytesread = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].bytesread,
+                                   pre->nfs.nfsmounts.nfsmnt[j].bytesread);
+
+                dev->nfs.nfsmounts.nfsmnt[i].byteswrite = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].byteswrite,
+                                   pre->nfs.nfsmounts.nfsmnt[j].byteswrite);
+
+                dev->nfs.nfsmounts.nfsmnt[i].bytesdread = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].bytesdread,
+                                   pre->nfs.nfsmounts.nfsmnt[j].bytesdread);
+
+                dev->nfs.nfsmounts.nfsmnt[i].bytesdwrite = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].bytesdwrite,
+                                   pre->nfs.nfsmounts.nfsmnt[j].bytesdwrite);
+
+                dev->nfs.nfsmounts.nfsmnt[i].bytestotread = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].bytestotread,
+                                   pre->nfs.nfsmounts.nfsmnt[j].bytestotread);
+
+                dev->nfs.nfsmounts.nfsmnt[i].bytestotwrite = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].bytestotwrite,
+                                   pre->nfs.nfsmounts.nfsmnt[j].bytestotwrite);
+
+                dev->nfs.nfsmounts.nfsmnt[i].pagesmread = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].pagesmread,
+                                   pre->nfs.nfsmounts.nfsmnt[j].pagesmread);
+
+                dev->nfs.nfsmounts.nfsmnt[i].pagesmwrite = 
+                          subcount(cur->nfs.nfsmounts.nfsmnt[i].pagesmwrite,
+                                   pre->nfs.nfsmounts.nfsmnt[j].pagesmwrite);
+	}
+
+	dev->nfs.nfsmounts.nrmounts = cur->nfs.nfsmounts.nrmounts;
+
 	/*
 	** calculate deviations for containers
 	*/
@@ -1114,7 +1187,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 		*/
 		if (cur->cfs.cont[i].ctid != pre->cfs.cont[j].ctid)
 		{
-			for (j=0; pre->cfs.nrcontainer; j++)
+			for (j=0; j < pre->cfs.nrcontainer; j++)
 			{
 				if (cur->cfs.cont[i].ctid ==
 						pre->cfs.cont[j].ctid)
@@ -1130,7 +1203,6 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 			*/
 		}
 
-		dev->cfs.nrcontainer     = cur->cfs.nrcontainer;
 		dev->cfs.cont[i].ctid    = cur->cfs.cont[i].ctid;
 		dev->cfs.cont[i].numproc = cur->cfs.cont[i].numproc;
 
@@ -1145,6 +1217,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev)
 
 		dev->cfs.cont[i].physpages = cur->cfs.cont[i].physpages;
 	}
+
+	dev->cfs.nrcontainer = cur->cfs.nrcontainer;
 
 	/*
 	** application-specific counters

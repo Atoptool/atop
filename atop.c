@@ -358,6 +358,7 @@ void do_maxdisk(char *, char *);
 void do_maxmdd(char *, char *);
 void do_maxlvm(char *, char *);
 void do_maxintf(char *, char *);
+void do_maxnfsm(char *, char *);
 void do_maxcont(char *, char *);
 void do_colinfo(char *, char *);
 void do_colalmost(char *, char *);
@@ -400,6 +401,7 @@ static struct {
 	{	"maxlinemdd",		do_maxmdd,		0, },
 	{	"maxlinelvm",		do_maxlvm,		0, },
 	{	"maxlineintf",		do_maxintf,		0, },
+	{	"maxlinenfsm",		do_maxnfsm,		0, },
 	{	"maxlinecont",		do_maxcont,		0, },
 	{	"colorinfo",		do_colinfo,		0, },
 	{	"coloralmost",		do_colalmost,		0, },
@@ -831,7 +833,8 @@ engine(void)
 
 		photosyst(cursstat);	/* obtain new counters      */
 
-		deviatsyst(cursstat, presstat, devsstat);
+		deviatsyst(cursstat, presstat, devsstat,
+				curtime-pretime > 0 ? curtime-pretime : 1);
 
 		/*
 		** take a snapshot of the current task-level statistics 
