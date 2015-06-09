@@ -33,6 +33,7 @@
 #define	MBFORMAT	2
 #define	GBFORMAT	3
 #define	TBFORMAT	4
+#define	PBFORMAT	5
 #define	OVFORMAT	9
 
 typedef	long long	count_t;

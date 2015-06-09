@@ -1139,7 +1139,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 		if (dev->nfs.nfsmounts.nfsmnt[i].age <= interval)
 			memset(&(pre->nfs.nfsmounts.nfsmnt[j]), 0, 
-					sizeof(struct percontainer));
+					sizeof(struct pernfsmount));
 
                 dev->nfs.nfsmounts.nfsmnt[i].bytesread = 
                           subcount(cur->nfs.nfsmounts.nfsmnt[i].bytesread,

@@ -2019,10 +2019,10 @@ sysprt_NFMTOTREAD(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="readK   ";
+        static char buf[16]="read   ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotread/1024,
-					buf+6, 6, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotread,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2033,10 +2033,10 @@ sysprt_NFMTOTWRITE(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="writK   ";
+        static char buf[16]="write   ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotwrite/1024,
-					buf+6, 6, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotwrite,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2047,10 +2047,10 @@ sysprt_NFMNREAD(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="nreadK   ";
+        static char buf[16]="nread    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesread/1024,
-					buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesread,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2061,10 +2061,10 @@ sysprt_NFMNWRITE(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="nwritK   ";
+        static char buf[16]="nwrit    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].byteswrite/1024,
-					buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].byteswrite,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2075,10 +2075,10 @@ sysprt_NFMDREAD(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="dreadK   ";
+        static char buf[16]="dread    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdread/1024,
-					buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdread,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2089,10 +2089,10 @@ sysprt_NFMDWRITE(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="dwritK   ";
+        static char buf[16]="dwrit    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdwrite/1024,
-					buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdwrite,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2103,10 +2103,10 @@ sysprt_NFMMREAD(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="mreadK   ";
+        static char buf[16]="mread    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmread *
-			pagesize/1024, buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmread *pagesize,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 
@@ -2117,10 +2117,10 @@ sysprt_NFMMWRITE(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;
-        static char buf[16]="mwritK   ";
+        static char buf[16]="mwrit    ";
 
-        val2valstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmwrite *
-			pagesize/1024, buf+7, 5, as->avgval, as->nsecs);
+        val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmwrite *pagesize,
+				buf+6, KBFORMAT, as->avgval, as->nsecs);
         return buf;
 }
 

@@ -216,7 +216,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 	int	exp     = 0;
 	char	*suffix = "";
 
-	if (avg)
+	if (avg && nsecs)
 	{
 		value  = (value + (nsecs/2)) / nsecs;     /* rounded value */
 		width  = width - 2;	/* subtract two positions for '/s' */
@@ -401,11 +401,13 @@ val2Hzstr(count_t value, char *strvalue)
 #define	ONEMBYTE	1048576
 #define	ONEGBYTE	1073741824L
 #define	ONETBYTE	1099511627776LL
+#define	ONEPBYTE	1125899906842624LL
 
 #define	MAXBYTE		1024
 #define	MAXKBYTE	ONEKBYTE*99999L
 #define	MAXMBYTE	ONEMBYTE*999L
 #define	MAXGBYTE	ONEGBYTE*999LL
+#define	MAXTBYTE	ONETBYTE*999LL
 
 char *
 val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
@@ -429,10 +431,10 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 	/*
 	** verify if printed value is required per second (average) or total
 	*/
-	if (avgval)
+	if (avgval && nsecs)
 	{
 		value     /= nsecs;
-		verifyval *= 100;
+		verifyval  = verifyval * 100 /nsecs;
 		basewidth -= 2;
 		suffix     = "/s";
 	}
@@ -452,7 +454,10 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 				if (verifyval <= MAXGBYTE)	/* gbytes ? */
 					aformat = GBFORMAT;
 				else
-					aformat = TBFORMAT;	/* tbytes ! */
+				 	if (verifyval <= MAXTBYTE)/* tbytes? */
+						aformat = TBFORMAT;/* tbytes! */
+					else
+						aformat = PBFORMAT;/* pbytes! */
 
 	/*
 	** check if this is also the preferred format
@@ -485,6 +490,11 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 	   case	TBFORMAT:
 		sprintf(strvalue, "%*.1lfT%s",
 			basewidth-1, (double)((double)value/ONETBYTE), suffix);
+		break;
+
+	   case	PBFORMAT:
+		sprintf(strvalue, "%*.1lfP%s",
+			basewidth-1, (double)((double)value/ONEPBYTE), suffix);
 		break;
 
 	   default:

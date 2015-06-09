@@ -1036,14 +1036,15 @@ Network Filesystem (NFS) mount at the client side.
 .br
 For each NFS-mounted filesystem, a line is shown that contains 
 the mounted server directory, the name of the server (`srv'),
-the total number of KiB read from the server (`readK'),
-the total number of KiB written to the server (`writK'),
-the number of Kilobytes read via normal read() system calls (`nreadK'),
-the number of Kilobytes written via normal read() system calls (`nwritK'),
-the number of Kilobytes read via direct I/O (`dreadK'),
-the number of Kilobytes written via direct I/O (`dwritK'),
-the number of Kilobytes read via memory mapped I/O pages (`mreadK'), and
-the number of Kilobytes written via memory mapped I/O pages (`mwritK').
+the total number of bytes read from the server (`read') and
+the total number of bytes written to the server (`write').
+The total amount of data transferred is subdivided in
+the number of bytes read via normal read() system calls (`nread'),
+the number of bytes written via normal read() system calls (`nwrit'),
+the number of bytes read via direct I/O (`dread'),
+the number of bytes written via direct I/O (`dwrit'),
+the number of bytes read via memory mapped I/O pages (`mread'), and
+the number of bytes written via memory mapped I/O pages (`mwrit').
 .PP
 .TP 5
 .B NFC

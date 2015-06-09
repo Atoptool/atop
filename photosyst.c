@@ -1214,7 +1214,7 @@ photosyst(struct sstat *si)
 				continue;
 			}
 
-			if (strcmp(fstype, "nfs") != 0)
+			if (memcmp(fstype, "nfs", 3) != 0)
 				continue;
 
 			// this is line with NFS client stats

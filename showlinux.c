@@ -1694,8 +1694,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 		      sstat->nfs.nfsmounts.nfsmnt[i].bytestotread  +
 		      sstat->nfs.nfsmounts.nfsmnt[i].bytestotwrite +
 		      sstat->nfs.nfsmounts.nfsmnt[i].pagesmread    +
-		      sstat->nfs.nfsmounts.nfsmnt[i].pagesmwrite    )
-			|| fixedhead)
+		      sstat->nfs.nfsmounts.nfsmnt[i].pagesmwrite    ) ||
+		      sstat->nfs.nfsmounts.nfsmnt[i].age < nsecs      ||
+		      fixedhead                                         )
 		{
 			if (screen)
                 		move(curline, 0);
