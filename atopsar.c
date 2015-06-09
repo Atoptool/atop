@@ -1554,8 +1554,8 @@ dskline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 nfmhead(int osvers, int osrel, int ossub)
 {
-	printf("mounted_device                    KBread/s   KBwrite/s       "
-               "   _nfm_");
+	printf("mounted_device                          physread/s  physwrit/s"
+               "  _nfm_");
 }
 
 static int
@@ -1566,7 +1566,7 @@ nfmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 {
 	static char	firstcall = 1;
 	register long	i, nlines = 0;
-	char		*pn;
+	char		*pn, state;
 	int		len;
 
 	for (i=0; i < ss->nfs.nfsmounts.nrmounts; i++)	/* per NFS mount */
@@ -1576,25 +1576,33 @@ nfmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		** are found; afterwards print only the mounts
 		** that were really active during the interval
 		*/
-		if (!firstcall && !allresources &&
-		    !ss->nfs.nfsmounts.nfsmnt[i].bytestotread &&
-		    !ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite  )
-			continue;
+		if (firstcall                                  ||
+		    allresources                               ||
+		    ss->nfs.nfsmounts.nfsmnt[i].age < deltasec ||
+		    ss->nfs.nfsmounts.nfsmnt[i].bytestotread   ||
+		    ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite    )
+		{
+			if (nlines++)
+				printf("%s  ", tstamp);
 
-		if (nlines++)
-			printf("%s  ", tstamp);
+			if ( (len = strlen(ss->nfs.nfsmounts.nfsmnt[i].mountdev)) > 38)
+				pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev + len - 38;
+			else
+				pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev;
 
-		if ( (len = strlen(ss->nfs.nfsmounts.nfsmnt[i].mountdev)) > 30)
-			pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev + len - 30;
-		else
-			pn = ss->nfs.nfsmounts.nfsmnt[i].mountdev;
+		    	if (ss->nfs.nfsmounts.nfsmnt[i].age < deltasec)
+				state = 'M';
+			else
+				state = ' ';
 
-		printf("%-30s %11.3lf %11.3lf\n", 
-			pn,
-			(double)ss->nfs.nfsmounts.nfsmnt[i].bytestotread  /
-							1024 / deltasec,
-			(double)ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite /
-							1024 / deltasec);
+			printf("%-38s %10.3lfK %10.3lfK    %c\n", 
+			    pn,
+			    (double)ss->nfs.nfsmounts.nfsmnt[i].bytestotread  /
+								1024 / deltasec,
+			    (double)ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite /
+								1024 / deltasec,
+			    state);
+		}
 	}
 
 	if (nlines == 0)

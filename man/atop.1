@@ -1036,9 +1036,9 @@ Network Filesystem (NFS) mount at the client side.
 .br
 For each NFS-mounted filesystem, a line is shown that contains 
 the mounted server directory, the name of the server (`srv'),
-the total number of bytes read from the server (`read') and
-the total number of bytes written to the server (`write').
-The total amount of data transferred is subdivided in
+the total number of bytes physically read from the server (`read') and
+the total number of bytes physically written to the server (`write').
+Data transfer is subdivided in
 the number of bytes read via normal read() system calls (`nread'),
 the number of bytes written via normal read() system calls (`nwrit'),
 the number of bytes read via direct I/O (`dread'),
@@ -1050,10 +1050,10 @@ the number of bytes written via memory mapped I/O pages (`mwrit').
 .B NFC
 Network Filesystem (NFS) client side counters.
 .br
-This line contains the number of RPC calls transmitted to 
-NFS servers (`rpc'), the number of read RPC calls (`read`),
-the number of write RPC calls (`rpwrite'), the number of RPC calls
-being retransmitted (`retxmit')
+This line contains the number of RPC calls issues by local processes 
+(`rpc'), the number of read RPC calls (`read`) and
+write RPC calls (`rpwrite') issued to the NFS server,
+the number of RPC calls being retransmitted (`retxmit')
 and the number of authorization refreshes (`autref').
 .PP
 .TP 5

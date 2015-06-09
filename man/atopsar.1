@@ -489,13 +489,16 @@ contains information about activity on NFS mounted filesystems (client):
 .B mounted_device
 Mounted device containing server name and server directory being mounted.
 .TP 12
-.B KBread/s
-Kilobytes data read from the NFS server by processes running on the
-NFS client.
+.B physread/s
+Kilobytes data physically read from the NFS server by processes running
+on the NFS client.
 .TP 12
 .B KBwrite/s
-Kilobytes data written to the NFS server by processes running on the
-NFS client.
+Kilobytes data physically written to the NFS server by processes running
+on the NFS client.
+.br
+When the NFS filesystem was mounted during the interval, the state 'M' is
+shown.
 .PP
 The output for the flag
 .B -j
