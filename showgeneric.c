@@ -2198,9 +2198,21 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 	** check if only processes with a particular command line string
 	** should be shown
 	*/
-	if (sel->argnamesz &&
-	    regexec(&(sel->argregex), curstat->gen.cmdline, 0, NULL, 0))
-		return 1;
+	if (sel->argnamesz)
+	{
+		if (curstat->gen.cmdline[0])
+		{
+			if (regexec(&(sel->argregex), curstat->gen.cmdline,
+								0, NULL, 0))
+				return 1;
+		}
+		else
+		{
+			if (regexec(&(sel->argregex), curstat->gen.name,
+								0, NULL, 0))
+				return 1;
+		}
+	}
 
 	return 0;
 }
