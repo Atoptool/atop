@@ -23,6 +23,7 @@
 */
 #define USERSTUB	9999999
 #define MAXUSERSEL	64
+#define MAXPID		32
 
 struct syscap {
 	int	nrcpu;
@@ -36,9 +37,15 @@ struct pselection {
 	char	username[256];
 	uid_t	userid[MAXUSERSEL];
 
+	pid_t	pid[MAXPID];
+
 	char	progname[64];
 	int	prognamesz;
 	regex_t	progregex;
+
+	char	argname[64];
+	int	argnamesz;
+	regex_t	argregex;
 };
 
 struct sselection {
@@ -94,6 +101,8 @@ struct sselection {
 
 #define	MSELUSER	'U'
 #define	MSELPROC	'P'
+#define	MSELPID		'I'
+#define	MSELARG		'/'
 #define	MSELSYS		'S'
 
 #define	MALLPROC	'a'

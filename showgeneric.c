@@ -282,7 +282,8 @@ static const char rcsid[] = "$Id: showgeneric.c,v 1.71 2010/10/25 19:08:32 gerlo
 #include "showgeneric.h"
 #include "showlinux.h"
 
-static struct pselection procsel = {"", {USERSTUB, }, "", 0, { 0, }};
+static struct pselection procsel = {"", {USERSTUB, }, {0,},
+                                    "", 0, { 0, },  "", 0, { 0, } };
 static struct sselection syssel;
 
 static void	showhelp(int);
@@ -346,7 +347,7 @@ generic_samp(time_t curtime, int nsecs,
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
 	char		format1[16], format2[16], hhmm[16];
-	char		*statmsg = NULL, statbuf[80];
+	char		*statmsg = NULL, statbuf[80], genline[80];
 	char		 *lastsortp, curorder, autoorder;
 	char		buf[33];
 	struct passwd 	*pwd;
@@ -486,11 +487,11 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						46 - seclen - utsnodenamelen;
+						48 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -503,6 +504,8 @@ generic_samp(time_t curtime, int nsecs,
 			supexits     		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
+			procsel.pid[0] != 0	      ? MSELPID    : '-',
+			procsel.argnamesz	      ? MSELARG    : '-',
 			syssel.lvmnamesz +
 			syssel.dsknamesz +
 			syssel.itfnamesz	      ? MSELSYS    : '-',
@@ -719,6 +722,8 @@ generic_samp(time_t curtime, int nsecs,
 
 			if ( procsel.userid[0] == USERSTUB &&
 			    !procsel.prognamesz            &&
+			    !procsel.argnamesz             &&
+			    !procsel.pid[0]                &&
 			    !supexits                        )
 			{	/* no selection wanted */
 				curlist   = proclist;
@@ -1385,7 +1390,7 @@ generic_samp(time_t curtime, int nsecs,
 				move(statline, 0);
 				clrtoeol();
 				printw("Process-name as regular "
-				       "expression (enter=no specific name): ");
+				       "expression (enter=no regex): ");
 
 				procsel.prognamesz  = 0;
 				procsel.progname[0] = '\0';
@@ -1404,6 +1409,107 @@ generic_samp(time_t curtime, int nsecs,
 
 						procsel.prognamesz  = 0;
 						procsel.progname[0] = '\0';
+					}
+				}
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
+
+			   /*
+			   ** focus on specific PIDs
+			   */
+			   case MSELPID:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Comma-separated PIDs of processes "
+				                 "(enter=no selection): ");
+
+				scanw("%79s\n", genline);
+
+				int  id = 0;
+
+				char *pidp = strtok(genline, ",");
+
+				while (pidp)
+				{
+					char *ep;
+
+					if (id >= MAXPID-1)
+					{
+						procsel.pid[id] = 0;	// stub
+
+						statmsg = "Maximum number of"
+						          "PIDs reached!";
+						beep();
+						break;
+					}
+
+					procsel.pid[id] = strtol(pidp, &ep, 10);
+
+					if (*ep)
+					{
+						statmsg = "Non-numerical PID!";
+						beep();
+						procsel.pid[0]  = 0;  // stub
+						break;
+					}
+
+					id++;
+					pidp = strtok(NULL, ",");
+				}
+
+				procsel.pid[id] = 0;	// stub
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
+
+
+			   /*
+			   ** focus on specific command line arguments
+			   */
+			   case MSELARG:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Command line string as regular "
+				       "expression (enter=no regex): ");
+
+				procsel.argnamesz  = 0;
+				procsel.argname[0] = '\0';
+
+				scanw("%63s\n", procsel.argname);
+				procsel.argnamesz = strlen(procsel.argname);
+
+				if (procsel.argnamesz)
+				{
+					if (regcomp(&procsel.argregex,
+					         procsel.argname, REG_NOSUB))
+					{
+						statmsg = "Invalid regular "
+						          "expression!";
+						beep();
+
+						procsel.argnamesz  = 0;
+						procsel.argname[0] = '\0';
 					}
 				}
 
@@ -2062,11 +2168,38 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 	}
 
 	/*
+	** check if only processes with particular PIDs
+	** should be shown
+	*/
+	if (sel->pid[0])
+	{
+		int i = 0;
+
+		while (sel->pid[i])
+		{
+			if (sel->pid[i] == curstat->gen.pid)
+				break;
+			i++;
+		}
+
+		if (sel->pid[i] != curstat->gen.pid)
+			return 1;
+	}
+
+	/*
 	** check if only processes with a particular name
 	** should be shown
 	*/
 	if (sel->prognamesz &&
 	    regexec(&(sel->progregex), curstat->gen.name, 0, NULL, 0))
+		return 1;
+
+	/*
+	** check if only processes with a particular command line string
+	** should be shown
+	*/
+	if (sel->argnamesz &&
+	    regexec(&(sel->argregex), curstat->gen.cmdline, 0, NULL, 0))
 		return 1;
 
 	return 0;
@@ -2393,13 +2526,18 @@ static struct helptext {
 	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
 	{"\n",							' '},
-	{"Selections (keys shown in header line):\n",		' '},
-	{"\t'%c'  - focus on specific user name        (regular expression)\n",
-								MSELUSER},
-	{"\t'%c'  - focus on specific process name     (regular expression)\n",
-								MSELPROC},
-	{"\t'%c'  - focus on specific system resources (regular expression)\n",
-								MSELSYS},
+	{"Process selections (keys shown in header line):\n",	' '},
+	{"\t'%c'  - focus on specific user name           "
+	                              "(regular expression)\n", MSELUSER},
+	{"\t'%c'  - focus on specific process name        "
+	                              "(regular expression)\n", MSELPROC},
+	{"\t'%c'  - focus on specific command line string "
+	                              "(regular expression)\n", MSELARG},
+	{"\t'%c'  - focus on specific process-id (PID)\n",      MSELPID},
+	{"\n",							' '},
+	{"System resource selections (keys shown in header line):\n",' '},
+	{"\t'%c'  - focus on specific system resources    "
+	                              "(regular expression)\n", MSELSYS},
 	{"\n",							      ' '},
 	{"Screen-handling:\n",					      ' '},
 	{"\t^L   - redraw the screen                       \n",	      ' '},

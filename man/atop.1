@@ -607,8 +607,19 @@ Specify a search string for specific user names as a regular expression.
 From now on, only (active) processes will be shown from a user which matches
 the regular expression.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a name, active
+If the Enter-key is pressed without specifying a name, (active)
 processes of all users will be shown again.
+.br
+Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B I
+Specify a list ith one or more PIDs to be selected.
+From now on, only processes will be shown with a PID which matches
+one of the given list.
+The system statistics are still system wide.
+If the Enter-key is pressed without specifying a PID, all (active)
+processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
 .PP
@@ -618,7 +629,18 @@ Specify a search string for specific process names as a regular expression.
 From now on, only processes will be shown with a name which matches the
 regular expression.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a name, all active
+If the Enter-key is pressed without specifying a name, all (active)
+processes will be shown again.
+.br
+Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B /
+Specify a specific command line search string as a regular expression.
+From now on, only processes will be shown with a command line which
+matches the regular expression.
+The system statistics are still system wide.
+If the Enter-key is pressed without specifying a string, all (active)
 processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
