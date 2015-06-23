@@ -1406,7 +1406,8 @@ sysprt_DSKMBPERSECWR(void *p, void *q, int badness, int *color)
         static char	buf[16]="MBw/s ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
-        sprintf(buf+6, "%6.2lf", dp->nwsect / 2.0 / 1024 / as->nsecs);
+        snprintf(buf+6, sizeof buf-6, "%6.1lf",
+        			dp->nwsect / 2.0 / 1024 / as->nsecs);
 
         return buf;
 }
@@ -1420,7 +1421,8 @@ sysprt_DSKMBPERSECRD(void *p, void *q, int badness, int *color)
         static char	buf[16]="MBr/s ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
-        sprintf(buf+6, "%6.2lf", dp->nrsect / 2.0 / 1024 / as->nsecs);
+        snprintf(buf+6, sizeof buf-6, "%6.1lf",
+				dp->nrsect / 2.0 / 1024 / as->nsecs);
         return buf;
 }
 
@@ -1446,7 +1448,7 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
         extraparam	*as=q;
         static char	buf[16]="avio  ";
         double 		tim = as->iotot > 0 ? 
-                     	(double)(as->perdsk[as->index].io_ms)/as->iotot : 0.0;
+                     	(double)(as->perdsk[as->index].io_ms)/as->iotot:0.0;
 
 	*color = -1;
 
