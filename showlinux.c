@@ -1056,10 +1056,13 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                     make_sys_prints(netinterfaceline, MAXITEMS,
 	                "NETNAME:8 "
 	                "NETSPEEDMAX:5 "
+	                "BLANKBOX:0 "
 	                "NETPCKI:7 "
 	                "NETPCKO:7 "
+	                "BLANKBOX:0 "
 	                "NETSPEEDIN:6 "
 	                "NETSPEEDOUT:6 "
+	                "BLANKBOX:0 "
                         "NETCOLLIS:2 "
                         "NETMULTICASTIN:2 "
                         "NETRCVERR:4 "
