@@ -1,6 +1,6 @@
 Name:           atop
 Version:        XVERSX
-Release:        1%{?dist}
+Release:        XRELX
 Source0:        %{name}-%{version}.tar.gz
 URL:            http://www.atoptool.nl
 Packager:       Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
