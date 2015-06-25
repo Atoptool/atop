@@ -6,8 +6,12 @@
 
 BRANCH=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
 MAJOR=$(echo $BRANCH | sed -e 's/\..*//')
-MINOR=$(echo $BRANCH | sed -e 's/[0-9]*\.//' -e 's/\..*//')
-REVIS=$(echo $BRANCH | sed -e 's/.*\.//')
+MINOR=$(echo $BRANCH | sed -e 's/[0-9]*\.//' -e 's/-.*//')
+REVIS=$(echo $BRANCH | sed -e 's/.*\-//')
+
+echo major: $MAJOR
+echo minor: $MINOR
+echo revis: $REVIS
 
 if [ "$BRANCH" = master ]
 then
@@ -42,27 +46,29 @@ fi
 # Prepare a directory for distribution under /tmp
 # and copy all required stuff 
 ############################################################################
-rm -rf         		/tmp/atop-$BRANCH 2> /dev/null
+TARBASE=$MAJOR.$MINOR
 
-mkdir          		/tmp/atop-$BRANCH
-cp *.[ch]		/tmp/atop-$BRANCH
-git log --name-status > /tmp/atop-$BRANCH/ChangeLog
-cp 45atoppm  		/tmp/atop-$BRANCH
-cp atop-pm.sh  		/tmp/atop-$BRANCH
-cp Makefile    		/tmp/atop-$BRANCH
-cp README		/tmp/atop-$BRANCH
-cp AUTHOR		/tmp/atop-$BRANCH
-cp COPYING		/tmp/atop-$BRANCH
-cp atopacct.init 	/tmp/atop-$BRANCH
-cp atopacct.service 	/tmp/atop-$BRANCH
-cp atop.cronsysv  	/tmp/atop-$BRANCH
-cp atop.cronsystemd 	/tmp/atop-$BRANCH
-cp atop.daily  		/tmp/atop-$BRANCH
-cp atop.init  		/tmp/atop-$BRANCH
-cp atop.service 	/tmp/atop-$BRANCH
-cp psaccs_atop 		/tmp/atop-$BRANCH
-cp psaccu_atop 		/tmp/atop-$BRANCH
-cp -r man      		/tmp/atop-$BRANCH
+rm -rf         		/tmp/atop-$TARBASE 2> /dev/null
+
+mkdir          		/tmp/atop-$TARBASE
+cp *.[ch]		/tmp/atop-$TARBASE
+git log --name-status > /tmp/atop-$TARBASE/ChangeLog
+cp 45atoppm  		/tmp/atop-$TARBASE
+cp atop-pm.sh  		/tmp/atop-$TARBASE
+cp Makefile    		/tmp/atop-$TARBASE
+cp README		/tmp/atop-$TARBASE
+cp AUTHOR		/tmp/atop-$TARBASE
+cp COPYING		/tmp/atop-$TARBASE
+cp atopacct.init 	/tmp/atop-$TARBASE
+cp atopacct.service 	/tmp/atop-$TARBASE
+cp atop.cronsysv  	/tmp/atop-$TARBASE
+cp atop.cronsystemd 	/tmp/atop-$TARBASE
+cp atop.daily  		/tmp/atop-$TARBASE
+cp atop.init  		/tmp/atop-$TARBASE
+cp atop.service 	/tmp/atop-$TARBASE
+cp psaccs_atop 		/tmp/atop-$TARBASE
+cp psaccu_atop 		/tmp/atop-$TARBASE
+cp -r man      		/tmp/atop-$TARBASE
 
 ############################################################################
 # All files copied.
@@ -73,36 +79,38 @@ ORIGDIR=`pwd`
 
 cd /tmp
 
-rm -f			atop-$BRANCH.tar 2> /dev/null
-tar cvf 		atop-$BRANCH.tar atop-$BRANCH
+rm -f			atop-$TARBASE.tar 2> /dev/null
+tar cvf 		atop-$TARBASE.tar atop-$TARBASE
 
-rm -f          		atop-$BRANCH.tar.gz 2> /dev/null
-gzip            	atop-$BRANCH.tar
+rm -f          		atop-$TARBASE.tar.gz 2> /dev/null
+gzip            	atop-$TARBASE.tar
 
 ############################################################################
 # Make an RPM-distribution
 ############################################################################
 if [ -d /usr/src/redhat/SOURCES ]
 then
-	cp atop-$BRANCH.tar.gz /usr/src/redhat/SOURCES
+	cp atop-$TARBASE.tar.gz /usr/src/redhat/SOURCES
 fi
 
 if [ -d /usr/src/packages/SOURCES ]
 then
-	cp atop-$BRANCH.tar.gz /usr/src/packages/SOURCES
+	cp atop-$TARBASE.tar.gz /usr/src/packages/SOURCES
 fi
 
 if [ -d /usr/src/RPM/SOURCES ]
 then
-	cp atop-$BRANCH.tar.gz /usr/src/RPM/SOURCES
+	cp atop-$TARBASE.tar.gz /usr/src/RPM/SOURCES
 fi
 
 if [ -d $HOME/rpmbuild/SOURCES ]
 then
-	cp atop-$BRANCH.tar.gz $HOME/rpmbuild/SOURCES
+	cp atop-$TARBASE.tar.gz $HOME/rpmbuild/SOURCES
 fi
 
 cd "$ORIGDIR"
+
+rm -f atop.spec 2> /dev/null
 
 if ps -p1 | grep -q systemd
 then
@@ -111,7 +119,8 @@ else
 	ln -s atop.specsysv    atop.spec
 fi
 
-sed -e "s/XVERSX/$BRANCH/g" atop.spec 	> /tmp/atop-$BRANCH.spec
+sed -e "s/XVERSX/$MAJOR.$MINOR/g" -e "s/XRELX/$REVIS/" atop.spec \
+					> /tmp/atop-$BRANCH.spec
 
 cd /tmp
 
@@ -149,9 +158,9 @@ fi
 rm atop.spec 2> /dev/null
 
 echo
-if [ -f /tmp/atop-$BRANCH.tar.gz ]
+if [ -f /tmp/atop-$TARBASE.tar.gz ]
 then
-	echo /tmp/atop-$BRANCH.tar.gz ready
+	echo /tmp/atop-$TARBASE.tar.gz ready
 fi
 
 exit 0
