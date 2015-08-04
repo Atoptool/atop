@@ -342,6 +342,7 @@ struct visualize vis = {generic_samp, generic_error,
 static char		awaittrigger;	/* boolean: awaiting trigger */
 static unsigned int 	nsamples = 0xffffffff;
 static char		midnightflag;
+static char		rawwriteflag;
 
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
@@ -512,6 +513,7 @@ main(int argc, char *argv[])
 				exit(0);
 
 			   case 'w':		/* writing of raw data ?      */
+				rawwriteflag++;
 				if (optind >= argc)
 					prusage(argv[0]);
 
@@ -625,9 +627,12 @@ main(int argc, char *argv[])
 	curtime = getboot() / hertz;
 
 	/*
-	** be sure to be leader of an own process group
+	** be sure to be leader of an own process group when
+	** running as a daemon (or at least: when not interactive);
+	** needed for systemd
 	*/
-	(void) setpgid(0, 0);
+	if (rawwriteflag)
+		(void) setpgid(0, 0);
 
 	/*
 	** catch signals for proper close-down
