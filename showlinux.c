@@ -484,9 +484,9 @@ sys_printdef *netnetsyspdefs[] = {
 };
 sys_printdef *netintfsyspdefs[] = {
 	&syspdef_NETNAME,
-	&syspdef_NETSPEEDMAX,
 	&syspdef_NETPCKI,
 	&syspdef_NETPCKO,
+	&syspdef_NETSPEEDMAX,
 	&syspdef_NETSPEEDIN,
 	&syspdef_NETSPEEDOUT,
 	&syspdef_NETCOLLIS,
@@ -1055,11 +1055,11 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
                 {
                     make_sys_prints(netinterfaceline, MAXITEMS,
 	                "NETNAME:8 "
-	                "NETSPEEDMAX:5 "
 	                "BLANKBOX:0 "
 	                "NETPCKI:7 "
 	                "NETPCKO:7 "
 	                "BLANKBOX:0 "
+	                "NETSPEEDMAX:5 "
 	                "NETSPEEDIN:6 "
 	                "NETSPEEDOUT:6 "
 	                "BLANKBOX:0 "
