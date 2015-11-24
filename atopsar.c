@@ -2231,14 +2231,27 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	if (availcpu == 0)
 		availcpu = 1;	/* avoid divide-by-zero */
 
-	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
-	       "%5d %-8.8s %3.0lf%%\n",
+	if (nactproc >= 1 && (ps[0])->cpu.stime + (ps[0])->cpu.utime > 0)
+	    printf("%5d %-8.8s %3.0lf%% | ",
 	      (ps[0])->gen.pid, (ps[0])->gen.name,
-	      (double)((ps[0])->cpu.stime + (ps[0])->cpu.utime)*100.0/availcpu,
+	      (double)((ps[0])->cpu.stime + (ps[0])->cpu.utime)*100.0/availcpu);
+        else
+	    printf("%19s | ", " ");
+
+	if (nactproc >= 2 && (ps[1])->cpu.stime + (ps[1])->cpu.utime > 0)
+	    printf("%5d %-8.8s %3.0lf%% | ",
 	      (ps[1])->gen.pid, (ps[1])->gen.name,
-	      (double)((ps[1])->cpu.stime + (ps[1])->cpu.utime)*100.0/availcpu,
+	      (double)((ps[1])->cpu.stime + (ps[1])->cpu.utime)*100.0/availcpu);
+        else
+	    printf("%19s | ", " ");
+
+	if (nactproc >= 3 && (ps[2])->cpu.stime + (ps[2])->cpu.utime > 0)
+	    printf("%5d %-8.8s %3.0lf%%\n",
 	      (ps[2])->gen.pid, (ps[2])->gen.name,
 	      (double)((ps[2])->cpu.stime + (ps[2])->cpu.utime)*100.0/availcpu);
+        else
+	    printf("%19s\n", " ");
+
 
 	return 1;
 }
@@ -2274,14 +2287,27 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 
 	availmem  = ss->mem.physmem * pagesize/1024;
 
-	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
-	       "%5d %-8.8s %3.0lf%%\n",
-		(ps[0])->gen.pid, (ps[0])->gen.name,
-		(double)(ps[0])->mem.rmem * 100.0 / availmem,
-		(ps[1])->gen.pid, (ps[1])->gen.name,
-		(double)(ps[1])->mem.rmem * 100.0 / availmem,
-		(ps[2])->gen.pid, (ps[2])->gen.name,
-		(double)(ps[2])->mem.rmem * 100.0 / availmem);
+        if (nactproc >= 1)
+	    printf("%5d %-8.8s %3.0lf%% | ",
+	      (ps[0])->gen.pid, (ps[0])->gen.name,
+	      (double)(ps[0])->mem.rmem * 100.0 / availmem);
+        else
+	    printf("%19s | ", " ");
+
+        if (nactproc >= 2)
+	    printf("%5d %-8.8s %3.0lf%% | ",
+	      (ps[1])->gen.pid, (ps[1])->gen.name,
+	      (double)(ps[1])->mem.rmem * 100.0 / availmem);
+        else
+	    printf("%19s | ", " ");
+
+        if (nactproc >= 3)
+	    printf("%5d %-8.8s %3.0lf%%\n",
+	      (ps[2])->gen.pid, (ps[2])->gen.name,
+	      (double)(ps[2])->mem.rmem * 100.0 / availmem);
+        else
+	    printf("%19s\n", " ");
+
 
 	return 1;
 }
@@ -2333,14 +2359,27 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	qsort(ps, nactproc, sizeof(struct tstat *), compdsk);
 
-	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
-	       "%5d %-8.8s %3.0lf%%\n",
-		(ps[0])->gen.pid, (ps[0])->gen.name,
-	     	(double)((ps[0])->dsk.rio+(ps[0])->dsk.wio) *100.0/availdsk,
-		(ps[1])->gen.pid, (ps[1])->gen.name,
-		(double)((ps[1])->dsk.rio+(ps[1])->dsk.wio) *100.0/availdsk,
-		(ps[2])->gen.pid, (ps[2])->gen.name,
-		(double)((ps[2])->dsk.rio+(ps[2])->dsk.wio) *100.0/availdsk);
+        if (nactproc >= 1 && (ps[0])->dsk.rio + (ps[0])->dsk.wio > 0)
+	    printf("%5d %-8.8s %3.0lf%% | ",
+	      (ps[0])->gen.pid, (ps[0])->gen.name,
+	      (double)((ps[0])->dsk.rio+(ps[0])->dsk.wio) *100.0/availdsk);
+        else
+	    printf("%19s | ", " ");
+
+        if (nactproc >= 2 && (ps[1])->dsk.rio + (ps[1])->dsk.wio > 0)
+	    printf("%5d %-8.8s %3.0lf%% | ",
+	      (ps[1])->gen.pid, (ps[1])->gen.name,
+	      (double)((ps[1])->dsk.rio+(ps[1])->dsk.wio) *100.0/availdsk);
+        else
+	    printf("%19s | ", " ");
+
+        if (nactproc >= 3 && (ps[2])->dsk.rio + (ps[2])->dsk.wio > 0)
+	    printf("%5d %-8.8s %3.0lf%%\n",
+	      (ps[2])->gen.pid, (ps[2])->gen.name,
+	      (double)((ps[2])->dsk.rio+(ps[2])->dsk.wio) *100.0/availdsk);
+        else
+	    printf("%19s\n", " ");
+
 
 	return 1;
 }
@@ -2363,6 +2402,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 {
 	int		i;
 	count_t		availnet;
+	count_t		totbytes;
 
 	if (!ts)
 	{
@@ -2393,20 +2433,52 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	qsort(ps, nactproc, sizeof(struct tstat *), compnet);
 
-	printf("%5d %-8.8s %3.0lf%% | %5d %-8.8s %3.0lf%% | "
-	       "%5d %-8.8s %3.0lf%%\n",
-		(ps[0])->gen.pid, (ps[0])->gen.name,
-		(double)((ps[0])->net.tcpssz + (ps[0])->net.tcprsz +
-		         (ps[0])->net.udpssz + (ps[0])->net.udprsz  )
-							* 100.0 / availnet,
-		(ps[1])->gen.pid, (ps[1])->gen.name,
-		(double)((ps[1])->net.tcpssz + (ps[1])->net.tcprsz +
-		         (ps[1])->net.udpssz + (ps[1])->net.udprsz  )
-							* 100.0 / availnet,
-		(ps[2])->gen.pid, (ps[2])->gen.name,
-		(double)((ps[2])->net.tcpssz + (ps[2])->net.tcprsz +
-		         (ps[2])->net.udpssz + (ps[2])->net.udprsz  )
-							* 100.0 / availnet);
+        if (nactproc >= 1)
+	{
+		totbytes = (ps[0])->net.tcpssz + (ps[0])->net.tcprsz +
+		           (ps[0])->net.udpssz + (ps[0])->net.udprsz;
+
+		if (totbytes > 0)
+			printf("%5d %-8.8s %3.0lf%% | ",
+				(ps[0])->gen.pid, (ps[0])->gen.name,
+				(double)totbytes * 100.0 / availnet);
+        	else
+			printf("%19s | ", " ");
+	}
+        else
+		printf("%19s | ", " ");
+
+        if (nactproc >= 2)
+	{
+		totbytes = (ps[1])->net.tcpssz + (ps[1])->net.tcprsz +
+		           (ps[1])->net.udpssz + (ps[1])->net.udprsz;
+
+		if (totbytes > 0)
+			printf("%5d %-8.8s %3.0lf%% | ",
+				(ps[1])->gen.pid, (ps[1])->gen.name,
+				(double)totbytes * 100.0 / availnet);
+        	else
+			printf("%19s | ", " ");
+	}
+        else
+		printf("%19s | ", " ");
+
+        if (nactproc >= 3)
+	{
+		totbytes = (ps[2])->net.tcpssz + (ps[2])->net.tcprsz +
+		           (ps[2])->net.udpssz + (ps[2])->net.udprsz;
+
+		if (totbytes > 0)
+			printf("%5d %-8.8s %3.0lf%%\n",
+				(ps[2])->gen.pid, (ps[2])->gen.name,
+				(double)totbytes * 100.0 / availnet);
+        	else
+	    		printf("%19s\n", " ");
+	}
+        else
+		printf("%19s\n", " ");
+
+
 	return 1;
 }
 
