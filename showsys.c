@@ -80,7 +80,6 @@ static const char rcsid[] = "XXXXXX";
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <termio.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <curses.h>
