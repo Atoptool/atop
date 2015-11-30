@@ -666,6 +666,8 @@ rawread(void)
 	}
 
 	memcpy(&utsname, &rh.utsname, sizeof utsname);
+	utsnodenamelen = strlen(utsname.nodename);
+
 	supportflags = rh.supportflags;
 	osrel        = rh.osrel;
 	osvers       = rh.osvers;
