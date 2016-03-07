@@ -1789,7 +1789,7 @@ proc_printdef procprt_SNET =
    { " SNET", "SNET", procprt_SNET_a, procprt_SNET_e, 5 };
 /***************************************************************/
 char *
-procprt_RNETBW_a(struct tstat *curstat, int avgval, int nsecs)
+procprt_BANDWI_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[16];
 	count_t     rkbps = (curstat->net.tcprsz+curstat->net.udprsz)/125/nsecs;
@@ -1799,7 +1799,7 @@ procprt_RNETBW_a(struct tstat *curstat, int avgval, int nsecs)
 }
 
 char *
-procprt_RNETBW_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_BANDWI_e(struct tstat *curstat, int avgval, int nsecs)
 {
 	if (supportflags & NETATOPD)
 	{
@@ -1814,11 +1814,11 @@ procprt_RNETBW_e(struct tstat *curstat, int avgval, int nsecs)
         	return "        -";
 }
 
-proc_printdef procprt_RNETBW = 
-   { "   BANDWI", "RNETBW", procprt_RNETBW_a, procprt_RNETBW_e, 9};
+proc_printdef procprt_BANDWI = 
+   { "   BANDWI", "BANDWI", procprt_BANDWI_a, procprt_BANDWI_e, 9};
 /***************************************************************/
 char *
-procprt_SNETBW_a(struct tstat *curstat, int avgval, int nsecs)
+procprt_BANDWO_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[16];
 	count_t     skbps = (curstat->net.tcpssz+curstat->net.udpssz)/125/nsecs;
@@ -1828,7 +1828,7 @@ procprt_SNETBW_a(struct tstat *curstat, int avgval, int nsecs)
 }
 
 char *
-procprt_SNETBW_e(struct tstat *curstat, int avgval, int nsecs)
+procprt_BANDWO_e(struct tstat *curstat, int avgval, int nsecs)
 {
 	if (supportflags & NETATOPD)
 	{
@@ -1843,8 +1843,8 @@ procprt_SNETBW_e(struct tstat *curstat, int avgval, int nsecs)
         	return "        -";
 }
 
-proc_printdef procprt_SNETBW = 
-   { "   BANDWO", "SNETBW", procprt_SNETBW_a, procprt_SNETBW_e, 9};
+proc_printdef procprt_BANDWO = 
+   { "   BANDWO", "BANDWO", procprt_BANDWO_a, procprt_BANDWO_e, 9};
 /***************************************************************/
 static void
 format_bandw(char *buf, count_t kbps)
