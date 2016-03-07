@@ -47,6 +47,7 @@ fi
 # and copy all required stuff 
 ############################################################################
 TARBASE=$MAJOR.$MINOR
+TARFILE=$MAJOR.$MINOR-$REVIS
 
 rm -rf         		/tmp/atop-$TARBASE 2> /dev/null
 
@@ -79,33 +80,33 @@ ORIGDIR=`pwd`
 
 cd /tmp
 
-rm -f			atop-$TARBASE.tar 2> /dev/null
-tar cvf 		atop-$TARBASE.tar atop-$TARBASE
+rm -f			atop-$TARFILE.tar 2> /dev/null
+tar cvf 		atop-$TARFILE.tar atop-$TARBASE
 
-rm -f          		atop-$TARBASE.tar.gz 2> /dev/null
-gzip            	atop-$TARBASE.tar
+rm -f          		atop-$TARFILE.tar.gz 2> /dev/null
+gzip            	atop-$TARFILE.tar
 
 ############################################################################
 # Make an RPM-distribution
 ############################################################################
 if [ -d /usr/src/redhat/SOURCES ]
 then
-	cp atop-$TARBASE.tar.gz /usr/src/redhat/SOURCES
+	cp atop-$TARFILE.tar.gz /usr/src/redhat/SOURCES
 fi
 
 if [ -d /usr/src/packages/SOURCES ]
 then
-	cp atop-$TARBASE.tar.gz /usr/src/packages/SOURCES
+	cp atop-$TARFILE.tar.gz /usr/src/packages/SOURCES
 fi
 
 if [ -d /usr/src/RPM/SOURCES ]
 then
-	cp atop-$TARBASE.tar.gz /usr/src/RPM/SOURCES
+	cp atop-$TARFILE.tar.gz /usr/src/RPM/SOURCES
 fi
 
 if [ -d $HOME/rpmbuild/SOURCES ]
 then
-	cp atop-$TARBASE.tar.gz $HOME/rpmbuild/SOURCES
+	cp atop-$TARFILE.tar.gz $HOME/rpmbuild/SOURCES
 fi
 
 cd "$ORIGDIR"
@@ -158,9 +159,9 @@ fi
 rm atop.spec 2> /dev/null
 
 echo
-if [ -f /tmp/atop-$TARBASE.tar.gz ]
+if [ -f /tmp/atop-$TARFILE.tar.gz ]
 then
-	echo /tmp/atop-$TARBASE.tar.gz ready
+	echo /tmp/atop-$TARFILE.tar.gz ready
 fi
 
 exit 0
