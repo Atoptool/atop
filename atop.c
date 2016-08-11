@@ -1004,6 +1004,7 @@ prusage(char *myname)
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
+	printf("\t  -%c  show version information\n", MVERSION);
 	printf("\t  -%c  show or log all processes (i.s.o. active processes "
 	                "only)\n", MALLPROC);
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
