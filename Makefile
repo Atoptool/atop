@@ -45,6 +45,7 @@ netlink.o:	netlink.c
 
 clean:
 		rm -f *.o
+		rm atop atopsar atopacctd
 
 distr:
 		rm -f *.o atop
