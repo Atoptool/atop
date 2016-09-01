@@ -108,10 +108,10 @@ static char 		coloron;       /* boolean: colors active now      */
 static void	engine(void);
 static void	pratopsaruse(char *);
 static void	reportlive(time_t, int, struct sstat *);
-static char	reportraw (time_t, int,
-		           struct sstat *, struct tstat *, struct tstat **,
-		           int, int, int, int, int, int, int, int,
-		           int, unsigned int, char);
+static char     reportraw (time_t, int,
+                            struct devtstat *, struct sstat *,
+                            int, unsigned int, char);
+
 static void	reportheader(struct utsname *, time_t);
 static time_t	daylimit(time_t);
 
@@ -658,9 +658,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 */
 static char
 reportraw(time_t curtime, int numsecs,
-         	struct sstat *ss, struct tstat *ts, struct tstat **proclist,
-         	int ndeviat, int ntask, int nactproc,
-		int totproc, int totrun, int totslpi, int totslpu, int totzomb,
+         	struct devtstat *devtstat, struct sstat *sstat,
 		int nexit, unsigned int noverflow, char flags)
 {
 	static char		firstcall = 1;
@@ -813,12 +811,14 @@ reportraw(time_t curtime, int numsecs,
 	{
 		printf("%s  ", convtime(curtime, timebuf));
 
-		rv = (pridef[prinow].priline) (ss, ts, proclist, nactproc,
+		rv = (pridef[prinow].priline) (sstat, devtstat->taskall,
+				devtstat->procall, devtstat->nprocall,
 				numsecs, numsecs*hertz, hertz,
 				osvers, osrel, ossub,
 	               		stampalways ? timebuf : "        ",
-				ndeviat, totrun, totslpi, totslpu,
-				nexit, totzomb);
+				devtstat->ntaskall, devtstat->totrun,
+				devtstat->totslpi, devtstat->totslpu,
+				nexit, devtstat->totzombie);
 
 		if (rv == 0)
 		{
@@ -842,7 +842,7 @@ reportraw(time_t curtime, int numsecs,
 		*/
 		while (*cp)
 		{
-			totalsyst(*cp, ss, &totsyst);
+			totalsyst(*cp, sstat, &totsyst);
 			cp++;
 		}
 
@@ -854,11 +854,11 @@ reportraw(time_t curtime, int numsecs,
 		** contains the log-restart indicator
 		*/
 		lasttime   = curtime;
-		lastnpres  = totproc;
-		lastntrun  = totrun;
-		lastntslpi = totslpi;
-		lastntslpu = totslpu;
-		lastnzomb  = totzomb;
+		lastnpres  = devtstat->nprocall;
+		lastntrun  = devtstat->totrun;
+		lastntslpi = devtstat->totslpi;
+		lastntslpu = devtstat->totslpu;
+		lastnzomb  = devtstat->totzombie;
 
 		/*
 		** print line only if needed
@@ -875,8 +875,9 @@ reportraw(time_t curtime, int numsecs,
 					totalsec, totalsec*hertz, hertz,
 					osvers, osrel, ossub,
 					stampalways ? timebuf : "        ",
-					ndeviat, totrun, totslpi, totslpu,
-					totalexit, totzomb);
+					devtstat->ntaskall, devtstat->totrun,
+					devtstat->totslpi, devtstat->totslpu,
+					totalexit, devtstat->totzombie);
 
 			if (rv == 0)
 			{

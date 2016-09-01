@@ -59,7 +59,9 @@ struct tstat {
 		int	ctid;		/* OpenVZ container ID		*/
 		int	vpid;		/* OpenVZ virtual PID		*/
 
-		int	ifuture[5];     /* reserved                     */
+		int	wasinactive;	/* boolean: task inactive	*/
+
+		int	ifuture[4];     /* reserved                     */
 	} gen;
 
 	/* CPU STATISTICS						*/
@@ -129,6 +131,22 @@ struct pinfo {
 };
 
 /*
+** structure to maintains all deviation info related to one sample
+*/
+struct devtstat {
+        struct tstat     *taskall;
+        struct tstat    **procall;
+        struct tstat    **procactive;
+
+	unsigned long	ntaskall;
+        unsigned long	ntaskactive;
+	unsigned long	nprocall;
+	unsigned long	nprocactive;
+
+        unsigned long   totrun, totslpi, totslpu, totzombie;
+};
+
+/*
 ** prototypes of process-database functions
 */
 int		pdb_gettask(int, char, time_t, struct pinfo **);
@@ -143,9 +161,9 @@ int		pdb_srchresidue(struct tstat *, struct pinfo **);
 */
 struct netpertask;
 
-int		deviattask(struct tstat *, int, struct tstat *, int, int,
-				struct tstat *, struct sstat *, unsigned int *,
-				int *, int *, int *, int *, int *);
+void		deviattask(struct tstat *, int,
+		           struct tstat *, int, 
+		           struct devtstat *, struct sstat *);
 
 int		photoproc(struct tstat *, int);
 unsigned int	countprocs(void);

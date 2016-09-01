@@ -179,6 +179,7 @@ static const char rcsid[] = "$Id: deviate.c,v 1.45 2010/10/23 14:02:03 gerlof Ex
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <memory.h>
 #include <string.h>
@@ -196,19 +197,18 @@ static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 /*
 ** calculate the process-activity during the last sample
 */
-int
-deviattask(struct tstat *curtpres, int ntaskpres,
-           struct tstat *curpexit, int nprocexit, int deviatonly,
-	   struct tstat *devtstat, struct sstat *devsstat,
-           unsigned int *nprocdev, int *nprocpres,
-           int *totrun, int *totslpi, int *totslpu, int *totzombie)
+void
+deviattask(struct tstat    *curtpres, int ntaskpres,
+           struct tstat    *curpexit, int nprocexit,
+	   struct devtstat *devtstat,
+	   struct sstat    *devsstat)
 {
-	register int		c, d;
-	register struct tstat	*curstat, *devstat, *procstat = 0;
+	register int		c, d, pall=0, pact=0;
+	register struct tstat	*curstat, *devstat;
 	struct tstat		prestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
-	char			procsaved = 1, hashtype = 'p';
+	char			hashtype = 'p';
 
 	/*
 	** needed for sanity check later on...
@@ -226,11 +226,32 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 	pdb_makeresidue();
 
 	/*
+ 	** remove allocated lists of previous sample and initialize counters
+	*/
+	if (devtstat->taskall)
+		free(devtstat->taskall);
+
+	if (devtstat->procall)
+		free(devtstat->procall);
+
+	if (devtstat->procactive)
+		free(devtstat->procactive);
+
+	memset(devtstat, 0, sizeof *devtstat);
+
+	/*
+	** create list for the sample deviations of all tasks
+	*/
+ 	devtstat->ntaskall = ntaskpres + nprocexit;
+	devtstat->taskall  = malloc(devtstat->ntaskall * sizeof(struct tstat));
+
+	ptrverify(devtstat->taskall, "Malloc failed for %d deviated tasks\n",
+                                  devtstat->ntaskall);
+
+	/*
 	** calculate deviations per present process
 	*/
-	*nprocpres = *totrun = *totslpi = *totslpu = *totzombie = 0;
-
-	for (c=0, d=0, *nprocdev=0; c < ntaskpres; c++)
+	for (c=0, d=0; c < ntaskpres; c++)
 	{
 		char	newtask = 0;
 
@@ -238,17 +259,17 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 
 		if (curstat->gen.isproc)
 		{
-			(*nprocpres)++;
+			devtstat->nprocall++;
 
 			if (curstat->gen.state == 'Z')
 			{
-				(*totzombie)++;
+				devtstat->totzombie++;
 			}
 			else
 			{
-				*totrun		+= curstat->gen.nthrrun;
-				*totslpi	+= curstat->gen.nthrslpi;
-				*totslpu	+= curstat->gen.nthrslpu;
+				devtstat->totrun   += curstat->gen.nthrrun;
+				devtstat->totslpi  += curstat->gen.nthrslpi;
+				devtstat->totslpu  += curstat->gen.nthrslpu;
 			}
 		}
 
@@ -259,36 +280,37 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 		                 curstat->gen.btime, &pinfo))
 		{
 			/*
-			** task already present during the previous sample;
-			** if no differences with previous sample, skip task
-			** unless all tasks have to be shown
+			** task already present in the previous sample
 			**
-			** it might be that a process appears to have no
-			** differences while one its threads has differences;
-			** than the process will be inserted as well
-			*/
-			if (deviatonly && memcmp(curstat, &pinfo->tstat, 
-					           sizeof(struct tstat)) == EQ)
-			{
-				/* remember last unsaved process */
-				if (curstat->gen.isproc)
-				{
-					procstat  = curstat;
-					procsaved = 0;
-				}
-
-				continue;
-			}
-
-			/*
-			** differences detected, so the task was active,
-		        ** or its status or memory-occupation has changed;
 			** save stats from previous sample (to use for
 			** further calculations) and store new statistics
 			** in task-database
 			*/
-			prestat 	= pinfo->tstat;	/* save old	*/
-			pinfo->tstat 	= *curstat;	/* overwrite	*/
+			if (memcmp(curstat, &pinfo->tstat, 
+					           sizeof(struct tstat)) == EQ)
+			{
+				/*
+ 				** no activity for task
+				*/
+				curstat->gen.wasinactive = 1;
+			}
+ 			else
+			{
+				/*
+ 				** save the values of the previous sample
+				** and overwrite the previous sample in
+				** the database with the current sample
+				*/
+				prestat 	= pinfo->tstat;
+				pinfo->tstat 	= *curstat;
+
+				curstat->gen.wasinactive = 0;
+
+				devtstat->ntaskactive++;
+
+				if (curstat->gen.isproc)
+					devtstat->nprocactive++;
+			}
 		}
 		else
 		{
@@ -297,6 +319,12 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 			** last interval
 			*/
 			memset(&prestat, 0, sizeof(prestat));
+
+			curstat->gen.wasinactive = 0;
+			devtstat->ntaskactive++;
+
+			if (curstat->gen.isproc)
+				devtstat->nprocactive++;
 
 			/*
 			** create new task struct
@@ -316,30 +344,9 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 		}
 
 		/*
-		** active task found; do the difference calculations
+		** do the difference calculations
 		*/
-		if (curstat->gen.isproc)
-		{
-			procsaved = 1;
-			(*nprocdev)++;
-		}
-		else
-		{
-			/*
-			** active thread: check if related process registered
-			*/
-			if (!procsaved)
-			{
-				devstat = devtstat+d;
-				calcdiff(devstat, procstat, procstat, 0,
-								totusedcpu);
-				procsaved = 1;
-				(*nprocdev)++;
-				d++;
-			}
-		}
-
-		devstat = devtstat+d;
+		devstat = devtstat->taskall+d;
 
 		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
 		d++;
@@ -367,6 +374,11 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 		** existing info present in the process-database
 		*/
 		curstat = curpexit+c;
+		curstat->gen.wasinactive = 0;
+
+		devtstat->nprocall++;
+		devtstat->nprocactive++;
+		devtstat->ntaskactive++;
 
 		if (curstat->gen.pid)	/* acctrecord contains pid? */
 		{
@@ -402,10 +414,10 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 		/*
 		** now do the calculations
 		*/
-		devstat = devtstat+d;
+		devstat = devtstat->taskall+d;
 		memset(devstat, 0, sizeof *devstat);
 
-		devstat->gen        = curstat->gen;
+		devstat->gen = curstat->gen;
 
 		if ( curstat->gen.pid == 0 )
 			devstat->gen.pid    = prestat.gen.pid;
@@ -455,11 +467,10 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 			netatop_exitfind(val, devstat, &prestat);
 		}
 
-		d++;
-		(*nprocdev)++;
-
 		if (prestat.gen.pid > 0)
 			pdb_deltask(prestat.gen.pid, prestat.gen.isproc);
+
+		d++;
 	}
 
 	/*
@@ -467,7 +478,32 @@ deviattask(struct tstat *curtpres, int ntaskpres,
 	*/
 	pdb_cleanresidue();
 
-	return d;
+	/*
+	** create and fill other pointer lists
+	*/
+	devtstat->procall    = malloc(devtstat->nprocall *
+						sizeof(struct tstat *));
+	devtstat->procactive = malloc(devtstat->nprocactive *
+						sizeof(struct tstat *));
+
+	ptrverify(devtstat->procall, "Malloc failed for %d processes\n",
+                                  devtstat->nprocall);
+
+	ptrverify(devtstat->procactive, "Malloc failed for %d active procs\n",
+                                  devtstat->nprocactive);
+
+
+        for (c=0, devstat = devtstat->taskall; c < devtstat->ntaskall;
+								c++, devstat++)
+        {
+        	if (devstat->gen.isproc)
+		{
+        		devtstat->procall[pall++] = devstat;
+
+			if (! devstat->gen.wasinactive)
+       				devtstat->procactive[pact++] = devstat;
+		}
+        }
 }
 
 /*
@@ -478,6 +514,15 @@ static void
 calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	                                      char newtask, count_t totusedcpu)
 {
+	/*
+ 	** for inactive tasks, set all counters to zero
+	*/
+	if (curstat->gen.wasinactive)
+		memset(devstat, 0, sizeof *devstat);
+
+	/*
+	** copy all static values from the current task settings
+	*/
 	devstat->gen          = curstat->gen;
 
 	if (newtask)
@@ -489,6 +534,22 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->cpu.policy   = curstat->cpu.policy;
 	devstat->cpu.curcpu   = curstat->cpu.curcpu;
 	devstat->cpu.sleepavg = curstat->cpu.sleepavg;
+
+	devstat->mem.vexec    = curstat->mem.vexec;
+	devstat->mem.vmem     = curstat->mem.vmem;
+	devstat->mem.rmem     = curstat->mem.rmem;
+	devstat->mem.pmem     = curstat->mem.pmem;
+	devstat->mem.vdata    = curstat->mem.vdata;
+	devstat->mem.vstack   = curstat->mem.vstack;
+	devstat->mem.vlibs    = curstat->mem.vlibs;
+	devstat->mem.vswap    = curstat->mem.vswap;
+
+	/*
+ 	** for inactive tasks, only the static values had to be copied, while
+	** all use counters have been set to zero
+	*/
+	if (curstat->gen.wasinactive)
+		return;
 
 	devstat->cpu.stime  = 
 		subcount(curstat->cpu.stime, prestat->cpu.stime);
@@ -521,16 +582,8 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->dsk.cwsz   =
 		subcount(curstat->dsk.cwsz, prestat->dsk.cwsz);
 
-	devstat->mem.vexec  = curstat->mem.vexec;
-	devstat->mem.vmem   = curstat->mem.vmem;
-	devstat->mem.rmem   = curstat->mem.rmem;
-	devstat->mem.pmem   = curstat->mem.pmem;
 	devstat->mem.vgrow  = curstat->mem.vmem   - prestat->mem.vmem;
 	devstat->mem.rgrow  = curstat->mem.rmem   - prestat->mem.rmem;
-	devstat->mem.vdata  = curstat->mem.vdata;
-	devstat->mem.vstack = curstat->mem.vstack;
-	devstat->mem.vlibs  = curstat->mem.vlibs;
-	devstat->mem.vswap  = curstat->mem.vswap;
 
 	devstat->mem.minflt = 
 		subcount(curstat->mem.minflt, prestat->mem.minflt);

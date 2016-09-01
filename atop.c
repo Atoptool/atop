@@ -705,7 +705,6 @@ main(int argc, char *argv[])
 static void
 engine(void)
 {
-	int 			i, j;
 	struct sigaction 	sigact;
 	static time_t		timelimit;
 	void			getusr1(int), getusr2(int);
@@ -723,21 +722,15 @@ engine(void)
 	*/
 	static struct tstat	*curtpres;	/* current present list      */
 	static int		 curtlen;	/* size of present list      */
-
 	struct tstat		*curpexit;	/* exited process list	     */
-	struct tstat		*devtstat;	/* deviation list	     */
-	struct tstat		**devpstat;	/* pointers to processes     */
-						/* in deviation list         */
+
+	static struct devtstat	devtstat;	/* deviation info	     */
 
 	unsigned int		ntaskpres;	/* number of tasks present   */
 	unsigned int		nprocexit;	/* number of exited procs    */
 	unsigned int		nprocexitnet;	/* number of exited procs    */
 						/* via netatopd daemon       */
 
-	unsigned int		ntaskdev;       /* nr of tasks deviated      */
-	unsigned int		nprocdev;       /* nr of procs deviated      */
-	int			nprocpres;	/* nr of procs present       */
-	int			totrun, totslpi, totslpu, totzombie;
 	unsigned int		noverflow;
 
 	/*
@@ -923,31 +916,8 @@ engine(void)
 		/*
 		** calculate deviations
 		*/
-		devtstat = malloc((ntaskpres+nprocexit) * sizeof(struct tstat));
-
-		ptrverify(devtstat, "Malloc failed for %d modified tasks\n",
-			          			ntaskpres+nprocexit);
-
-		ntaskdev = deviattask(curtpres,  ntaskpres,
-		                      curpexit,  nprocexit, deviatonly,
-		                      devtstat,  devsstat,
-		                      &nprocdev, &nprocpres,
-		                      &totrun, &totslpi, &totslpu, &totzombie);
-
-  	      	/*
- 		** create list of pointers specifically to the process entries
-		** in the task list
-		*/
-       		devpstat = malloc(sizeof (struct tstat *) * nprocdev);
-
-		ptrverify(devpstat, "Malloc failed for %d process ptrs\n",
-			          				nprocdev);
-
-		for (i=0, j=0; i < ntaskdev; i++)
-		{
-			if ( (devtstat+i)->gen.isproc)
-				devpstat[j++] = devtstat+i;
-		}
+		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
+		                      &devtstat, devsstat);
 
 		/*
 		** activate the installed print-function to visualize
@@ -955,9 +925,7 @@ engine(void)
 		*/
 		lastcmd = (vis.show_samp)( curtime,
 				     curtime-pretime > 0 ? curtime-pretime : 1,
-		           	     devsstat,  devtstat, devpstat,
-		                     ntaskdev,  ntaskpres, nprocdev, nprocpres, 
-		                     totrun, totslpi, totslpu, totzombie, 
+		           	     &devtstat, devsstat, 
 		                     nprocexit, noverflow, sampcnt==0);
 
 		/*
@@ -968,9 +936,6 @@ engine(void)
 
 		if (nprocexitnet > 0)
 			netatop_exiterase();
-
-		free(devtstat);
-		free(devpstat);
 
 		if (lastcmd == 'r')	/* reset requested ? */
 		{

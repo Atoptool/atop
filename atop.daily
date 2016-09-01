@@ -38,4 +38,4 @@ fi
 # activate atop with interval of 10 minutes, replacing the current shell
 #
 echo $$ > $PIDFILE
-exec $BINPATH/atop -a -R -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1
+exec $BINPATH/atop -R -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1

@@ -822,9 +822,7 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 ** calculate cumulative system- and user-time for all active processes
 */
 void
-pricumproc(struct sstat *sstat, struct tstat **proclist,
-           int nactproc, int ntask, int totproc,
-	   int totrun, int totslpi, int totslpu, int totzomb,
+pricumproc(struct sstat *sstat, struct devtstat *devtstat,
            int nexit, unsigned int noverflow, int avgval, int nsecs)
 {
 
@@ -1076,19 +1074,19 @@ pricumproc(struct sstat *sstat, struct tstat **proclist,
         extraparam extra;
 
 
-        for (i=0, extra.totut=extra.totst=0; i < nactproc; i++)
+        for (i=0, extra.totut=extra.totst=0; i < devtstat->nprocactive; i++)
         {
-		struct tstat *curstat = *(proclist+i);
+		struct tstat *curstat = *(devtstat->procactive+i);
 
                 extra.totut	+= curstat->cpu.utime;
                 extra.totst 	+= curstat->cpu.stime;
         }
 
-        extra.nproc	= totproc;
-	extra.ntrun	= totrun;
-	extra.ntslpi	= totslpi;
-	extra.ntslpu	= totslpu;
-        extra.nzomb	= totzomb;
+        extra.nproc	= devtstat->nprocall;
+	extra.ntrun	= devtstat->totrun;
+	extra.ntslpi	= devtstat->totslpi;
+	extra.ntslpu	= devtstat->totslpu;
+        extra.nzomb	= devtstat->totzombie;
         extra.nexit	= nexit;
         extra.noverflow	= noverflow;
         extra.avgval	= avgval;

@@ -214,10 +214,8 @@ parsedef(char *pd)
 */
 char
 parseout(time_t curtime, int numsecs,
-	 struct sstat *ss, struct tstat *ts, struct tstat **proclist,
-	 int ndeviat, int ntask, int nactproc,
-         int totproc, int totrun, int totslpi, int totslpu, int totzomb,
-	 int nexit, unsigned int noverflow, char flag)
+         struct devtstat *devtstat, struct sstat *sstat,
+         int nexit, unsigned int noverflow, char flag)
 {
 	register int	i;
 	char		datestr[32], timestr[32], header[256];
@@ -250,7 +248,8 @@ parseout(time_t curtime, int numsecs,
 			/*
 			** call a selected print-function
 			*/
-			(labeldef[i].prifunc)(header, ss, ts, ndeviat);
+			(labeldef[i].prifunc)(header, sstat,
+				devtstat->taskall, devtstat->ntaskall);
 		}
 	}
 

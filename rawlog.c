@@ -239,9 +239,7 @@ static void	try_other_version(int, int);
 */
 char
 rawwrite(time_t curtime, int numsecs, 
-	 struct sstat *ss, struct tstat *ts, struct tstat **proclist,
-	 int ndeviat, int ntask, int nactproc,
-         int totproc, int totrun, int totslpi, int totslpu, int totzomb, 
+         struct devtstat *devtstat, struct sstat *sstat,
          int nexit, unsigned int noverflow, char flag)
 {
 	static int		rawfd = -1;
@@ -251,7 +249,8 @@ rawwrite(time_t curtime, int numsecs,
 
 	Byte			scompbuf[sizeof(struct sstat)], *pcompbuf;
 	unsigned long		scomplen = sizeof scompbuf;
-	unsigned long		pcomplen = sizeof(struct tstat) * ndeviat;
+	unsigned long		pcomplen = sizeof(struct tstat) *
+						devtstat->ntaskall;
 
 	/*
 	** first call:
@@ -271,7 +270,7 @@ rawwrite(time_t curtime, int numsecs,
 	** compress system- and process-level statistics
 	*/
 	rv = compress(scompbuf, &scomplen,
-				(Byte *)ss, (unsigned long)sizeof *ss);
+				(Byte *)sstat, (unsigned long)sizeof *sstat);
 
 	testcompval(rv, "compress");
 
@@ -279,7 +278,8 @@ rawwrite(time_t curtime, int numsecs,
 
 	ptrverify(pcompbuf, "Malloc failed for compression buffer\n");
 
-	rv = compress(pcompbuf, &pcomplen, (Byte *)ts, (unsigned long)pcomplen);
+	rv = compress(pcompbuf, &pcomplen, (Byte *)devtstat->taskall,
+						(unsigned long)pcomplen);
 
 	testcompval(rv, "compress");
 
@@ -291,16 +291,16 @@ rawwrite(time_t curtime, int numsecs,
 	rr.curtime	= curtime;
 	rr.interval	= numsecs;
 	rr.flags	= 0;
-	rr.ndeviat	= ndeviat;
-	rr.nactproc	= nactproc;
-	rr.ntask	= ntask;
+	rr.ndeviat	= devtstat->ntaskall;
+	rr.nactproc	= devtstat->nprocactive;
+	rr.ntask	= devtstat->ntaskall;
 	rr.nexit	= nexit;
 	rr.noverflow	= noverflow;
-	rr.totproc	= totproc;
-	rr.totrun	= totrun;
-	rr.totslpi	= totslpi;
-	rr.totslpu	= totslpu;
-	rr.totzomb	= totzomb;
+	rr.totproc	= devtstat->nprocall;
+	rr.totrun	= devtstat->totrun;
+	rr.totslpi	= devtstat->totslpi;
+	rr.totslpu	= devtstat->totslpu;
+	rr.totzomb	= devtstat->totzombie;
 	rr.scomplen	= scomplen;
 	rr.pcomplen	= pcomplen;
 
@@ -473,9 +473,8 @@ rawread(void)
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
-	struct sstat		devsstat;
-	struct tstat		*devtstat;
-	struct tstat		**devpstat;
+	struct sstat		sstat;
+	static struct devtstat	devtstat;
 
 	struct stat		filestat;
 
@@ -702,6 +701,7 @@ rawread(void)
 		while ( getrawrec(rawfd, &rr, rh.rawreclen) == rh.rawreclen)
 		{
 			unsigned int	secsinday = daysecs(rr.curtime);
+			unsigned int	k, l;
 
 			/*
 			** store the offset of the raw record in the offset list
@@ -745,28 +745,65 @@ rawread(void)
 			** allocate space, read compressed system-level
 			** statistics and decompress
 			*/
-			if ( !getrawsstat(rawfd, &devsstat, rr.scomplen) )
+			if ( !getrawsstat(rawfd, &sstat, rr.scomplen) )
 				cleanstop(7);
 
 			/*
 			** allocate space, read compressed process-level
 			** statistics and decompress
 			*/
-			devtstat = malloc(sizeof(struct tstat) * rr.ndeviat);
+			devtstat.taskall    = malloc(sizeof(struct tstat  )
+								* rr.ndeviat);
 
-			ptrverify(devtstat,
+			if (rr.totproc < rr.nactproc)	// compat old raw files
+				devtstat.procall = malloc(sizeof(struct tstat *)
+								* rr.nactproc);
+			else
+				devtstat.procall = malloc(sizeof(struct tstat *)
+								* rr.totproc);
+
+			devtstat.procactive = malloc(sizeof(struct tstat *) * rr.nactproc);
+
+			ptrverify(devtstat.taskall,
 			          "Malloc failed for %d stored tasks\n",
 			          rr.ndeviat);
 
-			devpstat = malloc(sizeof(struct tstat *) * rr.nactproc);
+			ptrverify(devtstat.procall,
+			          "Malloc failed for total %d processes\n",
+			          rr.totproc);
 
-			ptrverify(devpstat,
-			          "Malloc failed for %d stored processes\n",
+			ptrverify(devtstat.procactive,
+			          "Malloc failed for %d active processes\n",
 			          rr.nactproc);
 
-			if ( !getrawtstat(rawfd, devtstat,
+			if ( !getrawtstat(rawfd, devtstat.taskall,
 						rr.pcomplen, rr.ndeviat) )
 				cleanstop(7);
+
+
+			for (i=j=k=l=0; i < rr.ndeviat; i++)
+			{
+				if ( (devtstat.taskall+i)->gen.isproc)
+				{
+					devtstat.procall[j++] = devtstat.taskall+i;
+
+					if (! (devtstat.taskall+i)->gen.wasinactive)
+						devtstat.procactive[k++] = devtstat.taskall+i;
+				}
+
+				if (! (devtstat.taskall+i)->gen.wasinactive)
+					l++;
+			}
+
+			devtstat.ntaskall	= i;
+			devtstat.nprocall	= j;
+			devtstat.nprocactive	= k;
+			devtstat.ntaskactive	= l;
+
+ 			devtstat.totrun		= rr.totrun;
+ 			devtstat.totslpi	= rr.totslpi;
+ 			devtstat.totslpu	= rr.totslpu;
+ 			devtstat.totzombie	= rr.totzomb;
 
 			/*
 			** activate the installed print-function to visualize
@@ -792,21 +829,13 @@ rawread(void)
 			     lseek(rawfd, (off_t)0, SEEK_CUR) <= rh.rawreclen)
 				flags |= RRLAST;
 
-			for (i=j=0; i < rr.ndeviat; i++)
-			{
-				if ( (devtstat+i)->gen.isproc)
-					devpstat[j++] = devtstat+i;
-			}
-
 			lastcmd = (vis.show_samp)(rr.curtime, rr.interval,
-			             &devsstat, devtstat, devpstat,
-		 	             rr.ndeviat,  rr.ntask, rr.nactproc,
-			             rr.totproc, rr.totrun, rr.totslpi,
-			             rr.totslpu, rr.totzomb, rr.nexit,
-			             rr.noverflow, flags);
+			             &devtstat, &sstat,
+			             rr.nexit, rr.noverflow, flags);
 
-			free(devtstat);
-			free(devpstat);
+			free(devtstat.taskall);
+			free(devtstat.procall);
+			free(devtstat.procactive);
 	
 			switch (lastcmd)
 			{

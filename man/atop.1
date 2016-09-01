@@ -364,6 +364,9 @@ process size, total resident process size, virtual and resident growth during
 last interval, memory occupation percentage and process name.
 
 When more than 80 positions are available, other information is added.
+
+For memory consumption, always all processes are shown (also the processes
+that were not active during the interval).
 .PP
 .TP 5
 .B d
@@ -770,10 +773,7 @@ If this file already exists and is recognized as a raw data file,
 will append new samples to the file (starting with a sample which reflects
 the activity since boot); if the file does not exist, it will be created.
 .br
-By default only processes which have been active during the interval
-are stored in the raw file. When the flag
-.B -a
-is specified, all processes will be stored.
+All processes/threads are stored in the raw file. 
 .br
 The interval (default: 10 seconds) and number of samples (default: infinite)
 can be passed as last arguments. Instead of the number of samples, the flag

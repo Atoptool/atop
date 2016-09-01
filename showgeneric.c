@@ -335,14 +335,12 @@ int	startoffset;
 */
 char
 generic_samp(time_t curtime, int nsecs,
-           struct sstat *sstat, struct tstat *tstat, struct tstat **proclist,
-           int ndeviat, int ntask, int nactproc,
-           int totproc, int totrun, int totslpi, int totslpu, int totzomb,
+           struct devtstat *devtstat, struct sstat *sstat, 
            int nexit, unsigned int noverflow, char flag)
 {
 	static int	callnr = 0;
 
-	register int	i, curline, statline;
+	register int	i, curline, statline, nproc;
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
 	char		format1[16], format2[16], hhmm[16];
@@ -354,18 +352,17 @@ generic_samp(time_t curtime, int nsecs,
 
 	/*
 	** curlist points to the active list of tstat-pointers that
-	** should be displayed; nlist indicates the number of entries in
+	** should be displayed; ncurlist indicates the number of entries in
 	** this list
 	*/
 	struct tstat	**curlist;
-	int		nlist;
+	int		ncurlist;
 
 	/*
 	** tXcumlist is a list of tstat-structs holding one entry
 	** per accumulated (per user or per program) group of processes
 	**
 	** Xcumlist contains the pointers to all structs in tXcumlist
-	**
 	** 
 	** these lists will only be allocated 'lazy' whenever accumulation
 	** is requested
@@ -382,14 +379,16 @@ generic_samp(time_t curtime, int nsecs,
 
 	/*
 	** tsklist contains the pointers to all structs in tstat
-	** (number of entries: ndeviat), sorted on process with the
-	** related threads immediately following the process
+	** sorted on process with the related threads immediately
+	** following the process
 	**
 	** this list will be allocated 'lazy'
 	*/
 	struct tstat	**tsklist  = 0;
+	int		ntsk       = 0;
 	char		tlastorder = 0;
 	char		zipagain   = 0;
+	char		tdeviate   = 0;
 
 	/*
 	** sellist contains the pointers to the structs in tstat
@@ -416,7 +415,7 @@ generic_samp(time_t curtime, int nsecs,
 	** compute the total capacity of this system for the 
 	** four main resources
 	*/
-	totalcap(&syscap, sstat, proclist, nactproc);
+	totalcap(&syscap, sstat, devtstat->procactive, devtstat->nprocactive);
 
 	/*
 	** sort per-cpu       		statistics on busy percentage
@@ -518,15 +517,14 @@ generic_samp(time_t curtime, int nsecs,
 		/*
 		** print cumulative system- and user-time for all processes
 		*/
-		pricumproc(sstat, proclist, nactproc, ntask,
-			totproc, totrun, totslpi, totslpu, totzomb,
-			nexit, noverflow, avgval, nsecs);
+		pricumproc(sstat, devtstat, nexit, noverflow, avgval, nsecs);
 
 		if (noverflow)
 		{
 			snprintf(statbuf, sizeof statbuf, 
 			         "Only %d exited processes handled "
 			         "-- %u skipped!", nexit, noverflow);
+
 			statmsg = statbuf;
 		}
 
@@ -661,28 +659,38 @@ generic_samp(time_t curtime, int nsecs,
 				ulastorder = 0;
 			}
 
+			if (deviatonly)
+				nproc = devtstat->nprocactive;
+			else
+				nproc = devtstat->nprocall;
+
 			/*
 			** allocate space for new (temporary) list with
 			** one entry per user (list has worst-case size)
 			*/
-			tucumlist = calloc(sizeof(struct tstat),    nactproc);
-			ucumlist  = malloc(sizeof(struct tstat *) * nactproc);
+			tucumlist = calloc(sizeof(struct tstat),    nproc);
+			ucumlist  = malloc(sizeof(struct tstat *) * nproc);
 
 			ptrverify(tucumlist,
-			        "Malloc failed for %d ucum procs\n", nactproc);
+			        "Malloc failed for %d ucum procs\n", nproc);
 			ptrverify(ucumlist,
-			        "Malloc failed for %d ucum ptrs\n",  nactproc);
+			        "Malloc failed for %d ucum ptrs\n",  nproc);
 
-			for (i=0; i < nactproc; i++)	/* fill pointers */
+			for (i=0; i < nproc; i++)
+			{
+				/* fill pointers */
 				ucumlist[i] = tucumlist+i;
+			}
 
-			nucum = cumusers(proclist, tucumlist, nactproc);
+			nucum = cumusers(deviatonly ?
+						devtstat->procactive :
+						devtstat->procall,
+						tucumlist, nproc);
 
 			curlist   = ucumlist;
-			nlist     = nucum;
+			ncurlist  = nucum;
 			lastsortp = &ulastorder;
 			break;
-
 
 		   case MCUMPROC:
 			threadallowed = 0;
@@ -694,42 +702,62 @@ generic_samp(time_t curtime, int nsecs,
 				plastorder = 0;
 			}
 
+			if (deviatonly)
+				nproc = devtstat->nprocactive;
+			else
+				nproc = devtstat->nprocall;
+
 			/*
 			** allocate space for new (temporary) list with
 			** one entry per program (list has worst-case size)
 			*/
-			tpcumlist = calloc(sizeof(struct tstat),    nactproc);
-			pcumlist  = malloc(sizeof(struct tstat *) * nactproc);
+			tpcumlist = calloc(sizeof(struct tstat),    nproc);
+			pcumlist  = malloc(sizeof(struct tstat *) * nproc);
 
 			ptrverify(tpcumlist,
-			        "Malloc failed for %d pcum procs\n", nactproc);
+			        "Malloc failed for %d pcum procs\n", nproc);
 			ptrverify(pcumlist,
-			        "Malloc failed for %d pcum ptrs\n",  nactproc);
+			        "Malloc failed for %d pcum ptrs\n",  nproc);
 
-			for (i=0; i < nactproc; i++)	/* fill pointers */
+			for (i=0; i < nproc; i++)
+			{	
+				/* fill pointers */
 				pcumlist[i] = tpcumlist+i;
+			}
 
-			npcum = cumprocs(proclist, tpcumlist, nactproc);
+			npcum = cumprocs(deviatonly ?
+						devtstat->procactive :
+						devtstat->procall,
+						tpcumlist, nproc);
 
 			curlist   = pcumlist;
-			nlist     = npcum;
+			ncurlist  = npcum;
 			lastsortp = &plastorder;
 			break;
 
 		   default:
 			threadallowed = 1;
 
+			if (deviatonly && showtype != MPROCMEM)
+			{
+				curlist   = devtstat->procactive;
+				ncurlist  = devtstat->nprocactive;
+			}
+			else
+			{
+				curlist   = devtstat->procall;
+				ncurlist  = devtstat->nprocall;
+			}
+
+			lastsortp = &tlastorder;
+
 			if ( procsel.userid[0] == USERSTUB &&
 			    !procsel.prognamesz            &&
 			    !procsel.argnamesz             &&
 			    !procsel.pid[0]                &&
 			    !supexits                        )
-			{	/* no selection wanted */
-				curlist   = proclist;
-				nlist     = nactproc;
-				lastsortp = &tlastorder;
+				/* no selection wanted */
 				break;
-			}
 
 			/*
 			** selection specified for tasks:
@@ -738,26 +766,26 @@ generic_samp(time_t curtime, int nsecs,
 			if (!sellist)
 			{
 				sellist = malloc(sizeof(struct tstat *)
-								* nactproc);
+								* ncurlist);
 
 				ptrverify(sellist,
 				          "Malloc failed for %d select ptrs\n",
-				          nactproc);
+				          ncurlist);
 			}
 
-			for (i=nsel=0; i < nactproc; i++)
+			for (i=nsel=0; i < ncurlist; i++)
 			{
-				if (procsuppress(*(proclist+i), &procsel))
+				if (procsuppress(*(curlist+i), &procsel))
 					continue;
 
-				if ((proclist[i])->gen.state == 'E' && supexits)
+				if (curlist[i]->gen.state == 'E' && supexits)
 					continue;
 
-				sellist[nsel++] = proclist[i]; 
+				sellist[nsel++] = curlist[i]; 
 			}
 
 			curlist    = sellist;
-			nlist      = nsel;
+			ncurlist   = nsel;
 			tlastorder = 0; /* new sort and zip normal view */
 			slastorder = 0;	/* new sort and zip now         */
 			lastsortp  = &slastorder;
@@ -779,18 +807,19 @@ generic_samp(time_t curtime, int nsecs,
 			plistsz = LINES-curline-2;
 		else
 			if (threadview && threadallowed)
-				plistsz = ndeviat;
+				plistsz = devtstat->ntaskactive;
 			else
-				plistsz = nlist;
+				plistsz = ncurlist;
 
-		if (nlist > 0 && plistsz > 0)
+
+		if (ncurlist > 0 && plistsz > 0)
 		{
 			/*
  			** if sorting order is changed, sort again
  			*/
 			if (*lastsortp != curorder)
 			{
-				qsort(curlist, nlist,
+				qsort(curlist, ncurlist,
 				        sizeof(struct tstat *),
 				        procsort[(int)curorder&0x1f]);
 
@@ -801,46 +830,75 @@ generic_samp(time_t curtime, int nsecs,
 
 			if (threadview && threadallowed)
 			{
-				int j = ndeviat, t;
+				int ntotal, j, t;
+
+				if (deviatonly && showtype != MPROCMEM)
+					ntotal = devtstat->ntaskactive;
+				else
+					ntotal = devtstat->ntaskall;
 
 				/*
-				** allocate new pointer list to be able to zip
-				** process list with references to the threads
+  				** check if existing pointer list still usable
+				** if not, allocate new pointer list to be able
+				** to zip process list with references to threads
 				*/
-				if (!tsklist)
+				if (!tsklist || ntsk != ntotal ||
+							tdeviate != deviatonly)
 				{
+					if (tsklist)
+						free(tsklist);	// remove current
+
 					tsklist = malloc(sizeof(struct tstat *)
-								    * ndeviat);
+								    * ntotal);
 
 					ptrverify(tsklist,
 				             "Malloc failed for %d taskptrs\n",
-				             ndeviat);
+				             ntotal);
+
+					ntsk     = ntotal;
+					tdeviate = deviatonly;
 
 					zipagain = 1;
 				}
+				else
+					j = ntotal;
 
 				if (zipagain)
 				{
-					for (i=j=0; i < nlist; i++)
-					{
-						tsklist[j++] = curlist[i];
+					struct tstat *tall = devtstat->taskall;
+					struct tstat *pcur;
 
-						for (t = curlist[i] - tstat+1;
-					     	     t < ndeviat &&
-						     (curlist[i])->gen.tgid &&
-					             (tstat+t)->gen.tgid ==
-					                (curlist[i])->gen.tgid;
-						     t++)
+					for (i=j=0; i < ncurlist; i++)
+					{
+					    pcur = curlist[i];
+
+					    tsklist[j++] = pcur;
+
+					    for (t = pcur - tall + 1;
+					         t < devtstat->ntaskall &&
+						 pcur->gen.tgid		&&
+					         pcur->gen.tgid == 
+					            (tall+t)->gen.tgid;
+					         t++)
+					    {
+						if (deviatonly &&
+							showtype != MPROCMEM)
 						{
-							tsklist[j++] = tstat+t;
-						}
+						  if (!(tall+t)->gen.wasinactive)
+						  {
+							tsklist[j++] = tall+t;
+						  }
+ 						}
+						else
+							tsklist[j++] = tall+t;
+					    }
 					}
 
 					zipagain = 0;
 				}
 
-				curlist = tsklist;
-				nlist   = j;
+				curlist  = tsklist;
+				ncurlist = j;
 			}
 
 			/*
@@ -853,7 +911,7 @@ generic_samp(time_t curtime, int nsecs,
                                 move(curline+1, 0);
                         }
 
-			priphead(firstproc/plistsz+1, (nlist-1)/plistsz+1,
+			priphead(firstproc/plistsz+1, (ncurlist-1)/plistsz+1,
 			       		&showtype, &curorder,
 					showorder == MSORTAUTO ? 1 : 0);
 
@@ -866,12 +924,12 @@ generic_samp(time_t curtime, int nsecs,
 			/*
 			** print the list
 			*/
-			priproc(curlist, firstproc, nlist, curline+2,
-			        firstproc/plistsz+1, (nlist-1)/plistsz+1,
+			priproc(curlist, firstproc, ncurlist, curline+2,
+			        firstproc/plistsz+1, (ncurlist-1)/plistsz+1,
 			        showtype, curorder, &syscap, nsecs, avgval);
 		}
 
-		alistsz = nlist;	/* preserve size of active list */
+		alistsz = ncurlist;	/* preserve size of active list */
 
 		/*
 		** in case of writing to a terminal, the user can also enter
@@ -1641,13 +1699,6 @@ generic_samp(time_t curtime, int nsecs,
 			   ** all processes
 			   */
 			   case MALLPROC:
-				if (rawreadflag)
-				{
-					statmsg = "Process list from raw file "
-					          "will be shown anyhow!";
-					break;
-				}
-
 				if (deviatonly)
 				{
 					deviatonly=0;
@@ -1661,10 +1712,8 @@ generic_samp(time_t curtime, int nsecs,
 					          "will be shown/accumulated...";
 				}
 
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
-
-				firstproc = 0;
+				tlastorder = 0;
+				firstproc  = 0;
 				break;
 
 			   /*
@@ -1905,7 +1954,6 @@ generic_samp(time_t curtime, int nsecs,
 			   */
 			   case KEY_DOWN:
 				if (firstproc < alistsz-1)
-				  //  alistsz-firstproc >= plistsz)
 					firstproc += 1;
 				break;
 
