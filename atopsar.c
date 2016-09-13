@@ -945,7 +945,7 @@ pratopsaruse(char *myname)
 	int	i;
 
 	fprintf(stderr,
-		"Usage: %s [-flags] [-r file|date] [-R cnt] [-b hh:mm] [-e hh:mm]\n",
+		"Usage: %s [-flags] [-r file|date|y...] [-R cnt] [-b hh:mm] [-e hh:mm]\n",
 								myname);
 	fprintf(stderr, "\t\tor\n");
 	fprintf(stderr,
