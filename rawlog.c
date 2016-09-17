@@ -24,118 +24,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: rawlog.c,v $
-** Revision 1.32  2010/11/26 06:06:35  gerlof
-** Cosmetic.
-**
-** Revision 1.31  2010/11/17 12:43:31  gerlof
-** The flag -r followed by exactly 8 'y' characters is not considered
-** as 8 days ago, but as a literal filename.
-**
-** Revision 1.30  2010/10/23 14:03:03  gerlof
-** Counters for total number of running and sleep threads (JC van Winkel).
-**
-** Revision 1.29  2010/04/23 13:55:52  gerlof
-** Get rid of all setuid-root privs before activating other program.
-**
-** Revision 1.28  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.27  2010/04/16 12:55:16  gerlof
-** Automatically start another version of atop if the logfile to
-** be read has not been created by the current version.
-**
-** Revision 1.26  2010/03/02 13:55:29  gerlof
-** Struct stat size did not fit in short any more (modified to int).
-**
-** Revision 1.25  2009/12/17 08:16:06  gerlof
-** Introduce branch-key to go to specific time in raw file.
-**
-** Revision 1.24  2009/11/27 15:26:29  gerlof
-** Added possibility to specify y[y..] als filename for -r flag
-** to access file of yesterday, day before yesterday, etc.
-**
-** Revision 1.23  2009/11/27 14:28:14  gerlof
-** Rollback a "transaction" when not all parts could be
-** written to the logfile (e.g. file system full) to avoid
-** a corrupted logfile.
-**
-** Revision 1.22  2008/01/07 10:18:05  gerlof
-** Implement possibility to make summaries.
-**
-** Revision 1.21  2007/08/16 12:01:25  gerlof
-** Add support for atopsar reporting.
-**
-** Revision 1.20  2007/03/20 13:02:25  gerlof
-** Introduction of variable supportflags.
-**
-** Revision 1.19  2007/03/20 11:11:57  gerlof
-** Verify success of malloc's.
-**
-** Revision 1.18  2007/03/20 07:25:59  gerlof
-** Avoid loop when incompatible raw file is read.
-** Verify return code of compress/uncompress functions.
-**
-** Revision 1.17  2007/02/23 07:34:00  gerlof
-** Changed unsigned short's into unsigned int's for process-counters
-** in raw record.
-**
-** Revision 1.16  2007/02/13 10:33:27  gerlof
-** Removal of external declarations.
-** Store pagesize and hertz in raw logfile.
-**
-** Revision 1.15  2006/01/30 09:12:34  gerlof
-** Minor bug-fix.
-**
-** Revision 1.14  2005/10/21 09:50:36  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.13  2004/12/14 15:06:23  gerlof
-** Implementation of patch-recognition for disk and network-statistics.
-**
-** Revision 1.12  2004/05/06 09:47:36  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.11  2003/07/07 09:26:48  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.10  2003/07/03 12:04:11  gerlof
-** Implemented subcommand `r' (reset).
-**
-** Revision 1.9  2003/06/27 12:32:48  gerlof
-** Removed rawlog compatibility.
-**
-** Revision 1.8  2003/02/06 14:08:33  gerlof
-** Cosmetic changes.
-**
-** Revision 1.7  2003/01/17 07:33:39  gerlof
-** Modified process statistics: add command-line.
-** Implement compatibility for old tstat-structure read from logfiles.
-**
-** Revision 1.6  2002/10/30 13:46:11  gerlof
-** Generate notification for statistics since boot.
-** Adapt interval from ushort to ulong (bug-solution);
-** this results in incompatible logfile but old logfiles can still be read.
-**
-** Revision 1.5  2002/10/24 12:22:25  gerlof
-** In case of writing a raw logfile:
-** If the logfile already exists, append new records to the existing file.
-** If the logfile does not yet exist, create it.
-**
-** Revision 1.4  2002/10/08 11:35:22  gerlof
-** Modified storage of raw filename.
-**
-** Revision 1.3  2002/10/03 10:41:51  gerlof
-** Avoid end-less loop when using end-time specification (flag -e).
-**
-** Revision 1.2  2002/09/17 13:17:01  gerlof
-** Allow key 'T' to be pressed to view previous sample in raw file.
-**
-**
 */
-
-static const char rcsid[] = "$Id: rawlog.c,v 1.32 2010/11/26 06:06:35 gerlof Exp $";
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -307,6 +196,12 @@ rawwrite(time_t curtime, int numsecs,
 	if (flag&RRBOOT)
 		rr.flags |= RRBOOT;
 
+	if (supportflags & ACCTACTIVE)
+		rr.flags |= RRACCTACTIVE;
+
+	if (supportflags & IOSTAT)
+		rr.flags |= RRIOSTAT;
+
 	if (supportflags & NETATOP)
 		rr.flags |= RRNETATOP;
 
@@ -397,8 +292,7 @@ rawwopen()
 		if ( rh.sstatlen	!= sizeof(struct sstat)		||
 		     rh.tstatlen	!= sizeof(struct tstat)		||
 	    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
-		     rh.rawreclen	!= sizeof(struct rawrecord)	||
-		     rh.supportflags	!= (supportflags & ~(NETATOP|NETATOPD)))
+		     rh.rawreclen	!= sizeof(struct rawrecord)	  )
 		{
 			fprintf(stderr,
 				"existing file %s has incompatible header\n",
@@ -442,7 +336,7 @@ rawwopen()
 	rh.tstatlen	= sizeof(struct tstat);
 	rh.rawheadlen	= sizeof(struct rawheader);
 	rh.rawreclen	= sizeof(struct rawrecord);
-	rh.supportflags	= (supportflags & ~(NETATOP|NETATOPD));
+	rh.supportflags	= supportflags | RAWLOGNG;
 	rh.osrel	= osrel;
 	rh.osvers	= osvers;
 	rh.ossub	= ossub;
@@ -810,6 +704,19 @@ rawread(void)
 			** the system- and process-level statistics
 			*/
 			sampcnt++;
+
+ 			if ( (rh.supportflags & RAWLOGNG) == RAWLOGNG)
+			{
+				if (rr.flags & RRACCTACTIVE)
+					supportflags |=  ACCTACTIVE;
+				else
+					supportflags &= ~ACCTACTIVE;
+
+				if (rr.flags & RRIOSTAT)
+					supportflags |=  IOSTAT;
+				else
+					supportflags &= ~IOSTAT;
+			}
 
 			if (rr.flags & RRNETATOP)
 				supportflags |=  NETATOP;
