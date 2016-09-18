@@ -135,7 +135,7 @@ static const char rcsid[] = "$Id: acctproc.c,v 1.28 2010/04/23 12:20:19 gerlof E
 #include "acctproc.h"
 #include "atopacctd.h"
 
-#define	ACCTDIR		"/tmp/atop.d"
+#define	ACCTDIR		"/var/cache/atop.d"
 #define	ACCTFILE	"atop.acct"
 #define	ACCTENV		"ATOPACCT"
 
