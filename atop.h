@@ -49,6 +49,8 @@ struct netpertask;
 #define RRLAST  	0x0002
 #define RRNETATOP	0x0004
 #define RRNETATOPD	0x0008
+#define RRACCTACTIVE	0x0010
+#define RRIOSTAT	0x0020
 
 struct visualize {
 	char	(*show_samp)  (time_t, int,
@@ -106,6 +108,13 @@ extern int		almostcrit;
 #define	IOSTAT		0x00000004
 #define	NETATOP		0x00000010
 #define	NETATOPD	0x00000020
+
+/*
+** in rawlog file, the four least significant bits 
+** are moved to the per-sample flags and therefor dummy
+** in the support flags of the general header
+*/
+#define        RAWLOGNG        (ACCTACTIVE|IOSTAT|NETATOP|NETATOPD)
 
 /*
 ** structure containing the start-addresses of functions for visualization

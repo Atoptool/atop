@@ -307,6 +307,12 @@ rawwrite(time_t curtime, int numsecs,
 	if (flag&RRBOOT)
 		rr.flags |= RRBOOT;
 
+	if (supportflags & ACCTACTIVE)
+		rr.flags |= RRACCTACTIVE;
+
+	if (supportflags & IOSTAT)
+		rr.flags |= RRIOSTAT;
+
 	if (supportflags & NETATOP)
 		rr.flags |= RRNETATOP;
 
@@ -397,8 +403,7 @@ rawwopen()
 		if ( rh.sstatlen	!= sizeof(struct sstat)		||
 		     rh.tstatlen	!= sizeof(struct tstat)		||
 	    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
-		     rh.rawreclen	!= sizeof(struct rawrecord)	||
-		     rh.supportflags	!= (supportflags & ~(NETATOP|NETATOPD)))
+		     rh.rawreclen	!= sizeof(struct rawrecord)       )
 		{
 			fprintf(stderr,
 				"existing file %s has incompatible header\n",
@@ -442,7 +447,7 @@ rawwopen()
 	rh.tstatlen	= sizeof(struct tstat);
 	rh.rawheadlen	= sizeof(struct rawheader);
 	rh.rawreclen	= sizeof(struct rawrecord);
-	rh.supportflags	= (supportflags & ~(NETATOP|NETATOPD));
+	rh.supportflags	= supportflags | RAWLOGNG;
 	rh.osrel	= osrel;
 	rh.osvers	= osvers;
 	rh.ossub	= ossub;
@@ -773,6 +778,19 @@ rawread(void)
 			** the system- and process-level statistics
 			*/
 			sampcnt++;
+
+			if ( (rh.supportflags & RAWLOGNG) == RAWLOGNG)
+			{
+				if (rr.flags & RRACCTACTIVE)
+					supportflags |=  ACCTACTIVE;
+				else
+					supportflags &= ~ACCTACTIVE;
+			
+				if (rr.flags & RRIOSTAT)
+					supportflags |=  IOSTAT;
+				else
+					supportflags &= ~IOSTAT;
+			}
 
 			if (rr.flags & RRNETATOP)
 				supportflags |=  NETATOP;
