@@ -563,8 +563,8 @@ proc_printdef *allprocpdefs[]=
 	&procprt_UDPSASZ,
 	&procprt_RNET,
 	&procprt_SNET,
-	&procprt_RNETBW,
-	&procprt_SNETBW,
+	&procprt_BANDWI,
+	&procprt_BANDWO,
 	&procprt_SORTITEM,
         0
 };
@@ -1137,7 +1137,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "PID:10 TID:6 "
 			"TCPRCV:9 TCPRASZ:4 TCPSND:9 TCPSASZ:4 "
 			"UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
-			"RNETBW:10 SNETBW:10 "
+			"BANDWI:10 BANDWO:10 "
                         "SORTITEM:10 CMD:10", 
                         "built-in netprocs");
 
