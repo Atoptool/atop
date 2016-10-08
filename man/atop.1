@@ -173,7 +173,7 @@ As a last possibility,
 .I atop
 itself tries to activate the process accounting mechanism (requires root
 privileges) using the file
-.B /tmp/atop.d/atop.acct
+.B /var/cache/atop.d/atop.acct
 (to be written by the kernel, to be read by
 .I atop
 itself). Process accounting remains active as long as
@@ -1997,7 +1997,7 @@ when the
 daemon is active.
 .PP
 .TP 5
-.B /tmp/atop.d/atop.acct
+.B /var/cache/atop.d/atop.acct
 File in which the kernel writes the accounting records when
 .I atop
 itself has activated the process accounting mechanism.
