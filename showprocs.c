@@ -94,7 +94,6 @@ static const char rcsid[] = "$Id: showprocs.c,v 1.15 2011/09/05 11:44:16 gerlof 
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <termio.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <curses.h>
