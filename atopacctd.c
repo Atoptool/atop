@@ -50,7 +50,6 @@
 #include <errno.h>
 #include <time.h>
 #include <sys/resource.h>
-#include <signal.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/statvfs.h>
@@ -113,6 +112,7 @@ int
 main(int argc, char *argv[])
 {
 	int		i, nfd, afd, sfd;
+	int		parentpid;
 	struct stat	dirstat;
 	struct rlimit	rlim;
 	FILE		*pidf;
@@ -257,14 +257,25 @@ main(int argc, char *argv[])
 	** and get rid of a possible bad context that might have been
 	** inherited from ancestors
 	*/
+	parentpid = getpid();		// to be killed when initialized
+	(void) signal(SIGTERM, cleanup);
+
 	if ( fork() )			// implicitly switch to background
-		exit(0);		// continue in child process
+   	{
+		/*
+ 		** parent after forking first child:
+		** wait for signal 15 from child before terminating
+		** because systemd expects parent to terminate whenever
+		** service is up and running
+		*/
+		pause();		// wait for signal from child
+		exit(0);		// finish parent
+	}
 
 	setsid();			// become session leader to lose ctty
 
-	if ( fork() )			// continue in child process
+	if ( fork() )			// finish parent; continue in child
 		exit(0);		// --> no session leader, no ctty
-
 
 	getrlimit(RLIMIT_NOFILE, &rlim);
 
@@ -284,6 +295,7 @@ main(int argc, char *argv[])
 	if ( semop(semprv, &semincr, 1) == -1)
        	{
 		perror("cannot increment private semaphore");
+		kill(parentpid, SIGTERM);
 		exit(4);
 	}
 
@@ -298,6 +310,7 @@ main(int argc, char *argv[])
 	if ( (afd = creat(accountpath, 0600)) == -1)
        	{
 		perror(accountpath);
+		kill(parentpid, SIGTERM);
 		exit(5);
 	}
 
@@ -309,6 +322,7 @@ main(int argc, char *argv[])
 	if ( (afd = open(accountpath, O_RDONLY)) == -1)
        	{
 		perror(accountpath);
+		kill(parentpid, SIGTERM);
 		exit(5);
 	}
 
@@ -320,21 +334,12 @@ main(int argc, char *argv[])
 	if ( mkdir(shadowdir, 0755) == -1)
        	{
 		perror(shadowdir);
+		kill(parentpid, SIGTERM);
 		exit(5);
 	}
 
 	sfd = createshadow(curshadow);
 	setcurrent(curshadow);
-
-	/*
-	** switch on accounting
-	*/
-	if ( acct(accountpath) == -1)
-	{
-		perror("cannot switch on process accounting");
-		(void) unlink(accountpath);
-		exit(5);
-	}
 
 	/*
 	** open syslog interface 
@@ -354,9 +359,24 @@ main(int argc, char *argv[])
 	*/
 	if ( (nfd = netlink_open()) == -1)
 	{
-		(void) acct(0);
 		(void) unlink(accountpath);
+		kill(parentpid, SIGTERM);
+		exit(5);
+	}
+
+	/*
+	** switch on accounting
+	*/
+	if ( acct(accountpath) == -1)
+	{
+		perror("cannot switch on process accounting");
+		(void) unlink(accountpath);
+		kill(parentpid, SIGTERM);
 		exit(6);
+	}
+	else
+	{
+		syslog(LOG_INFO, "accounting to %s", accountpath);
 	}
 
 	/*
@@ -382,6 +402,11 @@ main(int argc, char *argv[])
 		fprintf(pidf, "%d\n", getpid());
 		fclose(pidf);
 	}
+
+	/*
+	** terminate parent: service  initialized
+	*/
+	kill(parentpid, SIGTERM);
 
 	/*
 	** main loop
@@ -414,7 +439,7 @@ main(int argc, char *argv[])
 	/*
 	** cleanup and terminate
 	*/
-	(void) acct(0);			// disable process accounting
+	(void) acct(NULL);		// disable process accounting
 	(void) unlink(accountpath);	// remove source file
 
 	for (; oldshadow <= curshadow; oldshadow++)	// remove shadow files
@@ -437,7 +462,11 @@ main(int argc, char *argv[])
 	if (cleanup_and_go)
 	{
 		syslog(LOG_NOTICE, "Terminated by signal %d\n", cleanup_and_go);
-		return cleanup_and_go + 128;
+
+		if (cleanup_and_go == SIGTERM)
+			return 0;
+		else
+			return cleanup_and_go + 128;
 	}
 	else
 	{
@@ -528,7 +557,7 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	switch (asz)
 	{
 	   case 0:		// EOF (no records available)?
-		if (time(0) > reclast + NORECINTERVAL)
+		if (time(0) > reclast + NORECINTERVAL && reclast)
 		{
 			syslog(LOG_WARNING, "reactivate process accounting\n");
 
