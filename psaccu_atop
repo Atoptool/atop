@@ -2,7 +2,7 @@
 /var/log/atop/dummy_after {
     missingok
     daily
-    rotate 1
+    rotate 0
     ifempty
     create 0600 root root
     postrotate
