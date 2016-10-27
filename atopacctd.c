@@ -111,19 +111,21 @@ int			netlink_open(void);	// from netlink.c
 int
 main(int argc, char *argv[])
 {
-	int		i, nfd, afd, sfd;
-	int		parentpid;
-	struct stat	dirstat;
-	struct rlimit	rlim;
-	FILE		*pidf;
+	int			i, nfd, afd, sfd;
+	int			parentpid;
+	struct stat		dirstat;
+	struct rlimit		rlim;
+	FILE			*pidf;
 
-	struct sembuf	semincr = {0, +1, SEM_UNDO};
+	struct sembuf		semincr = {0, +1, SEM_UNDO};
 
-	char		shadowdir[128], shadowpath[128];
-	char		accountpath[128];
-	unsigned long	oldshadow = 0, curshadow = 0;
-	int 		shadowbusy = 0;
-	time_t		gclast = time(0);
+	char			shadowdir[128], shadowpath[128];
+	char			accountpath[128];
+	unsigned long		oldshadow = 0, curshadow = 0;
+	int 			shadowbusy = 0;
+	time_t			gclast = time(0);
+
+	struct sigaction	sigcleanup;
 
 	/*
 	** argument passed?
@@ -252,13 +254,20 @@ main(int argc, char *argv[])
 	}
 
 	/*
+ 	** prepare cleanup signal handler
+	*/
+	memset(&sigcleanup, 0, sizeof sigcleanup);
+	sigcleanup.sa_handler	= cleanup;
+	sigemptyset(&sigcleanup.sa_mask);
+
+	/*
 	** daemonize this process
 	** i.e. be sure that the daemon is no session leader (any more)
 	** and get rid of a possible bad context that might have been
 	** inherited from ancestors
 	*/
 	parentpid = getpid();		// to be killed when initialized
-	(void) signal(SIGTERM, cleanup);
+	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
 	if ( fork() )			// implicitly switch to background
    	{
@@ -390,9 +399,9 @@ main(int argc, char *argv[])
 	*/
 	(void) signal(SIGHUP, SIG_IGN);
 
-	(void) signal(SIGINT,  cleanup);
-	(void) signal(SIGQUIT, cleanup);
-	(void) signal(SIGTERM, cleanup);
+	(void) sigaction(SIGINT,  &sigcleanup, (struct sigaction *)0);
+	(void) sigaction(SIGQUIT, &sigcleanup, (struct sigaction *)0);
+	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
 	/*
  	** create PID file
@@ -455,8 +464,8 @@ main(int argc, char *argv[])
 
 	snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
 			pacctdir, PACCTSHADOWD, PACCTSHADOWC);
-	(void) unlink(shadowpath);	// remove file 'current'
 
+	(void) unlink(shadowpath);	// remove file 'current'
 	(void) rmdir(shadowdir);	// remove shadow.d directory
 
 	if (cleanup_and_go)
