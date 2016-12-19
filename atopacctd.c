@@ -53,6 +53,7 @@
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/statvfs.h>
+#include <sys/wait.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -63,6 +64,8 @@
 #define	RETRYCNT	10	// # retries to read account record
 #define	RETRYMS		25	// timeout (millisec) to read account record
 #define	NORECINTERVAL	3600	// no-record-available interval (seconds)
+
+#define PACCTSEC	3	// timeout (sec) to retry switch on pacct
 
 #define GCINTERVAL      60      // garbage collection interval (seconds)
 
@@ -98,6 +101,7 @@ static char		cleanup_and_go = 0;
 */
 static int	awaitprocterm(int, int, int, char *, int *,
 				unsigned long *, unsigned long *);
+static int	swonpacct(int, char *);
 static int	createshadow(long);
 static int	pass2shadow(int, char *, int);
 static void	gcshadows(unsigned long *, unsigned long);
@@ -292,7 +296,7 @@ main(int argc, char *argv[])
 
 	for (i=0; i < rlim.rlim_cur; i++)	// close all files, but
 	{
-		if (i != 2)			// close stderr later on
+		if (i != 2)			// do not close stderr 
 			close(i);
 	}
 
@@ -376,19 +380,16 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** switch on accounting
+	** switch on accounting - inital
 	*/
-	if ( acct(accountpath) == -1)
+	if ( swonpacct(afd, accountpath) == -1)
 	{
-		perror("cannot switch on process accounting");
 		(void) unlink(accountpath);
 		kill(parentpid, SIGTERM);
 		exit(6);
 	}
-	else
-	{
-		syslog(LOG_INFO, "accounting to %s", accountpath);
-	}
+
+	syslog(LOG_INFO, "accounting to %s", accountpath);
 
 	/*
 	** signal handling
@@ -444,7 +445,7 @@ main(int argc, char *argv[])
 	/*
 	** cleanup and terminate
 	*/
-	(void) acct(NULL);		// disable process accounting
+	(void) acct((char *) 0);	// disable process accounting
 	(void) unlink(accountpath);	// remove source file
 
 	for (; oldshadow <= curshadow; oldshadow++)	// remove shadow files
@@ -572,8 +573,7 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 			if (truncate(accountpath, 0) != -1)
 			{
 				lseek(afd, 0, SEEK_SET);
-				atotsize = 0;
-				(void) acct(accountpath);
+				atotsize = swonpacct(afd, accountpath);
 			}
 
 			reclast = time(0);
@@ -800,6 +800,72 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 
 	return ssz;
 }
+
+
+/*
+** switch on the process accounting mechanism
+**   first parameter:	file descriptor of open accounting file
+**   second parameter:	name of accounting file
+**   return value:	-1 in case of permanent failure,
+** 			otherwise number of bytes read from accounting file
+*/
+static int
+swonpacct(int afd, char *accountpath)
+{
+	int  n, acctokay = 0;
+	char abuf[4096];
+
+	/*
+	** due to kernel bug 190271 (process accounting sometimes
+	** does not work), we verify if process accounting really
+	** works after switching it on. If not, we keep retrying
+	** for a while.
+	*/
+	while (! acctokay)
+	{
+		int  maxcnt = 40;
+
+		/*
+		** switch on process accounting
+		*/
+		if ( acct(accountpath) == -1)
+		{
+			perror("cannot switch on process accounting");
+			return -1;
+		}
+
+		/*
+		** try if process accounting works by spawning a
+		** child process that immediately finishes (should
+		** result in a process accounting record)
+		*/
+		if ( fork() == 0 )	
+			exit(0);
+
+		(void) wait((int *)0);		// wait for child to finish
+
+		while ( (n = read(afd, abuf, sizeof abuf)) <= 0 && --maxcnt)
+			usleep(50000);
+
+		if (n > 0)			// process accounting works
+		{
+			acctokay = 1;
+		}
+		else
+		{
+			syslog(LOG_ERR,
+			   "Retrying to switch on process accounting\n");
+			syslog(LOG_ERR,
+			   "(see ATOP README about kernel bug 190271)\n");
+
+			acct((char *)0);	// switch off process accounting
+			sleep(PACCTSEC);	// wait a while before retrying
+		}
+	}
+
+	return n;
+}
+
 
 /*
 ** remove old shadow files not being in use any more
