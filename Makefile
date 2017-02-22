@@ -6,7 +6,7 @@ DESTDIR  =
 
 BINPATH  = /usr/bin
 SBINPATH = /usr/sbin
-SCRPATH  = /etc/atop
+SCRPATH  = /usr/share/atop
 LOGPATH  = /var/log/atop
 MAN1PATH = /usr/share/man/man1
 MAN5PATH = /usr/share/man/man5

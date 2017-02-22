@@ -4,7 +4,7 @@ Documentation=man:atop(1)
 
 [Service]
 Type=simple
-ExecStart=/etc/atop/atop.daily
+ExecStart=/usr/share/atop/atop.daily
 KillSignal=SIGUSR2
 #ExecStopPost=/usr/bin/sleep 3
 

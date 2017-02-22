@@ -38,7 +38,7 @@ install -Dp -m 04711 atop 	  $RPM_BUILD_ROOT/usr/bin/atop
 ln -s atop                        $RPM_BUILD_ROOT/usr/bin/atopsar
 install -Dp -m 0700 atopacctd 	  $RPM_BUILD_ROOT/usr/sbin/atopacctd
 
-install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/etc/atop/atop.daily
+install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/usr/share/atop/atop.daily
 
 install -Dp -m 0644 man/atop.1 	  $RPM_BUILD_ROOT/usr/share/man/man1/atop.1
 install -Dp -m 0644 man/atopsar.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopsar.1
@@ -74,7 +74,7 @@ touch /var/log/atop/dummy_before /var/log/atop/dummy_after
 
 # activate daily logging for today
 sleep 2
-/etc/atop/atop.daily&
+/usr/share/atop/atop.daily&
 
 %preun
 if [ $1 -eq 0 ]
@@ -102,7 +102,7 @@ ln -sf /usr/bin/atop-XVERSX     /usr/bin/atopsar-XVERSX
 /usr/lib/systemd/system/atop.service
 /usr/lib/systemd/system/atopacct.service
 /usr/lib/systemd/system-sleep/atop-pm.sh
-/etc/atop/atop.daily
+/usr/share/atop/atop.daily
 /etc/cron.d/atop
 /etc/logrotate.d/psaccs_atop
 /etc/logrotate.d/psaccu_atop
