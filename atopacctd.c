@@ -96,16 +96,18 @@ static char		cleanup_and_go = 0;
 /*
 ** function prototypes
 */
-static int		awaitprocterm(int, int, int, char *, int *,
-					unsigned long *, unsigned long *);
-static int		createshadow(long);
-static int		pass2shadow(int, char *, int);
-static void		gcshadows(unsigned long *, unsigned long);
-static void		setcurrent(long);
-static int		acctsize(struct acct *);
-static void		cleanup(int);
+static int	awaitprocterm(int, int, int, char *, int *,
+				unsigned long *, unsigned long *);
+static int	createshadow(long);
+static int	pass2shadow(int, char *, int);
+static void	gcshadows(unsigned long *, unsigned long);
+static void	setcurrent(long);
+static int	acctsize(struct acct *);
+static void	cleanup(int);
 
-int			netlink_open(void);	// from netlink.c
+
+int		netlink_open(void);		// from netlink.c
+int		netlink_recv(int, int);		// from netlink.c
 
 
 int
@@ -389,12 +391,6 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** close stderr
-	** from now on, only generate messages via syslog
-	*/
-	(void) close(2);
-
-	/*
 	** signal handling
 	*/
 	(void) signal(SIGHUP, SIG_IGN);
@@ -503,8 +499,8 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	static time_t			reclast;
 	struct timespec			retrytimer = {0, RETRYMS/2*1000000};
 	int				retrycount = RETRYCNT;
-	int				asz, nsz, ssz;
-	char				abuf[16000], nbuf[16000];
+	int				asz, rv, ssz;
+	char				abuf[16000];
 	int				partsz, remsz;
 
 	/*
@@ -520,17 +516,18 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	** has been written (does not work if the kernel itself
 	** writes to the file)
 	*/
-	nsz = recv(nfd, nbuf, sizeof nbuf, 0);
+	rv = netlink_recv(nfd, 0);
 
-	if (nsz == 0) 		// EOF?
+	if (rv == 0) 		// EOF?
 	{
 		syslog(LOG_ERR, "unexpected EOF on NETLINK\n");
+		perror("unexpected EOF on NETLINK\n");
 		return -1;
 	}
 
-	if (nsz == -1)		// failure?
+	if (rv < 0)		// failure?
 	{
-		switch (errno)
+		switch (-rv)
 		{
 		   // acceptable errors that might indicate that
 		   // processes have terminated
@@ -541,7 +538,9 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 
 		   default:
 			syslog(LOG_ERR, "unexpected error on NETLINK: %s\n",
-						strerror(errno));
+						strerror(-rv));
+			fprintf(stderr, "unexpected error on NETLINK: %s\n",
+                                                strerror(-rv));
 			return -1;
 		}
 	}
@@ -550,7 +549,7 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
  	** get rid of all other waiting finished processes via netlink
 	** before handling the process accounting record(s)
 	*/
-	while (recv(nfd, nbuf, sizeof nbuf, MSG_DONTWAIT) > 0);
+	while ( netlink_recv(nfd, MSG_DONTWAIT) > 0 );
 
 	/*
  	** read new process accounting record(s)

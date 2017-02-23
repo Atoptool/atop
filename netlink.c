@@ -74,6 +74,26 @@ netlink_open(void)
 	return nlsock;
 }
 
+
+int
+netlink_recv(int nlsock, int flags)
+{
+	int			len;
+        struct msgtemplate	msg;
+
+        if ( (len = recv(nlsock, &msg, sizeof msg, flags)) == -1)
+		return -errno;		// negative: errno
+
+	if  (msg.n.nlmsg_type == NLMSG_ERROR || !NLMSG_OK(&msg.n, len))
+	{
+		struct nlmsgerr *err = NLMSG_DATA(&msg);
+
+		return err->error;	// negative: errno
+	}
+
+	return len;			// 0 or positive value
+}
+
 static int
 nlsock_getfam(int nlsock)
 {
@@ -86,11 +106,19 @@ nlsock_getfam(int nlsock)
                         CTRL_ATTR_FAMILY_NAME,
 			TASKSTATS_GENL_NAME, sizeof TASKSTATS_GENL_NAME);
 
-        if ( (len = recv(nlsock, &msg, sizeof msg, 0)) == -1	||
-        		msg.n.nlmsg_type == NLMSG_ERROR		||
-            		!NLMSG_OK(&msg.n, len)			  )
+        if ( (len = recv(nlsock, &msg, sizeof msg, 0)) == -1)
 	{
-		perror("receive NETLINK response");
+		perror("receive NETLINK family");
+		exit(1);
+	}
+
+	if  (msg.n.nlmsg_type == NLMSG_ERROR || !NLMSG_OK(&msg.n, len))
+	{
+		struct nlmsgerr *err = NLMSG_DATA(&msg);
+
+		fprintf(stderr, "receive NETLINK family, errno %d\n",
+                                err->error);
+
 		exit(1);
 	}
 
