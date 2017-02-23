@@ -1,3 +1,5 @@
+INSTALLING AND USING ATOP
+
 For interactive use, it is sufficient to install ATOP with the command
 (as root):
 
@@ -7,13 +9,51 @@ For interactive use, it is sufficient to install ATOP with the command
 
 	make sysvinstall
 
-For automatic logging in compressed binary format, see the 
+For automatic logging in compressed binary format, see the
 description in the manual-page.
 
 The kernel module 'netatop' can be downloaded and installed separately
 from www.atoptool.nl/downloadnetatop.php
 This module is optional and can be used to gather network statistics
 per process/thread as described in www.atoptool.nl/netatop.php
+
+
+KERNEL ISSUES WITH PROCESS ACCOUNTING
+-------------------------------------
+
+Newer upstream kernels (e.g. 4.8 and 4.9)have two issuess
+with process accounting:
+
+1) Sometimes process accounting does not work at all¹. Atopacctd tries to
+work around this issue, by retrying to initialize process accounting
+several times.
+
+2) When using the NETLINK inface, the command TASKSTATS_CMD_GET
+consequently returns -EINVAL². Atopacctd needs NETLINK to be able to
+be triggered that some process in the system has finished. In this way,
+atopacctd can be in a blocking state as long as no processes terminate.
+When atopacctd detects that NETLINK fails, it switches into a polling
+mode to periodically try if it can read process accounting records as
+a workaround. This issue has to do with cpumasks and you can work-around
+it by building a kernel that has CONFIG_NR_CPUS configured to exactly
+the amount of CPUs (logical CPUs) in the system the kernel runs on. You
+can find this kernel option under "Processor type and features" -->
+"Maximum number of CPUs".
+
+
+[1] Bug 190271 - process accounting sometimes does not work
+https://bugzilla.kernel.org/show_bug.cgi?id=190271
+
+[2] Bug 190711 - Process accounting: Using the NETLINK interface,
+the command TASKSTATS_CMD_GET returns -EINVAL
+https://bugzilla.kernel.org/show_bug.cgi?id=190711
+
+Linux kernel mailing list thread:
+
+[REGRESSION] Two issues that prevent process accounting (taskstats) from
+working correctly
+https://lkml.org/lkml/2016/12/19/182
+
 
 Gerlof Langeveld
 gerlof.langeveld@atoptool.nl

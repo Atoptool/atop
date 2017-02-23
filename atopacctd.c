@@ -66,6 +66,7 @@
 #define	NORECINTERVAL	3600	// no-record-available interval (seconds)
 
 #define PACCTSEC	3	// timeout (sec) to retry switch on pacct
+#define POLLSEC		1	// timeout (sec) when NETLINK fails
 
 #define GCINTERVAL      60      // garbage collection interval (seconds)
 
@@ -495,7 +496,7 @@ static int
 awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	int *shadowbusyp, unsigned long *oldshadowp, unsigned long *curshadowp)
 {
-	static int			arecsize;
+	static int			arecsize, netlinkactive = 1;
 	static unsigned long long	atotsize, stotsize, maxshadowsz;
 	static time_t			reclast;
 	struct timespec			retrytimer = {0, RETRYMS/2*1000000};
@@ -516,41 +517,73 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	** source file as a trigger that a new accounting record
 	** has been written (does not work if the kernel itself
 	** writes to the file)
+	**
+	** when the NETLINK interface fails due to kernel bug 190711,
+	** we switch to polling mode:
+	**	wait for timer and verify if process accounting
+	**      records are available (repeatedly); ugly but the only
+	**	thing we can do if we can't use NETLINK
 	*/
-	rv = netlink_recv(nfd, 0);
-
-	if (rv == 0) 		// EOF?
+	if (netlinkactive)
 	{
-		syslog(LOG_ERR, "unexpected EOF on NETLINK\n");
-		perror("unexpected EOF on NETLINK\n");
-		return -1;
-	}
+		rv = netlink_recv(nfd, 0);
 
-	if (rv < 0)		// failure?
-	{
-		switch (-rv)
+		if (rv == 0) 		// EOF?
 		{
-		   // acceptable errors that might indicate that
-		   // processes have terminated
-		   case EINTR:
-		   case ENOMEM:
-		   case ENOBUFS:
-			break;
-
-		   default:
-			syslog(LOG_ERR, "unexpected error on NETLINK: %s\n",
-						strerror(-rv));
-			fprintf(stderr, "unexpected error on NETLINK: %s\n",
-                                                strerror(-rv));
+			syslog(LOG_ERR, "unexpected EOF on NETLINK\n");
+			perror("unexpected EOF on NETLINK\n");
 			return -1;
 		}
-	}
 
-	/*
- 	** get rid of all other waiting finished processes via netlink
-	** before handling the process accounting record(s)
-	*/
-	while ( netlink_recv(nfd, MSG_DONTWAIT) > 0 );
+		if (rv < 0)		// failure?
+		{
+			switch (-rv)
+			{
+		   	   // acceptable errors that might indicate that
+		   	   // processes have terminated
+		   	   case EINTR:
+		   	   case ENOMEM:
+		   	   case ENOBUFS:
+				break;
+	
+		   	   default:
+				syslog(LOG_ERR,
+					"unexpected error on NETLINK: %s\n",
+					strerror(-rv));
+				fprintf(stderr,
+					"unexpected error on NETLINK: %s\n",
+                                       	strerror(-rv));
+
+				if (-rv == EINVAL)
+				{
+				   	syslog(LOG_ERR,
+				   	"(see ATOP README about kernel bug 190711)\n");
+					fprintf(stderr,
+				   	"(see ATOP README about kernel bug 190711)\n");
+				}
+
+				syslog(LOG_ERR,
+					"switching to polling mode\n");
+				fprintf(stderr,
+					"switching to polling mode\n");
+
+				netlinkactive = 0;	// polling mode wanted
+
+				return 0;
+			}
+		}
+
+		/*
+ 		** get rid of all other waiting finished processes via netlink
+		** before handling the process accounting record(s)
+		*/
+		while ( netlink_recv(nfd, MSG_DONTWAIT) > 0 );
+	}
+	else	// POLLING MODE
+	{
+		sleep(POLLSEC);
+		retrycount = 1;
+	}
 
 	/*
  	** read new process accounting record(s)
