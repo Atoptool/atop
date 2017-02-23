@@ -4,10 +4,10 @@
 # 	exit 1
 # fi
 
-BRANCH=$(git branch | grep '^\* ' | sed -e 's/[* ]//g')
+BRANCH=$(git branch | grep '^\* ' | sed -e 's/[* ]//g' | sed -e 's/-.*//')
 MAJOR=$(echo $BRANCH | sed -e 's/\..*//')
-MINOR=$(echo $BRANCH | sed -e 's/[0-9]*\.//' -e 's/-.*//')
-REVIS=$(echo $BRANCH | sed -e 's/.*\-//')
+MINOR=$(echo $BRANCH | sed -e 's/[0-9]*\.//' -e 's/\..*//')
+REVIS=$(echo $BRANCH | sed -e 's/[0-9]*\.[0-9]*\.//' -e 's/\..*//')
 
 echo major: $MAJOR
 echo minor: $MINOR
@@ -46,8 +46,8 @@ fi
 # Prepare a directory for distribution under /tmp
 # and copy all required stuff 
 ############################################################################
-TARBASE=$MAJOR.$MINOR
-TARFILE=$MAJOR.$MINOR-$REVIS
+TARBASE=$MAJOR.$MINOR.$REVIS
+TARFILE=$MAJOR.$MINOR.$REVIS
 
 rm -rf         		/tmp/atop-$TARBASE 2> /dev/null
 
@@ -120,7 +120,7 @@ else
 	ln -s atop.specsysv    atop.spec
 fi
 
-sed -e "s/XVERSX/$MAJOR.$MINOR/g" -e "s/XRELX/$REVIS/" atop.spec \
+sed -e "s/XVERSX/$MAJOR.$MINOR.$REVIS/g" -e "s/XRELX/1/" atop.spec \
 					> /tmp/atop-$BRANCH.spec
 
 cd /tmp
