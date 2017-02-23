@@ -705,7 +705,7 @@ rawread(void)
 			*/
 			sampcnt++;
 
- 			if ( (rh.supportflags & RAWLOGNG) == RAWLOGNG)
+			if ( (rh.supportflags & RAWLOGNG) == RAWLOGNG)
 			{
 				if (rr.flags & RRACCTACTIVE)
 					supportflags |=  ACCTACTIVE;
