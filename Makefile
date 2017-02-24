@@ -176,5 +176,6 @@ showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
+version.o:	version.h
 
 atopacctd.o:	atop.h  photoproc.h acctproc.h   version.h     atopacctd.h
