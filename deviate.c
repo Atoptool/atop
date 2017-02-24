@@ -204,7 +204,7 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 	   struct sstat    *devsstat)
 {
 	register int		c, d, pall=0, pact=0;
-	register struct tstat	*curstat, *devstat;
+	register struct tstat	*curstat, *devstat, *thisproc;
 	struct tstat		prestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
@@ -219,8 +219,8 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 			  devsstat->cpu.all.Stime + devsstat->cpu.all.steal;
 
 	/*
-	** make new list of all tasks in the process-database;
-	** after handling all processes, the left-overs are processes
+	** make new list of all tasks in the task-database;
+	** after handling all task, the left-overs are tasks
 	** that have disappeared since the previous sample
 	*/
 	pdb_makeresidue();
@@ -249,16 +249,19 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
                                   devtstat->ntaskall);
 
 	/*
-	** calculate deviations per present process
+	** calculate deviations per present task
 	*/
-	for (c=0, d=0; c < ntaskpres; c++)
+	for (c=0, thisproc = devtstat->taskall; c < ntaskpres; c++)
 	{
 		char	newtask = 0;
 
 		curstat = curtpres+c;
+		devstat = devtstat->taskall+c;
 
 		if (curstat->gen.isproc)
 		{
+			thisproc = devstat;	// remember last process seen
+
 			devtstat->nprocall++;
 
 			if (curstat->gen.state == 'Z')
@@ -309,7 +312,18 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 				devtstat->ntaskactive++;
 
 				if (curstat->gen.isproc)
+				{
 					devtstat->nprocactive++;
+				}
+				else
+				{
+					if (thisproc->gen.wasinactive)
+					{
+						thisproc->gen.wasinactive = 0;
+						devtstat->ntaskactive++;
+						devtstat->nprocactive++;
+					}
+				}
 			}
 		}
 		else
@@ -324,7 +338,18 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 			devtstat->ntaskactive++;
 
 			if (curstat->gen.isproc)
+			{
 				devtstat->nprocactive++;
+			}
+			else
+			{
+				if (thisproc->gen.wasinactive)
+				{
+					thisproc->gen.wasinactive = 0;
+					devtstat->ntaskactive++;
+					devtstat->nprocactive++;
+				}
+			}
 
 			/*
 			** create new task struct
@@ -346,10 +371,7 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 		/*
 		** do the difference calculations
 		*/
-		devstat = devtstat->taskall+d;
-
 		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
-		d++;
 	}
 
 	/*
@@ -365,7 +387,7 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
 		netatop_exithash(hashtype);
 	}
 
-	for (c=0; c < nprocexit; c++)
+	for (d=c, c=0; c < nprocexit; c++)
 	{
 		/*
 		** check if this process has been started AND
@@ -493,7 +515,7 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
                                   devtstat->nprocactive);
 
 
-        for (c=0, devstat = devtstat->taskall; c < devtstat->ntaskall;
+        for (c=0, thisproc=devstat=devtstat->taskall; c < devtstat->ntaskall;
 								c++, devstat++)
         {
         	if (devstat->gen.isproc)
