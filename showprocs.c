@@ -457,67 +457,87 @@ procprt_NOTAVAIL_7(struct tstat *curstat, int avgval, int nsecs)
 {
         return "      ?";
 }
-
 /***************************************************************/
 char *
 procprt_TID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
 	if (curstat->gen.isproc)
-        	sprintf(buf, "     -");
+        	sprintf(buf, "%*s", procprt_TID.width, "-");
 	else
-        	sprintf(buf, "%6d", curstat->gen.pid);
+        	sprintf(buf, "%*d", procprt_TID.width, curstat->gen.pid);
         return buf;
 }
 
 proc_printdef procprt_TID = 
-   { "   TID", "TID", procprt_TID_ae, procprt_TID_ae, 6 };
+   { "TID", "TID", procprt_TID_ae, procprt_TID_ae, 5}; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
 procprt_PID_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
-        sprintf(buf, "%6d", curstat->gen.tgid);
+        sprintf(buf, "%*d", procprt_PID.width, curstat->gen.tgid);
         return buf;
 }
 
 char *
 procprt_PID_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
         if (curstat->gen.pid == 0)
-                return "     ?";
-
-        sprintf(buf, "%6d", curstat->gen.tgid);
+        	sprintf(buf, "%*s", procprt_PID.width, "?");
+	else
+        	sprintf(buf, "%*d", procprt_PID.width, curstat->gen.tgid);
         return buf;
 }
 
 proc_printdef procprt_PID = 
-   { "   PID", "PID", procprt_PID_a, procprt_PID_e, 6 };
-
+   { "PID", "PID", procprt_PID_a, procprt_PID_e, 5}; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
 procprt_PPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
-        sprintf(buf, "%6d", curstat->gen.ppid);
+        sprintf(buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
         return buf;
 }
-
 
 char *
 procprt_PPID_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "     -";
+        static char buf[64];
+
+	sprintf(buf, "%*s", procprt_PPID.width, "-");
+        return buf;
 }
 
 proc_printdef procprt_PPID = 
-   { "  PPID", "PPID", procprt_PPID_a, procprt_PPID_e, 6 };
+   { "PPID", "PPID", procprt_PPID_a, procprt_PPID_e, 5 }; //DYNAMIC WIDTH!
+/***************************************************************/
+char *
+procprt_VPID_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[64];
 
+        sprintf(buf, "%*d", procprt_VPID.width, curstat->gen.vpid);
+        return buf;
+}
+
+char *
+procprt_VPID_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[64];
+
+	sprintf(buf, "%*s", procprt_VPID.width, "-");
+        return buf;
+}
+
+proc_printdef procprt_VPID = 
+   { "VPID", "VPID", procprt_VPID_a, procprt_VPID_e, 5 }; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
 procprt_CTID_a(struct tstat *curstat, int avgval, int nsecs)
@@ -536,24 +556,6 @@ procprt_CTID_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_CTID = 
    { " CTID", "CTID", procprt_CTID_a, procprt_CTID_e, 5 };
-/***************************************************************/
-char *
-procprt_VPID_a(struct tstat *curstat, int avgval, int nsecs)
-{
-        static char buf[32];
-
-        sprintf(buf, "%6d", curstat->gen.vpid);
-        return buf;
-}
-
-char *
-procprt_VPID_e(struct tstat *curstat, int avgval, int nsecs)
-{
-        return "     -";
-}
-
-proc_printdef procprt_VPID = 
-   { "  VPID", "VPID", procprt_VPID_a, procprt_VPID_e, 6 };
 /***************************************************************/
 char *
 procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)

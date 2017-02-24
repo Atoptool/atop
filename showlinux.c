@@ -498,6 +498,7 @@ sys_printdef *netintfsyspdefs[] = {
         0
 };
 
+
 /*
  * table with all proc_printdefs
  */
@@ -567,6 +568,18 @@ proc_printdef *allprocpdefs[]=
 	&procprt_BANDWO,
 	&procprt_SORTITEM,
         0
+};
+
+/*
+ * table with all proc_printdefs with PID/TID width to be initialized
+ */
+proc_printdef *idprocpdefs[]= 
+{
+	&procprt_PID,
+	&procprt_TID,
+	&procprt_PPID,
+	&procprt_VPID,
+	0
 };
 
 
@@ -728,6 +741,49 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
         ar[i].prio=0;
 }
 
+
+
+/*
+ * init_proc_prints: determine width of columns that are
+ *                   dependent of dynamic values 
+ */
+void 
+init_proc_prints()
+{
+	int 	i, numdigits = 5;
+	char	linebuf[64];
+	FILE	*fp;
+
+	/*
+	** determine maximum number of digits for PID/TID
+	*/
+	if ( (fp = fopen("/proc/sys/kernel/pid_max", "r")) != NULL)
+	{
+                if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+                {
+                        numdigits = strlen(linebuf) - 1;
+                }
+
+                fclose(fp);
+        }
+
+	/*
+	** fill number of digits for various PID/TID columns
+	** and reformat header to new width
+	*/
+	for (i=0; idprocpdefs[i] != 0; i++)
+	{
+		idprocpdefs[i]->width = numdigits;
+
+		if ( strlen(idprocpdefs[i]->head) < numdigits)
+		{
+			char *p = malloc(numdigits) + 1;
+
+			sprintf(p, "%*s", numdigits, idprocpdefs[i]->head);
+			idprocpdefs[i]->head = p;
+		}
+	}
+}
 
 /*
  * make_proc_prints: make array of proc_printpairs
@@ -1112,6 +1168,8 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 	*/
         if (firsttime) 
         {
+		init_proc_prints();
+
                 make_proc_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
 			"VDATA:4 VSTACK:4 VSIZE:6 RSIZE:7 PSIZE:5 "
