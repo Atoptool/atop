@@ -1235,6 +1235,14 @@ This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
+.B CID
+Container ID (Docker) of 12 hexademical digits, referring to the container
+in which the process/thread is running.
+If a process has been started and finished during the last
+interval, a `?' is shown because the container ID is not part of
+the standard process accounting record.
+.PP
+.TP 9
 .B CMD
 The name of the process.
 This name can be surrounded by "less/greater than" 
@@ -1265,9 +1273,9 @@ or has recently been running on.
 .PP
 .TP 9
 .B CTID
-Container-id (OpenVZ).
+Container ID (OpenVZ).
 If a process has been started and finished during the last
-interval, a `?' is shown because the container-id is not part of
+interval, a `?' is shown because the container ID is not part of
 the standard process accounting record.
 .PP
 .TP 9
