@@ -309,7 +309,10 @@ static short	colorcrit   = COLOR_RED;
 static short	colorthread = COLOR_YELLOW;
 
 static int	cumusers(struct tstat **, struct tstat *, int);
-static int	cumprocs(struct tstat **, struct tstat *, int);
+static int	cumprogs(struct tstat **, struct tstat *, int);
+static int	cumconts(struct tstat **, struct tstat *, int);
+static void	accumulate(struct tstat *, struct tstat *);
+
 static int	procsuppress(struct tstat *, struct pselection *);
 static void	limitedlines(void);
 static long	getnumval(char *, long, int);
@@ -376,6 +379,11 @@ generic_samp(time_t curtime, int nsecs,
 	struct tstat	**ucumlist = 0;
 	int		nucum      = 0;
 	char		ulastorder = 0;
+
+	struct tstat	*tccumlist = 0;
+	struct tstat	**ccumlist = 0;
+	int		nccum      = 0;
+	char		clastorder = 0;
 
 	/*
 	** tsklist contains the pointers to all structs in tstat
@@ -485,11 +493,11 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						48 - seclen - utsnodenamelen;
+						49 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -502,6 +510,7 @@ generic_samp(time_t curtime, int nsecs,
 			supexits     		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
+			procsel.container[0]	      ? MSELCONT   : '-',
 			procsel.pid[0] != 0	      ? MSELPID    : '-',
 			procsel.argnamesz	      ? MSELARG    : '-',
 			syssel.lvmnamesz +
@@ -725,7 +734,7 @@ generic_samp(time_t curtime, int nsecs,
 				pcumlist[i] = tpcumlist+i;
 			}
 
-			npcum = cumprocs(deviatonly ?
+			npcum = cumprogs(deviatonly ?
 						devtstat->procactive :
 						devtstat->procall,
 						tpcumlist, nproc);
@@ -733,6 +742,49 @@ generic_samp(time_t curtime, int nsecs,
 			curlist   = pcumlist;
 			ncurlist  = npcum;
 			lastsortp = &plastorder;
+			break;
+
+		   case MCUMCONT:
+			threadallowed = 0;
+
+			if (ccumlist)	/* previous list still available? */
+			{
+                                free(ccumlist);
+                                free(tccumlist);
+				clastorder = 0;
+			}
+
+			if (deviatonly)
+				nproc = devtstat->nprocactive;
+			else
+				nproc = devtstat->nprocall;
+
+			/*
+			** allocate space for new (temporary) list with
+			** one entry per user (list has worst-case size)
+			*/
+			tccumlist = calloc(sizeof(struct tstat),    nproc);
+			ccumlist  = malloc(sizeof(struct tstat *) * nproc);
+
+			ptrverify(tccumlist,
+			        "Malloc failed for %d ccum procs\n", nproc);
+			ptrverify(ccumlist,
+			        "Malloc failed for %d ccum ptrs\n",  nproc);
+
+			for (i=0; i < nproc; i++)
+			{
+				/* fill pointers */
+				ccumlist[i] = tccumlist+i;
+			}
+
+			nccum = cumconts(deviatonly ?
+						devtstat->procactive :
+						devtstat->procall,
+						tccumlist, nproc);
+
+			curlist   = ccumlist;
+			ncurlist  = nccum;
+			lastsortp = &clastorder;
 			break;
 
 		   default:
@@ -753,6 +805,7 @@ generic_samp(time_t curtime, int nsecs,
 
 			if ( procsel.userid[0] == USERSTUB &&
 			    !procsel.prognamesz            &&
+			    !procsel.container[0]          &&
 			    !procsel.argnamesz             &&
 			    !procsel.pid[0]                &&
 			    !supexits                        )
@@ -967,6 +1020,8 @@ generic_samp(time_t curtime, int nsecs,
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
 				if (ucumlist)  free(ucumlist);
+				if (tccumlist) free(tccumlist);
+				if (ccumlist)  free(ccumlist);
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
@@ -994,6 +1049,8 @@ generic_samp(time_t curtime, int nsecs,
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
 				if (ucumlist)  free(ucumlist);
+				if (tccumlist) free(tccumlist);
+				if (ccumlist)  free(ccumlist);
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
@@ -1018,6 +1075,8 @@ generic_samp(time_t curtime, int nsecs,
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
 				if (ucumlist)  free(ucumlist);
+				if (tccumlist) free(tccumlist);
+				if (ccumlist)  free(ccumlist);
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
@@ -1061,6 +1120,8 @@ generic_samp(time_t curtime, int nsecs,
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
 				if (ucumlist)  free(ucumlist);
+				if (tccumlist) free(tccumlist);
+				if (ccumlist)  free(ccumlist);
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
@@ -1246,6 +1307,17 @@ generic_samp(time_t curtime, int nsecs,
 				          "toggle between all/active processes";
 
 				showtype  = MCUMPROC;
+				firstproc = 0;
+				break;
+
+			   /*
+			   ** accumulated resource consumption per container
+			   */
+			   case MCUMCONT:
+				statmsg = "Consumption per container; use 'a' to "
+				          "toggle between all/active processes";
+
+				showtype  = MCUMCONT;
 				firstproc = 0;
 				break;
 
@@ -1466,6 +1538,56 @@ generic_samp(time_t curtime, int nsecs,
 
 						procsel.prognamesz  = 0;
 						procsel.progname[0] = '\0';
+					}
+				}
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
+
+			   /*
+			   ** focus on specific container id
+			   */
+			   case MSELCONT:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				printw("Containerid in 12 postitions (enter=all containers): ");
+
+				procsel.container[0] = '\0';
+
+				scanw("%15s", procsel.container);
+
+				if (procsel.container[0] &&
+				    strlen(procsel.container) != 12)
+				{
+					statmsg = "Invalid length of containerid!";
+					beep();
+
+					procsel.container[0] = '\0';
+				}
+
+				procsel.container[12] = '\0';
+
+				{
+					char *p;
+
+					(void) strtol(procsel.container, &p, 16);
+
+					if (*p)
+					{
+						statmsg = "Containerid not hex!";
+						beep();
+
+						procsel.container[0] = '\0';
 					}
 				}
 
@@ -1915,6 +2037,8 @@ generic_samp(time_t curtime, int nsecs,
 				if (pcumlist)  free(pcumlist);
 				if (tucumlist) free(tucumlist);
 				if (ucumlist)  free(ucumlist);
+				if (tccumlist) free(tccumlist);
+				if (ccumlist)  free(ccumlist);
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
@@ -2012,6 +2136,8 @@ generic_samp(time_t curtime, int nsecs,
 			if (pcumlist)  free(pcumlist);
 			if (tucumlist) free(tucumlist);
 			if (ucumlist)  free(ucumlist);
+			if (tccumlist) free(tccumlist);
+			if (ccumlist)  free(ccumlist);
 			if (tsklist)   free(tsklist);
 			if (sellist)   free(sellist);
 
@@ -2027,7 +2153,6 @@ static int
 cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 {
 	register int	i, numusers;
-	count_t		nett_wsz;
 
 	/*
 	** sort list of active processes in order of uid (increasing)
@@ -2055,46 +2180,7 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 			curusers->gen.ruid = (*curprocs)->gen.ruid;
 		}
 
-		curusers->gen.pid++;		/* misuse as counter */
-
-		curusers->gen.isproc  = 1;
-		curusers->gen.nthr   += (*curprocs)->gen.nthr;
-		curusers->cpu.utime  += (*curprocs)->cpu.utime;
-		curusers->cpu.stime  += (*curprocs)->cpu.stime;
-
- 		if ((*curprocs)->dsk.wsz > (*curprocs)->dsk.cwsz)
-                	nett_wsz = (*curprocs)->dsk.wsz -(*curprocs)->dsk.cwsz;
-		else
-			nett_wsz = 0;
-
-		curusers->dsk.rio    += (*curprocs)->dsk.rsz;
-		curusers->dsk.wio    += nett_wsz;
-
-		curusers->dsk.rsz    += curusers->dsk.rio;
-		curusers->dsk.wsz    +=	curusers->dsk.wio;
-
-		curusers->net.tcpsnd += (*curprocs)->net.tcpsnd;
-		curusers->net.tcprcv += (*curprocs)->net.tcprcv;
-		curusers->net.udpsnd += (*curprocs)->net.udpsnd;
-		curusers->net.udprcv += (*curprocs)->net.udprcv;
-
-		curusers->net.tcpssz += (*curprocs)->net.tcpssz;
-		curusers->net.tcprsz += (*curprocs)->net.tcprsz;
-		curusers->net.udpssz += (*curprocs)->net.udpssz;
-		curusers->net.udprsz += (*curprocs)->net.udprsz;
-
-		if ((*curprocs)->gen.state != 'E')
-		{
-			curusers->mem.vmem   += (*curprocs)->mem.vmem;
-			curusers->mem.rmem   += (*curprocs)->mem.rmem;
-			curusers->mem.pmem   += (*curprocs)->mem.pmem;
-			curusers->mem.vlibs  += (*curprocs)->mem.vlibs;
-			curusers->mem.vdata  += (*curprocs)->mem.vdata;
-			curusers->mem.vstack += (*curprocs)->mem.vstack;
-			curusers->mem.vswap  += (*curprocs)->mem.vswap;
-			curusers->mem.rgrow  += (*curprocs)->mem.rgrow;
-			curusers->mem.vgrow  += (*curprocs)->mem.vgrow;
-		}
+		accumulate(*curprocs, curusers);
 	}
 
 	if (curusers->gen.pid)
@@ -2103,15 +2189,15 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 	return numusers;
 }
 
+
 /*
 ** accumulate all processes with the same name (i.e. same program)
 ** into a new list
 */
 static int
-cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
+cumprogs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 {
 	register int	i, numprogs;
-	count_t		nett_wsz;
 
 	/*
 	** sort list of active processes in order of process-name
@@ -2139,46 +2225,7 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 			strcpy(curprogs->gen.name, (*curprocs)->gen.name);
 		}
 
-		curprogs->gen.pid++;		/* misuse as counter */
-
-		curprogs->gen.isproc  = 1;
-		curprogs->gen.nthr   += (*curprocs)->gen.nthr;
-		curprogs->cpu.utime  += (*curprocs)->cpu.utime;
-		curprogs->cpu.stime  += (*curprocs)->cpu.stime;
-
- 		if ((*curprocs)->dsk.wsz > (*curprocs)->dsk.cwsz)
-                	nett_wsz = (*curprocs)->dsk.wsz -(*curprocs)->dsk.cwsz;
-		else
-			nett_wsz = 0;
-
-		curprogs->dsk.rio    += (*curprocs)->dsk.rsz;
-		curprogs->dsk.wio    += nett_wsz;
-			
-		curprogs->dsk.rsz    += curprogs->dsk.rio;
-		curprogs->dsk.wsz    +=	curprogs->dsk.wio;
-			
-		curprogs->net.tcpsnd += (*curprocs)->net.tcpsnd;
-		curprogs->net.tcprcv += (*curprocs)->net.tcprcv;
-		curprogs->net.udpsnd += (*curprocs)->net.udpsnd;
-		curprogs->net.udprcv += (*curprocs)->net.udprcv;
-
-		curprogs->net.tcpssz += (*curprocs)->net.tcpssz;
-		curprogs->net.tcprsz += (*curprocs)->net.tcprsz;
-		curprogs->net.udpssz += (*curprocs)->net.udpssz;
-		curprogs->net.udprsz += (*curprocs)->net.udprsz;
-
-		if ((*curprocs)->gen.state != 'E')
-		{
-			curprogs->mem.vmem   += (*curprocs)->mem.vmem;
-			curprogs->mem.rmem   += (*curprocs)->mem.rmem;
-			curprogs->mem.pmem   += (*curprocs)->mem.pmem;
-			curprogs->mem.vlibs  += (*curprocs)->mem.vlibs;
-			curprogs->mem.vdata  += (*curprocs)->mem.vdata;
-			curprogs->mem.vstack += (*curprocs)->mem.vstack;
-			curprogs->mem.vswap  += (*curprocs)->mem.vswap;
-			curprogs->mem.rgrow  += (*curprocs)->mem.rgrow;
-			curprogs->mem.vgrow  += (*curprocs)->mem.vgrow;
-		}
+		accumulate(*curprocs, curprogs);
 	}
 
 	if (curprogs->gen.pid)
@@ -2186,6 +2233,111 @@ cumprocs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 
 	return numprogs;
 }
+
+/*
+** accumulate all processes per container in new list
+*/
+static int
+cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
+{
+	register int	i, numconts;
+
+	/*
+	** sort list of active processes in order of container (increasing)
+	*/
+	qsort(curprocs, numprocs, sizeof(struct tstat *), compcon);
+
+	/*
+	** accumulate all processes per container in the new list
+	*/
+	for (numconts=i=0; i < numprocs; i++, curprocs++)
+	{
+		if (procsuppress(*curprocs, &procsel))
+			continue;
+
+		if ((*curprocs)->gen.state == 'E' && supexits)
+			continue;
+ 
+		if ( strcmp(curconts->gen.container,
+                         (*curprocs)->gen.container) != 0)
+		{
+			if (curconts->gen.pid)
+			{
+				numconts++;
+				curconts++;
+			}
+			strcpy(curconts->gen.container,
+			    (*curprocs)->gen.container);
+		}
+
+		accumulate(*curprocs, curconts);
+	}
+
+	if (curconts->gen.pid)
+		numconts++;
+
+	return numconts;
+}
+
+
+/*
+** accumulate relevant counters from individual task to
+** combined task
+*/
+static void
+accumulate(struct tstat *curproc, struct tstat *curstat)
+{
+	count_t		nett_wsz;
+
+	curstat->gen.pid++;		/* misuse as counter */
+
+	curstat->gen.isproc  = 1;
+	curstat->gen.nthr   += curproc->gen.nthr;
+	curstat->cpu.utime  += curproc->cpu.utime;
+	curstat->cpu.stime  += curproc->cpu.stime;
+
+	if (curproc->dsk.wsz > curproc->dsk.cwsz)
+               	nett_wsz = curproc->dsk.wsz -curproc->dsk.cwsz;
+	else
+		nett_wsz = 0;
+
+	curstat->dsk.rio    += curproc->dsk.rsz;
+	curstat->dsk.wio    += nett_wsz;
+
+	curstat->dsk.rsz    += curstat->dsk.rio;
+	curstat->dsk.wsz    +=	curstat->dsk.wio;
+
+	curstat->net.tcpsnd += curproc->net.tcpsnd;
+	curstat->net.tcprcv += curproc->net.tcprcv;
+	curstat->net.udpsnd += curproc->net.udpsnd;
+	curstat->net.udprcv += curproc->net.udprcv;
+
+	curstat->net.tcpssz += curproc->net.tcpssz;
+	curstat->net.tcprsz += curproc->net.tcprsz;
+	curstat->net.udpssz += curproc->net.udpssz;
+	curstat->net.udprsz += curproc->net.udprsz;
+
+	if (curproc->gen.state != 'E')
+	{
+		if (curstat->mem.pmem != -1)
+		{
+			if  (curproc->mem.pmem != -1)  // no errors?
+				curstat->mem.pmem += curproc->mem.pmem;
+			else
+				curstat->mem.pmem  = -1;
+		}
+
+		curstat->mem.vmem   += curproc->mem.vmem;
+		curstat->mem.rmem   += curproc->mem.rmem;
+		curstat->mem.vlibs  += curproc->mem.vlibs;
+		curstat->mem.vdata  += curproc->mem.vdata;
+		curstat->mem.vstack += curproc->mem.vstack;
+		curstat->mem.vswap  += curproc->mem.vswap;
+		curstat->mem.rgrow  += curproc->mem.rgrow;
+		curstat->mem.vgrow  += curproc->mem.vgrow;
+	}
+}
+
 
 
 /*
@@ -2259,6 +2411,19 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 								0, NULL, 0))
 				return 1;
 		}
+	}
+
+	/*
+	** check if only processes related to a particular container
+	** should be shown
+	*/
+	if (sel->container[0])
+	{
+		if (!curstat->gen.container[0])
+			return 1;
+
+		if ( memcmp(sel->container, curstat->gen.container, 12) != 0)
+			return 1;
 	}
 
 	return 0;
@@ -2445,6 +2610,10 @@ generic_init(void)
 			showtype  = MCUMPROC;
 			break;
 
+		   case MCUMCONT:
+			showtype  = MCUMCONT;
+			break;
+
 		   case MSYSFIXED:
 			if (fixedhead)
 				fixedhead=0;
@@ -2584,15 +2753,17 @@ static struct helptext {
 	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
 	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
+	{"\t'%c'  - total resource consumption per container\n",MCUMCONT},
 	{"\n",							' '},
 	{"Process selections (keys shown in header line):\n",	' '},
 	{"\t'%c'  - focus on specific user name           "
 	                              "(regular expression)\n", MSELUSER},
-	{"\t'%c'  - focus on specific process name        "
+	{"\t'%c'  - focus on specific program name        "
 	                              "(regular expression)\n", MSELPROC},
+	{"\t'%c'  - focus on specific contained id (CID)\n",    MSELCONT},
 	{"\t'%c'  - focus on specific command line string "
 	                              "(regular expression)\n", MSELARG},
-	{"\t'%c'  - focus on specific process-id (PID)\n",      MSELPID},
+	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID},
 	{"\n",							' '},
 	{"System resource selections (keys shown in header line):\n",' '},
 	{"\t'%c'  - focus on specific system resources    "
@@ -2614,7 +2785,7 @@ static struct helptext {
 		 						MTHREAD},
 	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
 								MALLPROC},
-	{"\t'%c'  - show fixed number of header-lines              (toggle)\n",
+	{"\t'%c'  - show fixed number of header lines              (toggle)\n",
 								MSYSFIXED},
 	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
 								MSYSNOSORT},
@@ -2634,20 +2805,20 @@ static struct helptext {
 	{"\t'%c'  - rewind to begin of raw file\n",		MRESET},
 	{"\n",							' '},
 	{"Miscellaneous commands:\n",				' '},
-	{"\t'%c'  - change interval-timer (0 = only manual trigger)\n",
+	{"\t'%c'  - change interval timer (0 = only manual trigger)\n",
 								MINTERVAL},
 	{"\t'%c'  - manual trigger to force next sample\n",	MSAMPNEXT},
 	{"\t'%c'  - reset counters to boot time values\n",	MRESET},
-	{"\t'%c'  - pause-button to freeze current sample (toggle)\n",
+	{"\t'%c'  - pause button to freeze current sample (toggle)\n",
 								MPAUSE},
 	{"\n",							' '},
 	{"\t'%c'  - limited lines for per-cpu, disk and interface resources\n",
 								MSYSLIMIT},
 	{"\t'%c'  - kill a process (i.e. send a signal)\n",	MKILLPROC},
 	{"\n",							' '},
-	{"\t'%c'  - version-information\n",			MVERSION},
-	{"\t'%c'  - help-information\n",			MHELP1},
-	{"\t'%c'  - help-information\n",			MHELP2},
+	{"\t'%c'  - version information\n",			MVERSION},
+	{"\t'%c'  - help information\n",			MHELP1},
+	{"\t'%c'  - help information\n",			MHELP2},
 	{"\t'%c'  - quit this program\n",			MQUIT},
 };
 
@@ -2769,8 +2940,10 @@ generic_usage(void)
 	printf("\t  -%c  show cumulated process-info per user\n",
 			MCUMUSER);
 	printf("\t  -%c  show cumulated process-info per program "
-	                "(i.e. same name)\n\n",
+	                "(i.e. same name)\n",
 			MCUMPROC);
+	printf("\t  -%c  show cumulated process-info per container\n\n",
+			MCUMCONT);
 	printf("\t  -%c  sort processes in order of cpu-consumption "
 	                "(default)\n",
 			MSORTCPU);
@@ -3047,6 +3220,10 @@ do_flags(char *name, char *val)
 
 		   case MCUMPROC:
 			showtype  = MCUMPROC;
+			break;
+
+		   case MCUMCONT:
+			showtype  = MCUMCONT;
 			break;
 
 		   case MALLPROC:

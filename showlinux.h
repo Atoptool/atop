@@ -299,6 +299,7 @@ extern proc_printdef procprt_SGID;
 extern proc_printdef procprt_FSGID;
 extern proc_printdef procprt_CTID;
 extern proc_printdef procprt_VPID;
+extern proc_printdef procprt_CID;
 extern proc_printdef procprt_STDATE;
 extern proc_printdef procprt_STTIME;
 extern proc_printdef procprt_ENDATE;

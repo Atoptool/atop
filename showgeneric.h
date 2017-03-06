@@ -46,6 +46,8 @@ struct pselection {
 	char	argname[64];
 	int	argnamesz;
 	regex_t	argregex;
+
+	char 	container[16];
 };
 
 struct sselection {
@@ -84,6 +86,7 @@ struct sselection {
 
 #define	MCUMUSER	'u'
 #define	MCUMPROC	'p'
+#define	MCUMCONT	'j'
 
 #define	MSORTCPU	'C'
 #define	MSORTDSK	'D'
@@ -101,6 +104,7 @@ struct sselection {
 
 #define	MSELUSER	'U'
 #define	MSELPROC	'P'
+#define	MSELCONT	'J'
 #define	MSELPID		'I'
 #define	MSELARG		'/'
 #define	MSELSYS		'S'

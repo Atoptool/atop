@@ -558,6 +558,35 @@ proc_printdef procprt_CTID =
    { " CTID", "CTID", procprt_CTID_a, procprt_CTID_e, 5 };
 /***************************************************************/
 char *
+procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[64];
+
+	if (curstat->gen.container[0])
+        	sprintf(buf, "%-12s", curstat->gen.container);
+	else
+        	sprintf(buf, "%-12s", "-");
+
+        return buf;
+}
+
+char *
+procprt_CID_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[64];
+
+	if (curstat->gen.container[0])
+        	sprintf(buf, "%-12s", curstat->gen.container);
+	else
+        	sprintf(buf, "%-12s", "?");
+
+        return buf;
+}
+
+proc_printdef procprt_CID = 
+   { "CID         ", "CID", procprt_CID_a, procprt_CID_e, 12};
+/***************************************************************/
+char *
 procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];

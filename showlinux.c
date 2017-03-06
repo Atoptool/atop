@@ -532,6 +532,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_FSGID,
 	&procprt_CTID,
 	&procprt_VPID,
+	&procprt_CID,
 	&procprt_STDATE,
 	&procprt_STTIME,
 	&procprt_ENDATE,
@@ -599,6 +600,7 @@ proc_printpair cmdprocs[MAXITEMS];
 proc_printpair ownprocs[MAXITEMS];
 proc_printpair totusers[MAXITEMS];
 proc_printpair totprocs[MAXITEMS];
+proc_printpair totconts[MAXITEMS];
 
 
 /*****************************************************************/
@@ -1160,7 +1162,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 							char autosort)
 {
         static int      firsttime=1;
-        static int      prev_supportflags = -1;;
+        static int      prev_supportflags = -1, prev_threadview = -1;
 
 	/*
  	** determine once the layout of all per-process reports
@@ -1178,9 +1180,9 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in memprocs");
 
                 make_proc_prints(schedprocs, MAXITEMS, 
-                        "PID:10 TID:6 VPID:5 CTID:5 TRUN:7 TSLPI:7 TSLPU:7 "
-			"POLI:8 NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 EXC:8 "
-                        "S:8 SORTITEM:10 CMD:10", 
+                        "PID:10 TID:6 CID:5 VPID:4 CTID:4 TRUN:7 TSLPI:7 "
+			"TSLPU:7 POLI:8 NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 "
+			"EXC:8 S:8 SORTITEM:10 CMD:10", 
                         "built-in schedprocs");
 
                 make_proc_prints(dskprocs, MAXITEMS, 
@@ -1198,7 +1200,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in netprocs");
 
                 make_proc_prints(varprocs, MAXITEMS,
-                        "PID:10 TID:4 PPID:9 VPID:1 CTID:1 "
+                        "PID:10 TID:4 PPID:9 CID:2 VPID:1 CTID:1 "
 			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
                         "STDATE:7 STTIME:7 ENDATE:5 ENTIME:5 "
@@ -1220,15 +1222,23 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "RSIZE:8 PSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 SORTITEM:10 CMD:10", 
                         "built-in totprocs");
+
+                make_proc_prints(totconts, MAXITEMS, 
+                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
+                        "RSIZE:8 PSIZE:8 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
+			"RNET:6 SNET:6 SORTITEM:10 CID:10", 
+                        "built-in totconts");
         }
 
 	/*
  	** update the generic report if needed
 	*/
-	if (prev_supportflags != supportflags)
+	if (prev_supportflags != supportflags || prev_threadview != threadview)
 	{
 		make_proc_dynamicgen();
+
 		prev_supportflags = supportflags;
+		prev_threadview   = threadview;
 
 		if (*showtype == MPROCNET && !(supportflags&NETATOP) )
 		{
@@ -1281,56 +1291,41 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
            case MCUMPROC:
                 showhdrline(totprocs, curlist, totlist, *showorder, autosort);
                 break;
+
+           case MCUMCONT:
+                showhdrline(totconts, curlist, totlist, *showorder, autosort);
+                break;
         }
 }
 
+/*
+** assemble the layout of the generic line,
+** depending on the supported features (like
+** I/O stats, network stats) and current view
+*/
 static void
 make_proc_dynamicgen()
 {
-	if ( (supportflags & (IOSTAT|NETATOP)) == (IOSTAT|NETATOP)) 
-	{
-		// iostat and netatop data is available
-		make_proc_prints(genprocs, MAXITEMS, 
-			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-			"VGROW:8 RGROW:8 "
-			"RDDSK:7 CWRDSK:7 "
-			"RNET:6 SNET:6 S:5 "
-			"SORTITEM:10 CMD:10", 
-			"built-in genprocs");
-	}
-	else if (supportflags & IOSTAT) 
-	{
-		// only iostat data is available
-		make_proc_prints(genprocs, MAXITEMS, 
-			"PID:10 TID:4 RUID:3 EUID:2 THR:4 "
-			"SYSCPU:9 USRCPU:9 "
-			"VGROW:8 RGROW:8 "
-			"RDDSK:7 CWRDSK:7 "
-			"ST:6 EXC:6 S:6 "
-			"CPUNR:5 SORTITEM:10 CMD:10", 
-			"built-in genprocs");
-	} 
-	else if (supportflags & NETATOP) 
-	{
-		// only netatop data is available
-		make_proc_prints(genprocs, MAXITEMS, 
-			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-			"VGROW:8 RGROW:8 "
-			"RNET:7 SNET:7 "
-			"ST:5 EXC:5 S:6 "
-			"CPUNR:5 SORTITEM:10 CMD:10", 
-			"built-in genprocs");
-	}
-	else 
-	{
-		// no optional data is available
-		make_proc_prints(genprocs, MAXITEMS, 
-			"PID:10 TID:4 SYSCPU:9 USRCPU:9 "
-			"VGROW:8 RGROW:8 RUID:4 EUID:3 "
-			"THR:7 ST:7 EXC:7 S:7 "
-			"SORTITEM:10 CMD:10", 
-			"built-in genprocs");
-	}
+	char format[300] = "PID:10 ";
+
+	if (threadview)
+		strcat(format, "TID:6 ");
+
+	if (supportflags & DOCKSTAT)
+		strcat(format, "CID:5 ");
+
+	strcat(format, "SYSCPU:9 USRCPU:9 VGROW:8 RGROW:8 ");
+
+	if (supportflags & IOSTAT)
+		strcat(format, "RDDSK:7 CWRDSK:7 ");
+
+	if (supportflags & NETATOP)
+		strcat(format, "RNET:6 SNET:6 ");
+
+	strcat(format, "RUID:3 EUID:2 ST:4 EXC:4 THR:4 S:4 CPUNR:4 ");
+	strcat(format, "SORTITEM:10 CMD:10");
+
+	make_proc_prints(genprocs, MAXITEMS, format, "built-in genprocs");
 }
 
 /*
@@ -1480,6 +1475,10 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
                    case MCUMPROC:
                         showprocline(totprocs, curstat, perc, nsecs, avgval);
+                        break;
+
+                   case MCUMCONT:
+                        showprocline(totconts, curstat, perc, nsecs, avgval);
                         break;
                 }
 
@@ -2053,6 +2052,15 @@ compnam(const void *a, const void *b)
         register char *namb = (*(struct tstat **)b)->gen.name;
 
         return strcmp(nama, namb);
+}
+
+int
+compcon(const void *a, const void *b)
+{
+        register char *containera = (*(struct tstat **)a)->gen.container;
+        register char *containerb = (*(struct tstat **)b)->gen.container;
+
+       return strcmp(containera, containerb);
 }
 
 int

@@ -108,6 +108,7 @@ extern int		almostcrit;
 #define	IOSTAT		0x00000004
 #define	NETATOP		0x00000010
 #define	NETATOPD	0x00000020
+#define	DOCKSTAT	0x00000040
 
 /*
 ** in rawlog file, the four least significant bits 
@@ -147,6 +148,7 @@ int		compmem(const void *, const void *);
 int		compnet(const void *, const void *);
 int		compusr(const void *, const void *);
 int		compnam(const void *, const void *);
+int		compcon(const void *, const void *);
 
 int		cpucompar (const void *, const void *);
 int		diskcompar(const void *, const void *);

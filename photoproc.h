@@ -61,7 +61,7 @@ struct tstat {
 
 		int	wasinactive;	/* boolean: task inactive	*/
 
-		int	ifuture[4];     /* reserved                     */
+		char	container[16];	/* Docker container id (12 pos)	*/
 	} gen;
 
 	/* CPU STATISTICS						*/

@@ -497,6 +497,24 @@ The last columns contain the accumulated occupation percentage for the
 chosen resource (default: cpu) and the program name.
 .PP
 .TP 5
+.B j
+Show the process activity accumulated per Docker container.
+
+Per container the following fields are shown: number of processes active
+or terminated during last interval (or in total if combined with command `a'),
+accumulated cpu consumption during last interval in system and user mode,
+the current virtual and resident memory space consumed by active processes
+(or all processes of the user if combined with command `a'). 
+.br
+When "storage accounting" is active in the kernel,
+the accumulated read and write throughput on disk is shown.
+When the kernel module `netatop' has been installed,
+the number of received and sent network packets are shown.
+.br
+The last columns contain the accumulated occupation percentage for the
+chosen resource (default: cpu) and the Docker container id (CID).
+.PP
+.TP 5
 .B C 
 Sort the current list in the order of cpu consumption (default).
 The one-but-last column changes to ``CPU''.
@@ -645,6 +663,17 @@ matches the regular expression.
 The system statistics are still system wide.
 If the Enter-key is pressed without specifying a string, all (active)
 processes will be shown again.
+.br
+Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B J
+Specify a Docker container id of 12 (hexadecimal) characters.
+From now on, only processes will be shown that run in that specific
+Docker container (CID).
+The system statistics are still system wide.
+If the Enter-key is pressed without specifying a container id,
+all (active) processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
 .PP
@@ -1236,7 +1265,7 @@ or has recently been running on.
 .PP
 .TP 9
 .B CTID
-Container-id.
+Container-id (OpenVZ).
 If a process has been started and finished during the last
 interval, a `?' is shown because the container-id is not part of
 the standard process accounting record.
@@ -1609,7 +1638,7 @@ process accounting record.
 .PP
 .TP 9
 .B VPID
-Virtual process-id (within a container).
+Virtual process-id (within an OpenVZ container).
 If a process has been started and finished during the last
 interval, a `?' is shown because the virtual process-id is not part of
 the standard process accounting record.
@@ -1871,7 +1900,8 @@ number of threads in state 'uninterruptible sleeping' (D),
 effective uid, effective gid,
 saved uid, saved gid,
 filesystem uid, filesystem gid, elapsed time (hertz),
-is_process (y/n), virtual pid and container id.
+is_process (y/n), OpenVZ  virtual pid (VPID), OpenVZ container id (CTID)
+and Docker container id (CID).
 .TP 9
 .B PRC
 For every process one line is shown.

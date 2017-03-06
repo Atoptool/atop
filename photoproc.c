@@ -165,6 +165,7 @@ static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof 
 static int	procstat(struct tstat *, unsigned long long, char);
 static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
+static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 
@@ -179,7 +180,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 	FILE		*fp;
 	DIR		*dirp;
 	struct dirent	*entp;
-	char		origdir[1024];
+	char		origdir[1024], dockstat=0;
 	int		tval=0;
 
 	/*
@@ -250,25 +251,26 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
 		curtask	= tasklist+tval;
 
-		if ( !procstat(curtask, bootepoch, 1))	/* from /proc/pid/stat */
+		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		if ( !procstatus(curtask) )		/* from /proc/pid/status  */
+		if ( !procstatus(curtask) )	/* from /proc/pid/status  */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		if ( !procio(curtask) )			/* from /proc/pid/io      */
+		if ( !procio(curtask) )		/* from /proc/pid/io      */
 		{
 			if ( chdir("..") == -1);
 			continue;
 		}
 
-		proccmd(curtask);			/* from /proc/pid/cmdline */
+		proccmd(curtask);		/* from /proc/pid/cmdline */
+		dockstat += proccont(curtask);	/* from /proc/pid/cpuset  */
 
 		/*
 		** reading the smaps file for every process with every sample
@@ -276,7 +278,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		** so gathering this info is optional
 		*/
 		if (calcpss)
-			procsmaps(curtask);		/* from /proc/pid/smaps */
+			procsmaps(curtask);	/* from /proc/pid/smaps */
 
 		// read network stats from netatop
 		netatop_gettask(curtask->gen.tgid, 'g', curtask);
@@ -284,7 +286,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		tval++;		/* increment for process-level info */
 
 		/*
- 		** if needed (when number of threads is larger than 0):
+ 		** if needed (when number of threads is larger than 1):
 		**   read and fill new entries with thread-level info
 		*/
 		if (curtask->gen.nthr > 1)
@@ -332,6 +334,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 						continue;
 					}
 
+					strcpy(curthr->gen.container, curtask->gen.container);
+
 					switch (curthr->gen.state)
 					{
 	   		   		   case 'R':
@@ -368,6 +372,9 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 	if ( chdir(origdir) == -1)
 		cleanstop(53);
+
+	if (!(supportflags&DOCKSTAT) && dockstat)
+		supportflags |= DOCKSTAT;
 
 	return tval;
 }
@@ -716,6 +723,44 @@ proccmd(struct tstat *curtask)
 		}
 	}
 }
+
+
+/*
+** store the Docker container ID, retrieved from the cpuset
+** that looks like this:
+**    /system.slice/docker-af78216c2a230f1aa5dce56cbf569357a652[SNAP].scope
+*/
+#define	CIDPREFIX	"docker-"
+#define	CIDSIZE		12
+
+static int
+proccont(struct tstat *curtask)
+{
+	FILE		*fp;
+	char		line[80];
+
+	if ( (fp = fopen("cpuset", "r")) != NULL)
+	{
+		register char *p;
+
+		if ( fgets(line, sizeof line, fp) )
+		{
+			if (line[0] && (p = strstr(line, CIDPREFIX)) )
+			{
+				memcpy(curtask->gen.container,
+					p+(sizeof CIDPREFIX-1), CIDSIZE);
+
+				fclose(fp);
+				return 1;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	return 0;
+}
+
 
 /*
 ** open file "smaps" and obtain required info
