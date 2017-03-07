@@ -1303,27 +1303,59 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 ** depending on the supported features (like
 ** I/O stats, network stats) and current view
 */
+#define	FORMPID	"PID:10 "
+#define	FORMTID	"TID:6 "
+#define	FORMCID	"CID:5 "
+#define	FORMCPU	"SYSCPU:9 USRCPU:9 "
+#define FORMMEM	"VGROW:8 RGROW:8 "
+#define FORMDSK	"RDDSK:7 CWRDSK:7 "
+#define FORMNET	"RNET:6 SNET:6 "
+#define FORMMSC	"RUID:3 EUID:2 ST:4 EXC:4 THR:4 S:4 CPUNR:4 "
+#define FORMEND	"SORTITEM:10 CMD:10"
+
 static void
 make_proc_dynamicgen()
 {
-	char format[300] = "PID:10 ";
+	char format[300], *p = format;
+
+	memcpy(p, FORMPID, sizeof FORMPID -1);
+	p += sizeof FORMPID -1;
 
 	if (threadview)
-		strcat(format, "TID:6 ");
+	{
+		memcpy(p, FORMTID, sizeof FORMTID -1);
+		p += sizeof FORMTID -1;
+	}
 
 	if (supportflags & DOCKSTAT)
-		strcat(format, "CID:5 ");
+	{
+		memcpy(p, FORMCID, sizeof FORMCID -1);
+		p += sizeof FORMCID -1;
+	}
 
-	strcat(format, "SYSCPU:9 USRCPU:9 VGROW:8 RGROW:8 ");
+	memcpy(p, FORMCPU, sizeof FORMCPU -1);
+	p += sizeof FORMCPU -1;
+
+	memcpy(p, FORMMEM, sizeof FORMMEM -1);
+	p += sizeof FORMMEM -1;
 
 	if (supportflags & IOSTAT)
-		strcat(format, "RDDSK:7 CWRDSK:7 ");
+	{
+		memcpy(p, FORMDSK, sizeof FORMDSK -1);
+		p += sizeof FORMDSK -1;
+	}
 
 	if (supportflags & NETATOP)
-		strcat(format, "RNET:6 SNET:6 ");
+	{
+		memcpy(p, FORMNET, sizeof FORMNET -1);
+		p += sizeof FORMNET -1;
+	}
 
-	strcat(format, "RUID:3 EUID:2 ST:4 EXC:4 THR:4 S:4 CPUNR:4 ");
-	strcat(format, "SORTITEM:10 CMD:10");
+	memcpy(p, FORMMSC, sizeof FORMMSC -1);
+	p += sizeof FORMMSC -1;
+
+	memcpy(p, FORMEND, sizeof FORMEND);
+	p += sizeof FORMEND;
 
 	make_proc_prints(genprocs, MAXITEMS, format, "built-in genprocs");
 }

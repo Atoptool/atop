@@ -745,7 +745,8 @@ proccont(struct tstat *curtask)
 
 		if ( fgets(line, sizeof line, fp) )
 		{
-			if (line[0] && (p = strstr(line, CIDPREFIX)) )
+			// default string (so if not used) is "/"
+			if (line[1] && (p = strstr(line, CIDPREFIX)) )
 			{
 				memcpy(curtask->gen.container,
 					p+(sizeof CIDPREFIX-1), CIDSIZE);
