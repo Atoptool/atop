@@ -727,10 +727,11 @@ proccmd(struct tstat *curtask)
 
 /*
 ** store the Docker container ID, retrieved from the cpuset
-** that looks like this:
-**    /system.slice/docker-af78216c2a230f1aa5dce56cbf569357a652[SNAP].scope
+** that could look like this:
+**    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
+**    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
 */
-#define	CIDPREFIX	"docker-"
+#define	CIDPREFIX	"docker"
 #define	CIDSIZE		12
 
 static int
@@ -749,7 +750,7 @@ proccont(struct tstat *curtask)
 			if (line[1] && (p = strstr(line, CIDPREFIX)) )
 			{
 				memcpy(curtask->gen.container,
-					p+(sizeof CIDPREFIX-1), CIDSIZE);
+					p + sizeof CIDPREFIX, CIDSIZE);
 
 				fclose(fp);
 				return 1;
