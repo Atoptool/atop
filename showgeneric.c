@@ -2304,8 +2304,8 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 	curstat->dsk.rio    += curproc->dsk.rsz;
 	curstat->dsk.wio    += nett_wsz;
 
-	curstat->dsk.rsz    += curstat->dsk.rio;
-	curstat->dsk.wsz    +=	curstat->dsk.wio;
+	curstat->dsk.rsz     = curstat->dsk.rio;
+	curstat->dsk.wsz     = curstat->dsk.wio;
 
 	curstat->net.tcpsnd += curproc->net.tcpsnd;
 	curstat->net.tcprcv += curproc->net.tcprcv;
