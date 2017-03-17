@@ -565,7 +565,7 @@ procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
 	if (curstat->gen.container[0])
         	sprintf(buf, "%-12s", curstat->gen.container);
 	else
-        	sprintf(buf, "%-12s", "-");
+        	sprintf(buf, "%-12s", "host--------");
 
         return buf;
 }

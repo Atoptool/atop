@@ -208,6 +208,9 @@ rawwrite(time_t curtime, int numsecs,
 	if (supportflags & NETATOPD)
 		rr.flags |= RRNETATOPD;
 
+	if (supportflags & DOCKSTAT)
+		rr.flags |= RRDOCKSTAT;
+
 	if ( write(rawfd, &rr, sizeof rr) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
@@ -727,6 +730,11 @@ rawread(void)
 				supportflags |=  NETATOPD;
 			else
 				supportflags &= ~NETATOPD;
+
+			if (rr.flags & RRDOCKSTAT)
+				supportflags |=  DOCKSTAT;
+			else
+				supportflags &= ~DOCKSTAT;
 
 			flags = rr.flags & RRBOOT;
 

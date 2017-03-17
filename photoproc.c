@@ -334,7 +334,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 						continue;
 					}
 
-					strcpy(curthr->gen.container, curtask->gen.container);
+					strcpy(curthr->gen.container,
+							curtask->gen.container);
 
 					switch (curthr->gen.state)
 					{
@@ -373,8 +374,10 @@ photoproc(struct tstat *tasklist, int maxtask)
 	if ( chdir(origdir) == -1)
 		cleanstop(53);
 
-	if (!(supportflags&DOCKSTAT) && dockstat)
+	if (dockstat)
 		supportflags |= DOCKSTAT;
+	else
+		supportflags &= ~DOCKSTAT;
 
 	return tval;
 }

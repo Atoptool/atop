@@ -52,6 +52,7 @@ struct netpertask;
 #define RRNETATOPD	0x0008
 #define RRACCTACTIVE	0x0010
 #define RRIOSTAT	0x0020
+#define RRDOCKSTAT	0x0040
 
 struct visualize {
 	char	(*show_samp)  (time_t, int,

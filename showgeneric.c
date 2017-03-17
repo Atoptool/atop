@@ -290,7 +290,7 @@ static int	paused;     	/* boolean: currently in pause-mode     */
 static int	fixedhead;	/* boolean: fixate header-lines         */
 static int	sysnosort;	/* boolean: suppress sort of resources  */
 static int	avgval;		/* boolean: average values i.s.o. total */
-static int	supexits;	/* boolean: suppress exited processes   */
+static int	suppressexit;	/* boolean: suppress exited processes   */
 
 static char	showtype  = MPROCGEN;
 static char	showorder = MSORTCPU;
@@ -342,6 +342,8 @@ generic_samp(time_t curtime, int nsecs,
            int nexit, unsigned int noverflow, char flag)
 {
 	static int	callnr = 0;
+	char		*p;
+
 
 	register int	i, curline, statline, nproc;
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
@@ -367,20 +369,20 @@ generic_samp(time_t curtime, int nsecs,
 	**
 	** Xcumlist contains the pointers to all structs in tXcumlist
 	** 
-	** these lists will only be allocated 'lazy' whenever accumulation
-	** is requested
+	** these lists will only be allocated 'lazy'
+	** only when accumulation is requested
 	*/
-	struct tstat	*tpcumlist = 0;
+	struct tstat	*tpcumlist = 0;		// per program accumulation
 	struct tstat	**pcumlist = 0;
 	int		npcum      = 0;
 	char		plastorder = 0;
 
-	struct tstat	*tucumlist = 0;
+	struct tstat	*tucumlist = 0;		// per user accumulation
 	struct tstat	**ucumlist = 0;
 	int		nucum      = 0;
 	char		ulastorder = 0;
 
-	struct tstat	*tccumlist = 0;
+	struct tstat	*tccumlist = 0;		// per container accumulation
 	struct tstat	**ccumlist = 0;
 	int		nccum      = 0;
 	char		clastorder = 0;
@@ -401,7 +403,8 @@ generic_samp(time_t curtime, int nsecs,
 	/*
 	** sellist contains the pointers to the structs in tstat
 	** that are currently selected on basis of a particular
-	** username, program name (both regexp's) or suppressed exited procs
+	** username (regexp), program name (regexp), container name
+	** or suppressed exited procs
 	**
 	** this list will be allocated 'lazy'
 	*/
@@ -497,7 +500,8 @@ generic_samp(time_t curtime, int nsecs,
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s"
+		       " elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -507,7 +511,7 @@ generic_samp(time_t curtime, int nsecs,
 			usecolors  		      ? '-'        : MCOLORS,
 			avgval     		      ? MAVGVAL    : '-',
 			calcpss     		      ? MCALCPSS   : '-',
-			supexits     		      ? MSUPEXITS  : '-',
+			suppressexit 		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
 			procsel.container[0]	      ? MSELCONT   : '-',
@@ -808,7 +812,7 @@ generic_samp(time_t curtime, int nsecs,
 			    !procsel.container[0]          &&
 			    !procsel.argnamesz             &&
 			    !procsel.pid[0]                &&
-			    !supexits                        )
+			    !suppressexit                    )
 				/* no selection wanted */
 				break;
 
@@ -816,22 +820,21 @@ generic_samp(time_t curtime, int nsecs,
 			** selection specified for tasks:
 			** create new (worst case) pointer list if needed
 			*/
-			if (!sellist)
-			{
-				sellist = malloc(sizeof(struct tstat *)
-								* ncurlist);
+			if (sellist)	// remove previous list if needed
+				free(sellist);
 
-				ptrverify(sellist,
-				          "Malloc failed for %d select ptrs\n",
-				          ncurlist);
-			}
+			sellist = malloc(sizeof(struct tstat *) * ncurlist);
+
+			ptrverify(sellist,
+			       "Malloc failed for %d select ptrs\n", ncurlist);
 
 			for (i=nsel=0; i < ncurlist; i++)
 			{
 				if (procsuppress(*(curlist+i), &procsel))
 					continue;
 
-				if (curlist[i]->gen.state == 'E' && supexits)
+				if (curlist[i]->gen.state == 'E' &&
+				    suppressexit                   )
 					continue;
 
 				sellist[nsel++] = curlist[i]; 
@@ -959,7 +962,8 @@ generic_samp(time_t curtime, int nsecs,
 			** first determine the column-header for the current
 			** sorting order of processes
 			*/
-			if (screen) {
+			if (screen)
+			{
 				attron(A_REVERSE);
                                 move(curline+1, 0);
                         }
@@ -1560,35 +1564,49 @@ generic_samp(time_t curtime, int nsecs,
 
 				move(statline, 0);
 				clrtoeol();
-				printw("Containerid in 12 postitions (enter=all containers): ");
+				printw("Containerid 12 postitions "
+ 				       "(enter=all, "
+				       "'host'=host processes): ");
 
-				procsel.container[0] = '\0';
-
+				procsel.container[0]  = '\0';
 				scanw("%15s", procsel.container);
-
-				if (procsel.container[0] &&
-				    strlen(procsel.container) != 12)
-				{
-					statmsg = "Invalid length of containerid!";
-					beep();
-
-					procsel.container[0] = '\0';
-				}
-
 				procsel.container[12] = '\0';
 
+				switch (strlen(procsel.container))
 				{
-					char *p;
+                                   case 0:
+					break;	// enter key pressed
 
-					(void) strtol(procsel.container, &p, 16);
+				   case 4:	// host?
+					if (strcmp(procsel.container, "host"))
+					{
+						statmsg="Invalid containerid!";
+						beep();
+						procsel.container[0] = '\0';
+					}
+					else
+					{
+						procsel.container[0] = 'H';
+						procsel.container[1] = '\0';
+					}
+					break;
+
+				   case 12:	// container id
+					(void)strtol(procsel.container, &p, 16);
 
 					if (*p)
 					{
-						statmsg = "Containerid not hex!";
+						statmsg ="Containerid not hex!";
 						beep();
-
 						procsel.container[0] = '\0';
 					}
+					break;
+
+				   default:
+					statmsg = "Invalid containerid!";
+					beep();
+
+					procsel.container[0] = '\0';
 				}
 
 				noecho();
@@ -1929,19 +1947,19 @@ generic_samp(time_t curtime, int nsecs,
 			   ** suppression of exited processes in output
 			   */
 			   case MSUPEXITS:
-				if (supexits)
+				if (suppressexit)
 				{
-					supexits    = 0;
-					statmsg    = "Exited processes will "
-					             "be shown/accumulated";
-					firstproc  = 0;
+					suppressexit = 0;
+					statmsg      = "Exited processes will "
+					               "be shown/accumulated";
+					firstproc    = 0;
 				}
 				else
 				{
-					supexits    = 1;
-					statmsg    = "Exited processes will "
+					suppressexit = 1;
+					statmsg      = "Exited processes will "
 					             "not be shown/accumulated";
-					firstproc  = 0;
+					firstproc    = 0;
 				}
 				break;
 
@@ -2167,7 +2185,7 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 		if (procsuppress(*curprocs, &procsel))
 			continue;
 
-		if ((*curprocs)->gen.state == 'E' && supexits)
+		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
  
 		if ( curusers->gen.ruid != (*curprocs)->gen.ruid )
@@ -2212,7 +2230,7 @@ cumprogs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 		if (procsuppress(*curprocs, &procsel))
 			continue;
 
-		if ((*curprocs)->gen.state == 'E' && supexits)
+		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
 
 		if ( strcmp(curprogs->gen.name, (*curprocs)->gen.name) != 0)
@@ -2255,7 +2273,7 @@ cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
 		if (procsuppress(*curprocs, &procsel))
 			continue;
 
-		if ((*curprocs)->gen.state == 'E' && supexits)
+		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
  
 		if ( strcmp(curconts->gen.container,
@@ -2339,7 +2357,6 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 }
 
 
-
 /*
 ** function that checks if the current process is selected or suppressed;
 ** returns 1 (suppress) or 0 (do not suppress)
@@ -2415,15 +2432,20 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 
 	/*
 	** check if only processes related to a particular container
-	** should be shown
+	** should be shown (container 'H' stands for native host processes)
 	*/
 	if (sel->container[0])
 	{
-		if (!curstat->gen.container[0])
-			return 1;
-
-		if ( memcmp(sel->container, curstat->gen.container, 12) != 0)
-			return 1;
+		if (sel->container[0] == 'H')	// only host processes
+		{
+			if (curstat->gen.container[0])
+				return 1;
+		}
+		else
+		{
+			if (memcmp(sel->container, curstat->gen.container, 12))
+				return 1;
+		}
 	}
 
 	return 0;
@@ -2643,10 +2665,10 @@ generic_init(void)
 			break;
 
 		   case MSUPEXITS:
-			if (supexits)
-				supexits = 0;
+			if (suppressexit)
+				suppressexit = 0;
 			else
-				supexits = 1;
+				suppressexit = 1;
 			break;
 
 		   case MCOLORS:
@@ -3255,7 +3277,7 @@ do_flags(char *name, char *val)
 			break;
 
 		   case MSUPEXITS:
-			supexits = 1;
+			suppressexit = 1;
 			break;
 		}
 	}
