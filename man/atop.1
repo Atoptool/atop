@@ -53,7 +53,8 @@ Every
 on system level (cpu, memory, disks and network layers), followed
 by a list of processes which have been active during the last interval
 (note that all processes that were unchanged during the last interval
-are not shown, unless the key 'a' has been pressed).
+are not shown, unless the key 'a' has been pressed or unless sorting on
+memory occupation is done).
 If the list of active processes does not entirely fit on
 the screen, only the top of the list is shown (sorted in order of activity).
 .br
@@ -522,7 +523,8 @@ The one-but-last column changes to ``CPU''.
 .TP 5
 .B M 
 Sort the current list in the order of resident memory consumption.
-The one-but-last column changes to ``MEM''.
+The one-but-last column changes to ``MEM''. In case of sorting on memory,
+the full process list will be shown (not only the active processes).
 .PP
 .TP 5
 .B D
@@ -1793,7 +1795,7 @@ size of buffer cache (pages),
 size of slab (pages),
 dirty pages in cache (pages),
 reclaimable part of slab (pages),
-size of vmware's balloon pages (pages),
+total size of vmware's balloon pages (pages),
 total size of shared memory (pages),
 size of resident shared memory (pages),
 size of swapped shared memory (pages),
