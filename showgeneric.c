@@ -794,7 +794,8 @@ generic_samp(time_t curtime, int nsecs,
 		   default:
 			threadallowed = 1;
 
-			if (deviatonly && showtype != MPROCMEM)
+			if (deviatonly && showtype  != MPROCMEM &&
+			                  showorder != MSORTMEM   )
 			{
 				curlist   = devtstat->procactive;
 				ncurlist  = devtstat->nprocactive;
@@ -888,7 +889,8 @@ generic_samp(time_t curtime, int nsecs,
 			{
 				int ntotal, j, t;
 
-				if (deviatonly && showtype != MPROCMEM)
+				if (deviatonly && showtype  != MPROCMEM &&
+			      	                  showorder != MSORTMEM   )
 					ntotal = devtstat->ntaskactive;
 				else
 					ntotal = devtstat->ntaskall;
@@ -938,7 +940,8 @@ generic_samp(time_t curtime, int nsecs,
 					         t++)
 					    {
 						if (deviatonly &&
-							showtype != MPROCMEM)
+							showtype  != MPROCMEM &&
+						        showorder != MSORTMEM   )
 						{
 						  if (!(tall+t)->gen.wasinactive)
 						  {
