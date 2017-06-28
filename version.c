@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "version.h"
+#include "versdate.h"
 
 static char atopversion[] = ATOPVERS;
 static char atopdate[]    = ATOPDATE;

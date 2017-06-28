@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Make a new versdate.h with the current date filled
+#
+CURDATE=$(date +%Y/%m/%d\ %H:%M:%S)
+
+echo "#define	ATOPDATE	\"$CURDATE\""	> versdate.h

@@ -59,6 +59,7 @@
 #include "photoproc.h"
 #include "acctproc.h"
 #include "version.h"
+#include "versdate.h"
 #include "atopacctd.h"
 
 #define	RETRYCNT	10	// # retries to read account record

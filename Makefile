@@ -32,6 +32,8 @@ VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 all: 		atop atopsar atopacctd
 
 atop:		atop.o    $(ALLMODS) Makefile
+		./mkdate
+		$(CC) -c version.c
 		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt $(LDFLAGS)
 
 atopsar:	atop
@@ -176,6 +178,6 @@ showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
-version.o:	version.c version.h
+version.o:	version.c version.h versdate.h
 
-atopacctd.o:	atop.h  photoproc.h acctproc.h   version.h     atopacctd.h
+atopacctd.o:	atop.h  photoproc.h acctproc.h   atopacctd.h   version.h versdate.h
