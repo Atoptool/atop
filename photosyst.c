@@ -164,6 +164,9 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <signal.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -184,6 +187,7 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+static void	getperfevents(struct cpustat *);
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
 
@@ -1368,6 +1372,11 @@ photosyst(struct sstat *si)
 		cleanstop(53);
 
 	/*
+	** get low-level CPU event counters
+	*/
+        getperfevents(&(si->cpu));
+
+	/*
 	** fetch application-specific counters
 	*/
 #if	HTTPSTATS
@@ -1638,6 +1647,109 @@ getbootlinux(long hertz)
 
 	return bootjiffies;
 }
+
+/*
+** retrieve low-level CPU events:
+** 	instructions and cycles per CPU
+*/
+long
+perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
+                int cpu, int groupfd, unsigned long flags)
+{
+	return syscall(__NR_perf_event_open, hwevent, pid, cpu, groupfd, flags);
+}
+
+static void
+getperfevents(struct cpustat *cs)
+{
+	static int	firstcall = 1, cpualloced, *fdi, *fdc;
+	int		i;
+
+	/*
+ 	** once initialize perf event counter retrieval
+	*/
+	if (firstcall)
+	{
+		struct perf_event_attr  pea;
+		int			success = 0;
+
+		firstcall = 0;
+
+		/*
+		** allocate space for per-cpu file descriptors
+		*/
+		cpualloced = cs->nrcpu;
+		fdi        = malloc(sizeof(int) * cpualloced);
+		fdc        = malloc(sizeof(int) * cpualloced);
+
+		/*
+		** fill perf_event_attr struct with appropriate values
+		*/
+		memset(&pea, 0, sizeof(struct perf_event_attr));
+
+		pea.type    = PERF_TYPE_HARDWARE;
+		pea.size    = sizeof(struct perf_event_attr);
+		pea.inherit = 1;
+		pea.pinned  = 1;
+
+	 	regainrootprivs();
+
+		for (i=0; i < cpualloced; i++)
+		{
+			pea.config = PERF_COUNT_HW_INSTRUCTIONS;
+
+			if ( (*(fdi+i) = perf_event_open(&pea, -1, i, -1,
+ 						PERF_FLAG_FD_CLOEXEC)) >= 0)
+				success++;
+
+                        pea.config = PERF_COUNT_HW_CPU_CYCLES;
+
+			if ( (*(fdc+i) = perf_event_open(&pea, -1, i, -1,
+						PERF_FLAG_FD_CLOEXEC)) >= 0)
+				success++;
+		}
+
+		if (! droprootprivs())
+			cleanstop(42);
+
+		/*
+		** all failed (probably no kernel support)?
+		*/
+		if (success == 0)	
+		{
+			free(fdi);
+			free(fdc);
+			cpualloced = 0;
+		}
+
+		return;		// initialization reaches for first sample
+        }
+
+	/*
+	** every sample: check if counters available anyhow
+	*/
+        if (!cpualloced)
+                return;
+
+	/*
+   	** retrieve counters per CPU and in total
+	*/
+	cs->all.instr = 0;
+	cs->all.cycle = 0;
+
+        for (i=0; i < cpualloced; i++)
+        {
+		if (*(fdi+i) != -1)
+		{
+                	read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
+                        cs->all.instr += cs->cpu[i].instr;
+
+                	read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
+                        cs->all.cycle += cs->cpu[i].cycle;
+		}
+        }
+}
+
 
 #if	HTTPSTATS
 /*

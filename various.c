@@ -366,11 +366,13 @@ val2cpustr(count_t value, char *strvalue)
 ** Function val2Hzstr() converts a value (in MHz) 
 ** to an ascii-string.
 ** The result-string is placed in the area pointed to strvalue,
-** which should be able to contain at least 8 positions.
+** which should be able to contain 7 positions plus null byte.
 */
 char *
 val2Hzstr(count_t value, char *strvalue)
 {
+	char *fformat;
+
         if (value < 1000)
         {
                 sprintf(strvalue, "%4lldMHz", value);
@@ -385,8 +387,22 @@ val2Hzstr(count_t value, char *strvalue)
                         prefix='T';        
                         fval /= 1000.0;
                 }
-                sprintf(strvalue, "%4.2f%cHz", fval, prefix);
+
+                if (fval < 10.0)
+		{
+			 fformat = "%4.2f%cHz";
+		}
+		else
+		{
+			if (fval < 100.0)
+				fformat = "%4.1f%cHz";
+                	else
+				fformat = "%4.0f%cHz";
+		}
+
+                sprintf(strvalue, fformat, fval, prefix);
         }
+
 	return strvalue;
 }
 

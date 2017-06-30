@@ -104,7 +104,7 @@ void 	print_PRN();
 
 /*
 ** table with possible labels and the corresponding
-** print-function for parseable output.
+** print-function for parseable output
 */
 struct labeldef {
 	char	*label;
@@ -311,7 +311,7 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         maxfreq = ss->cpu.cpu[0].freqcnt.maxfreq;
         calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d\n",
+	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp,
 			hertz,
 	        	ss->cpu.nrcpu,
@@ -325,7 +325,9 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->cpu.all.steal,
         		ss->cpu.all.guest,
                         freq,
-                        freqperc
+                        freqperc,
+        		ss->cpu.all.instr,
+        		ss->cpu.all.cycle
                         );
 }
 
@@ -348,7 +350,7 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
                 calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
 		printf("%s %u %d %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %lld %lld %d\n",
+		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp, hertz, i,
 	        	ss->cpu.cpu[i].stime,
         		ss->cpu.cpu[i].utime,
@@ -360,7 +362,10 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->cpu.cpu[i].steal,
         		ss->cpu.cpu[i].guest,
                         freq,
-                        freqperc);
+                        freqperc,
+        		ss->cpu.cpu[i].instr,
+        		ss->cpu.cpu[i].cycle
+			);
 	}
 }
 

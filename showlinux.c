@@ -325,6 +325,8 @@ sys_printdef *cpusyspdefs[] = {
 	&syspdef_CPUIDLE,
 	&syspdef_CPUWAIT,
 	&syspdef_BLANKBOX,
+	&syspdef_CPUIPC,
+	&syspdef_CPUCYCLE,
 	&syspdef_CPUFREQ,
 	&syspdef_CPUSCALE,
 	&syspdef_CPUSTEAL,
@@ -339,6 +341,8 @@ sys_printdef *cpisyspdefs[] = {
 	&syspdef_CPUIIDLE,
 	&syspdef_CPUIWAIT,
 	&syspdef_BLANKBOX,
+	&syspdef_CPUIIPC,
+	&syspdef_CPUICYCLE,
 	&syspdef_CPUIFREQ,
 	&syspdef_CPUISCALE,
 	&syspdef_CPUISTEAL,
@@ -910,13 +914,15 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                     make_sys_prints(allcpuline, MAXITEMS,
 	                "CPUSYS:9 "
 	                "CPUUSER:8 "
-	                "CPUIRQ:5 "
+	                "CPUIRQ:6 "
 	                "BLANKBOX:0 "
-	                "CPUIDLE:6 "
-	                "CPUWAIT:6 "
-	                "BLANKBOX:0 "
+	                "CPUIDLE:7 "
+	                "CPUWAIT:7 "
                         "CPUSTEAL:2 "
                         "CPUGUEST:3 "
+	                "BLANKBOX:0 "
+                        "CPUIPC:5 "
+                        "CPUCYCLE:4 "
                         "CPUFREQ:4 "
                         "CPUSCALE:4 ", cpusyspdefs, "builtin allcpuline");
                 }
@@ -926,13 +932,15 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                     make_sys_prints(indivcpuline, MAXITEMS,
 	                "CPUISYS:9 "
                         "CPUIUSER:8 "
-	                "CPUIIRQ:5 "
+	                "CPUIIRQ:6 "
 	                "BLANKBOX:0 "
-	                "CPUIIDLE:6 "
-	                "CPUIWAIT:6 "
-	                "BLANKBOX:0 "
+	                "CPUIIDLE:7 "
+	                "CPUIWAIT:7 "
                         "CPUISTEAL:2 "
                         "CPUIGUEST:3 "
+	                "BLANKBOX:0 "
+                        "CPUIIPC:5 "
+                        "CPUICYCLE:4 "
                         "CPUIFREQ:4 "
                         "CPUISCALE:4 ", cpisyspdefs, "builtin indivcpuline");
                 }

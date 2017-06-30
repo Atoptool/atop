@@ -105,7 +105,9 @@ struct percpu {
 	count_t		steal;	/* steal   time in clock ticks		*/
 	count_t		guest;	/* guest   time in clock ticks		*/
         struct freqcnt	freqcnt;/* frequency scaling info  		*/
-	count_t		cfuture[4];	/* reserved for future use	*/
+	count_t		instr;	/* CPU instructions 			*/
+	count_t		cycle;	/* CPU cycles 				*/
+	count_t		cfuture[2];	/* reserved for future use	*/
 };
 
 struct	cpustat {

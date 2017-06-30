@@ -948,7 +948,7 @@ In case of a multi-processor system, an additional line is shown
 for every individual processor (with `cpu' in lower case),
 sorted on activity. Inactive CPUs will not be shown by default.
 The lines showing the per-cpu occupation contain the cpu number in
-the last field.
+the field combined with the wait percentage.
 
 Every line contains the percentage of cpu time spent in 
 kernel mode by all active processes (`sys'), 
@@ -956,22 +956,49 @@ the percentage of cpu time consumed in user mode (`user') for all
 active processes (including processes running with a nice value larger than
 zero), the percentage of cpu time spent for interrupt handling (`irq')
 including softirq, the percentage of unused cpu time while no processes
-were waiting for disk-I/O (`idle'), and
+were waiting for disk I/O (`idle'), and
 the percentage of unused cpu time while at least one process was waiting
-for disk-I/O (`wait').
+for disk I/O (`wait').
 .br
-In case of per-cpu occupation, the last column shows the cpu number and
+In case of per-cpu occupation, the cpu number and
 the wait percentage (`w') for that cpu.
 The number of lines showing the per-cpu occupation can be limited.
 
-For virtual machines the steal-percentage is shown (`steal'), reflecting
+For virtual machines, the steal-percentage (`steal') shows 
 the percentage of cpu time stolen by other virtual machines
 running on the same hardware.
 .br
 For physical machines hosting one or more virtual machines,
-the guest-percentage is shown (`guest'), reflecting
+the guest-percentage (`guest') shows 
 the percentage of cpu time used by the virtual machines. Notice that
-this percentage overlaps the user-percentage.
+this percentage overlaps the user percentage!
+
+If event counters are supported by the CPU and the kernel (and
+.I atop
+runs with root privileges), the number of instructions per
+CPU cycle (`ipc') is shown. The first sample always shows value zero,
+because the counters are only maintained by the kernel on request.
+.br
+When the
+.I CPU busy percentage is high
+and the IPC is less than 1.0,
+it is likely that the CPU is frequently waiting for memory access
+during instruction execution (larger CPU caches or faster memory might
+be helpful to improve performance).
+.br
+When the
+.I CPU busy percentage is high
+and the IPC is greater than 1.0,
+it is likely that the CPU is instruction-bound (more cores might be helpful
+to improve performance).
+.br
+Furthermore, per CPU the effective number of cycles (`cycl') is shown.
+This value can reach the current CPU frequency if such CPU is 100% busy.
+An idle CPU is halted, resulting in the number of effective cycles to
+be (far) lower than the current frequency. Notice that the
+.I average
+number of cycles is shown in the CPU line for all CPUs.
+
 
 In case of frequency-scaling, all previously mentioned CPU-percentages
 are relative to the used scaling of the CPU during the interval.
@@ -990,6 +1017,9 @@ frequency (`curf') and the
 .I current
 scaling percentage (`curscal') is shown at the moment that the sample
 is taken.
+Notice that
+.I average
+values for frequency and scaling are shown in the CPU line for all CPUs.
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -1759,7 +1789,8 @@ consumption for all CPUs in irq mode (clock-ticks),
 consumption for all CPUs in softirq mode (clock-ticks),
 consumption for all CPUs in steal mode (clock-ticks),
 consumption for all CPUs in guest mode (clock-ticks) overlapping user mode,
-frequency of all CPUs and frequency percentage of all CPUs.
+frequency of all CPUs, frequency percentage of all CPUs,
+instructions executed by all CPUs and cycles for all CPUs.
 .TP 9
 .B cpu
 Subsequent fields:
@@ -1774,7 +1805,8 @@ consumption for this CPU in irq mode (clock-ticks),
 consumption for this CPU in softirq mode (clock-ticks),
 consumption for this CPU in steal mode (clock-ticks),
 consumption for this CPU in guest mode (clock-ticks) overlapping user mode,
-frequency of this CPU and frequency percentage of this CPU.
+frequency of this CPU, frequency percentage of this CPU,
+instructions executed by this CPU and cycles for this CPU.
 .TP 9
 .B CPL
 Subsequent fields:

@@ -838,6 +838,66 @@ sysprt_CPUIGUEST(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_CPUIGUEST = {"CPUIGUEST", sysprt_CPUIGUEST};
 /*******************************************************************/
 char *
+sysprt_CPUIPC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[15];
+        float ipc = 0.0;
+
+	if (sstat->cpu.all.cycle)
+		ipc = sstat->cpu.all.instr * 100 / sstat->cpu.all.cycle / 100.0;
+
+        sprintf(buf, "ipc %8.2f", ipc);
+        return buf;
+}
+
+sys_printdef syspdef_CPUIPC = {"CPUIPC", sysprt_CPUIPC};
+/*******************************************************************/
+char *
+sysprt_CPUIIPC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[15];
+        float ipc = 0.0;
+
+	if (sstat->cpu.cpu[as->index].cycle)
+		ipc = sstat->cpu.cpu[as->index].instr * 100 /
+				sstat->cpu.cpu[as->index].cycle / 100.0;
+
+        sprintf(buf, "ipc %8.2f", ipc);
+        return buf;
+}
+
+sys_printdef syspdef_CPUIIPC = {"CPUIIPC", sysprt_CPUIIPC};
+/*******************************************************************/
+char *
+sysprt_CPUCYCLE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[15] = "cycl ";
+
+        val2Hzstr(sstat->cpu.all.cycle/1000000/as->nsecs/sstat->cpu.nrcpu, buf+5);
+        return buf;
+}
+
+sys_printdef syspdef_CPUCYCLE = {"CPUCYCLE", sysprt_CPUCYCLE};
+/*******************************************************************/
+char *
+sysprt_CPUICYCLE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[15] = "cycl ";
+
+        val2Hzstr(sstat->cpu.cpu[as->index].cycle/1000000/as->nsecs, buf+5);
+        return buf;
+}
+
+sys_printdef syspdef_CPUICYCLE = {"CPUICYCLE", sysprt_CPUICYCLE};
+/*******************************************************************/
+char *
 sysprt_CPLAVG1(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;

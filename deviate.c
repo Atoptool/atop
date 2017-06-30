@@ -692,6 +692,9 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->cpu.all.steal = subcount(cur->cpu.all.steal, pre->cpu.all.steal);
 	dev->cpu.all.guest = subcount(cur->cpu.all.guest, pre->cpu.all.guest);
 
+	dev->cpu.all.instr = subcount(cur->cpu.all.instr, pre->cpu.all.instr);
+	dev->cpu.all.cycle = subcount(cur->cpu.all.cycle, pre->cpu.all.cycle);
+
 	for (i=0; i < dev->cpu.nrcpu; i++)
 	{
 		count_t 	ticks;
@@ -716,6 +719,11 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 					         pre->cpu.cpu[i].steal);
 		dev->cpu.cpu[i].guest = subcount(cur->cpu.cpu[i].guest,
 					         pre->cpu.cpu[i].guest);
+
+		dev->cpu.cpu[i].instr = subcount(cur->cpu.cpu[i].instr,
+					         pre->cpu.cpu[i].instr);
+		dev->cpu.cpu[i].cycle = subcount(cur->cpu.cpu[i].cycle,
+					         pre->cpu.cpu[i].cycle);
 
 		ticks 		      = cur->cpu.cpu[i].freqcnt.ticks;
 
