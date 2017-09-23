@@ -490,7 +490,7 @@ print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			hp,
 			ss->nfs.nfsmounts.nfsmnt[i].mountdev,
 			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
-			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
+			ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite,
 			ss->nfs.nfsmounts.nfsmnt[i].bytesread,
 			ss->nfs.nfsmounts.nfsmnt[i].byteswrite,
 			ss->nfs.nfsmounts.nfsmnt[i].bytesdread,
