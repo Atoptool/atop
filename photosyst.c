@@ -1528,6 +1528,8 @@ static struct {
 	{ "^dm-[0-9][0-9]*$",			{0},  lvmmapname,  LVMTYPE, },
 	{ "^md[0-9][0-9]*$",			{0},  nullmodname, MDDTYPE, },
 	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
+	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^hd[a-z]$",				{0},  nullmodname, DSKTYPE, },
 	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
 	{ "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
@@ -1537,7 +1539,6 @@ static struct {
 	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, DSKTYPE, },
 	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
 };
 
 static int
