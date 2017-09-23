@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # atop		Startup script for the Atop process logging in background
 #
