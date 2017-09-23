@@ -1537,6 +1537,7 @@ static struct {
 	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, DSKTYPE, },
 	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
 };
 
 static int
