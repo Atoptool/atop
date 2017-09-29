@@ -4,7 +4,8 @@ CURDAY=`date +%Y%m%d`
 LOGPATH=/var/log/atop
 BINPATH=/usr/bin
 PIDFILE=/var/run/atop.pid
-INTERVAL=600				# interval 10 minutes
+INTERVAL=${INTERVAL:-600}			# interval 10 minutes
+DAYS=${DAYS:-28}
 
 # verify if atop still runs for daily logging
 #
@@ -33,7 +34,7 @@ fi
 # start a child shell that activates another child shell in
 # the background to avoid a zombie
 #
-( (sleep 3; find $LOGPATH -name 'atop_*' -mtime +28 -exec rm {} \;)& )
+( (sleep 3; find $LOGPATH -name 'atop_*' -mtime +$DAYS -exec rm {} \;)& )
 
 # activate atop with interval of 10 minutes, replacing the current shell
 #
