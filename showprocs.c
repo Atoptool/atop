@@ -1204,6 +1204,7 @@ proc_printdef procprt_TSLPU =
 #define SCHED_BATCH	3
 #define SCHED_ISO	4
 #define SCHED_IDLE	5
+#define SCHED_DEADLINE	6
 
 char *
 procprt_POLI_a(struct tstat *curstat, int avgval, int nsecs)
@@ -1227,6 +1228,9 @@ procprt_POLI_a(struct tstat *curstat, int avgval, int nsecs)
                         break;
                 case SCHED_IDLE:
                         return "idle";
+                        break;
+                case SCHED_DEADLINE:
+                        return "dead";
                         break;
         }
         return "?   ";
