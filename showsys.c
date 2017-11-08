@@ -845,9 +845,16 @@ sysprt_CPUIPC(void *p, void *q, int badness, int *color)
         float ipc = 0.0;
 
 	if (sstat->cpu.all.cycle)
+	{
 		ipc = sstat->cpu.all.instr * 100 / sstat->cpu.all.cycle / 100.0;
+        	sprintf(buf, "ipc %8.2f", ipc);
+	}
+	else
+	{
+		*color = COLORINFO;
+        	sprintf(buf, "ipc notavail");
+	}
 
-        sprintf(buf, "ipc %8.2f", ipc);
         return buf;
 }
 
