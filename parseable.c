@@ -311,6 +311,12 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         maxfreq = ss->cpu.cpu[0].freqcnt.maxfreq;
         calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
+	if (ss->cpu.all.instr == 1)
+	{
+        	ss->cpu.all.instr = 0;
+        	ss->cpu.all.cycle = 0;
+	}
+
 	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp,
 			hertz,

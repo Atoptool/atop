@@ -165,8 +165,11 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <string.h>
 #include <dirent.h>
 #include <sys/ioctl.h>
+
+#ifndef	NOPERFEVENT
 #include <linux/perf_event.h>
 #include <asm/unistd.h>
+#endif
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -187,7 +190,10 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+#ifndef	NOPERFEVENT
 static void	getperfevents(struct cpustat *);
+#endif
+
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
 
@@ -1371,10 +1377,12 @@ photosyst(struct sstat *si)
 	if ( chdir(origdir) == -1)
 		cleanstop(53);
 
+#ifndef	NOPERFEVENT
 	/*
 	** get low-level CPU event counters
 	*/
         getperfevents(&(si->cpu));
+#endif
 
 	/*
 	** fetch application-specific counters
@@ -1652,6 +1660,7 @@ getbootlinux(long hertz)
 ** retrieve low-level CPU events:
 ** 	instructions and cycles per CPU
 */
+#ifndef	NOPERFEVENT
 long
 perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
                 int cpu, int groupfd, unsigned long flags)
@@ -1721,8 +1730,13 @@ getperfevents(struct cpustat *cs)
 			free(fdc);
 			cpualloced = 0;
 		}
+		else
+		{
+			cs->all.instr = 1;
+			cs->all.cycle = 1;
+		}
 
-		return;		// initialization reaches for first sample
+		return;		// initialization finished for first sample
         }
 
 	/*
@@ -1749,7 +1763,7 @@ getperfevents(struct cpustat *cs)
 		}
         }
 }
-
+#endif
 
 #if	HTTPSTATS
 /*

@@ -1,4 +1,4 @@
-.TH ATOP 1 "March 2017" "Linux"
+.TH ATOP 1 "December 2017" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -973,11 +973,15 @@ the guest-percentage (`guest') shows
 the percentage of cpu time used by the virtual machines. Notice that
 this percentage overlaps the user percentage!
 
-If event counters are supported by the CPU and the kernel (and
+When PMC performance monitoring counters are supported by the CPU
+and the kernel (and
 .I atop
 runs with root privileges), the number of instructions per
-CPU cycle (`ipc') is shown. The first sample always shows value zero,
-because the counters are only maintained by the kernel on request.
+CPU cycle (`ipc') is shown.
+The first sample always shows the value 'initial',
+because the counters are just activated at the moment that
+.I atop
+is started.
 .br
 When the
 .I CPU busy percentage is high
@@ -985,19 +989,23 @@ and the IPC is less than 1.0,
 it is likely that the CPU is frequently waiting for memory access
 during instruction execution (larger CPU caches or faster memory might
 be helpful to improve performance).
-.br
 When the
 .I CPU busy percentage is high
 and the IPC is greater than 1.0,
-it is likely that the CPU is instruction-bound (more cores might be helpful
-to improve performance).
+it is likely that the CPU is instruction-bound (more/faster cores
+might be helpful to improve performance).
 .br
 Furthermore, per CPU the effective number of cycles (`cycl') is shown.
 This value can reach the current CPU frequency if such CPU is 100% busy.
-An idle CPU is halted, resulting in the number of effective cycles to
-be (far) lower than the current frequency. Notice that the
+When an idle CPU is halted, the number of effective cycles can
+be (considerably) lower than the current frequency.
+.br
+Notice that the
 .I average
-number of cycles is shown in the CPU line for all CPUs.
+instructions per cycle and number of cycles is shown in the CPU line
+for all CPUs.
+.br
+See also: http://www.brendangregg.com/blog/2017-05-09/cpu-utilization-is-wrong.html
 
 
 In case of frequency-scaling, all previously mentioned CPU-percentages

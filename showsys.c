@@ -844,15 +844,21 @@ sysprt_CPUIPC(void *p, void *q, int badness, int *color)
         static char buf[15];
         float ipc = 0.0;
 
-	if (sstat->cpu.all.cycle)
+	switch (sstat->cpu.all.cycle)
 	{
-		ipc = sstat->cpu.all.instr * 100 / sstat->cpu.all.cycle / 100.0;
-        	sprintf(buf, "ipc %8.2f", ipc);
-	}
-	else
-	{
+	   case 0:
 		*color = COLORINFO;
         	sprintf(buf, "ipc notavail");
+		break;
+
+	   case 1:
+		*color = COLORINFO;
+        	sprintf(buf, "ipc  initial");
+		break;
+
+	   default:
+		ipc = sstat->cpu.all.instr * 100 / sstat->cpu.all.cycle / 100.0;
+        	sprintf(buf, "ipc %8.2f", ipc);
 	}
 
         return buf;
@@ -868,11 +874,26 @@ sysprt_CPUIIPC(void *p, void *q, int badness, int *color)
         static char buf[15];
         float ipc = 0.0;
 
-	if (sstat->cpu.cpu[as->index].cycle)
-		ipc = sstat->cpu.cpu[as->index].instr * 100 /
+	switch (sstat->cpu.all.cycle)
+	{
+	   case 0:
+		*color = COLORINFO;
+        	sprintf(buf, "ipc notavail");
+		break;
+
+	   case 1:
+		*color = COLORINFO;
+        	sprintf(buf, "ipc  initial");
+		break;
+
+	   default:
+		if (sstat->cpu.cpu[as->index].cycle)
+			ipc = sstat->cpu.cpu[as->index].instr * 100 /
 				sstat->cpu.cpu[as->index].cycle / 100.0;
 
-        sprintf(buf, "ipc %8.2f", ipc);
+        	sprintf(buf, "ipc %8.2f", ipc);
+	}
+
         return buf;
 }
 
@@ -885,7 +906,23 @@ sysprt_CPUCYCLE(void *p, void *q, int badness, int *color)
         extraparam *as=q;
         static char buf[15] = "cycl ";
 
-        val2Hzstr(sstat->cpu.all.cycle/1000000/as->nsecs/sstat->cpu.nrcpu, buf+5);
+	switch (sstat->cpu.all.cycle)
+	{
+	   case 0:
+		*color = COLORINFO;
+        	sprintf(buf+5, "unknown");
+		break;
+
+	   case 1:
+		*color = COLORINFO;
+        	sprintf(buf+5, "initial");
+		break;
+
+	   default:
+        	val2Hzstr(sstat->cpu.all.cycle/1000000/as->nsecs/
+						sstat->cpu.nrcpu, buf+5);
+	}
+
         return buf;
 }
 
@@ -898,7 +935,23 @@ sysprt_CPUICYCLE(void *p, void *q, int badness, int *color)
         extraparam *as=q;
         static char buf[15] = "cycl ";
 
-        val2Hzstr(sstat->cpu.cpu[as->index].cycle/1000000/as->nsecs, buf+5);
+	switch (sstat->cpu.all.cycle)
+	{
+	   case 0:
+		*color = COLORINFO;
+        	sprintf(buf+5, "unknown");
+		break;
+
+	   case 1:
+		*color = COLORINFO;
+        	sprintf(buf+5, "initial");
+		break;
+
+	   default:
+        	val2Hzstr(sstat->cpu.cpu[as->index].cycle/1000000/
+							as->nsecs, buf+5);
+	}
+
         return buf;
 }
 
