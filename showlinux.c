@@ -783,7 +783,11 @@ init_proc_prints()
 
 		if ( strlen(idprocpdefs[i]->head) < numdigits)
 		{
-			char *p = malloc(numdigits) + 1;
+			char *p = malloc(numdigits + 1);
+
+			ptrverify(p,
+				"Malloc failed for formatted header\n",
+				numdigits + 1);
 
 			sprintf(p, "%*s", numdigits, idprocpdefs[i]->head);
 			idprocpdefs[i]->head = p;
