@@ -68,6 +68,7 @@ netlink_open(void)
 		&cpudef, strlen(cpudef)+1) == -1)
 	{
 		fprintf(stderr, "register cpumask failed\n");
+		close(nlsock);
 		return -1;
 	}
 
@@ -152,6 +153,7 @@ nlsock_open(void)
 									== -1)
 	{
 		perror("set length receive buffer");
+		close(nlsock);
 		exit(1);
 	}
 
