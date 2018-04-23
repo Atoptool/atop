@@ -32,7 +32,6 @@ VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 all: 		atop atopsar atopacctd
 
 atop:		atop.o    $(ALLMODS) Makefile
-		./mkdate
 		$(CC) -c version.c
 		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt $(LDFLAGS)
 
@@ -161,6 +160,9 @@ genericinstall:	atop atopacctd
 		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 
 ##########################################################################
+
+versdate.h:
+		./mkdate
 
 atop.o:		atop.h	photoproc.h photosyst.h  acctproc.h showgeneric.h
 atopsar.o:	atop.h	photoproc.h photosyst.h                           
