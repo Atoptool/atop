@@ -364,11 +364,11 @@ main(int argc, char *argv[])
 	}
 
 	/*
- 	** create directory to store the shadow files
+	** create directory to store the shadow files
 	*/
 	snprintf(shadowdir, sizeof shadowdir, "%s/%s", pacctdir, PACCTSHADOWD);
 
-	if ( mkdir(shadowdir, 0755) == -1)
+	if ( mkdir(shadowdir, 0755) == -1 && errno != EEXIST)
        	{
 		perror(shadowdir);
 		exit(6);
