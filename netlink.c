@@ -109,7 +109,7 @@ nlsock_getfam(int nlsock)
 
         if ( (len = recv(nlsock, &msg, sizeof msg, 0)) == -1)
 	{
-		perror("receive NETLINK family");
+		perror("receive NETLINK family for taskstats");
 		exit(1);
 	}
 
@@ -117,9 +117,10 @@ nlsock_getfam(int nlsock)
 	{
 		struct nlmsgerr *err = NLMSG_DATA(&msg);
 
-		fprintf(stderr, "receive NETLINK family, errno %d\n",
-                                err->error);
+		/* nlmsgerr holds a negative errno */
+		errno = -err->error;
 
+		perror("get NETLINK family for taskstats");
 		exit(1);
 	}
 
