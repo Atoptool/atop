@@ -119,11 +119,12 @@ int		netlink_recv(int, int);		// from netlink.c
 int
 main(int argc, char *argv[])
 {
-	int			i, nfd, afd, sfd;
-	int			parentpid;
+	int			i, rv, nfd, afd, sfd;
 	struct stat		dirstat;
 	struct rlimit		rlim;
 	FILE			*pidf;
+	int			readypipe[2];
+	int8_t			ready;
 
 	struct sembuf		semincr = {0, +1, SEM_UNDO};
 
@@ -262,19 +263,16 @@ main(int argc, char *argv[])
 	}
 
 	/*
- 	** prepare cleanup signal handler
-	*/
-	memset(&sigcleanup, 0, sizeof sigcleanup);
-	sigcleanup.sa_handler	= cleanup;
-	sigemptyset(&sigcleanup.sa_mask);
-	/*
 	** daemonize this process
 	** i.e. be sure that the daemon is no session leader (any more)
 	** and get rid of a possible bad context that might have been
 	** inherited from ancestors
 	*/
-	parentpid = getpid();		// to be killed when initialized
-	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
+	if ( pipe(readypipe) == -1)
+	{
+		perror("cannot create readiness pipe");
+		exit(4);
+	}
 
 	rv = fork();
 
@@ -288,13 +286,23 @@ main(int argc, char *argv[])
 	{
 		/*
 		** parent after forking first child:
-		** wait for signal 15 from child before terminating
-		** because systemd expects parent to terminate whenever
-		** service is up and running
+		** wait for message from child before terminating
+		** because dependent services need parent to terminate
+		** whenever service is up and running
 		*/
-		pause();		// wait for signal from child
-		exit(0);		// finish parent
+
+		(void) close(readypipe[1]);	// close write end of pipe
+
+		rv = read(readypipe[0], &ready, sizeof(ready));
+
+		if (rv == sizeof(ready))
+			exit(0);		// service is ready now
+		else
+			exit(4);		// service exited
 	}
+
+	(void) close(readypipe[0]);	// close read end of pipe
+	readypipe[0] = -1;
 
 	setsid();			// become session leader to lose ctty
 
@@ -327,7 +335,6 @@ main(int argc, char *argv[])
 	if ( semop(semprv, &semincr, 1) == -1)
        	{
 		perror("cannot increment private semaphore");
-		kill(parentpid, SIGTERM);
 		exit(5);
 	}
 
@@ -342,7 +349,6 @@ main(int argc, char *argv[])
 	if ( (afd = creat(accountpath, 0600)) == -1)
        	{
 		perror(accountpath);
-		kill(parentpid, SIGTERM);
 		exit(6);
 	}
 
@@ -354,7 +360,6 @@ main(int argc, char *argv[])
 	if ( (afd = open(accountpath, O_RDONLY)) == -1)
        	{
 		perror(accountpath);
-		kill(parentpid, SIGTERM);
 		exit(6);
 	}
 
@@ -366,7 +371,6 @@ main(int argc, char *argv[])
 	if ( mkdir(shadowdir, 0755) == -1)
        	{
 		perror(shadowdir);
-		kill(parentpid, SIGTERM);
 		exit(6);
 	}
 
@@ -392,7 +396,6 @@ main(int argc, char *argv[])
 	if ( (nfd = netlink_open()) == -1)
 	{
 		(void) unlink(accountpath);
-		kill(parentpid, SIGTERM);
 		exit(6);
 	}
 
@@ -402,7 +405,6 @@ main(int argc, char *argv[])
 	if ( swonpacct(afd, accountpath) == -1)
 	{
 		(void) unlink(accountpath);
-		kill(parentpid, SIGTERM);
 		exit(7);
 	}
 
@@ -412,6 +414,10 @@ main(int argc, char *argv[])
 	** signal handling
 	*/
 	(void) signal(SIGHUP, SIG_IGN);
+
+	memset(&sigcleanup, 0, sizeof sigcleanup);
+	sigcleanup.sa_handler	= cleanup;
+	sigemptyset(&sigcleanup.sa_mask);
 
 	(void) sigaction(SIGINT,  &sigcleanup, (struct sigaction *)0);
 	(void) sigaction(SIGQUIT, &sigcleanup, (struct sigaction *)0);
@@ -427,9 +433,11 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** terminate parent: service  initialized
+	** notify parent: service  initialized
 	*/
-	kill(parentpid, SIGTERM);
+	ready = 1;
+	(void) write(readypipe[1], &ready, sizeof(ready));
+	(void) close(readypipe[1]);
 
 	/*
 	** main loop
