@@ -262,8 +262,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: showlinux.c,v 1.70 2010/10/23 14:04:12 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>

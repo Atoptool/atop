@@ -98,8 +98,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: various.c,v 1.21 2010/11/12 06:16:16 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
