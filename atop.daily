@@ -4,6 +4,7 @@ CURDAY=`date +%Y%m%d`
 LOGPATH=/var/log/atop
 BINPATH=/usr/bin
 PIDFILE=/var/run/atop.pid
+DEFAULTSFILE=/etc/default/atop
 INTERVAL=600				# interval 10 minutes
 
 # verify if atop still runs for daily logging
@@ -29,6 +30,11 @@ then
 	rm $PIDFILE
 fi
 
+ATOPOPTS="-R"
+if [ -e "$DEFAULTSFILE" ]; then
+	. "$DEFAULTSFILE"
+fi
+
 # delete logfiles older than four weeks
 # start a child shell that activates another child shell in
 # the background to avoid a zombie
@@ -38,4 +44,4 @@ fi
 # activate atop with interval of 10 minutes, replacing the current shell
 #
 echo $$ > $PIDFILE
-exec $BINPATH/atop -R -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1
+exec $BINPATH/atop $ATOPOPTS -w $LOGPATH/atop_$CURDAY $INTERVAL > $LOGPATH/daily.log 2>&1
