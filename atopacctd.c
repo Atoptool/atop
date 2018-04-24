@@ -267,7 +267,6 @@ main(int argc, char *argv[])
 	memset(&sigcleanup, 0, sizeof sigcleanup);
 	sigcleanup.sa_handler	= cleanup;
 	sigemptyset(&sigcleanup.sa_mask);
-
 	/*
 	** daemonize this process
 	** i.e. be sure that the daemon is no session leader (any more)
@@ -277,10 +276,18 @@ main(int argc, char *argv[])
 	parentpid = getpid();		// to be killed when initialized
 	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
-	if ( fork() )			// implicitly switch to background
-   	{
+	rv = fork();
+
+	if (rv == -1)
+	{
+		perror("cannot create process");
+		exit(4);
+	}
+
+	if (rv > 0)
+	{
 		/*
- 		** parent after forking first child:
+		** parent after forking first child:
 		** wait for signal 15 from child before terminating
 		** because systemd expects parent to terminate whenever
 		** service is up and running
@@ -291,7 +298,15 @@ main(int argc, char *argv[])
 
 	setsid();			// become session leader to lose ctty
 
-	if ( fork() )			// finish parent; continue in child
+	rv = fork();			// finish parent; continue in child
+
+	if (rv == -1)
+	{
+		perror("cannot create process");
+		exit(4);
+	}
+
+	if (rv > 0)
 		exit(0);		// --> no session leader, no ctty
 
 	getrlimit(RLIMIT_NOFILE, &rlim);
@@ -313,7 +328,7 @@ main(int argc, char *argv[])
        	{
 		perror("cannot increment private semaphore");
 		kill(parentpid, SIGTERM);
-		exit(4);
+		exit(5);
 	}
 
 	/*
@@ -328,7 +343,7 @@ main(int argc, char *argv[])
        	{
 		perror(accountpath);
 		kill(parentpid, SIGTERM);
-		exit(5);
+		exit(6);
 	}
 
 	(void) close(afd);
@@ -340,7 +355,7 @@ main(int argc, char *argv[])
        	{
 		perror(accountpath);
 		kill(parentpid, SIGTERM);
-		exit(5);
+		exit(6);
 	}
 
 	/*
@@ -352,7 +367,7 @@ main(int argc, char *argv[])
        	{
 		perror(shadowdir);
 		kill(parentpid, SIGTERM);
-		exit(5);
+		exit(6);
 	}
 
 	sfd = createshadow(curshadow);
@@ -378,7 +393,7 @@ main(int argc, char *argv[])
 	{
 		(void) unlink(accountpath);
 		kill(parentpid, SIGTERM);
-		exit(5);
+		exit(6);
 	}
 
 	/*
@@ -388,7 +403,7 @@ main(int argc, char *argv[])
 	{
 		(void) unlink(accountpath);
 		kill(parentpid, SIGTERM);
-		exit(6);
+		exit(7);
 	}
 
 	syslog(LOG_INFO, "accounting to %s", accountpath);
