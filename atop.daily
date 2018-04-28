@@ -8,13 +8,13 @@ INTERVAL=600				# interval 10 minutes
 
 # verify if atop still runs for daily logging
 #
-if [ -e $PIDFILE ] && ps -p `cat $PIDFILE` | grep 'atop$' > /dev/null
+if [ -e $PIDFILE ] && ps | grep `cat $PIDFILE` > /dev/null
 then
 	kill -USR2 `cat $PIDFILE`       # final sample and terminate
 
 	CNT=0
 
-	while ps -p `cat $PIDFILE` > /dev/null
+	while ps | grep `cat $PIDFILE` > /dev/null
 	do
 		let CNT+=1
 
