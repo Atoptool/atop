@@ -1,4 +1,4 @@
-.TH ATOP 1 "December 2017" "Linux"
+.TH ATOP 1 "June 2018" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -859,11 +859,29 @@ This scripts takes care that
 .B atop
 is activated every day at midnight to write compressed binary data to the file
 .BI /var/log/atop/atop_ YYYYMMDD
-with an interval of 10 minutes.
+with an interval of 10 minutes by default. The
+.B -R
+flag is passed by default to gather information about the proportional
+set size of every process.
 .br
-Furthermore the script removes all raw files which are older than four weeks.
+Furthermore the script removes all raw files which are by default
+older than 28 days.
 .br
-The script is activated via the
+The mentioned default values can be overruled by creating the file
+.B /etc/default/atop
+that might contain other values for
+.B LOGOPTS
+(by default the
+.B -R
+flag), 
+.B LOGINTERVAL
+(in seconds, by default 600), and
+.B LOGGENERATIONS
+(in days, by default 28).
+.PP
+The
+.B atop.daily
+script is activated via the
 .B cron
 daemon using the file
 .I /etc/cron.d/atop
@@ -2092,6 +2110,25 @@ Configuration file containing personal default values.
 See related man-page.
 .PP
 .TP 5
+.B /etc/default/atop
+Configuration file to overrule the settings of
+.I atop
+that runs in the background to create the daily logfile.
+This file is not created or overwritten when
+.I atop
+is installed, so it has to be created manually to override
+the default settings.
+The default settings are:
+.TP 8
+\ 
+.br
+LOGOPTS="-R"
+.br
+LOGINTERVAL=600
+.br
+LOGGENERATIONS=28
+.PP
+.TP 5
 .BI /var/log/atop/atop_ YYYYMMDD
 Raw file, where
 .I YYYYMMDD
@@ -2123,7 +2160,7 @@ after reading the standard process accounting records.
 .B netatopd(8),
 .B logrotate(8)
 .br
-.B http://www.atoptool.nl
+.B https://www.atoptool.nl
 .SH AUTHOR
 Gerlof Langeveld (gerlof.langeveld@atoptool.nl)
 .br
