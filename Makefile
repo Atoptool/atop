@@ -45,8 +45,7 @@ netlink.o:	netlink.c
 		$(CC) -I. -Wall -c netlink.c
 
 clean:
-		rm -f *.o
-		rm atop atopacctd
+		rm -f *.o atop atopacctd
 
 distr:
 		rm -f *.o atop
