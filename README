@@ -1,3 +1,16 @@
+DEPENDENCIES
+
+Install the following packages to be able to build atop:
+
+* zlib-devel     or  libz-dev          (depending on the distribution)
+* ncurses-devel  or  libncurses5-dev   (depending on the distribution)
+
+Install the following packages to be able to run atop:
+
+* zlib
+* ncurses
+
+
 INSTALLING AND USING ATOP
 
 For interactive use, it is sufficient to install ATOP with the command
