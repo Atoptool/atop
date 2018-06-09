@@ -2,7 +2,7 @@ Name:           atop
 Version:        XVERSX
 Release:        XRELX
 Source0:        %{name}-%{version}.tar.gz
-URL:            http://www.atoptool.nl
+URL:            https://www.atoptool.nl
 Packager:       Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
 Summary:        Advanced System and Process Monitor
 License:        GPL
