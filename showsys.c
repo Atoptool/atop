@@ -351,7 +351,7 @@ sysprt_PRCNPROC(void *notused, void *q, int badness, int *color)
 {
         extraparam *as=q;
         static char buf[15]="#proc     ";
-        val2valstr(as->nproc, buf+6, 6, 0, 0);
+        val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
         return buf;
 }
 
