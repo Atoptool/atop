@@ -804,7 +804,7 @@ If this file already exists and is recognized as a raw data file,
 will append new samples to the file (starting with a sample which reflects
 the activity since boot); if the file does not exist, it will be created.
 .br
-All processes/threads are stored in the raw file. 
+All information about processes/threads is stored in the raw file. 
 .br
 The interval (default: 10 seconds) and number of samples (default: infinite)
 can be passed as last arguments. Instead of the number of samples, the flag
@@ -906,6 +906,22 @@ is restarted again after the rotation.
 When the package
 .B psacct
 is not installed, these logrotate-files have no effect.
+.PP
+Unfortunately, it is not possible to keep the format of the raw files
+compatible in newer versions of
+.B atop
+especially when lots of new counters have to be maintained.
+Therefore, the program
+.B atopconvert
+is available in the package to convert a raw file created by an older
+version of
+.B atop
+to a raw file that can be read by a newer version of
+.B atop
+(see the man page of 
+.B atopconvert
+for more details).
+
 .SH OUTPUT DESCRIPTION
 The first sample shows the system level activity since boot
 (the elapsed time in the header shows the time since boot).
@@ -2154,6 +2170,7 @@ daemon and read by
 after reading the standard process accounting records.
 .SH SEE ALSO
 .B atopsar(1),
+.B atopconvert(1),
 .B atoprc(5),
 .B atopacctd(8),
 .B netatop(4),
