@@ -29,7 +29,7 @@ ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
-all: 		atop atopsar atopacctd
+all: 		atop atopsar atopacctd atopconvert
 
 atop:		atop.o    $(ALLMODS) Makefile
 		$(CC) -c version.c
@@ -40,6 +40,9 @@ atopsar:	atop
 
 atopacctd:	atopacctd.o netlink.o
 		$(CC) atopacctd.o netlink.o -o atopacctd $(LDFLAGS)
+
+atopconvert:	atopconvert.o
+		$(CC) atopconvert.o -o atopconvert -lz $(LDFLAGS)
 
 netlink.o:	netlink.c
 		$(CC) -I. -Wall -c netlink.c
@@ -118,7 +121,7 @@ sysvinstall:	genericinstall
 			/sbin/service atop     start;			\
 		fi
 
-genericinstall:	atop atopacctd
+genericinstall:	atop atopacctd atopconvert
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(BINPATH) ]; 		\
@@ -147,10 +150,14 @@ genericinstall:	atop atopacctd
 		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopacctd
 		cp atop   		$(DESTDIR)$(BINPATH)/atop-$(VERS)
 		ln -sf atop-$(VERS)     $(DESTDIR)$(BINPATH)/atopsar-$(VERS)
+		cp atopconvert 		$(DESTDIR)$(BINPATH)/atopconvert
+		chown root		$(DESTDIR)$(BINPATH)/atopconvert
+		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
 		cp atop.daily    	$(DESTDIR)$(SCRPATH)
 		chmod 0711 	 	$(DESTDIR)$(SCRPATH)/atop.daily
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
+		cp man/atopconvert.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
 		cp psaccs_atop   	$(DESTDIR)$(ROTPATH)/psaccs_atop
@@ -182,3 +189,5 @@ showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 version.o:	version.c version.h versdate.h
 
 atopacctd.o:	atop.h  photoproc.h acctproc.h   atopacctd.h   version.h versdate.h
+
+atopconvert.o:	atop.h  photoproc.h photosyst.h
