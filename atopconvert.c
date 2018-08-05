@@ -9,9 +9,9 @@
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
-** Date:        July 2018
+** Date:        July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2018 Gerlof Langeveld
+** Copyright (C) 2018 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
