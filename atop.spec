@@ -1,0 +1,1 @@
+rpmspec/atop.specsystemd
