@@ -492,8 +492,6 @@ main(int argc, char *argv[])
 {
 	int			ifd, ofd;
 	struct rawheader	irh, orh;
-	struct rawrecord	rr;
-	float			iversion;
 	int			i, versionix, targetix = -1;
 	int			c, major, minor, targetvers;
 	char			*infile, *outfile;
@@ -657,6 +655,8 @@ main(int argc, char *argv[])
 	// copy and convert every sample
 	//
 	convert_samples(ifd, ofd, &irh, versionix, targetix);
+
+	return 0;
 }
 
 //
@@ -667,7 +667,6 @@ static void
 convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 {
 	struct rawrecord	irr, orr;
-	struct tstat		*taskall;
 	int			i, t;
 	count_t			count = 0;
 
@@ -885,7 +884,7 @@ prusage(char *name)
 	fprintf(stderr,
 		"Usage: %s [-t version] rawinput rawoutput\n", name);
 	fprintf(stderr,
-		"\t\t-t version      target version (default: %d.%d)\n",
+		"\t\t-t version      target version (default: %d.%d) for output\n",
 			(convs[numconvs-1].version >> 8) & 0x7f,
 			 convs[numconvs-1].version  & 0x7f);
 
