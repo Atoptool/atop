@@ -589,10 +589,15 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int i, exitcode;
 
 	for (i=0; i < nact; i++, ps++)
 	{
+		if (ps->gen.excode & 0xff)	// killed by signal?
+			exitcode = (ps->gen.excode & 0x7f) + 256;
+		else
+			exitcode = (ps->gen.excode >>   8) & 0xff;
+
 		printf("%s %d (%s) %c %d %d %d %d %d %ld (%s) %d %d %d %d "
  		       "%d %d %d %d %d %d %ld %c %d %d %s\n",
 			hp,
@@ -603,7 +608,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.rgid,
 			ps->gen.tgid,
 			ps->gen.nthr,
-			ps->gen.excode,
+			exitcode,
 			ps->gen.btime,
 			ps->gen.cmdline,
 			ps->gen.ppid,

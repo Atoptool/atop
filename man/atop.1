@@ -1975,7 +1975,7 @@ Subsequent fields:
 PID (unique ID of task), name (between brackets), state,
 real uid, real gid, TGID (group number of related tasks/threads),
 total number of threads,
-exit code, start time (epoch),
+exit code (in case of fatal signal: signal number + 256), start time (epoch),
 full command line (between brackets), PPID,
 number of threads in state 'running' (R),
 number of threads in state 'interruptible sleeping' (S),
