@@ -2057,6 +2057,18 @@ TGID (group number of related tasks/threads) and is_process (y/n).
 .br
 If the kernel module is not active, the network I/O counters
 per process are not relevant.
+.SH SIGNALS
+By sending the SIGUSR1 signal to
+.I atop
+a new sample will be forced, even if the current timer interval
+has not exceeded yet. The behavior is similar to pressing the `t` key
+in an interactive session.
+.PP
+By sending the SIGUSR2 signal to
+.I atop
+a final sample will be forced after which
+.I atop
+will terminate.
 .SH EXAMPLES
 To monitor the current system load interactively with an interval of 5 seconds:
 .PP
