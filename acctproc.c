@@ -113,8 +113,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: acctproc.c,v 1.28 2010/04/23 12:20:19 gerlof Exp $";
-
 #define	_FILE_OFFSET_BITS	64
 
 #include <sys/types.h>
