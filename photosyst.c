@@ -292,10 +292,16 @@ photosyst(struct sstat *si)
 	memset(si, 0, sizeof(struct sstat));
 
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-		cleanstop(53);
+        {
+                perror("save current dir");
+                cleanstop(53);
+        }
 
 	if ( chdir("/proc") == -1)
-		cleanstop(53);
+        {
+                perror("change to /proc");
+                cleanstop(54);
+        }
 
 	/*
 	** gather various general statistics from the file /proc/stat and
@@ -1375,7 +1381,10 @@ photosyst(struct sstat *si)
  	** return to original directory
 	*/
 	if ( chdir(origdir) == -1)
-		cleanstop(53);
+        {
+                perror(origdir);
+                cleanstop(55);
+        }
 
 #ifndef	NOPERFEVENT
 	/*

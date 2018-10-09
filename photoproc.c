@@ -225,10 +225,16 @@ photoproc(struct tstat *tasklist, int maxtask)
 	** read all subdirectory-names below the /proc directory
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
+	{
+		perror("save current dir");
 		cleanstop(53);
+	}
 
 	if ( chdir("/proc") == -1)
-		cleanstop(53);
+	{
+		perror("change to /proc");
+		cleanstop(54);
+	}
 
 	dirp = opendir(".");
 
@@ -372,7 +378,10 @@ photoproc(struct tstat *tasklist, int maxtask)
 	closedir(dirp);
 
 	if ( chdir(origdir) == -1)
-		cleanstop(53);
+	{
+		perror(origdir);
+		cleanstop(55);
+	}
 
 	if (dockstat)
 		supportflags |= DOCKSTAT;
@@ -394,10 +403,16 @@ countprocs(void)
 	char		origdir[1024];
 
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-		cleanstop(53);
+	{
+		perror("save current dir");
+		cleanstop(56);
+	}
 
 	if ( chdir("/proc") == -1)
-		cleanstop(53);
+	{
+		perror("change to /proc");
+		cleanstop(54);
+	}
 
 	dirp = opendir(".");
 
@@ -413,7 +428,10 @@ countprocs(void)
 	closedir(dirp);
 
 	if ( chdir(origdir) == -1)
-		cleanstop(53);
+	{
+		perror(origdir);
+		cleanstop(55);
+	}
 
 	return nr;
 }
