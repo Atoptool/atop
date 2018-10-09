@@ -1,0 +1,5 @@
+*.o
+atop
+atopacctd
+atopconvert
+versdate.h
