@@ -1,5 +1,6 @@
 *.o
 atop
+atopsar
 atopacctd
 atopconvert
 versdate.h
