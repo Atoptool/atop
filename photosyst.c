@@ -184,9 +184,6 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 
 #define	MAXCNT	64
 
-#define MAJOR(x)        ((((unsigned long long)x>>8)&0xfff)|((unsigned int)((unsigned long long)x>>32)&~0xfff))
-#define MINOR(x)        ((x&0xff)|((unsigned int)((unsigned long long)x>>12)&~0xff))
-
 /* return value of isdisk() */
 #define	NONTYPE	0
 #define	DSKTYPE	1
@@ -1482,8 +1479,8 @@ lvmmapname(unsigned int major, unsigned int minor,
 				*/
 				strncpy(dmp->name, dentry->d_name, MAXDKNAM);
 				dmp->name[MAXDKNAM-1] = 0;
-				dmp->major 	= MAJOR(statbuf.st_rdev);
-				dmp->minor 	= MINOR(statbuf.st_rdev);
+				dmp->major 	= major(statbuf.st_rdev);
+				dmp->minor 	= minor(statbuf.st_rdev);
 
 				hashix = DMHASH(dmp->major, dmp->minor);
 
