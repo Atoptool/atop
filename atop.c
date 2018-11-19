@@ -891,7 +891,7 @@ engine(void)
 			curpexit = malloc(nprocexit * sizeof(struct tstat));
 
 			ptrverify(curpexit,
-			          "Malloc failed for %d exited processes\n",
+			          "Malloc failed for %u exited processes\n",
 			          nprocexit);
 
 			memset(curpexit, 0, nprocexit * sizeof(struct tstat));
