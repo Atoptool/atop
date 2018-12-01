@@ -724,12 +724,11 @@ engine(void)
 
 	static struct devtstat	devtstat;	/* deviation info	     */
 
-	unsigned int		ntaskpres;	/* number of tasks present   */
-	unsigned int		nprocexit;	/* number of exited procs    */
-	unsigned int		nprocexitnet;	/* number of exited procs    */
+	unsigned long		ntaskpres;	/* number of tasks present   */
+	unsigned long		nprocexit;	/* number of exited procs    */
+	unsigned long		nprocexitnet;	/* number of exited procs    */
 						/* via netatopd daemon       */
-
-	unsigned int		noverflow;
+	unsigned long		noverflow;
 
 	/*
 	** initialization: allocate required memory dynamically
@@ -914,6 +913,15 @@ engine(void)
 		/*
 		** calculate deviations
 		*/
+#ifdef DEBUGNRPROC
+		if (ntaskpres > 100000 || nprocexit > 100000)
+		{
+			fprintf(stderr, "ntaskpres: %lu, nprocexit: %lu\n",
+				ntaskpres, nprocexit);
+			exit(1);
+		}
+#endif
+			
 		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
 		                      &devtstat, devsstat);
 

@@ -482,7 +482,17 @@ acctswon(void)
 	/*
 	** determine version of accounting-record
 	*/ 
-	(void) fstat(acctfd, &statbuf);
+	if (fstat(acctfd, &statbuf) == -1)
+	{
+		(void) acct(0);
+		(void) close(acctfd);
+		(void) unlink(ACCTDIR "/" ACCTFILE);
+		(void) rmdir(ACCTDIR);
+
+		acctfd = -1;
+		return 1;
+
+	}
 
 	if (statbuf.st_size == 0)	/* no acct record written yet */
 	{
@@ -655,7 +665,8 @@ acctprocnt(void)
 	/*
 	** determine the current size of the accounting file
 	*/
-	(void) fstat(acctfd, &statacc);
+	if (fstat(acctfd, &statacc) == -1)
+		return 0;
 
 	/*
  	** handle atopacctd-based process accounting on bases of
@@ -781,7 +792,7 @@ acctrepos(unsigned int noverflow)
 ** read the process records from the process accounting file,
 ** that are written since the previous cycle
 */
-int
+unsigned long
 acctphotoproc(struct tstat *accproc, int nrprocs)
 {
 	register int 		nrexit;
@@ -800,7 +811,8 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	** determine the size of the (current) account file
 	** and the current offset within that file
 	*/
-	(void) fstat(acctfd, &statacc);
+	if (fstat(acctfd, &statacc) == -1)
+		return 0;
 
 	/*
 	** check all exited processes in accounting file
@@ -810,7 +822,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	{
 		/*
 		** in case of shadow accounting files, we might have to
-		** switch from the current accouting file to the next
+		** switch from the current accounting file to the next
 		*/
 		if (maxshadowrec && acctsize >= statacc.st_size)
 		{
@@ -820,7 +832,8 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			** determine the size of the new (current) account file
 			** and initialize the current offset within that file
 			*/
-			(void) fstat(acctfd, &statacc);
+			if (fstat(acctfd, &statacc) == -1)
+				return 0;
 
 			acctsize  = 0;
 		}

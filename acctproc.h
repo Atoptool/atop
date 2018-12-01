@@ -24,7 +24,7 @@
 int 		acctswon(void);
 void		acctswoff(void);
 unsigned long 	acctprocnt(void);
-int 		acctphotoproc(struct tstat *, int);
+unsigned long	acctphotoproc(struct tstat *, int);
 void 		acctrepos(unsigned int);
 
 /*

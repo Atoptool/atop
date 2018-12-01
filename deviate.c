@@ -196,8 +196,8 @@ static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 ** calculate the process-activity during the last sample
 */
 void
-deviattask(struct tstat    *curtpres, int ntaskpres,
-           struct tstat    *curpexit, int nprocexit,
+deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
+           struct tstat    *curpexit, unsigned long nprocexit,
 	   struct devtstat *devtstat,
 	   struct sstat    *devsstat)
 {

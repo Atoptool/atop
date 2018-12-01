@@ -161,9 +161,9 @@ int		pdb_srchresidue(struct tstat *, struct pinfo **);
 */
 struct netpertask;
 
-void		deviattask(struct tstat *, int,
-		           struct tstat *, int, 
+void		deviattask(struct tstat *, unsigned long,
+		           struct tstat *, unsigned long, 
 		           struct devtstat *, struct sstat *);
 
-int		photoproc(struct tstat *, int);
-unsigned int	countprocs(void);
+unsigned long	photoproc(struct tstat *, int);
+unsigned long	countprocs(void);

@@ -167,7 +167,7 @@ static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 
-int
+unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
 {
 	static int			firstcall = 1;
@@ -179,7 +179,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 	DIR		*dirp;
 	struct dirent	*entp;
 	char		origdir[1024], dockstat=0;
-	int		tval=0;
+	unsigned long	tval=0;
 
 	/*
 	** one-time initialization stuff
@@ -392,10 +392,10 @@ photoproc(struct tstat *tasklist, int maxtask)
 /*
 ** count number of processes currently running
 */
-unsigned int
+unsigned long
 countprocs(void)
 {
-	unsigned int	nr=0;
+	unsigned long	nr=0;
 	DIR		*dirp;
 	struct dirent	*entp;
 	char		origdir[1024];
