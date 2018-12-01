@@ -243,7 +243,7 @@ deviattask(struct tstat    *curtpres, int ntaskpres,
  	devtstat->ntaskall = ntaskpres + nprocexit;
 	devtstat->taskall  = malloc(devtstat->ntaskall * sizeof(struct tstat));
 
-	ptrverify(devtstat->taskall, "Malloc failed for %d deviated tasks\n",
+	ptrverify(devtstat->taskall, "Malloc failed for %lu deviated tasks\n",
                                   devtstat->ntaskall);
 
 	/*
