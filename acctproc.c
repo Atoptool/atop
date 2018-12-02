@@ -685,6 +685,13 @@ acctprocnt(void)
 		*/
 		numrecs = (statacc.st_size - acctsize) / acctrecsz;
 
+#ifdef DEBUGNRPROC
+                if ((statacc.st_size - acctsize) / acctrecsz > 100000)
+                {
+                        fprintf(stderr, "atopacctd cur: st_size: %ld, acctsize: %ld\n",
+                                statacc.st_size, acctsize);
+                }
+#endif
 		/*
 		** verify if subsequent shadow files are involved
 		** (i.e. if the current file is full)
@@ -713,6 +720,13 @@ acctprocnt(void)
 		}
 		else
 		{
+#ifdef DEBUGNRPROC
+	                if (numrecs > 100000)
+       	         	{
+                        	fprintf(stderr, "atopacctd no shpath: numrecs: %ld\n", numrecs);
+                	}
+#endif
+
 			return numrecs;
 		}
 
@@ -725,11 +739,18 @@ acctprocnt(void)
 		/*
 		** determine the size of newest shadow file
 		*/
-		(void) stat(shadowpath, &statacc);
+		if (stat(shadowpath, &statacc) == -1)
+			return numrecs;
 
 		numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
 		           (statacc.st_size / acctrecsz);
 
+#ifdef DEBUGNRPROC
+	        if (numrecs > 100000)
+       	        {
+                	fprintf(stderr, "atopacctd new shpath: numrecs: %ld, newseq: %ld\n", numrecs, newseq);
+                }
+#endif
 		return numrecs;
 	}
 	else
@@ -746,6 +767,14 @@ acctprocnt(void)
 			(void) lseek(acctfd, 0, SEEK_SET);
 			acctsize = 0;
 		}
+
+#ifdef DEBUGNRPROC
+                if ((statacc.st_size - acctsize) / acctrecsz > 100000)
+                {
+                        fprintf(stderr, "classic: st_size: %ld, acctsize: %ld\n",
+                                statacc.st_size, acctsize);
+                }
+#endif
 
 		return (statacc.st_size - acctsize) / acctrecsz;
 	}
