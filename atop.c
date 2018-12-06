@@ -646,14 +646,13 @@ main(int argc, char *argv[])
 
 	/*
 	** lock ATOP in memory to get reliable samples (also when
-	** memory is low);
-	** ignored if not running under superuser priviliges!
+	** memory is low and swapping is going on);
+	** ignored if not running under superuser privileges!
 	*/
 	rlim.rlim_cur	= RLIM_INFINITY;
 	rlim.rlim_max	= RLIM_INFINITY;
-	(void) setrlimit(RLIMIT_MEMLOCK, &rlim);
-
-	(void) mlockall(MCL_CURRENT|MCL_FUTURE);
+	if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
+		(void) mlockall(MCL_CURRENT|MCL_FUTURE);
 
 	/*
 	** increment CPU scheduling-priority to get reliable samples (also
