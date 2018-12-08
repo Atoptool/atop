@@ -1054,14 +1054,11 @@ testcompval(int rv, char *func)
 void
 ptrverify(const void *ptr, const char *errormsg, ...)
 {
-        va_list args;
-
-        va_start(args, errormsg);
-
         if (!ptr)
         {
                 va_list args;
-                fprintf(stderr, errormsg, args);
+                va_start(args, errormsg);
+                vfprintf(stderr, errormsg, args);
                 va_end  (args);
 
                 exit(13);
