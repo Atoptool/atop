@@ -912,15 +912,6 @@ engine(void)
 		/*
 		** calculate deviations
 		*/
-#ifdef DEBUGNRPROC
-		if (ntaskpres > 100000 || nprocexit > 100000)
-		{
-			fprintf(stderr, "ntaskpres: %lu, nprocexit: %lu\n",
-				ntaskpres, nprocexit);
-			exit(1);
-		}
-#endif
-			
 		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
 		                      &devtstat, devsstat);
 
