@@ -165,6 +165,8 @@
 #include <dirent.h>
 #include <sys/ioctl.h>
 
+#define SCALINGMAXCPU   8       // threshold for scaling info per CPU
+
 #ifndef	NOPERFEVENT
 #include <linux/perf_event.h>
 #include <asm/unistd.h>
@@ -444,8 +446,10 @@ photosyst(struct sstat *si)
         static char fn[80];
         int didone=0;
 
-        for (i = 0; i < si->cpu.nrcpu; ++i)
-        {
+	if (si->cpu.nrcpu <= SCALINGMAXCPU)
+	{
+            for (i = 0; i < si->cpu.nrcpu; ++i)
+            {
                 long long f=0;
 
                 sprintf(fn,
@@ -519,7 +523,8 @@ photosyst(struct sstat *si)
                                 si->cpu.cpu[i].freqcnt.ticks 	= 0;
                         }
                 }
-        } // for all CPUs
+            } // for all CPUs
+	}
 
         if (!didone)     // did not get processor freq statistics.
                          // use /proc/cpuinfo
