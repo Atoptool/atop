@@ -297,7 +297,7 @@
 #include "parseable.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
-#define	PROCCHUNK	100	/* process-entries for future expansion  */
+#define	SPARETASKS	100
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -717,7 +717,7 @@ engine(void)
 	/*
 	** reserve space for task-level statistics
 	*/
-	static struct tstat	*curtpres;	/* current present list      */
+	static struct tstat	*curtpres; 	/* current present list      */
 	static int		 curtlen;	/* size of present list      */
 	struct tstat		*curpexit;	/* exited process list	     */
 
@@ -736,13 +736,9 @@ engine(void)
 	presstat = calloc(1, sizeof(struct sstat));
 	devsstat = calloc(1, sizeof(struct sstat));
 
-	curtlen  = countprocs() * 3 / 2;	/* add 50% for threads */
-	curtpres = calloc(curtlen, sizeof(struct tstat));
-
 	ptrverify(cursstat, "Malloc failed for current sysstats\n");
 	ptrverify(presstat, "Malloc failed for prev    sysstats\n");
 	ptrverify(devsstat, "Malloc failed for deviate sysstats\n");
-	ptrverify(curtpres, "Malloc failed for %d procstats\n", curtlen);
 
 	/*
 	** install the signal-handler for ALARM, USR1 and USR2 (triggers
@@ -836,23 +832,21 @@ engine(void)
 		** during the last sample)
 		**
 		** first register active tasks
-		**  --> atop malloc's a minimal amount of space which is
-		**      only extended when needed
 		*/
-		memset(curtpres, 0, curtlen * sizeof(struct tstat));
+		curtpres  = NULL;
 
-		while ( (ntaskpres = photoproc(curtpres, curtlen)) == curtlen)
+		do
 		{
-			curtlen += PROCCHUNK;
-
-			curtpres = realloc(curtpres,
+			curtlen   = counttasks() + SPARETASKS;
+			curtpres  = realloc(curtpres,
 					curtlen * sizeof(struct tstat));
 
-			ptrverify(curtpres,
-			          "Realloc failed for %d tasks\n", curtlen);
+			ptrverify(curtpres, "Malloc failed for %d tstats\n",
+								curtlen);
 
 			memset(curtpres, 0, curtlen * sizeof(struct tstat));
 		}
+		while ( (ntaskpres = photoproc(curtpres, curtlen)) == curtlen);
 
 		/*
 		** register processes that exited during last sample;
@@ -930,6 +924,8 @@ engine(void)
 		if (nprocexit > 0)
 			free(curpexit);
 
+		free(curtpres);
+
 		if (nprocexitnet > 0)
 			netatop_exiterase();
 
@@ -941,7 +937,6 @@ engine(void)
 
 			/* set current (will be 'previous') counters to 0 */
 			memset(cursstat, 0,           sizeof(struct sstat));
-			memset(curtpres, 0, curtlen * sizeof(struct tstat));
 
 			/* remove all tasks in database */
 			pdb_makeresidue();

@@ -390,49 +390,36 @@ photoproc(struct tstat *tasklist, int maxtask)
 }
 
 /*
-** count number of processes currently running
+** count number of tasks in the system 
 */
 unsigned long
-countprocs(void)
+counttasks(void)
 {
 	unsigned long	nr=0;
-	DIR		*dirp;
-	struct dirent	*entp;
-	char		origdir[1024];
+	char		linebuf[256];
+	FILE		*fp;
 
-	if ( getcwd(origdir, sizeof origdir) == NULL)
+	/*
+	** determine total number of threads 
+	*/
+	if ( (fp = fopen("/proc/loadavg", "r")) != NULL)
 	{
-		perror("save current dir");
-		cleanstop(56);
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if ( sscanf(linebuf, "%*f %*f %*f %*d/%ld", &nr) < 1)
+				cleanstop(53);
+		}
+		else
+			cleanstop(53);
+
+		fclose(fp);
 	}
-
-	if ( chdir("/proc") == -1)
-	{
-		perror("change to /proc");
-		cleanstop(54);
-	}
-
-	dirp = opendir(".");
-
-	while ( (entp = readdir(dirp)) )
-	{
-		/*
-		** count subdirectory-names starting with a digit
-		*/
-		if (isdigit(entp->d_name[0]))
-			nr++;
-	}
-
-	closedir(dirp);
-
-	if ( chdir(origdir) == -1)
-	{
-		perror(origdir);
-		cleanstop(55);
-	}
+	else
+		cleanstop(53);
 
 	return nr;
 }
+
 
 /*
 ** open file "stat" and obtain required info
