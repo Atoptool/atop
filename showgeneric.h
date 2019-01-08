@@ -31,6 +31,8 @@ struct syscap {
 	count_t	availmem;
 	count_t	availdsk;
 	count_t	availnet;
+	int	nrgpu;
+	count_t	availgpumem; 	// GPU memory in Kb!
 };
 
 struct pselection {
@@ -79,6 +81,7 @@ struct sselection {
 #define	MPROCMEM	'm'
 #define	MPROCDSK	'd'
 #define	MPROCNET	'n'
+#define MPROCGPU	'e'
 #define	MPROCSCH	's'
 #define	MPROCVAR	'v'
 #define	MPROCARG	'c'
@@ -92,6 +95,7 @@ struct sselection {
 #define	MSORTDSK	'D'
 #define	MSORTMEM	'M'
 #define	MSORTNET	'N'
+#define MSORTGPU	'E'
 #define	MSORTAUTO	'A'
 
 #define	MTHREAD		'y'
@@ -144,7 +148,7 @@ void	showcmdproc(struct tstat *, double, int, int);
 
 void	printg     (const char *, ...);
 int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
-			char *, int, int, int, int, int, int, int);
+			char *, int, int, int, int, int, int, int, int);
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
 void	priphead(int, int, char *, char *, char);

@@ -211,6 +211,9 @@ rawwrite(time_t curtime, int numsecs,
 	if (supportflags & DOCKSTAT)
 		rr.flags |= RRDOCKSTAT;
 
+	if (supportflags & GPUSTAT)
+		rr.flags |= RRGPUSTAT;
+
 	if ( write(rawfd, &rr, sizeof rr) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
@@ -736,7 +739,14 @@ rawread(void)
 			else
 				supportflags &= ~DOCKSTAT;
 
+			if (rr.flags & RRGPUSTAT)
+				supportflags |=  GPUSTAT;
+			else
+				supportflags &= ~GPUSTAT;
+
 			flags = rr.flags & RRBOOT;
+
+			nrgpus = sstat.gpu.nrgpus;
 
 			(void) fstat(rawfd, &filestat);
 

@@ -21,6 +21,9 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+#ifndef __PHOTOSYST__
+#define __PHOTOSYST__
+
 #include "netstats.h"
 
 #define	MAXCPU		2048
@@ -30,6 +33,7 @@
 #define	MAXINTF		128
 #define	MAXCONTAINER	128
 #define	MAXNFSMOUNT	64
+#define	MAXGPU		32
 
 #define	MAXDKNAM	32
 
@@ -281,6 +285,36 @@ int	getwwwstat(unsigned short, struct wwwstat *);
 #endif
 /************************************************************************/
 
+#define	MAXGPUBUS	12
+#define	MAXGPUTYPE	12
+
+struct pergpu {
+	char	taskstats;		// GPU task statistics supported?
+	unsigned char	nrprocs;	// number of processes using GPU
+	char	type[MAXGPUTYPE+1];	// GPU type
+	char	busid[MAXGPUBUS+1];	// GPU bus identification
+	int	gpunr;			// GPU number
+	int	gpupercnow;		// processor percentage last second
+					// -1 if not supported
+	int	mempercnow;		// memory    percentage last second
+					// -1 if not supported
+	count_t	memtotnow;		// total memory in KiB
+	count_t	memusenow;		// used  memory in KiB
+	count_t	samples;		// number of samples
+	count_t	gpuperccum;		// cumulative processor busy percentage
+					// -1 if not supported
+	count_t	memperccum;		// cumulative memory percentage 
+					// -1 if not supported
+	count_t	memusecum;		// cumulative used memory in KiB
+};
+
+struct gpustat {
+	int		nrgpus;		// total number of GPUs
+	struct pergpu   gpu[MAXGPU];
+};
+
+/************************************************************************/
+
 struct	sstat {
 	struct cpustat	cpu;
 	struct memstat	mem;
@@ -289,6 +323,7 @@ struct	sstat {
 	struct dskstat  dsk;
 	struct nfsstat  nfs;
 	struct contstat cfs;
+	struct gpustat 	gpu;
 
 	struct wwwstat	www;
 };
@@ -299,3 +334,4 @@ struct	sstat {
 void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
+#endif

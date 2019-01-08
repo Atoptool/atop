@@ -17,7 +17,7 @@
 ** Linux-port:  June 2000
 ** Modified: 	May 2001 - Ported to kernel 2.4
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2012 Gerlof Langeveld
+** Copyright (C) 2000-2018 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -271,6 +271,8 @@
 **
 */
 
+static const char rcsid[] = "$Id: atop.c,v 1.49 2010/10/23 14:01:00 gerlof Exp $";
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/mman.h>
@@ -295,9 +297,9 @@
 #include "photosyst.h"
 #include "showgeneric.h"
 #include "parseable.h"
+#include "gpucom.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
-#define	SPARETASKS	100
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -323,6 +325,7 @@ char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
 
 unsigned short	hertz;
 unsigned int	pagesize;
+unsigned int	nrgpus;
 int 		osrel;
 int 		osvers;
 int 		ossub;
@@ -353,6 +356,7 @@ void do_linelength(char *, char *);
 void do_username(char *, char *);
 void do_procname(char *, char *);
 void do_maxcpu(char *, char *);
+void do_maxgpu(char *, char *);
 void do_maxdisk(char *, char *);
 void do_maxmdd(char *, char *);
 void do_maxlvm(char *, char *);
@@ -396,6 +400,7 @@ static struct {
 	{	"username",		do_username,		0, },
 	{	"procname",		do_procname,		0, },
 	{	"maxlinecpu",		do_maxcpu,		0, },
+	{	"maxlinegpu",		do_maxgpu,		0, },
 	{	"maxlinedisk",		do_maxdisk,		0, },
 	{	"maxlinemdd",		do_maxmdd,		0, },
 	{	"maxlinelvm",		do_maxlvm,		0, },
@@ -647,10 +652,11 @@ main(int argc, char *argv[])
 	/*
 	** lock ATOP in memory to get reliable samples (also when
 	** memory is low and swapping is going on);
-	** ignored if not running under superuser privileges!
+	** ignored if not running under superuser priviliges!
 	*/
 	rlim.rlim_cur	= RLIM_INFINITY;
 	rlim.rlim_max	= RLIM_INFINITY;
+
 	if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
 		(void) mlockall(MCL_CURRENT|MCL_FUTURE);
 
@@ -677,9 +683,9 @@ main(int argc, char *argv[])
  	** open socket to the IP layer to issue getsockopt() calls later on
 	*/
 	netatop_ipopen();
-	
+
 	/*
-	** since priviliged activities are finished now, there is no
+	** since privileged activities are finished now, there is no
 	** need to keep running under root-priviliges, so switch
 	** effective user-id to real user-id
 	*/
@@ -717,7 +723,7 @@ engine(void)
 	/*
 	** reserve space for task-level statistics
 	*/
-	static struct tstat	*curtpres; 	/* current present list      */
+	static struct tstat	*curtpres;	/* current present list      */
 	static int		 curtlen;	/* size of present list      */
 	struct tstat		*curpexit;	/* exited process list	     */
 
@@ -727,7 +733,13 @@ engine(void)
 	unsigned long		nprocexit;	/* number of exited procs    */
 	unsigned long		nprocexitnet;	/* number of exited procs    */
 						/* via netatopd daemon       */
+
 	unsigned long		noverflow;
+
+	int         		nrgpuproc=0,	/* number of GPU processes    */
+				gpupending=0;	/* boolean: request sent      */
+
+	struct gpupidstat	*gp = NULL;
 
 	/*
 	** initialization: allocate required memory dynamically
@@ -772,6 +784,14 @@ engine(void)
 	}
 
 	/*
+ 	** open socket to the atopgpud daemon for GPU statistics
+	*/
+        nrgpus = gpud_init();
+
+	if (nrgpus)
+		supportflags |= GPUSTAT;
+
+	/*
 	** MAIN-LOOP:
 	**    -	Wait for the requested number of seconds or for other trigger
 	**
@@ -813,6 +833,12 @@ engine(void)
 		curtime  = time(0);		/* seconds since 1-1-1970 */
 
 		/*
+		** send request for statistics to atopgpud 
+		*/
+		if (nrgpus)
+			gpupending = gpud_statrequest();
+
+		/*
 		** take a snapshot of the current system-level statistics 
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
@@ -822,6 +848,45 @@ engine(void)
 		presstat = hlpsstat;
 
 		photosyst(cursstat);	/* obtain new counters      */
+
+		/*
+		** receive and parse response from atopgpud
+		*/
+		if (nrgpus && gpupending)
+		{
+			nrgpuproc = gpud_statresponse(nrgpus, cursstat->gpu.gpu, &gp);
+
+			gpupending = 0;
+
+			// connection lost or timeout on receive?
+			if (nrgpuproc == -1)
+			{
+				int ng;
+
+				// try to reconnect
+        			ng = gpud_init();
+
+				if (ng != nrgpus)	// no success
+					nrgpus = 0;
+
+				if (nrgpus)
+				{
+					// request for stats again
+					if (gpud_statrequest())
+					{
+						// receive stats response
+						nrgpuproc = gpud_statresponse(nrgpus,
+						     cursstat->gpu.gpu, &gp);
+
+						// persistent failure?
+						if (nrgpuproc == -1)
+							nrgpus = 0;
+					}
+				}
+			}
+
+			cursstat->gpu.nrgpus = nrgpus;
+		}
 
 		deviatsyst(cursstat, presstat, devsstat,
 				curtime-pretime > 0 ? curtime-pretime : 1);
@@ -833,11 +898,11 @@ engine(void)
 		**
 		** first register active tasks
 		*/
-		curtpres  = NULL;
+               curtpres  = NULL;
 
 		do
 		{
-			curtlen   = counttasks() + SPARETASKS;
+			curtlen   = counttasks();
 			curtpres  = realloc(curtpres,
 					curtlen * sizeof(struct tstat));
 
@@ -904,6 +969,14 @@ engine(void)
 		}
 
 		/*
+ 		** merge GPU per-process stats with other per-process stats
+		*/
+		if (nrgpus && nrgpuproc)
+			gpumergeproc(curtpres, ntaskpres,
+		                     curpexit, nprocexit,
+		 	             gp,       nrgpuproc);
+
+		/*
 		** calculate deviations
 		*/
 		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
@@ -928,6 +1001,9 @@ engine(void)
 
 		if (nprocexitnet > 0)
 			netatop_exiterase();
+
+		if (gp)
+			 free(gp);
 
 		if (lastcmd == 'r')	/* reset requested ? */
 		{

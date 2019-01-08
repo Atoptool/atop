@@ -255,6 +255,8 @@
 **
 */
 
+static const char rcsid[] = "$Id: showgeneric.c,v 1.71 2010/10/25 19:08:32 gerlof Exp $";
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -294,6 +296,7 @@ static char	showtype  = MPROCGEN;
 static char	showorder = MSORTCPU;
 
 static int	maxcpulines = 999;  /* maximum cpu       lines          */
+static int	maxgpulines = 999;  /* maximum gpu       lines          */
 static int	maxdsklines = 999;  /* maximum disk      lines          */
 static int	maxmddlines = 999;  /* maximum MDD       lines          */
 static int	maxlvmlines = 999;  /* maximum LVM       lines          */
@@ -322,6 +325,7 @@ static int	(*procsort[])(const void *, const void *) = {
 			[MSORTMEM&0x1f]=compmem, 
 			[MSORTDSK&0x1f]=compdsk, 
 			[MSORTNET&0x1f]=compnet, 
+			[MSORTGPU&0x1f]=compgpu, 
 };
 
 extern proc_printpair ownprocs[];
@@ -439,6 +443,10 @@ generic_samp(time_t curtime, int nsecs,
 			qsort(sstat->cpu.cpu, sstat->cpu.nrcpu,
 	 	               sizeof sstat->cpu.cpu[0], cpucompar);
 
+		if (sstat->gpu.nrgpus > 1 && maxgpulines > 0)
+			qsort(sstat->gpu.gpu, sstat->gpu.nrgpus,
+	 	               sizeof sstat->gpu.gpu[0], gpucompar);
+
 		if (sstat->dsk.nlvm > 1 && maxlvmlines > 0)
 			qsort(sstat->dsk.lvm, sstat->dsk.nlvm,
 			       sizeof sstat->dsk.lvm[0], diskcompar);
@@ -551,7 +559,8 @@ generic_samp(time_t curtime, int nsecs,
 
 		curline = prisyst(sstat, curline, nsecs, avgval,
 		                  fixedhead, &syssel, &autoorder,
-		                  maxcpulines, maxdsklines, maxmddlines,
+		                  maxcpulines, maxgpulines, maxdsklines,
+				  maxmddlines,
 		                  maxlvmlines, maxintlines, maxnfslines,
 		                  maxcontlines);
 
@@ -572,7 +581,8 @@ generic_samp(time_t curtime, int nsecs,
 			
 			curline = prisyst(sstat, curline, nsecs, avgval,
 					fixedhead,  &syssel, &autoorder,
-					maxcpulines, maxdsklines, maxmddlines,
+					maxcpulines, maxgpulines,
+					maxdsklines, maxmddlines,
 		                        maxlvmlines, maxintlines, maxnfslines,
 		                        maxcontlines);
 
@@ -1187,6 +1197,20 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** sort in gpu-activity order
+			   */
+			   case MSORTGPU:
+				if ( !(supportflags & GPUSTAT) )
+				{
+					statmsg = "No gpu-activity figures "
+					          "available; request ignored!";
+					break;
+				}
+				showorder = MSORTGPU;
+				firstproc = 0;
+				break;
+
+			   /*
 			   ** general figures per process
 			   */
 			   case MPROCGEN:
@@ -1245,6 +1269,27 @@ generic_samp(time_t curtime, int nsecs,
 
 				if (showorder != MSORTAUTO)
 					showorder = MSORTNET;
+
+				firstproc = 0;
+				break;
+
+			   /*
+			   ** GPU-specific figures per process
+			   */
+			   case MPROCGPU:
+				if ( !(supportflags & GPUSTAT) )
+				{
+					statmsg = "No gpu-activity figures "
+					          "available (atopgpud might "
+					          "not be running); "
+					          "request ignored!";
+					break;
+				}
+
+				showtype  = MPROCGPU;
+
+				if (showorder != MSORTAUTO)
+					showorder = MSORTGPU;
 
 				firstproc = 0;
 				break;
@@ -2003,6 +2048,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 				            maxcpulines, statline);
 
+				maxgpulines =
+				  getnumval("Maximum lines for per-gpu "
+				            "statistics (now %d): ",
+				            maxgpulines, statline);
+
 				if (sstat->dsk.nlvm > 0)
 				{
 					maxlvmlines =
@@ -2354,6 +2404,33 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 		curstat->mem.vswap  += curproc->mem.vswap;
 		curstat->mem.rgrow  += curproc->mem.rgrow;
 		curstat->mem.vgrow  += curproc->mem.vgrow;
+
+		if (curproc->gpu.state)		// GPU is use?
+		{
+			int i;
+
+			curstat->gpu.state = 'A';
+
+			if (curproc->gpu.gpubusy == -1)
+				curstat->gpu.gpubusy  = -1;
+			else
+				curstat->gpu.gpubusy += curproc->gpu.gpubusy;
+
+			if (curproc->gpu.membusy == -1)
+				curstat->gpu.membusy  = -1;
+			else
+				curstat->gpu.membusy += curproc->gpu.membusy;
+
+			curstat->gpu.memnow  += curproc->gpu.memnow;
+			curstat->gpu.gpulist |= curproc->gpu.gpulist;
+			curstat->gpu.nrgpus   = 0;
+
+			for (i=0; i < MAXGPU; i++)
+			{
+				if (curstat->gpu.gpulist & 1<<i)
+					curstat->gpu.nrgpus++;
+			}
+		}
 	}
 }
 
@@ -2457,12 +2534,13 @@ static void
 limitedlines(void)
 {
 	maxcpulines  = 0;
+	maxgpulines  = 2;
 	maxdsklines  = 3;
 	maxmddlines  = 3;
 	maxlvmlines  = 4;
 	maxintlines  = 2;
 	maxnfslines  = 2;
-	maxcontlines = 0;
+	maxcontlines = 1;
 }
 
 /*
@@ -2759,6 +2837,7 @@ static struct helptext {
 	{"\t'%c'  - memory details\n",				MPROCMEM},
 	{"\t'%c'  - disk details\n",				MPROCDSK},
 	{"\t'%c'  - network details\n",				MPROCNET},
+	{"\t'%c'  - GPU details\n",				MPROCGPU},
 	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH},
 	{"\t'%c'  - various info (ppid, user/group, date/time, status, "
 	 "exitcode)\n",	MPROCVAR},
@@ -2770,6 +2849,7 @@ static struct helptext {
 	{"\t'%c'  - memory consumption\n",			MSORTMEM},
 	{"\t'%c'  - disk activity\n",				MSORTDSK},
 	{"\t'%c'  - network activity\n",			MSORTNET},
+	{"\t'%c'  - GPU activity\n",				MSORTGPU},
 	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO},
 	{"\n",							' '},
 	{"Accumulated figures:\n",				' '},
@@ -2952,6 +3032,8 @@ generic_usage(void)
 			MPROCDSK);
 	printf("\t  -%c  show network-related process-info\n",
 			MPROCNET);
+	printf("\t  -%c  show GPU-related process-info\n",
+			MPROCGPU);
 	printf("\t  -%c  show scheduling-related process-info\n",
 			MPROCSCH);
 	printf("\t  -%c  show various process-info (ppid, user/group, "
@@ -2967,15 +3049,17 @@ generic_usage(void)
 			MCUMPROC);
 	printf("\t  -%c  show cumulated process-info per container\n\n",
 			MCUMCONT);
-	printf("\t  -%c  sort processes in order of cpu-consumption "
+	printf("\t  -%c  sort processes in order of cpu consumption "
 	                "(default)\n",
 			MSORTCPU);
-	printf("\t  -%c  sort processes in order of memory-consumption\n",
+	printf("\t  -%c  sort processes in order of memory consumption\n",
 			MSORTMEM);
-	printf("\t  -%c  sort processes in order of disk-activity\n",
+	printf("\t  -%c  sort processes in order of disk activity\n",
 			MSORTDSK);
-	printf("\t  -%c  sort processes in order of network-activity\n",
+	printf("\t  -%c  sort processes in order of network activity\n",
 			MSORTNET);
+	printf("\t  -%c  sort processes in order of GPU activity\n",
+			MSORTGPU);
 	printf("\t  -%c  sort processes in order of most active resource "
                         "(auto mode)\n",
 			MSORTAUTO);
@@ -3070,6 +3154,12 @@ void
 do_maxcpu(char *name, char *val)
 {
 	maxcpulines = get_posval(name, val);
+}
+
+void
+do_maxgpu(char *name, char *val)
+{
+	maxgpulines = get_posval(name, val);
 }
 
 void

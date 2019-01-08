@@ -136,6 +136,8 @@
 **
 */
 
+static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof Exp $";
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <dirent.h>
@@ -390,7 +392,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 }
 
 /*
-** count number of tasks in the system 
+** count number of tasks in the system, i.e.
+** the number of processes plus the total number of threads
 */
 unsigned long
 counttasks(void)
@@ -398,6 +401,9 @@ counttasks(void)
 	unsigned long	nr=0;
 	char		linebuf[256];
 	FILE		*fp;
+	DIR             *dirp;
+	struct dirent   *entp;
+	char            origdir[1024];
 
 	/*
 	** determine total number of threads 
@@ -406,7 +412,7 @@ counttasks(void)
 	{
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			if ( sscanf(linebuf, "%*f %*f %*f %*d/%ld", &nr) < 1)
+			if ( sscanf(linebuf, "%*f %*f %*f %*d/%lu", &nr) < 1)
 				cleanstop(53);
 		}
 		else
@@ -417,9 +423,34 @@ counttasks(void)
 	else
 		cleanstop(53);
 
+
+	/*
+	** add total number of processes 
+	*/
+	if ( getcwd(origdir, sizeof origdir) == NULL)
+		cleanstop(53);
+
+	if ( chdir("/proc") == -1)
+		cleanstop(53);
+
+	dirp = opendir(".");
+
+	while ( (entp = readdir(dirp)) )
+	{
+		/*
+		** count subdirectory names under /proc starting with a digit
+		*/
+		if (isdigit(entp->d_name[0]))
+			nr++;
+	}
+
+	closedir(dirp);
+
+	if ( chdir(origdir) == -1)
+		cleanstop(53);
+
 	return nr;
 }
-
 
 /*
 ** open file "stat" and obtain required info
@@ -471,7 +502,7 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 	/*
   	** fetch other values
   	*/
-	curtask->gen.isproc = isproc;
+	curtask->gen.isproc  = isproc;
 	curtask->cpu.rtprio  = 0;
 	curtask->cpu.policy  = 0;
 	curtask->gen.excode  = 0;

@@ -24,7 +24,7 @@ OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
 OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
-OBJMOD4  = atopsar.o  netatopif.o
+OBJMOD4  = atopsar.o  netatopif.o gpucom.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
@@ -66,6 +66,8 @@ systemdinstall:	genericinstall
 		#
 		cp atop.service       $(DESTDIR)$(SYSDPATH)
 		chmod 0644            $(DESTDIR)$(SYSDPATH)/atop.service
+		cp atopgpu.service    $(DESTDIR)$(SYSDPATH)
+		chmod 0644            $(DESTDIR)$(SYSDPATH)/atopgpu.service
 		cp atopacct.service   $(DESTDIR)$(SYSDPATH)
 		chmod 0644            $(DESTDIR)$(SYSDPATH)/atopacct.service
 		cp atop.cronsystemd   $(DESTDIR)$(CRNPATH)/atop
@@ -148,6 +150,9 @@ genericinstall:	atop atopacctd atopconvert
 		cp atopacctd  		$(DESTDIR)$(SBINPATH)/atopacctd
 		chown root		$(DESTDIR)$(SBINPATH)/atopacctd
 		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopacctd
+		cp atopgpud  		$(DESTDIR)$(SBINPATH)/atopgpud
+		chown root		$(DESTDIR)$(SBINPATH)/atopgpud
+		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopgpud
 		cp atop   		$(DESTDIR)$(BINPATH)/atop-$(VERS)
 		ln -sf atop-$(VERS)     $(DESTDIR)$(BINPATH)/atopsar-$(VERS)
 		cp atopconvert 		$(DESTDIR)$(BINPATH)/atopconvert
@@ -160,6 +165,7 @@ genericinstall:	atop atopacctd atopconvert
 		cp man/atopconvert.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
+		cp man/atopgpud.8  	$(DESTDIR)$(MAN8PATH)
 		cp psaccs_atop   	$(DESTDIR)$(ROTPATH)/psaccs_atop
 		cp psaccu_atop  	$(DESTDIR)$(ROTPATH)/psaccu_atop
 		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
@@ -187,6 +193,7 @@ showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 version.o:	version.c version.h versdate.h
+gpucom.o:	atop.h	photoproc.h photosyst.h
 
 atopacctd.o:	atop.h  photoproc.h acctproc.h   atopacctd.h   version.h versdate.h
 

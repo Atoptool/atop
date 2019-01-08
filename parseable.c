@@ -85,6 +85,7 @@
 void 	print_CPU();
 void 	print_cpu();
 void 	print_CPL();
+void 	print_GPU();
 void 	print_MEM();
 void 	print_SWP();
 void 	print_PAG();
@@ -101,6 +102,7 @@ void 	print_PRC();
 void 	print_PRM();
 void 	print_PRD();
 void 	print_PRN();
+void 	print_PRE();
 
 /*
 ** table with possible labels and the corresponding
@@ -116,6 +118,7 @@ static struct labeldef	labeldef[] = {
 	{ "CPU",	0,	print_CPU },
 	{ "cpu",	0,	print_cpu },
 	{ "CPL",	0,	print_CPL },
+	{ "GPU",	0,	print_GPU },
 	{ "MEM",	0,	print_MEM },
 	{ "SWP",	0,	print_SWP },
 	{ "PAG",	0,	print_PAG },
@@ -132,6 +135,7 @@ static struct labeldef	labeldef[] = {
 	{ "PRM",	0,	print_PRM },
 	{ "PRD",	0,	print_PRD },
 	{ "PRN",	0,	print_PRN },
+	{ "PRE",	0,	print_PRE },
 };
 
 static int	numlabels = sizeof labeldef/sizeof(struct labeldef);
@@ -389,6 +393,28 @@ print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
+print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	int	i;
+
+	for (i=0; i < ss->gpu.nrgpus; i++)
+	{
+		printf("%s %d %s %s %d %d %lld %lld %lld %lld %lld %lld\n",
+			hp, i,
+	        	ss->gpu.gpu[i].busid,
+	        	ss->gpu.gpu[i].type,
+	        	ss->gpu.gpu[i].gpupercnow,
+	        	ss->gpu.gpu[i].mempercnow,
+	        	ss->gpu.gpu[i].memtotnow,
+	        	ss->gpu.gpu[i].memusenow,
+	        	ss->gpu.gpu[i].samples,
+	        	ss->gpu.gpu[i].gpuperccum,
+	        	ss->gpu.gpu[i].memperccum,
+	        	ss->gpu.gpu[i].memusecum);
+	}
+}
+
+void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
@@ -593,7 +619,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		if (ps->gen.excode & 0xff)	// killed by signal?
+		if (ps->gen.excode & 0xff)      // killed by signal?
 			exitcode = (ps->gen.excode & 0x7f) + 256;
 		else
 			exitcode = (ps->gen.excode >>   8) & 0xff;
@@ -728,5 +754,29 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->net.udprcv, ps->net.udprsz,
 				0,              0,
 				ps->gen.tgid,   ps->gen.isproc ? 'y':'n');
+	}
+}
+
+void
+print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int i;
+
+	for (i=0; i < nact; i++, ps++)
+	{
+		printf("%s %d (%s) %c %c %d %d %d %d %lld %lld %lld %lld\n",
+				hp,
+				ps->gen.pid,
+				ps->gen.name,
+				ps->gen.state,
+				ps->gpu.state,
+				ps->gpu.nrgpus,
+				ps->gpu.gpulist,
+				ps->gpu.gpubusy,
+				ps->gpu.membusy,
+				ps->gpu.timems,
+				ps->gpu.memnow,
+				ps->gpu.memcum,
+				ps->gpu.sample);
 	}
 }

@@ -9,7 +9,7 @@
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
-** Date:        July 2007
+** Initial:     July 2007
 ** --------------------------------------------------------------------------
 ** Copyright (C) 2007-2010 Gerlof Langeveld
 **
@@ -28,6 +28,8 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
+
+static const char rcsid[] = "$Id: atopsar.c,v 1.28 2010/11/26 06:19:43 gerlof Exp $";
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -51,6 +53,7 @@
 #include "ifprop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "gpucom.h"
 
 #define	MAXFL	64      /* maximum number of command-line flags  */
 
@@ -400,6 +403,10 @@ engine(void)
 	struct sigaction 	sigact;
 	void			getusr1(int);
 
+	int			nrgpus;         /* number of GPUs        */
+	int			nrgpuproc,	/* number of GPU procs   */
+				gpustats=0;	/* boolean: request sent */
+
 	/*
 	** reserve space for system-level statistics
 	*/
@@ -440,6 +447,11 @@ engine(void)
 	reportheader(&utsname, time(0));
 
 	/*
+	** open socket to the atopgpud daemon for GPU statistics
+	*/
+	nrgpus = gpud_init();
+
+	/*
 	** MAIN-LOOP:
 	**    -	Wait for the requested number of seconds or for other trigger
 	**
@@ -465,6 +477,12 @@ engine(void)
 		curtime  = time(0);		/* seconds since 1-1-1970 */
 
 		/*
+		** send request for statistics to atopgpud
+		*/
+		if (nrgpus)
+			gpustats = gpud_statrequest();
+
+		/*
 		** take a snapshot of the current system-level statistics 
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
@@ -475,6 +493,46 @@ engine(void)
 
 		photosyst(cursstat);	/* obtain new counters      */
 
+		/*
+		** receive and parse response from atopgpud
+		*/
+		if (nrgpus && gpustats)
+		{
+			nrgpuproc = gpud_statresponse(nrgpus, cursstat->gpu.gpu, NULL);
+
+			// connection lost or timeout on receive?
+			if (nrgpuproc == -1)
+			{
+				int ng;
+
+				// try to reconnect
+        			ng = gpud_init();
+
+				if (ng != nrgpus)	// no success
+					nrgpus = 0;
+
+				if (nrgpus)
+				{
+					// request for stats again
+					if (gpud_statrequest())
+					{
+						// receive stats response
+						nrgpuproc = gpud_statresponse(nrgpus,
+						     cursstat->gpu.gpu, NULL);
+
+						// persistent failure?
+						if (nrgpuproc == -1)
+							nrgpus = 0;
+					}
+				}
+			}
+
+			cursstat->gpu.nrgpus = nrgpus;
+		}
+
+		/*
+		** calculate deviations, i.e. activity during interval
+		*/
 		deviatsyst(cursstat, presstat, devsstat,
 				 curtime-pretime > 0 ? curtime-pretime : 1);
 
@@ -1240,6 +1298,101 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		}
 	}
 
+	return nlines;
+}
+
+
+/*
+** GPU statistics
+*/
+static void
+gpuhead(int osvers, int osrel, int ossub)
+{
+	printf("   busaddr   gpubusy  membusy  memocc  memtot memuse  gputype"
+	       "   _gpu_");
+}
+
+static int
+gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	static char	firstcall = 1;
+	register long	i, nlines = 0;
+	char		fmt1[16], fmt2[16];
+	count_t		avgmemuse;
+
+	for (i=0; i < ss->gpu.nrgpus; i++)	/* per GPU */
+	{
+		/*
+		** determine whether or not the GPU has been active
+		** during interval
+		*/
+		int wasactive;
+
+		wasactive = ss->gpu.gpu[i].gpuperccum +
+		            ss->gpu.gpu[i].memperccum;
+
+		if (wasactive == -2)      // metrics not available?
+			wasactive = 0;
+
+		if (ss->gpu.gpu[i].samples == 0)
+			avgmemuse = ss->gpu.gpu[i].memusenow;
+		else
+			avgmemuse = ss->gpu.gpu[i].memusecum /
+			            ss->gpu.gpu[i].samples;
+
+		// memusage > 512 MiB (rather arbitrary)?
+		//
+		if (avgmemuse > 512*1024)
+			wasactive = 1;
+
+		/*
+		** print for the first sample all GPUs that are found;
+		** afterwards print only info about the GPUs
+		** that were really active during the interval
+		*/
+		if (!firstcall && !allresources && !wasactive)
+			continue;
+
+		if (nlines++)
+			printf("%s  ", tstamp);
+
+		if (ss->gpu.gpu[i].samples == 0)
+			ss->gpu.gpu[i].samples = 1;
+
+		if (ss->gpu.gpu[i].gpuperccum == -1)
+			strcpy(fmt1, "N/A");
+		else
+			snprintf(fmt1, sizeof fmt1, "%lld%%",
+			   ss->gpu.gpu[i].gpuperccum / ss->gpu.gpu[i].samples);
+
+		if (ss->gpu.gpu[i].memperccum == -1)
+			strcpy(fmt2, "N/A");
+		else
+			snprintf(fmt2, sizeof fmt2, "%lld%%",
+			   ss->gpu.gpu[i].memperccum / ss->gpu.gpu[i].samples);
+
+		if (ss->gpu.gpu[i].memtotnow == 0)
+			ss->gpu.gpu[i].memtotnow = 1;
+
+		printf("%2ld/%9.9s %7s  %7s  %5lld%%  %5lldM %5lldM  %s\n",
+			i, ss->gpu.gpu[i].busid,
+			fmt1, fmt2,
+			ss->gpu.gpu[i].memusenow*100/ss->gpu.gpu[i].memtotnow,
+			ss->gpu.gpu[i].memtotnow / 1024,
+			ss->gpu.gpu[i].memusenow / 1024,
+			ss->gpu.gpu[i].type);
+	}
+
+	if (nlines == 0)
+	{
+		printf("\n");
+		nlines++;
+	}
+
+	firstcall = 0;
 	return nlines;
 }
 
@@ -2522,6 +2675,7 @@ struct pridef pridef[] =
    {0,  "c",  'c',  cpuhead,	cpuline,  	"cpu utilization",        },
    {0,  "c",  'p',  prochead,	procline,  	"process(or) load",       },
    {0,  "c",  'P',  taskhead,	taskline,  	"processes & threads",    },
+   {0,  "c",  'g',  gpuhead,	gpuline,  	"gpu utilization",        },
    {0,  "m",  'm',  memhead,	memline,	"memory & swapspace",     },
    {0,  "m",  's',  swaphead,	swapline,	"swap rate",              },
    {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },

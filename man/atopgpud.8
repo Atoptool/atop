@@ -1,0 +1,138 @@
+.TH ATOPGPUD 8 "September 2018" "Linux"
+.SH NAME
+.B atopgpud
+- GPU statistics daemon
+.SH SYNOPSIS
+.P
+.B atopgpud [-v]
+.PP
+.SH DESCRIPTION
+The
+.I atopgpud
+daemon gathers statistical information from all Nvidia GPUs in the
+current system. With a sampling rate of one second, it maintains
+the statistics of every GPU, globally (system level) and per process.
+When 
+.I atopgpud
+is active on the target system,
+.I atop
+connects to this daemon via a TCP socket and obtains all GPU statistics
+with every interval.
+.PP
+The approach to gather all GPU statistics in a separate daemon is required,
+because the Nvidia driver offers e.g. the GPU busy
+percentage of the last second. Suppose that
+.I atop
+runs with a 10-minute interval and would fetch the GPU busy percentage
+directly from the Nvidia driver, it would reflect the busy percentage of
+the last second instead of the average busy percentage during 600 seconds.
+Therefore, the
+.I atopgpud
+daemon fetches the GPU busy percentage every second and accumulates this
+into a counter that can be retrieved by
+.I atop
+regularly. The same approach applies to other GPU statistics.
+.PP
+When the
+.I atopgpud
+daemon runs with root privileges, more process level counters (i.e.
+GPU busy and GPU memory busy per process) are provided that are
+otherwise not applicable.
+.PP
+Notice that certain GPU statistics are only delivered for specific GPU types.
+For older or less sophisticated GPUs, the value -1 is returned for counters
+that are not maintained. In the output of
+.I atop
+these counters are shown as 'N/A'.
+.PP
+When no (Nvidia) GPUs can be found in the target system,
+.I atopgpud
+immediately terminates with exit code 0.
+.PP
+Log messages are written via the
+.I rsyslogd
+daemon with facility 'daemon'.
+With the -v flag (verbose),
+.I atopgpud
+also logs debug messages.
+.PP
+.SH INSTALLATION
+The
+.I atopgpud
+daemon is written in Python, so
+a Python interpreter should be installed on the target system.
+This can  either be Python version 2 or Python version 3 (the code of
+.I atopgpud
+is written in a generic way). Take care that the first line of the
+.I atopgpud
+script contains the proper command name to activate a Python interpreter
+that is installed on the target system!
+.PP
+The
+.I atopgpud
+daemon depends on the Python module
+.I pynvml
+to interface with the Nvidia driver.
+This module can be installed by the
+.I pip
+or
+.I pip3
+command and is usually packaged under the name 
+.I nvidia-ml-py
+.br
+Finally, the
+.I pynvml
+module is a Python wrapper around the
+.I libnvidia-ml
+shared library that needs to be installed as well.
+.PP
+After installing the
+.I atop
+package, the
+.I atopgpud
+is not automatically started, nor will
+the service be enabed by default.
+When you want to activate this service (permanently),
+enter the following commands (as root):
+.PP
+.B \  systemctl enable atopgpu
+.br
+.B \  systemctl start  atopgpu
+.PP
+.SH INTERFACE DESCRIPTION
+Client processes can connect to the
+.I atopgpud
+daemon on TCP port 59123.
+Subsequently, such client can send a request of two bytes,
+consisting of one byte request code followed by one byte
+integer being the API version number.
+.br
+The request code in the first byte can be 'T' to obtain information
+about the GPU types installed in this system (usually only requested once).
+.br
+The request code can be 'S' to obtain all statistical counter values
+(requested for every interval).
+.PP
+The response of the daemon starts with a 4-byte integer. The
+first byte is the API version number that determines the response format
+while the subsequent three bytes indicate the length (big endian order) of the
+response string that follows. 
+.br
+In the reponse strings the character '@' introduces system level information
+of one specific GPU and the character '#' introduces process level information
+related to that GPU.
+.br
+For further details about the meaning of the counters in a response string,
+please consult the source code.
+.PP
+.SH SEE ALSO
+.B atop(1),
+.B atopsar(1),
+.B atoprc(5),
+.B netatop(4),
+.B netatopd(8),
+.B atopacctd(8)
+.br
+.B http://www.atoptool.nl
+.SH AUTHOR
+Gerlof Langeveld (gerlof.langeveld@atoptool.nl)

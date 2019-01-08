@@ -168,6 +168,8 @@
 **
 */
 
+static const char rcsid[] = "$Id: deviate.c,v 1.45 2010/10/23 14:02:03 gerlof Exp $";
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -198,8 +200,8 @@ static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 void
 deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
            struct tstat    *curpexit, unsigned long nprocexit,
-	   struct devtstat *devtstat,
-	   struct sstat    *devsstat)
+  	   struct devtstat *devtstat,
+  	   struct sstat    *devsstat)
 {
 	register int		c, d, pall=0, pact=0;
 	register struct tstat	*curstat, *devstat, *thisproc;
@@ -487,6 +489,33 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			netatop_exitfind(val, devstat, &prestat);
 		}
 
+		/*
+		** handle the gpu counters
+		*/
+		if (curstat->gpu.state || prestat.gpu.state) // GPU use?
+		{
+			if (curstat->gpu.state)
+				devstat->gpu.state = curstat->gpu.state;
+			else
+				devstat->gpu.state = prestat.gpu.state;
+
+			devstat->gpu.nrgpus	= curstat->gpu.nrgpus;
+			devstat->gpu.gpulist	= curstat->gpu.gpulist;
+			devstat->gpu.gpubusy 	= curstat->gpu.gpubusy;
+			devstat->gpu.membusy	= curstat->gpu.membusy;
+			devstat->gpu.timems	= curstat->gpu.timems;
+
+			devstat->gpu.memnow	= curstat->gpu.memnow;
+			devstat->gpu.memcum	= curstat->gpu.memcum -
+						  prestat.gpu.memcum;
+			devstat->gpu.sample	= curstat->gpu.sample -
+						  prestat.gpu.sample;
+		}
+		else
+		{
+			devstat->gpu.state = '\0';
+		}
+
 		if (prestat.gen.pid > 0)
 			pdb_deltask(prestat.gen.pid, prestat.gen.isproc);
 
@@ -563,6 +592,27 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->mem.vstack   = curstat->mem.vstack;
 	devstat->mem.vlibs    = curstat->mem.vlibs;
 	devstat->mem.vswap    = curstat->mem.vswap;
+
+	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
+	{
+		devstat->gpu.nrgpus   = curstat->gpu.nrgpus;
+		devstat->gpu.gpulist  = curstat->gpu.gpulist;
+		devstat->gpu.memnow   = curstat->gpu.memnow;
+
+		
+		if (curstat->gpu.state)
+			devstat->gpu.state = curstat->gpu.state;
+		else
+			devstat->gpu.state = prestat->gpu.state;
+
+		devstat->gpu.gpubusy = curstat->gpu.gpubusy;
+		devstat->gpu.membusy = curstat->gpu.membusy;
+		devstat->gpu.timems  = curstat->gpu.timems;
+	}
+	else
+	{
+		devstat->gpu.state = '\0';
+	}
 
 	/*
  	** for inactive tasks, only the static values had to be copied, while
@@ -661,6 +711,13 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 			subcount(curstat->net.udprsz, prestat->net.udprsz);
 	else
 		devstat->net.udprsz = curstat->net.udprsz;
+
+
+	if (curstat->gpu.state)
+	{
+		devstat->gpu.memcum = curstat->gpu.memcum - prestat->gpu.memcum;
+		devstat->gpu.sample = curstat->gpu.sample - prestat->gpu.sample;
+	}
 }
 
 /*
@@ -1301,10 +1358,49 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	dev->cfs.nrcontainer = cur->cfs.nrcontainer;
 
+	for (i=0; i < cur->gpu.nrgpus; i++)
+	{
+	    dev->gpu.gpu[i].gpunr      = i;
+
+	    strcpy(dev->gpu.gpu[i].type,  cur->gpu.gpu[i].type);
+	    strcpy(dev->gpu.gpu[i].busid, cur->gpu.gpu[i].busid);
+
+	    dev->gpu.gpu[i].taskstats  = cur->gpu.gpu[i].taskstats;
+	    dev->gpu.gpu[i].nrprocs    = cur->gpu.gpu[i].nrprocs;
+
+	    dev->gpu.gpu[i].gpupercnow = cur->gpu.gpu[i].gpupercnow;
+	    dev->gpu.gpu[i].mempercnow = cur->gpu.gpu[i].mempercnow;
+	    dev->gpu.gpu[i].memtotnow  = cur->gpu.gpu[i].memtotnow;
+	    dev->gpu.gpu[i].memusenow  = cur->gpu.gpu[i].memusenow;
+
+	    dev->gpu.gpu[i].samples    = subcount(cur->gpu.gpu[i].samples,
+	                                          pre->gpu.gpu[i].samples);
+
+	    if (cur->gpu.gpu[i].gpuperccum >= 0)
+	     dev->gpu.gpu[i].gpuperccum = subcount(cur->gpu.gpu[i].gpuperccum,
+	                                           pre->gpu.gpu[i].gpuperccum);
+	    else
+	     dev->gpu.gpu[i].gpuperccum = -1;
+
+	    if (cur->gpu.gpu[i].memusecum >= 0)
+	     dev->gpu.gpu[i].memusecum  = subcount(cur->gpu.gpu[i].memusecum,
+	                                           pre->gpu.gpu[i].memusecum);
+	    else
+	     dev->gpu.gpu[i].memusecum  = -1;
+
+	    if (cur->gpu.gpu[i].memperccum >= 0)
+	     dev->gpu.gpu[i].memperccum = subcount(cur->gpu.gpu[i].memperccum,
+	                                           pre->gpu.gpu[i].memperccum);
+	    else
+	     dev->gpu.gpu[i].memperccum = -1;
+	}
+
+	dev->gpu.nrgpus = cur->gpu.nrgpus;
+
+#if	HTTPSTATS
 	/*
 	** application-specific counters
 	*/
-#if	HTTPSTATS
 	if (cur->www.uptime >= pre->www.uptime)
 	{
 		dev->www.accesses  = subcount(cur->www.accesses,

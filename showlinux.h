@@ -168,6 +168,15 @@ extern sys_printdef syspdef_CPLAVG15;
 extern sys_printdef syspdef_CPLCSW;
 extern sys_printdef syspdef_CPLNUMCPU;
 extern sys_printdef syspdef_CPLINTR;
+extern sys_printdef syspdef_GPUBUS;
+extern sys_printdef syspdef_GPUNRPROC;
+extern sys_printdef syspdef_GPUTYPE;
+extern sys_printdef syspdef_GPUMEMPERC;
+extern sys_printdef syspdef_GPUMEMOCC;
+extern sys_printdef syspdef_GPUGPUPERC;
+extern sys_printdef syspdef_GPUMEMTOT;
+extern sys_printdef syspdef_GPUMEMUSE;
+extern sys_printdef syspdef_GPUMEMAVG;
 extern sys_printdef syspdef_MEMTOT;
 extern sys_printdef syspdef_MEMFREE;
 extern sys_printdef syspdef_MEMCACHE;
@@ -338,6 +347,11 @@ extern proc_printdef procprt_RNET;
 extern proc_printdef procprt_SNET;
 extern proc_printdef procprt_BANDWI;
 extern proc_printdef procprt_BANDWO;
+extern proc_printdef procprt_GPULIST;
+extern proc_printdef procprt_GPUMEMNOW;
+extern proc_printdef procprt_GPUMEMAVG;
+extern proc_printdef procprt_GPUGPUBUSY;
+extern proc_printdef procprt_GPUMEMBUSY;
 extern proc_printdef procprt_SORTITEM;
 
 

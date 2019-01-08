@@ -120,7 +120,25 @@ struct tstat {
 		count_t	avail2;		/* */
 		count_t	cfuture[4];	/* reserved for future use	*/
 	} net;
+
+	struct gpu {
+		char	state;		// A - active, E - Exit, '\0' - no use
+		char	cfuture[3];	//
+		short	nrgpus;		// number of GPUs for this process
+		int32_t	gpulist;	// bitlist with GPU numbers
+
+		int	gpubusy;	// gpu busy perc process lifetime      -1 = n/a
+		int	membusy;	// memory busy perc process lifetime   -1 = n/a
+		count_t	timems;		// milliseconds accounting   -1 = n/a
+					// value 0   for active process,
+					// value > 0 after termination
+
+		count_t	memnow;		// current    memory consumption in KiB
+		count_t	memcum;		// cumulative memory consumption in KiB
+		count_t	sample;		// number of samples
+	} gpu;
 };
+
 
 struct pinfo {
 	struct pinfo	*phnext;	/* next process in hash    chain */
@@ -162,8 +180,9 @@ int		pdb_srchresidue(struct tstat *, struct pinfo **);
 struct netpertask;
 
 void		deviattask(struct tstat *, unsigned long,
-		           struct tstat *, unsigned long, 
-		           struct devtstat *, struct sstat *);
+ 		           struct tstat *, unsigned long, 
+ 		           struct devtstat *, struct sstat *);
 
 unsigned long	photoproc(struct tstat *, int);
 unsigned long	counttasks(void);
+

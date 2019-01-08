@@ -68,6 +68,8 @@
 **
 */
 
+static const char rcsid[] = "XXXXXX";
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -349,7 +351,8 @@ sysprt_PRCNPROC(void *notused, void *q, int badness, int *color)
 {
         extraparam *as=q;
         static char buf[15]="#proc     ";
-        val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
+	val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
+
         return buf;
 }
 
@@ -1068,12 +1071,191 @@ sysprt_CPLINTR(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_CPLINTR = {"CPLINTR", sysprt_CPLINTR};
 /*******************************************************************/
 char *
+sysprt_GPUBUS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat 	*sstat=p;
+        extraparam  	*as=q;
+        static char 	buf[16];
+	char		*pn;
+	int		len;
+
+        if ( (len = strlen(sstat->gpu.gpu[as->index].busid)) > 9)
+		pn = sstat->gpu.gpu[as->index].busid + len - 9;
+	else
+		pn = sstat->gpu.gpu[as->index].busid;
+
+        sprintf(buf, "%9.9s %2d", pn, sstat->gpu.gpu[as->index].gpunr);
+        return buf;
+}
+
+sys_printdef syspdef_GPUBUS = {"GPUBUS", sysprt_GPUBUS};
+/*******************************************************************/
+char *
+sysprt_GPUTYPE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char 	buf[16];
+	char		*pn;
+	int		len;
+
+        if ( (len = strlen(sstat->gpu.gpu[as->index].type)) > 12)
+		pn = sstat->gpu.gpu[as->index].type + len - 12;
+	else
+		pn = sstat->gpu.gpu[as->index].type;
+
+        sprintf(buf, "%12.12s", pn);
+        return buf;
+}
+
+sys_printdef syspdef_GPUTYPE = {"GPUTYPE", sysprt_GPUTYPE};
+/*******************************************************************/
+char *
+sysprt_GPUNRPROC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16] = "#proc    ";
+
+        val2valstr(sstat->gpu.gpu[as->index].nrprocs, buf+6, 6, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_GPUNRPROC = {"GPUNRPROC", sysprt_GPUNRPROC};
+/*******************************************************************/
+char *
+sysprt_GPUMEMPERC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="membusy   ";
+	int perc = sstat->gpu.gpu[as->index].mempercnow;
+
+	if (perc == -1)
+	{
+        	sprintf(buf+8, " N/A");
+	}
+	else
+	{
+		// preferably take the average percentage over sample
+		if (sstat->gpu.gpu[as->index].samples)
+			perc = sstat->gpu.gpu[as->index].memperccum /
+			       sstat->gpu.gpu[as->index].samples;
+
+		if (perc >= 40)
+			*color = COLORALMOST;
+
+        	snprintf(buf+8, sizeof buf-8, "%3d%%", perc);
+	}
+
+        return buf;
+}
+
+sys_printdef syspdef_GPUMEMPERC = {"GPUMEMPERC", sysprt_GPUMEMPERC};
+/*******************************************************************/
+char *
+sysprt_GPUGPUPERC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="gpubusy   ";
+	int perc = sstat->gpu.gpu[as->index].gpupercnow;
+
+	if (perc == -1)		// metric not available?
+	{
+        	sprintf(buf+8, " N/A");
+	}
+	else
+	{
+		// preferably take the average percentage over sample
+		if (sstat->gpu.gpu[as->index].samples)
+			perc = sstat->gpu.gpu[as->index].gpuperccum /
+			       sstat->gpu.gpu[as->index].samples;
+
+		if (perc >= 90)
+			*color = COLORALMOST;
+
+        	snprintf(buf+8, sizeof buf-8, "%3d%%", perc);
+	}
+
+        return buf;
+}
+
+sys_printdef syspdef_GPUGPUPERC = {"GPUGPUPERC", sysprt_GPUGPUPERC};
+/*******************************************************************/
+char *
+sysprt_GPUMEMOCC(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="memocc   ";
+	int perc;
+
+	perc = sstat->gpu.gpu[as->index].memusenow * 100 /
+	      (sstat->gpu.gpu[as->index].memtotnow ?
+	       sstat->gpu.gpu[as->index].memtotnow : 1);
+
+        snprintf(buf+7, sizeof buf-7, "%4d%%", perc);
+
+        return buf;
+}
+
+sys_printdef syspdef_GPUMEMOCC = {"GPUMEMOCC", sysprt_GPUMEMOCC};
+/*******************************************************************/
+char *
+sysprt_GPUMEMTOT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16] = "total   ";
+
+        val2memstr(sstat->gpu.gpu[as->index].memtotnow * 1024, buf+6,
+							MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_GPUMEMTOT = {"GPUMEMTOT", sysprt_GPUMEMTOT};
+/*******************************************************************/
+char *
+sysprt_GPUMEMUSE(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16] = "used    ";
+
+        val2memstr(sstat->gpu.gpu[as->index].memusenow * 1024,
+				buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_GPUMEMUSE = {"GPUMEMUSE", sysprt_GPUMEMUSE};
+/*******************************************************************/
+char *
+sysprt_GPUMEMAVG(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16] = "usavg   ";
+
+	if (sstat->gpu.gpu[as->index].samples)
+		val2memstr(sstat->gpu.gpu[as->index].memusecum * 1024 /
+		      	   sstat->gpu.gpu[as->index].samples,
+				buf+6, MBFORMAT, 0, 0);
+	else
+		return "usavg ?";
+
+        return buf;
+}
+
+sys_printdef syspdef_GPUMEMAVG = {"GPUMEMAVG", sysprt_GPUMEMAVG};
+/*******************************************************************/
+char *
 sysprt_MEMTOT(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
         static char buf[16]="tot   ";
 	*color = -1;
-        val2memstr(sstat->mem.physmem   * pagesize, buf+6, MBFORMAT, 0, 0);
+        val2memstr(sstat->mem.physmem * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
 }
 

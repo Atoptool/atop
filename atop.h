@@ -53,6 +53,7 @@ struct netpertask;
 #define RRACCTACTIVE	0x0010
 #define RRIOSTAT	0x0020
 #define RRDOCKSTAT	0x0040
+#define RRGPUSTAT	0x0080
 
 struct visualize {
 	char	(*show_samp)  (time_t, int,
@@ -91,6 +92,7 @@ extern int      	ossub;
 
 extern unsigned short	hertz;
 extern unsigned int	pagesize;
+extern unsigned int	nrgpus;
 
 extern int		supportflags;
 
@@ -110,6 +112,7 @@ extern int		almostcrit;
 #define	NETATOP		0x00000010
 #define	NETATOPD	0x00000020
 #define	DOCKSTAT	0x00000040
+#define	GPUSTAT		0x00000080
 
 /*
 ** in rawlog file, the four least significant bits 
@@ -147,11 +150,13 @@ int		compcpu(const void *, const void *);
 int		compdsk(const void *, const void *);
 int		compmem(const void *, const void *);
 int		compnet(const void *, const void *);
+int		compgpu(const void *, const void *);
 int		compusr(const void *, const void *);
 int		compnam(const void *, const void *);
 int		compcon(const void *, const void *);
 
 int		cpucompar (const void *, const void *);
+int		gpucompar (const void *, const void *);
 int		diskcompar(const void *, const void *);
 int		intfcompar(const void *, const void *);
 int		nfsmcompar(const void *, const void *);
