@@ -297,7 +297,6 @@
 #include "parseable.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
-#define	SPARETASKS	100
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -718,7 +717,7 @@ engine(void)
 	** reserve space for task-level statistics
 	*/
 	static struct tstat	*curtpres; 	/* current present list      */
-	static int		 curtlen;	/* size of present list      */
+	static unsigned long	 curtlen;	/* size of present list      */
 	struct tstat		*curpexit;	/* exited process list	     */
 
 	static struct devtstat	devtstat;	/* deviation info	     */
@@ -837,11 +836,11 @@ engine(void)
 
 		do
 		{
-			curtlen   = counttasks() + SPARETASKS;
+			curtlen   = counttasks();	// worst-case value
 			curtpres  = realloc(curtpres,
 					curtlen * sizeof(struct tstat));
 
-			ptrverify(curtpres, "Malloc failed for %d tstats\n",
+			ptrverify(curtpres, "Malloc failed for %lu tstats\n",
 								curtlen);
 
 			memset(curtpres, 0, curtlen * sizeof(struct tstat));

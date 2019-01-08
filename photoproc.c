@@ -339,7 +339,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 					}
 
 					strcpy(curthr->gen.container,
-							curtask->gen.container);
+						curtask->gen.container);
 
 					switch (curthr->gen.state)
 					{
@@ -358,7 +358,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					// read network stats from netatop
 					netatop_gettask(curthr->gen.pid, 't',
-									curthr);
+								curthr);
 
 					// all stats read now
 					tval++;	    /* increment thread-level */
@@ -390,7 +390,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 }
 
 /*
-** count number of tasks in the system 
+** count number of tasks in the system, i.e.
+** the number of processes plus the total number of threads
 */
 unsigned long
 counttasks(void)
@@ -398,6 +399,9 @@ counttasks(void)
 	unsigned long	nr=0;
 	char		linebuf[256];
 	FILE		*fp;
+	DIR             *dirp;
+	struct dirent   *entp;
+	char            origdir[1024];
 
 	/*
 	** determine total number of threads 
@@ -406,7 +410,7 @@ counttasks(void)
 	{
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			if ( sscanf(linebuf, "%*f %*f %*f %*d/%ld", &nr) < 1)
+			if ( sscanf(linebuf, "%*f %*f %*f %*d/%lu", &nr) < 1)
 				cleanstop(53);
 		}
 		else
@@ -415,6 +419,32 @@ counttasks(void)
 		fclose(fp);
 	}
 	else
+		cleanstop(53);
+
+
+	/*
+	** add total number of processes 
+	*/
+	if ( getcwd(origdir, sizeof origdir) == NULL)
+		cleanstop(53);
+
+	if ( chdir("/proc") == -1)
+		cleanstop(53);
+
+	dirp = opendir(".");
+
+	while ( (entp = readdir(dirp)) )
+	{
+		/*
+		** count subdirectory names under /proc starting with a digit
+		*/
+		if (isdigit(entp->d_name[0]))
+			nr++;
+	}
+
+	closedir(dirp);
+
+	if ( chdir(origdir) == -1)
 		cleanstop(53);
 
 	return nr;
