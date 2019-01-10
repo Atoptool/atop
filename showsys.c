@@ -351,8 +351,7 @@ sysprt_PRCNPROC(void *notused, void *q, int badness, int *color)
 {
         extraparam *as=q;
         static char buf[15]="#proc     ";
-	val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
-
+        val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
         return buf;
 }
 
@@ -1111,14 +1110,14 @@ sysprt_GPUTYPE(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_GPUTYPE = {"GPUTYPE", sysprt_GPUTYPE};
 /*******************************************************************/
 char *
-sysprt_GPUNRPROC(void *p, void *q, int badness, int *color) 
+sysprt_GPUNRPROC(void *p, void *q, int badness, int *color)
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
-        static char buf[16] = "#proc    ";
+	struct sstat *sstat=p;
+	extraparam *as=q;
+	static char buf[16] = "#proc    ";
 
-        val2valstr(sstat->gpu.gpu[as->index].nrprocs, buf+6, 6, 0, 0);
-        return buf;
+	val2valstr(sstat->gpu.gpu[as->index].nrprocs, buf+6, 6, 0, 0);
+	return buf;
 }
 
 sys_printdef syspdef_GPUNRPROC = {"GPUNRPROC", sysprt_GPUNRPROC};
@@ -2265,6 +2264,140 @@ sysprt_NETSNDDROP(void *p, void *q, int badness, int *color)
 }
 
 sys_printdef syspdef_NETSNDDROP = {"NETSNDDROP", sysprt_NETSNDDROP};
+/*******************************************************************/
+char *
+sysprt_IFBNAME(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        count_t busy;
+        count_t ival = sstat->ifb.ifb[as->index].rcvb/125/as->nsecs;
+        count_t oval = sstat->ifb.ifb[as->index].sndb/125/as->nsecs;
+	int     len;
+        static char buf[16] = "ethxxxx ----", tmp[32], *ps=tmp;
+                      //       012345678901
+
+	*color = -1;
+
+	busy = (ival > oval ? ival : oval) * sstat->ifb.ifb[as->index].lanes /
+                               (sstat->ifb.ifb[as->index].rate * 10);
+
+	snprintf(tmp, sizeof tmp, "%s/%d",
+                 sstat->ifb.ifb[as->index].ibname,
+	         sstat->ifb.ifb[as->index].portnr);
+
+	len = strlen(ps);
+        if (len > 7)
+		ps = ps + len - 7;
+
+	snprintf(buf, sizeof buf, "%-7.7s %3lld%%", ps, busy);
+        return buf;
+}
+
+sys_printdef syspdef_IFBNAME = {"IFBNAME", sysprt_IFBNAME};
+/*******************************************************************/
+char *
+sysprt_IFBPCKI(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="pcki  ";
+
+	*color = -1;
+
+        val2valstr(sstat->ifb.ifb[as->index].rcvp, 
+                   buf+5, 7, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_IFBPCKI = {"IFBPCKI", sysprt_IFBPCKI};
+/*******************************************************************/
+char *
+sysprt_IFBPCKO(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="pcko  ";
+
+	*color = -1;
+
+        val2valstr(sstat->ifb.ifb[as->index].sndp, 
+                   buf+5, 7, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_IFBPCKO = {"IFBPCKO", sysprt_IFBPCKO};
+/*******************************************************************/
+char *
+sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat = p;
+        extraparam *as = q;
+        static char buf[16];
+        count_t rate = sstat->ifb.ifb[as->index].rate;
+
+	*color = -1;
+
+	if (rate < 10000)
+	{
+        	snprintf(buf, sizeof buf, "sp %4lld Mbps", rate);
+	}
+	else
+	{
+		rate /= 1000;
+        	snprintf(buf, sizeof buf, "sp %4lld Gbps", rate);
+	}
+
+        return buf;
+}
+
+sys_printdef syspdef_IFBSPEEDMAX = {"IFBSPEEDMAX", sysprt_IFBSPEEDMAX};
+/*******************************************************************/
+char *
+sysprt_IFBLANES(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat = p;
+        extraparam *as = q;
+        static char buf[16]="lanes   ";
+        val2valstr(sstat->ifb.ifb[as->index].lanes, buf+6, 6, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_IFBLANES = {"IFBLANES", sysprt_IFBLANES};
+/*******************************************************************/
+char *
+sysprt_IFBSPEEDIN(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+
+	*color = -1;
+
+        char *ps=makenetspeed(sstat->ifb.ifb[as->index].rcvb *
+	                      sstat->ifb.ifb[as->index].lanes, as->nsecs);
+        ps[0]='s';
+        ps[1]='i';
+        return ps;
+}
+
+sys_printdef syspdef_IFBSPEEDIN = {"IFBSPEEDIN", sysprt_IFBSPEEDIN};
+/*******************************************************************/
+char *
+sysprt_IFBSPEEDOUT(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+
+	*color = -1;
+
+	char *ps=makenetspeed(sstat->ifb.ifb[as->index].sndb *
+	                      sstat->ifb.ifb[as->index].lanes, as->nsecs);
+        ps[0]='s';
+        ps[1]='o';
+        return ps;
+}
+
+sys_printdef syspdef_IFBSPEEDOUT = {"IFBSPEEDOUT", sysprt_IFBSPEEDOUT};
 /*******************************************************************/
 char *
 sysprt_NFMSERVER(void *p, void *q, int badness, int *color) 

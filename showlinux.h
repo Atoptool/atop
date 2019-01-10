@@ -129,6 +129,7 @@ extern sys_printdef *dsksyspdefs[];
 extern sys_printdef *nettranssyspdefs[];
 extern sys_printdef *netnetsyspdefs[];
 extern sys_printdef *netintfsyspdefs[];
+extern sys_printdef *infinisyspdefs[];
 
 extern sys_printdef syspdef_PRCSYS;
 extern sys_printdef syspdef_PRCUSER;
@@ -169,8 +170,8 @@ extern sys_printdef syspdef_CPLCSW;
 extern sys_printdef syspdef_CPLNUMCPU;
 extern sys_printdef syspdef_CPLINTR;
 extern sys_printdef syspdef_GPUBUS;
-extern sys_printdef syspdef_GPUNRPROC;
 extern sys_printdef syspdef_GPUTYPE;
+extern sys_printdef syspdef_GPUNRPROC;
 extern sys_printdef syspdef_GPUMEMPERC;
 extern sys_printdef syspdef_GPUMEMOCC;
 extern sys_printdef syspdef_GPUGPUPERC;
@@ -272,6 +273,13 @@ extern sys_printdef syspdef_NFSNWBYTES;
 extern sys_printdef syspdef_NFSRCHITS;
 extern sys_printdef syspdef_NFSRCMISS;
 extern sys_printdef syspdef_NFSRCNOCA;
+extern sys_printdef syspdef_IFBNAME;
+extern sys_printdef syspdef_IFBPCKI;
+extern sys_printdef syspdef_IFBPCKO;
+extern sys_printdef syspdef_IFBSPEEDMAX;
+extern sys_printdef syspdef_IFBLANES;
+extern sys_printdef syspdef_IFBSPEEDIN;
+extern sys_printdef syspdef_IFBSPEEDOUT;
 extern sys_printdef syspdef_BLANKBOX;
 
 

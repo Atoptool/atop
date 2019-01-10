@@ -1819,6 +1819,87 @@ nfsline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 ** network-interface statistics
 */
 static void
+ibhead(int osvers, int osrel, int ossub)
+{
+	printf("controller port  busy ipack/s opack/s "
+	       "igbps ogbps maxgbps lanes  _ib_");
+}
+
+static int
+ibline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	static char	firstcall = 1;
+	register long	i, nlines = 0;
+	double		busy;
+	unsigned int	badness;
+
+	for (i=0; i < ss->ifb.nrports; i++)	/* per interface */
+	{
+		count_t ival, oval;
+
+		/*
+		** print for the first sample all ports that
+		** are found; afterwards print only the ports
+		** that were really active during the interval
+		*/
+		if (!firstcall && !allresources &&
+		    !ss->ifb.ifb[i].rcvb && !ss->ifb.ifb[i].sndb)
+			continue;
+
+		/*
+		** convert byte-transfers to bit-transfers     (*       8)
+		** convert bit-transfers  to megabit-transfers (/ 1000000)
+		** per second
+		*/
+		ival = ss->ifb.ifb[i].rcvb*ss->ifb.ifb[i].lanes/125000/deltasec;
+		oval = ss->ifb.ifb[i].sndb*ss->ifb.ifb[i].lanes/125000/deltasec;
+
+		/*
+		** calculate busy-percentage for port
+		*/
+		busy = (ival > oval ? ival*100 : oval*100)/ss->ifb.ifb[i].rate;
+
+		if (nlines++)
+			printf("%s  ", tstamp);
+
+		if (netbadness)
+			badness = busy * 100 / netbadness;
+		else
+			badness = 0;
+
+		preprint(badness);
+
+		printf("%-10s %4hd %4.0f%% %7.1lf %7.1lf %5lld %5lld %7lld %5d", 
+			ss->ifb.ifb[i].ibname,
+			ss->ifb.ifb[i].portnr,
+			busy,
+			(double)ss->ifb.ifb[i].rcvp / deltasec,
+			(double)ss->ifb.ifb[i].sndp / deltasec,
+			ival, oval,
+			ss->ifb.ifb[i].rate / 1000,
+			ss->ifb.ifb[i].lanes);
+
+		postprint(badness);
+	}
+
+	if (nlines == 0)
+	{
+		printf("\n");
+		nlines++;
+	}
+
+	firstcall = 0;
+	return nlines;
+}
+
+
+/*
+** network-interface statistics
+*/
+static void
 ifhead(int osvers, int osrel, int ossub)
 {
 	printf("interf busy ipack/s opack/s iKbyte/s oKbyte/s "
@@ -2681,6 +2762,7 @@ struct pridef pridef[] =
    {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },
    {0,  "cd", 'f',  mddhead,	mddline,	"multiple device activity",},
    {0,  "cd", 'd',  dskhead,	dskline,	"disk activity",          },
+   {0,  "n",  'h',  ibhead,	ibline,		"infiniband utilization", },
    {0,  "n",  'n',  nfmhead,	nfmline,	"NFS client mounts",      },
    {0,  "n",  'j',  nfchead,	nfcline,	"NFS client activity",    },
    {0,  "n",  'J',  nfshead,	nfsline,	"NFS server activity",    },

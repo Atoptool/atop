@@ -595,18 +595,16 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 
 	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
 	{
-		devstat->gpu.nrgpus   = curstat->gpu.nrgpus;
-		devstat->gpu.gpulist  = curstat->gpu.gpulist;
-		devstat->gpu.memnow   = curstat->gpu.memnow;
-
-		
 		if (curstat->gpu.state)
 			devstat->gpu.state = curstat->gpu.state;
 		else
 			devstat->gpu.state = prestat->gpu.state;
 
+		devstat->gpu.nrgpus  = curstat->gpu.nrgpus;
+		devstat->gpu.gpulist = curstat->gpu.gpulist;
 		devstat->gpu.gpubusy = curstat->gpu.gpubusy;
 		devstat->gpu.membusy = curstat->gpu.membusy;
+		devstat->gpu.memnow  = curstat->gpu.memnow;
 		devstat->gpu.timems  = curstat->gpu.timems;
 	}
 	else
@@ -1358,6 +1356,9 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	dev->cfs.nrcontainer = cur->cfs.nrcontainer;
 
+	/*
+	** calculate deviations for GPUs
+	*/
 	for (i=0; i < cur->gpu.nrgpus; i++)
 	{
 	    dev->gpu.gpu[i].gpunr      = i;
@@ -1396,6 +1397,30 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	}
 
 	dev->gpu.nrgpus = cur->gpu.nrgpus;
+
+	/*
+	** calculate deviations for InfiniBand
+	*/
+	for (i=0; i < cur->ifb.nrports; i++)
+	{
+		strcpy(dev->ifb.ifb[i].ibname, cur->ifb.ifb[i].ibname);
+
+		dev->ifb.ifb[i].portnr = cur->ifb.ifb[i].portnr;
+		dev->ifb.ifb[i].lanes  = cur->ifb.ifb[i].lanes;
+		dev->ifb.ifb[i].rate   = cur->ifb.ifb[i].rate;
+
+		dev->ifb.ifb[i].rcvb   = cur->ifb.ifb[i].rcvb -
+		                         pre->ifb.ifb[i].rcvb;
+		dev->ifb.ifb[i].sndb   = cur->ifb.ifb[i].sndb -
+		                         pre->ifb.ifb[i].sndb;
+		dev->ifb.ifb[i].rcvp   = cur->ifb.ifb[i].rcvp -
+		                         pre->ifb.ifb[i].rcvp;
+		dev->ifb.ifb[i].sndp   = cur->ifb.ifb[i].sndp -
+		                         pre->ifb.ifb[i].sndp;
+	}
+
+	dev->ifb.nrports = cur->ifb.nrports;
+
 
 #if	HTTPSTATS
 	/*

@@ -1,4 +1,4 @@
-.TH ATOPGPUD 8 "September 2018" "Linux"
+.TH ATOPGPUD 8 "January 2019" "Linux"
 .SH NAME
 .B atopgpud
 - GPU statistics daemon
@@ -20,7 +20,7 @@ connects to this daemon via a TCP socket and obtains all GPU statistics
 with every interval.
 .PP
 The approach to gather all GPU statistics in a separate daemon is required,
-because the Nvidia driver offers e.g. the GPU busy
+because the Nvidia driver only offers the GPU busy
 percentage of the last second. Suppose that
 .I atop
 runs with a 10-minute interval and would fetch the GPU busy percentage
@@ -133,6 +133,6 @@ please consult the source code.
 .B netatopd(8),
 .B atopacctd(8)
 .br
-.B http://www.atoptool.nl
+.B https://www.atoptool.nl
 .SH AUTHOR
 Gerlof Langeveld (gerlof.langeveld@atoptool.nl)

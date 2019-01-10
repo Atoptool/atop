@@ -361,6 +361,7 @@ void do_maxdisk(char *, char *);
 void do_maxmdd(char *, char *);
 void do_maxlvm(char *, char *);
 void do_maxintf(char *, char *);
+void do_maxifb(char *, char *);
 void do_maxnfsm(char *, char *);
 void do_maxcont(char *, char *);
 void do_colinfo(char *, char *);
@@ -378,8 +379,10 @@ void do_owndskline(char *, char *);
 void do_ownnettransportline(char *, char *);
 void do_ownnetnetline(char *, char *);
 void do_ownnetinterfaceline(char *, char *);
+void do_owninfinibandline(char *, char *);
 void do_ownprocline(char *, char *);
 void do_cpucritperc(char *, char *);
+void do_gpucritperc(char *, char *);
 void do_memcritperc(char *, char *);
 void do_swpcritperc(char *, char *);
 void do_dskcritperc(char *, char *);
@@ -405,6 +408,7 @@ static struct {
 	{	"maxlinemdd",		do_maxmdd,		0, },
 	{	"maxlinelvm",		do_maxlvm,		0, },
 	{	"maxlineintf",		do_maxintf,		0, },
+	{	"maxlineifb",		do_maxifb,		0, },
 	{	"maxlinenfsm",		do_maxnfsm,		0, },
 	{	"maxlinecont",		do_maxcont,		0, },
 	{	"colorinfo",		do_colinfo,		0, },
@@ -421,10 +425,12 @@ static struct {
 	{	"ownnettrline",		do_ownnettransportline,	0, },
 	{	"ownnetnetline",	do_ownnetnetline,	0, },
 	{	"ownnetifline",	        do_ownnetinterfaceline,	0, },
+	{	"ownifbline",	        do_owninfinibandline,	0, },
 	{	"ownprocline",		do_ownprocline,		0, },
 	{	"ownsysprcline",	do_ownsysprcline,	0, },
 	{	"owndskline",	        do_owndskline,		0, },
 	{	"cpucritperc",		do_cpucritperc,		0, },
+	{	"gpucritperc",		do_gpucritperc,		0, },
 	{	"memcritperc",		do_memcritperc,		0, },
 	{	"swpcritperc",		do_swpcritperc,		0, },
 	{	"dskcritperc",		do_dskcritperc,		0, },
@@ -576,7 +582,7 @@ main(int argc, char *argv[])
 		/*
 		** get optional interval-value and optional number of samples	
 		*/
-			if (optind < argc && optind < MAXFL)
+		if (optind < argc && optind < MAXFL)
 		{
 			if (!numeric(argv[optind]))
 				prusage(argv[0]);
@@ -724,7 +730,7 @@ engine(void)
 	** reserve space for task-level statistics
 	*/
 	static struct tstat	*curtpres;	/* current present list      */
-	static int		 curtlen;	/* size of present list      */
+	static unsigned long	 curtlen;	/* size of present list      */
 	struct tstat		*curpexit;	/* exited process list	     */
 
 	static struct devtstat	devtstat;	/* deviation info	     */
@@ -898,7 +904,7 @@ engine(void)
 		**
 		** first register active tasks
 		*/
-               curtpres  = NULL;
+		curtpres  = NULL;
 
 		do
 		{
@@ -948,7 +954,7 @@ engine(void)
 			curpexit = malloc(nprocexit * sizeof(struct tstat));
 
 			ptrverify(curpexit,
-			          "Malloc failed for %u exited processes\n",
+			          "Malloc failed for %lu exited processes\n",
 			          nprocexit);
 
 			memset(curpexit, 0, nprocexit * sizeof(struct tstat));

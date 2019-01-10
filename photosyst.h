@@ -34,6 +34,7 @@
 #define	MAXCONTAINER	128
 #define	MAXNFSMOUNT	64
 #define	MAXGPU		32
+#define	MAXIBPORT	32
 
 #define	MAXDKNAM	32
 
@@ -290,7 +291,7 @@ int	getwwwstat(unsigned short, struct wwwstat *);
 
 struct pergpu {
 	char	taskstats;		// GPU task statistics supported?
-	unsigned char	nrprocs;	// number of processes using GPU
+	unsigned char   nrprocs;	// number of processes using GPU
 	char	type[MAXGPUTYPE+1];	// GPU type
 	char	busid[MAXGPUBUS+1];	// GPU bus identification
 	int	gpunr;			// GPU number
@@ -314,6 +315,25 @@ struct gpustat {
 };
 
 /************************************************************************/
+#define	MAXIBNAME	12
+
+struct perifb {
+	char	ibname[MAXIBNAME];	// InfiniBand controller
+	short	portnr;			// InfiniBand controller port
+
+	short	lanes;			// number of lanes (traffic factor)
+	count_t	rate;			// transfer rate in megabits/sec
+	count_t	rcvb;   	    	// bytes received
+	count_t	sndb;       		// bytes transmitted
+	count_t	rcvp;   	    	// packets received
+	count_t	sndp;       		// packets transmitted
+};
+
+struct ifbstat {
+	int		nrports;	// total number of IB ports
+	struct perifb   ifb[MAXIBPORT];
+};
+/************************************************************************/
 
 struct	sstat {
 	struct cpustat	cpu;
@@ -324,6 +344,7 @@ struct	sstat {
 	struct nfsstat  nfs;
 	struct contstat cfs;
 	struct gpustat 	gpu;
+	struct ifbstat 	ifb;
 
 	struct wwwstat	www;
 };

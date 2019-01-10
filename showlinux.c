@@ -294,6 +294,7 @@ static void	make_proc_dynamicgen(void);
 ** these defaults can be overruled via the config-file
 */
 int   cpubadness = 90;        /* percentage           */
+int   gpubadness = 100;       /* percentage           */
 int   membadness = 90;        /* percentage           */
 int   swpbadness = 80;        /* percentage           */
 int   dskbadness = 70;        /* percentage           */
@@ -368,8 +369,8 @@ sys_printdef *gpusyspdefs[] = {
 	&syspdef_GPUMEMTOT,
 	&syspdef_GPUMEMUSE,
 	&syspdef_GPUMEMAVG,
-	&syspdef_GPUNRPROC,
 	&syspdef_GPUTYPE,
+	&syspdef_GPUNRPROC,
 	&syspdef_BLANKBOX,
         0
 };
@@ -515,6 +516,17 @@ sys_printdef *netintfsyspdefs[] = {
         0
 };
 
+sys_printdef *infinisyspdefs[] = {
+	&syspdef_IFBNAME,
+	&syspdef_IFBPCKI,
+	&syspdef_IFBPCKO,
+	&syspdef_IFBSPEEDMAX,
+	&syspdef_IFBSPEEDIN,
+	&syspdef_IFBSPEEDOUT,
+	&syspdef_IFBLANES,
+	&syspdef_BLANKBOX,
+        0
+};
 
 /*
  * table with all proc_printdefs
@@ -644,6 +656,7 @@ sys_printpair dskline[MAXITEMS];
 sys_printpair nettransportline[MAXITEMS];
 sys_printpair netnetline[MAXITEMS];
 sys_printpair netinterfaceline[MAXITEMS];
+sys_printpair infinibandline[MAXITEMS];
 sys_printpair nfsmountline[MAXITEMS];
 sys_printpair nfcline[MAXITEMS];
 sys_printpair nfsline[MAXITEMS];
@@ -805,8 +818,7 @@ init_proc_prints()
 		{
 			char *p = malloc(numdigits+1);
 
-			ptrverify(p, "Malloc failed for formatted header\n",
-				                               numdigits + 1);
+			ptrverify(p, "Malloc failed for formatted header\n");
 
 			sprintf(p, "%*s", numdigits, idprocpdefs[i]->head);
 			idprocpdefs[i]->head = p;
@@ -996,8 +1008,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "GPUMEMOCC:5 "
 	                "GPUMEMTOT:3 "
 	                "GPUMEMUSE:4 "
-	                "GPUMEMAVG:3 "
-			"GPUNRPROC:2 "
+	                "GPUMEMAVG:2 "
+	                "GPUNRPROC:2 "
 	                "BLANKBOX:0 "
 	                "GPUTYPE:1 ", gpusyspdefs, "builtin gpuline");
                 }
@@ -1176,6 +1188,25 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "NETSNDERR:4 "
                         "NETRCVDROP:3 "
                         "NETSNDDROP:3", netintfsyspdefs, "builtin netinterfaceline");
+                }
+                if (infinibandline[0].f == 0)
+                {
+                    make_sys_prints(infinibandline, MAXITEMS,
+	                "IFBNAME:8 "
+	                "BLANKBOX:0 "
+	                "IFBPCKI:7 "
+	                "IFBPCKO:7 "
+	                "BLANKBOX:0 "
+	                "IFBSPEEDMAX:5 "
+	                "IFBSPEEDIN:6 "
+	                "IFBSPEEDOUT:6 "
+	                "IFBLANES:4 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 ", infinisyspdefs, "builtin infinibandline");
                 }
         }  // firsttime
 
@@ -1613,7 +1644,8 @@ int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
-	int maxlvmlines, int maxintlines, int maxnfslines, int maxcontlines)
+	int maxlvmlines, int maxintlines, int maxifblines,
+	int maxnfslines, int maxcontlines)
 {
         extraparam      extra;
         int             lin;
@@ -1699,6 +1731,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         if (extra.percputot == 0)
                                 extra.percputot = 1; /* avoid divide-by-zero */
 
+
 			if (screen)
         	                move(curline, 0);
 
@@ -1741,12 +1774,28 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				totbusy= 0;
 
 			if (sstat->gpu.gpu[extra.index].samples == 0)
+			{
+				totbusy =
+					sstat->gpu.gpu[extra.index].gpupercnow +
+			          	sstat->gpu.gpu[extra.index].mempercnow;
+
 				avgmemuse =
 					sstat->gpu.gpu[extra.index].memusenow;
+			}
 			else
+			{
+				totbusy = totbusy /
+				     	sstat->gpu.gpu[extra.index].samples;
+
 		   		avgmemuse =
 					 sstat->gpu.gpu[extra.index].memusecum/
 			                 sstat->gpu.gpu[extra.index].samples;
+			}
+
+        		if (gpubadness)
+                		badness = totbusy * 100 / gpubadness;
+        		else
+                		badness = 0;
 
 			if (	totbusy > 0 			||
 			    	// memusage > 512 MiB (rather arbitrary)?
@@ -1754,7 +1803,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 			    	fixedhead			  )
 			{
 					showsysline(gpuline, sstat,
-							&extra, "GPU", 0);
+							&extra, "GPU", badness);
 	 				curline++;
 					lin++;
 			}
@@ -1941,7 +1990,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         }
 
         /*
-        ** NET statistics
+        ** NET statistics: transport
         */
         if (sstat->net.tcp.InSegs             ||
             sstat->net.tcp.OutSegs            ||
@@ -1958,6 +2007,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 curline++;
         }
 
+        /*
+        ** NET statistics: network
+        */
         if (sstat->net.ipv4.InReceives ||
             sstat->net.ipv6.Ip6InReceives ||
             sstat->net.ipv4.OutRequests ||
@@ -1971,6 +2023,9 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 curline++;
         }
 
+        /*
+        ** NET statistics: interfaces
+        */
         for (extra.index=0, lin=0;
 	     sstat->intf.intf[extra.index].name[0] && lin < maxintlines;
              extra.index++)
@@ -2030,6 +2085,54 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
                         showsysline(netinterfaceline, sstat, &extra, 
                                       			"NET", badness);
+                        curline++;
+                        lin++;
+                }
+        }
+
+        /*
+        ** NET statistics: InfiniBand
+        */
+        for (extra.index=0, lin=0;
+	     extra.index < sstat->ifb.nrports && lin < maxifblines;
+             extra.index++)
+        {
+                if (sstat->ifb.ifb[extra.index].rcvb ||
+                    sstat->ifb.ifb[extra.index].sndb || fixedhead)
+                {
+                        /*
+                        ** calculate busy-percentage for IB port
+                        */
+                       count_t ival, oval;
+
+                        /*
+                        ** convert byte-transfers to bit-transfers     (*    8)
+                        ** convert bit-transfers  to kilobit-transfers (/ 1000)
+                        ** per second
+                        */
+                        ival    = sstat->ifb.ifb[extra.index].rcvb/125/nsecs;
+                        oval    = sstat->ifb.ifb[extra.index].sndb/125/nsecs;
+
+			busy = (ival > oval ? ival : oval) *
+			                 sstat->ifb.ifb[extra.index].lanes /
+					(sstat->ifb.ifb[extra.index].rate * 10);
+
+                        if (netbadness)
+                                badness = busy * 100 / netbadness;
+                        else
+                                badness = 0;
+
+                        if (highbadness < badness)
+                        {
+                                highbadness = badness;
+                                *highorderp = MSORTNET;
+                        }
+
+			if (screen)
+                		move(curline, 0);
+
+                        showsysline(infinibandline, sstat, &extra, 
+                                      			"IFB", badness);
                         curline++;
                         lin++;
                 }
@@ -2125,7 +2228,7 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
 
 
 /*
-** sort-functions
+** process-level sort functions
 */
 int
 compcpu(const void *a, const void *b)
@@ -2251,6 +2354,9 @@ compcon(const void *a, const void *b)
        return strcmp(containera, containerb);
 }
 
+/*
+** system-level sort functions
+*/
 int
 cpucompar(const void *a, const void *b)
 {
@@ -2311,7 +2417,6 @@ intfcompar(const void *a, const void *b)
         count_t asbyte         = ((struct perintf *)a)->sbyte;
         count_t bsbyte         = ((struct perintf *)b)->sbyte;
 
-
         /*
         ** if speed of first interface known, calculate busy factor
         */
@@ -2358,6 +2463,21 @@ intfcompar(const void *a, const void *b)
         else
                 return  1;
 }
+
+
+int
+ifbcompar(const void *a, const void *b)
+{
+        count_t atransfer  = ((struct perifb *)a)->rcvb +
+                             ((struct perifb *)a)->sndb;
+        count_t btransfer  = ((struct perifb *)b)->rcvb +
+                             ((struct perifb *)b)->sndb;
+
+	if (atransfer < btransfer)	return  1;
+	if (atransfer > btransfer)	return -1;
+					return  0;
+}
+
 
 int
 nfsmcompar(const void *a, const void *b)
@@ -2438,6 +2558,12 @@ void
 do_cpucritperc(char *name, char *val)
 {
         cpubadness = get_perc(name, val);
+}
+
+void
+do_gpucritperc(char *name, char *val)
+{
+        gpubadness = get_perc(name, val);
 }
 
 void
@@ -2546,6 +2672,12 @@ void
 do_ownnetinterfaceline(char *name, char *val)
 {
         make_sys_prints(netinterfaceline, MAXITEMS, val, netintfsyspdefs, name);
+}
+
+void
+do_owninfinibandline(char *name, char *val)
+{
+        make_sys_prints(infinibandline, MAXITEMS, val, infinisyspdefs, name);
 }
 
 void

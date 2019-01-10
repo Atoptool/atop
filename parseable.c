@@ -96,6 +96,7 @@ void 	print_NFM();
 void 	print_NFC();
 void 	print_NFS();
 void 	print_NET();
+void 	print_IFB();
 
 void 	print_PRG();
 void 	print_PRC();
@@ -129,6 +130,7 @@ static struct labeldef	labeldef[] = {
 	{ "NFC",	0,	print_NFC },
 	{ "NFS",	0,	print_NFS },
 	{ "NET",	0,	print_NET },
+	{ "IFB",	0,	print_IFB },
 
 	{ "PRG",	0,	print_PRG },
 	{ "PRC",	0,	print_PRC },
@@ -609,6 +611,27 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	}
 }
 
+void
+print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int 	i;
+
+	for (i=0; i < ss->ifb.nrports; i++)
+	{
+		printf(	"%s %s %hd %hd %lld %lld %lld %lld %lld\n",
+			hp,
+			ss->ifb.ifb[i].ibname,
+			ss->ifb.ifb[i].portnr,
+			ss->ifb.ifb[i].lanes,
+			ss->ifb.ifb[i].rate,
+			ss->ifb.ifb[i].rcvb,
+			ss->ifb.ifb[i].sndb,
+			ss->ifb.ifb[i].rcvp,
+			ss->ifb.ifb[i].sndp);
+	}
+}
+
+
 /*
 ** print functions for process-level statistics
 */
@@ -764,17 +787,16 @@ print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %c %d %d %d %d %lld %lld %lld %lld\n",
+		printf("%s %d (%s) %c %c %d %x %d %d %lld %lld %lld\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
 				ps->gen.state,
-				ps->gpu.state,
+				ps->gpu.state == '\0' ? 'N':ps->gpu.state,
 				ps->gpu.nrgpus,
 				ps->gpu.gpulist,
 				ps->gpu.gpubusy,
 				ps->gpu.membusy,
-				ps->gpu.timems,
 				ps->gpu.memnow,
 				ps->gpu.memcum,
 				ps->gpu.sample);

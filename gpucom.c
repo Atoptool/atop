@@ -130,12 +130,20 @@ gpud_init(void)
 	if (version != APIVERSION)
 	{
 		fprintf(stderr,
-			"wrong API version from atopgpud: %d %d",
+			"wrong API version from atopgpud: %d %d\n",
 			version, APIVERSION);
 
 		goto close_and_return;
 	}
  
+	if (length > 8192)	// sanity check
+	{
+		fprintf(stderr,
+			"unexpected response length atopgpud: %d\n", length);
+
+		goto close_and_return;
+	}
+
 	buf = malloc(length+1);
 	ptrverify(buf, "Malloc failed for gpu rcvbuf\n");
 
@@ -232,12 +240,20 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 	if (version != APIVERSION)
 	{
 		fprintf(stderr,
-			"wrong API version from atopgpud: %d %d",
+			"wrong API version from atopgpud: %d %d\n",
 			version, APIVERSION);
 
 		goto close_and_return;
 	}
  
+	if (length > 8192)	// sanity check
+	{
+		fprintf(stderr,
+			"unexpected response length atopgpud: %d\n", length);
+
+		goto close_and_return;
+	}
+
 	buf = malloc(length+1);
 	ptrverify(buf, "Malloc failed for gpu rcvbuf\n");
 

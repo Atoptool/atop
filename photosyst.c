@@ -149,8 +149,9 @@
 **
 */
 
+static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof Exp $";
+
 #include <sys/types.h>
-#include <sys/sysmacros.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -164,8 +165,10 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/ioctl.h>
+#include <sys/sysmacros.h>
 
-#define SCALINGMAXCPU   8       // threshold for scaling info per CPU
+#define SCALINGMAXCPU	8	// threshold for scaling info per CPU
+
 
 #ifndef	NOPERFEVENT
 #include <linux/perf_event.h>
@@ -194,6 +197,8 @@
 #ifndef	NOPERFEVENT
 static void	getperfevents(struct cpustat *);
 #endif
+
+static int	get_infiniband(struct ifbstat *);
 
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
@@ -278,12 +283,14 @@ static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 void
 photosyst(struct sstat *si)
 {
+	static char	part_stats = 1; /* per-partition statistics ? */
+	static char	ib_stats = 1; 	/* InfiniBand statistics ? */
+
 	register int	i, nr;
 	count_t		cnts[MAXCNT];
 	float		lavg1, lavg5, lavg15;
 	FILE 		*fp;
 	char		linebuf[1024], nam[64], origdir[1024];
-	static char	part_stats = 1; /* per-partition statistics ? */
 	unsigned int	major, minor;
 	struct shm_info	shminfo;
 #if	HTTPSTATS
@@ -293,16 +300,17 @@ photosyst(struct sstat *si)
 	memset(si, 0, sizeof(struct sstat));
 
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-        {
-                perror("save current dir");
-                cleanstop(53);
-        }
+	{
+		perror("save current dir");
+		cleanstop(53);
+	}
 
 	if ( chdir("/proc") == -1)
-        {
-                perror("change to /proc");
-                cleanstop(54);
-        }
+	{
+		perror("change to /proc");
+		cleanstop(54);
+	}
+
 
 	/*
 	** gather various general statistics from the file /proc/stat and
@@ -443,7 +451,7 @@ photosyst(struct sstat *si)
         **
 	** store them in binary form
 	*/
-        static char fn[80];
+        static char fn[256];
         int didone=0;
 
 	if (si->cpu.nrcpu <= SCALINGMAXCPU)
@@ -1382,13 +1390,20 @@ photosyst(struct sstat *si)
 	}
 
 	/*
+ 	** verify presence of InfiniBand controllers
+	** warning: possibly switches to other directory
+	*/
+	if (ib_stats)
+		ib_stats = get_infiniband(&(si->ifb));
+
+	/*
  	** return to original directory
 	*/
 	if ( chdir(origdir) == -1)
-        {
-                perror(origdir);
-                cleanstop(55);
-        }
+	{
+		perror(origdir);
+		cleanstop(55);
+	}
 
 #ifndef	NOPERFEVENT
 	/*
@@ -1667,6 +1682,278 @@ getbootlinux(long hertz)
 	}
 
 	return bootjiffies;
+}
+
+
+/*
+** get stats of all InfiniBand ports below
+**    /sys/class/infiniband/<controller>/ports/<port#>/....
+*/
+static struct ibcachent {
+	char		*ibha;		// InfiniBand Host Adaptor
+	unsigned short	port;		// port number
+	unsigned short	lanes;		// number of lanes
+	count_t 	rate;		// transfer rate in bytes/sec
+	char 		*pathrcvb;	// path name for received bytes
+	char 		*pathsndb;	// path name for transmitted bytes
+	char 		*pathrcvp;	// path name for received packets
+	char 		*pathsndp;	// path name for transmitted packets
+} ibcache[MAXIBPORT];
+
+static int	nib;			// number of IB ports in cache
+
+static void	ibprep(struct ibcachent *);
+static int	ibstat(struct ibcachent *, struct perifb *);
+
+static int
+get_infiniband(struct ifbstat *si)
+{
+	static int	firstcall = 1;
+	int		i;
+
+	// verify if InfiniBand used in this system
+	if ( chdir("/sys/class/infiniband") == -1)
+		return 0;	// no path, no IB, so don't try again
+
+	if (firstcall)
+	{
+		char		path[128], *p;
+		struct stat	statbuf;
+		struct dirent	*contdent, *portdent;
+		DIR		*contp, *portp;
+
+		firstcall = 0;
+
+		/*
+		** once setup a cache with all info that is needed
+		** to gather the necessary stats with every subsequent
+		** call, including  path names, etcetera.
+		*/
+		if ( (contp = opendir(".")) )
+		{
+			/*
+ 			** read every directory-entry and search for
+			** subdirectories (i.e. controllers)
+			*/
+			while ( (contdent = readdir(contp)) )
+			{
+				// skip . and ..
+				if (contdent->d_name[0] == '.')
+					continue;
+
+				if ( stat(contdent->d_name, &statbuf) == -1 )
+					continue;
+	
+				if ( ! S_ISDIR(statbuf.st_mode) )
+					continue;
+
+				// controller found
+				// store controller name for cache
+				//
+				p = malloc( strlen(contdent->d_name)+1 );
+				strcpy(p, contdent->d_name);
+
+				if (strlen(contdent->d_name) > MAXIBNAME-1)
+					p[MAXIBNAME-1] = '\0';
+
+				// discover all ports
+				//
+				snprintf(path, sizeof path, "%s/ports",
+							contdent->d_name);
+
+				if ( (portp = opendir(path)) )
+				{
+					/*
+ 					** read every directory-entry and
+					** search for subdirectories (i.e.
+					** port numbers)
+					*/
+					while ( (portdent = readdir(portp)) )
+					{
+						int port;
+
+						// skip . and ..
+						if (portdent->d_name[0] == '.')
+							continue;
+
+						port = atoi(portdent->d_name);
+
+						if (!port)
+							continue;
+
+						// valid port
+						// fill cache info
+						//
+						ibcache[nib].port = port;
+						ibcache[nib].ibha = p;
+
+						ibprep(&ibcache[nib]);
+
+						if (++nib >= MAXIBPORT)
+							break;
+					}
+
+					closedir(portp);
+
+					if (nib >= MAXIBPORT)
+						break;
+				}
+			}
+
+			closedir(contp);
+		}
+	}
+
+	/*
+	** get static and variable metrics
+	*/
+	for (i=0; i < nib; i++)
+	{
+		// static metrics from cache
+		strcpy(si->ifb[i].ibname, ibcache[i].ibha);
+
+		si->ifb[i].portnr = ibcache[i].port;
+		si->ifb[i].lanes  = ibcache[i].lanes;
+		si->ifb[i].rate   = ibcache[i].rate;
+
+		// variable metrics from sysfs
+		ibstat(&(ibcache[i]), &(si->ifb[i]));
+	}	
+
+	si->nrports = nib;
+	return 1;
+}
+
+/*
+** determine rate and number of lanes
+** from <contr>/ports/<port>/rate --> e.g. "100 Gb/sec (4X EDR)"
+** and assemble path names to be used for counters later on
+*/
+static void
+ibprep(struct ibcachent *ibc)
+{
+	FILE	*fp;
+	char	path[128], linebuf[64], speedunit;
+
+	// determine port rate and number of lanes
+	snprintf(path, sizeof path, "%s/ports/%d/rate", ibc->ibha, ibc->port); 
+
+	if ( (fp = fopen(path, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			(void) sscanf(linebuf, "%lld %c%*s (%hdX",
+				&(ibc->rate), &speedunit, &(ibc->lanes));
+		}
+
+		fclose(fp);
+	}
+
+	// calculate megabits/second
+	switch (speedunit)
+	{
+	   case 'M':
+	   case 'm':
+		break;
+	   case 'G':
+	   case 'g':
+		ibc->rate *= 1000;
+		break;
+	   case 'T':
+	   case 't':
+		ibc->rate *= 1000000;
+		break;
+	}
+
+	// build all pathnames to obtain the counters
+	// of this port later on
+	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_data",
+						    ibc->ibha, ibc->port);
+	ibc->pathrcvb = malloc( strlen(path)+1 );
+	strcpy(ibc->pathrcvb, path);
+
+	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_data",
+						    ibc->ibha, ibc->port);
+	ibc->pathsndb = malloc( strlen(path)+1 );
+	strcpy(ibc->pathsndb, path);
+
+	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_packets",
+						    ibc->ibha, ibc->port);
+	ibc->pathrcvp = malloc( strlen(path)+1 );
+	strcpy(ibc->pathrcvp, path);
+
+	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_packets",
+						    ibc->ibha, ibc->port);
+	ibc->pathsndp = malloc( strlen(path)+1 );
+	strcpy(ibc->pathsndp, path);
+}
+
+/*
+** read necessary variable counters for this IB port
+*/
+static int
+ibstat(struct ibcachent *ibc, struct perifb *ifb)
+{
+	FILE	*fp;
+	char	linebuf[64];
+
+	if ( (fp = fopen(ibc->pathrcvb, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%lld", &(ifb->rcvb)) == 0)
+				ifb->rcvb = 0;
+		}
+		else
+		{
+			ifb->rcvb = 0;
+		}
+		fclose(fp);
+	}
+
+	if ( (fp = fopen(ibc->pathsndb, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%lld", &(ifb->sndb)) == 0)
+				ifb->sndb = 0;
+		}
+		else
+		{
+			ifb->sndb = 0;
+		}
+		fclose(fp);
+	}
+
+	if ( (fp = fopen(ibc->pathrcvp, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%lld", &(ifb->rcvp)) == 0)
+				ifb->rcvp = 0;
+		}
+		else
+		{
+			ifb->rcvp = 0;
+		}
+		fclose(fp);
+	}
+
+	if ( (fp = fopen(ibc->pathsndp, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%lld", &(ifb->sndp)) == 0)
+				ifb->sndp = 0;
+		}
+		else
+		{
+			ifb->sndp = 0;
+		}
+		fclose(fp);
+	}
+
+	return 1;
 }
 
 /*
