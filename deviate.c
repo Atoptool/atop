@@ -826,6 +826,22 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.allocstall	= subcount(cur->mem.allocstall,
 				                         pre->mem.allocstall);
 
+	dev->psi          	= cur->psi;
+
+	if (cur->psi.present)
+	{
+		dev->psi.cpusome.total 	= cur->psi.cpusome.total -
+					  pre->psi.cpusome.total;
+		dev->psi.memsome.total 	= cur->psi.memsome.total -
+					  pre->psi.memsome.total;
+		dev->psi.memfull.total 	= cur->psi.memfull.total -
+					  pre->psi.memfull.total;
+		dev->psi.iosome.total 	= cur->psi.iosome.total -
+					  pre->psi.iosome.total;
+		dev->psi.iofull.total 	= cur->psi.iofull.total -
+					  pre->psi.iofull.total;
+	}
+
 	/*
 	** structures with network-related counters are considered
 	** as tables of frequency-counters that have to be subtracted;
@@ -1420,6 +1436,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	}
 
 	dev->ifb.nrports = cur->ifb.nrports;
+
+	
 
 
 #if	HTTPSTATS

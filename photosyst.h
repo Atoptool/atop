@@ -39,7 +39,6 @@
 #define	MAXDKNAM	32
 
 /************************************************************************/
-
 struct	memstat {
 	count_t	physmem;	// number of physical pages
 	count_t	freemem;	// number of free     pages
@@ -71,7 +70,6 @@ struct	memstat {
 	count_t	hugepagesz;	// huge page size (bytes)
 
 	count_t	vmwballoon;	// vmware claimed balloon pages
-
 	count_t	cfuture[8];	// reserved for future use
 };
 
@@ -249,6 +247,24 @@ struct nfsstat {
 };
 
 /************************************************************************/
+struct	psi {
+	float	avg10;		// average pressure last 10 seconds
+	float	avg60;		// average pressure last 60 seconds
+	float	avg300;		// average pressure last 300 seconds
+	count_t	total;		// total number of milliseconds
+};
+
+struct	pressure {
+	char	   present;	/* pressure stats supported?	*/
+	char       future[3];
+	struct psi cpusome;	/* pressure stall info 'some'   */
+	struct psi memsome;	/* pressure stall info 'some'   */
+	struct psi memfull;	/* pressure stall info 'full'   */
+	struct psi iosome;	/* pressure stall info 'some'   */
+	struct psi iofull;	/* pressure stall info 'full'   */
+};
+
+/************************************************************************/
 
 struct  percontainer {
         unsigned long	ctid;		/* container id			*/
@@ -343,6 +359,7 @@ struct	sstat {
 	struct dskstat  dsk;
 	struct nfsstat  nfs;
 	struct contstat cfs;
+	struct pressure	psi;
 	struct gpustat 	gpu;
 	struct ifbstat 	ifb;
 

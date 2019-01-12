@@ -1237,6 +1237,18 @@ and the number of memory pages the system wrote to swap space (`swout')
 are shown.
 .PP
 .TP 5
+.B PSI
+Pressure Stall Information.
+.br
+This line contains three percentages per category:
+average pressure percentage over the last 10, 60 and 300 seconds
+(separated by slashes).
+.br
+The categories are: CPU for 'some' (`cs'),
+memory for 'some' (`ms'), memory for 'full' (`mf'),
+I/O for 'some' (`is'), and I/O for 'full' (`if').
+.PP
+.TP 5
 .B LVM/MDD/DSK
 Logical volume/multiple device/disk utilization.
 .br
@@ -1955,8 +1967,8 @@ parseable output is produced for each sample.
 The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
-"CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "LVM", "MDD", "DSK", "NFM",
-"NFC", "NFS", "NET" and "IFB".
+"CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
+"DSK", "NFM", "NFC", "NFS", "NET" and "IFB".
 .br
 For process-level statistics special labels are introduced:
 "PRG" (general), "PRC" (cpu), "PRE" (GPU), "PRM" (memory), "PRD"
@@ -2084,6 +2096,20 @@ number of allocstalls,
 0 (future use),
 number of swapins, and 
 number of swapouts.
+.TP 9
+.B PSI
+Subsequent fields:
+PSI statistics present on this system (n or y),
+CPU some avg10, CPU some avg60, CPU some avg300,
+CPU some accumulated microseconds during interval,
+memory some avg10, memory some avg60, memory some avg300,
+memory some accumulated microseconds during interval,
+memory full avg10, memory full avg60, memory full avg300,
+memory full accumulated microseconds during interval,
+I/O some avg10, I/O some avg60, I/O some avg300, 
+I/O some accumulated microseconds during interval,
+I/O full avg10, I/O full avg60, I/O full avg300, and
+I/O full accumulated microseconds during interval.
 .TP 9
 .B LVM/MDD/DSK
 For every logical volume/multiple device/hard disk one line is shown.

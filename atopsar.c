@@ -1560,6 +1560,46 @@ swapline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 }
 
 /*
+** swapping statistics
+*/
+static void
+psihead(int osvers, int osrel, int ossub)
+{
+	printf("cs_10_60_300   ms_10_60_300 mf_10_60_300   "
+	       "is_10_60_300 if_10_60_300");
+}
+
+static int
+psiline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
+        time_t deltasec, time_t deltatic, time_t hz,
+        int osvers, int osrel, int ossub, char *tstamp,
+        int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
+{
+	if (!ss->psi.present)
+	{
+		printf("no PSI stats available for this system .....\n");
+		return 0;
+	}
+
+	printf("%3.0f%%%3.0f%%%3.0f%%   %3.0f%%%3.0f%%%3.0f%% "
+	       "%3.0f%%%3.0f%%%3.0f%%   %3.0f%%%3.0f%%%3.0f%% "
+	       "%3.0f%%%3.0f%%%3.0f%%\n",
+		ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
+		ss->psi.cpusome.avg300,
+		ss->psi.memsome.avg10, ss->psi.memsome.avg60,
+		ss->psi.memsome.avg300,
+		ss->psi.memfull.avg10, ss->psi.memfull.avg60,
+		ss->psi.memfull.avg300,
+		ss->psi.iosome.avg10, ss->psi.iosome.avg60,
+		ss->psi.iosome.avg300,
+		ss->psi.iofull.avg10, ss->psi.iofull.avg60,
+		ss->psi.iofull.avg300);
+
+	return 1;
+}
+
+
+/*
 ** disk statistics
 */
 static void
@@ -2759,6 +2799,7 @@ struct pridef pridef[] =
    {0,  "c",  'g',  gpuhead,	gpuline,  	"gpu utilization",        },
    {0,  "m",  'm',  memhead,	memline,	"memory & swapspace",     },
    {0,  "m",  's',  swaphead,	swapline,	"swap rate",              },
+   {0,  "cmd",'B',  psihead,	psiline,	"pressure stall info (PSI)",},
    {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },
    {0,  "cd", 'f',  mddhead,	mddline,	"multiple device activity",},
    {0,  "cd", 'd',  dskhead,	dskline,	"disk activity",          },

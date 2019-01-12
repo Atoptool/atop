@@ -14,7 +14,6 @@
 **
 ** Author:	JC van Winkel - AT Computing, Nijmegen, Holland
 **              Complete redesign.
-** E-mail:      jc@ATComputing.nl
 ** Date:        November 2009
 ** --------------------------------------------------------------------------
 ** Copyright (C) 2009-2010 JC van Winkel
@@ -410,6 +409,15 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *psisyspdefs[] = {
+	&syspdef_PSICPUS,
+	&syspdef_PSIMEMS,
+	&syspdef_PSIMEMF,
+	&syspdef_PSIIOS,
+	&syspdef_PSIIOF,
+	&syspdef_BLANKBOX,
+        0
+};
 sys_printdef *contsyspdefs[] = {
 	&syspdef_CONTNAME,
 	&syspdef_CONTNPROC,
@@ -651,6 +659,7 @@ sys_printpair gpuline[MAXITEMS];
 sys_printpair memline[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
+sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
 sys_printpair dskline[MAXITEMS];
 sys_printpair nettransportline[MAXITEMS];
@@ -1061,6 +1070,18 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "PAGSWIN:3 "
 	                "PAGSWOUT:4", pagsyspdefs, "builtin pagline");
+                }
+                if (psiline[0].f == 0)
+                {
+                    make_sys_prints(psiline, MAXITEMS,
+	                "PSICPUS:3 "
+	                "PSIMEMS:3 "
+	                "PSIMEMF:3 "
+	                "PSIIOS:3 "
+	                "PSIIOF:3 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 "
+	                "BLANKBOX:0 ", psisyspdefs, "builtin psiline");
                 }
                 if (contline[0].f == 0)
                 {
@@ -1904,6 +1925,35 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 showsysline(pagline, sstat, &extra,"PAG", badness);
                 curline++;
         }
+
+        /*
+        ** Pressure statistics
+        */
+	if (sstat->psi.present)
+	{
+        	if (fixedhead                 ||
+	            sstat->psi.cpusome.avg10  || sstat->psi.memsome.avg10  ||
+	            sstat->psi.iosome.avg10   ||
+	            sstat->psi.cpusome.avg60  || sstat->psi.memsome.avg60  ||
+	            sstat->psi.iosome.avg60   ||
+	            sstat->psi.cpusome.avg300 || sstat->psi.memsome.avg300 ||
+	            sstat->psi.iosome.avg300    )
+	        {
+			badness = sstat->psi.cpusome.avg10 >
+			          sstat->psi.cpusome.avg60 ?
+			          sstat->psi.cpusome.avg10 :
+			          sstat->psi.cpusome.avg60;
+
+			if (badness < sstat->psi.cpusome.avg300)
+				badness = sstat->psi.cpusome.avg300;
+
+			if (screen)
+                		move(curline, 0);
+
+                	showsysline(psiline, sstat, &extra,"PSI", badness);
+                	curline++;
+		}
+	}
 
 	/*
  	** Container statistics (if any)

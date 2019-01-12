@@ -189,6 +189,10 @@ Current memory- and swap-occupation.
 Report about paging- and swapping-activity, and overcommitment.
 .PP
 .TP 5
+.B -B
+Report about Pressure Stall Information (PSI).
+.PP
+.TP 5
 .B -l
 Report about utilization of logical volumes.
 .PP
@@ -480,6 +484,30 @@ The maximum limit for the committed space, which is by default swap size
 plus 50% of memory size.
 The kernel only verifies whether the committed space exceeds the limit
 if strict overcommit handling is configured (vm.overcommit_memory is 2).
+.PP
+The output for the flag
+.B -B
+contains the Pressure Stall Information (PSI):
+.TP 12
+.B cs_10_60_300
+Average pressure percentage over the last 10, 60 and 300 seconds for the
+category 'CPU some'.
+.TP 12
+.B ms_10_60_300
+Average pressure percentage over the last 10, 60 and 300 seconds for the
+category 'memory some'.
+.TP 12
+.B mf_10_60_300
+Average pressure percentage over the last 10, 60 and 300 seconds for the
+category 'memory full'.
+.TP 12
+.B is_10_60_300
+Average pressure percentage over the last 10, 60 and 300 seconds for the
+category 'I/O some'.
+.TP 12
+.B if_10_60_300
+Average pressure percentage over the last 10, 60 and 300 seconds for the
+category 'I/O full'.
 .PP
 The output for the flags
 .B -l

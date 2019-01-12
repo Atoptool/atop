@@ -1521,6 +1521,85 @@ sysprt_PAGSWOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT};
 /*******************************************************************/
+// general formatting of PSI field
+void
+psiformat(struct psi *p, char *head, char *buf, int bufsize)
+{
+	static char	formats[] = "%.0f/%.0f/%.0f";
+	char		tmpbuf[32];
+
+	snprintf(tmpbuf, sizeof tmpbuf, formats, p->avg10, p->avg60, p->avg300);
+
+	if (strlen(tmpbuf) > 9)	// reformat needed?
+	{
+		float avg10  = p->avg10;
+		float avg60  = p->avg60;
+		float avg300 = p->avg300;
+
+		if (avg10 > 99.0)
+			avg10 = 99.0;
+		if (avg60 > 99.0)
+			avg60 = 99.0;
+		if (avg300 > 99.0)
+			avg300 = 99.0;
+
+		snprintf(tmpbuf, sizeof tmpbuf, formats, avg10, avg60, avg300);
+	}
+
+	snprintf(buf, bufsize, "%s %9s", head, tmpbuf);
+}
+
+char *
+sysprt_PSICPUS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16];
+	psiformat(&(sstat->psi.cpusome), "cs", buf, sizeof buf);
+        return buf;
+}
+sys_printdef syspdef_PSICPUS = {"PSICPUS", sysprt_PSICPUS};
+
+char *
+sysprt_PSIMEMS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16];
+	psiformat(&(sstat->psi.memsome), "ms", buf, sizeof buf);
+        return buf;
+}
+sys_printdef syspdef_PSIMEMS = {"PSIMEMS", sysprt_PSIMEMS};
+
+char *
+sysprt_PSIMEMF(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16];
+	psiformat(&(sstat->psi.memfull), "mf", buf, sizeof buf);
+        return buf;
+}
+sys_printdef syspdef_PSIMEMF = {"PSIMEMF", sysprt_PSIMEMF};
+
+char *
+sysprt_PSIIOS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16];
+	psiformat(&(sstat->psi.iosome), "is", buf, sizeof buf);
+        return buf;
+}
+sys_printdef syspdef_PSIIOS = {"PSIIOS", sysprt_PSIIOS};
+
+char *
+sysprt_PSIIOF(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16];
+	psiformat(&(sstat->psi.iosome), "if", buf, sizeof buf);
+        return buf;
+}
+sys_printdef syspdef_PSIIOF = {"PSIIOF", sysprt_PSIIOF};
+
+/*******************************************************************/
 char *
 sysprt_CONTNAME(void *p, void *q, int badness, int *color) 
 {

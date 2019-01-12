@@ -89,6 +89,7 @@ void 	print_GPU();
 void 	print_MEM();
 void 	print_SWP();
 void 	print_PAG();
+void 	print_PSI();
 void 	print_LVM();
 void 	print_MDD();
 void 	print_DSK();
@@ -123,6 +124,7 @@ static struct labeldef	labeldef[] = {
 	{ "MEM",	0,	print_MEM },
 	{ "SWP",	0,	print_SWP },
 	{ "PAG",	0,	print_PAG },
+	{ "PSI",	0,	print_PSI },
 	{ "LVM",	0,	print_LVM },
 	{ "MDD",	0,	print_MDD },
 	{ "DSK",	0,	print_DSK },
@@ -454,7 +456,7 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld\n",
+	printf("%s %u %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.pgscans,
@@ -462,6 +464,24 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			(long long)0,
 			ss->mem.swins,
 			ss->mem.swouts);
+}
+
+void
+print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	printf("%s %c %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu "
+	       "%.1f %.1f %.1f %llu %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu\n",
+		hp, ss->psi.present ? 'y' : 'n',
+                ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
+                ss->psi.cpusome.avg300, ss->psi.cpusome.total,
+                ss->psi.memsome.avg10, ss->psi.memsome.avg60,
+                ss->psi.memsome.avg300, ss->psi.memsome.total,
+                ss->psi.memfull.avg10, ss->psi.memfull.avg60,
+                ss->psi.memfull.avg300, ss->psi.memfull.total,
+                ss->psi.iosome.avg10, ss->psi.iosome.avg60,
+                ss->psi.iosome.avg300, ss->psi.iosome.total,
+                ss->psi.iofull.avg10, ss->psi.iofull.avg60,
+                ss->psi.iofull.avg300, ss->psi.iofull.total);
 }
 
 void
