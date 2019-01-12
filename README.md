@@ -17,6 +17,8 @@ process (and thread) it shows e.g. the CPU utilization, memory growth,
 disk utilization, priority, username, state, and exit code.
 In combination with the optional kernel module *netatop*,
 it even shows network activity per process/thread. 
+In combination with the optional daemon *atopgpud*,
+it also shows GPU activity on system level and process level. 
 
 ## Highlights
 
@@ -58,3 +60,6 @@ For each interval, it is able to accumulate the resource consumption for all pro
 
 * __Network activity per process.__
 In combination with the optional kernel module netatop, it shows process-level counters concerning the number of TCP and UDP packets transferred, and the consumed network bandwidth per process.
+
+* __GPU activity on system level and per process.__
+In combination with the optional daemon atopgpud, it shows system-level and process-level counters concerning the load and memory utilization per GPU.
