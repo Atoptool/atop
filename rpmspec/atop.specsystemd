@@ -65,11 +65,6 @@ install -Dp -m 0711 atop-pm.sh	  $RPM_BUILD_ROOT/usr/lib/systemd/system-sleep/at
 rm -rf $RPM_BUILD_ROOT
 
 %post
-/bin/systemctl enable  atopacct
-/bin/systemctl start   atopacct
-/bin/systemctl enable  atop
-/bin/systemctl start   atop
-
 # save today's logfile (format might be incompatible)
 mv /var/log/atop/atop_`date +%Y%m%d` /var/log/atop/atop_`date +%Y%m%d`.save \
 					2> /dev/null || :
@@ -77,9 +72,10 @@ mv /var/log/atop/atop_`date +%Y%m%d` /var/log/atop/atop_`date +%Y%m%d`.save \
 # create dummy files to be rotated
 touch /var/log/atop/dummy_before /var/log/atop/dummy_after
 
-# activate daily logging for today
-sleep 2
-/usr/share/atop/atop.daily&
+/bin/systemctl enable  atopacct
+/bin/systemctl start   atopacct
+/bin/systemctl enable  atop
+/bin/systemctl start   atop
 
 %preun
 if [ $1 -eq 0 ]
@@ -103,7 +99,7 @@ ln -sf /usr/bin/atop-XVERSX     /usr/bin/atopsar-XVERSX
 /usr/bin/atopconvert
 /usr/bin/atopsar
 /usr/sbin/atopacctd
-/usr/sbin/atopgpu
+/usr/sbin/atopgpud
 /usr/share/man/man1/atop.1*
 /usr/share/man/man1/atopsar.1*
 /usr/share/man/man1/atopconvert.1*
