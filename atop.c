@@ -908,11 +908,11 @@ engine(void)
 
 		do
 		{
-			curtlen   = counttasks();
+			curtlen   = counttasks();	// worst-case value
 			curtpres  = realloc(curtpres,
 					curtlen * sizeof(struct tstat));
 
-			ptrverify(curtpres, "Malloc failed for %d tstats\n",
+			ptrverify(curtpres, "Malloc failed for %lu tstats\n",
 								curtlen);
 
 			memset(curtpres, 0, curtlen * sizeof(struct tstat));

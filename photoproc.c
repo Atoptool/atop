@@ -341,7 +341,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 					}
 
 					strcpy(curthr->gen.container,
-							curtask->gen.container);
+						curtask->gen.container);
 
 					switch (curthr->gen.state)
 					{
@@ -360,7 +360,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					// read network stats from netatop
 					netatop_gettask(curthr->gen.pid, 't',
-									curthr);
+								curthr);
 
 					// all stats read now
 					tval++;	    /* increment thread-level */
