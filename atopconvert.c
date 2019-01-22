@@ -500,6 +500,7 @@ static void	writeout(int, void *, int);
 static void	writesamp(int, struct rawrecord *, void *, int, void *,
 				int, int);
 
+static void	copy_file(int, int);
 static void	convert_samples(int, int, struct rawheader *, int,  int);
 static void	do_sconvert(struct sconvstruct *, struct sconvstruct *);
 static void	do_tconvert(void *, void *,
@@ -521,7 +522,7 @@ main(int argc, char *argv[])
 	// verify the command line arguments:
 	// 	optional flags and mandatory input and output filename
 	//
-	if (argc < 3)
+	if (argc < 2)
 		prusage(argv[0]);
 
 	while ((c = getopt(argc, argv, "?t:")) != EOF)
@@ -567,18 +568,10 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (optind < argc-2)
+	if (optind >= argc)
 		prusage(argv[0]);
 
 	infile  = argv[optind++];
-	outfile = argv[optind++];
-
-	if (strcmp(infile, outfile) == 0)
-	{
-		fprintf(stderr,
-	 	    "input file and output file should not be identical!\n");
-		exit(12);
-	}
 
 	// determine target version (default: latest version)
 	//
@@ -633,11 +626,10 @@ main(int argc, char *argv[])
 		exit(11);
 	}
 
-	if (versionix >= targetix)
+	if (versionix > targetix)
 	{
-		fprintf(stderr,
-			"This version is already up-to-date!\n");
-		exit(0);
+		fprintf(stderr, "Downgrading of version is not supported!\n");
+		exit(11);
 	}
 
 	if (irh.sstatlen != convs[versionix].sstatlen ||
@@ -651,6 +643,20 @@ main(int argc, char *argv[])
  	    		irh.tstatlen, convs[versionix].tstatlen);
  				
  		exit(11);
+	}
+
+	// handle the output file 
+	//
+	if (optind >= argc)
+		exit(0);
+
+	outfile = argv[optind++];
+
+	if (strcmp(infile, outfile) == 0)
+	{
+		fprintf(stderr,
+	 	    "input file and output file should not be identical!\n");
+		exit(12);
 	}
 
 	// open the output file 
@@ -674,9 +680,16 @@ main(int argc, char *argv[])
 	printf("Version of %s: %d.%d\n", outfile,
 			(orh.aversion >> 8) & 0x7f, orh.aversion & 0xff);
 
-	// copy and convert every sample
+	// copy and convert every sample, unless the version of the
+	// input file is identical to the target version (then just copy)
 	//
-	convert_samples(ifd, ofd, &irh, versionix, targetix);
+	if (versionix < targetix)
+		convert_samples(ifd, ofd, &irh, versionix, targetix);
+	else
+		copy_file(ifd, ofd);
+
+	close(ifd);
+	close(ofd);
 
 	return 0;
 }
@@ -824,6 +837,48 @@ do_tconvert(void *curtstat,          void *nexttstat,
 	}
 }
 
+
+//
+// Function to copy input file transparently to output file
+//
+static void
+copy_file(int ifd, int ofd)
+{
+	unsigned char	buf[64*1024];
+	int		nr, nw;
+
+	(void) lseek(ifd, 0, SEEK_SET);
+	(void) lseek(ofd, 0, SEEK_SET);
+
+	while ( (nr = read(ifd, buf, sizeof buf)) > 0)
+	{
+		if ( (nw = write(ofd, buf, nr)) < nr)
+		{
+			if (nw == -1)
+			{
+				perror("write output file");
+				exit(42);
+			}
+			else
+			{
+ 				fprintf(stderr,
+ 					"Output file saturated\n");
+				exit(42);
+			}
+		}
+	}
+
+	if (nr == -1)
+	{
+		perror("read input file");
+		exit(42);
+	}
+	else
+	{
+		printf("Raw file copied (version already up-to-date)\n");
+	}
+}
+
 //
 // Function that opens an existing raw file and
 // verifies the magic number
@@ -911,9 +966,9 @@ void
 prusage(char *name)
 {
 	fprintf(stderr,
-		"Usage: %s [-t version] rawinput rawoutput\n", name);
+		"Usage: %s [-t version] rawinput [rawoutput]\n", name);
 	fprintf(stderr,
-		"\t\t-t version      target version (default: %d.%d) for output\n",
+		"\t-t version      target version (default: %d.%d) for output\n",
 			(convs[numconvs-1].version >> 8) & 0x7f,
 			 convs[numconvs-1].version  & 0x7f);
 

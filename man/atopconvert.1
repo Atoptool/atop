@@ -7,17 +7,24 @@
 .B atopconvert
 [\-t
 .I version
-] rawinput rawoutput
+] rawinput [rawoutput]
 .P
 .SH DESCRIPTION
 The program
 .I atopconvert
 can be used to convert the layout of a raw log file to a newer version.
-The only mandatory arguments are the name of the raw input file to be converted
-and the name of the raw output file. The program
+The only mandatory argument is the name of the raw input file. When no
+output file is specified on the command line, 
 .I atopconvert
-verifies the version of the input file and converts it (by default) to
-the format used by the newest version of
+only shows the version of the input file.
+When the name of an output file is specified, the input file will
+be converted to the output file, or just copied when the input file
+already has the required version.
+
+The program
+.I atopconvert
+converts the input file (by default) to the format used by the
+newest version of
 .I atop
 and writes to the output file. With the
 .B -t
@@ -32,8 +39,10 @@ the newer version of
 or can even be extended by that
 .I atop
 version.
-.PP
+.SH NOTES
 The raw input file should be at least of version 2.0!
+
+Files can only be upgraded to higher version, but not downgraded.
 .SH SEE ALSO
 .B atop(1),
 .B atopsar(1)
