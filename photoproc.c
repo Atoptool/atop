@@ -803,6 +803,9 @@ proccont(struct tstat *curtask)
 
 /*
 ** open file "smaps" and obtain required info
+** since Linux-4.14, kernel supports "smaps_rollup" which has better
+** performence. check "smaps_rollup" in first call
+** if kernel supports "smaps_rollup", use "smaps_rollup" instead
 */
 static void
 procsmaps(struct tstat *curtask)
@@ -810,14 +813,26 @@ procsmaps(struct tstat *curtask)
 	FILE	*fp;
 	char	line[4096];
 	count_t	pssval;
+	static int procsmaps_firstcall = 1;
+	static char *smapsfile = "smaps";
 
+	if (procsmaps_firstcall)
+	{
+		regainrootprivs();
+		if ( (fp = fopen("/proc/1/smaps_rollup", "r")) )
+		{
+			smapsfile = "smaps_rollup";
+			fclose(fp);
+		}
 
+		procsmaps_firstcall = 0;
+	}
 	/*
  	** open the file (always succeeds, even if no root privs)
 	*/
 	regainrootprivs();
 
-	if ( (fp = fopen("smaps", "r")) )
+	if ( (fp = fopen(smapsfile, "r")) )
 	{
 		curtask->mem.pmem = 0;
 
