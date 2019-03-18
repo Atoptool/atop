@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily atop restart
+
+[Timer]
+OnCalendar=daily
+
+[Install]
+WantedBy=timers.target

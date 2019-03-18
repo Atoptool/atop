@@ -3,10 +3,8 @@ Description=Atop advanced performance monitor
 Documentation=man:atop(1)
 
 [Service]
-Type=simple
-ExecStart=/usr/share/atop/atop.daily
-KillSignal=SIGUSR2
-#ExecStopPost=/usr/bin/sleep 3
+ExecStart=/bin/sh -c 'exec /usr/bin/atop -w /var/log/atop/atop_`date +%%Y%%m%%d` 60'
+ExecStartPost=/usr/bin/find /var/log/atop -name "atop_*" -mtime +28 -exec rm -v {} \;
 
 [Install]
 WantedBy=multi-user.target
