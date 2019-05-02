@@ -311,6 +311,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 			{
 				dirtask = opendir(".");
 	
+				if( dirtask == NULL )		
+				{
+					if(chdir("../..") == -1);  /* leave task and process-level directories */
+					continue;
+				}
+
 				while ((tent=readdir(dirtask)) && tval<maxtask)
 				{
 					struct tstat *curthr = tasklist+tval;
