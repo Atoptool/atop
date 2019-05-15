@@ -53,7 +53,7 @@
 #include "photosyst.h"
 #include "rawlog.h"
 
-#define	BASEPATH	"/var/log/atop"  
+#define	BASEPATH	"/var/log/atop"
 
 static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
@@ -63,6 +63,8 @@ static int	readchunk(int, void *, int);
 static int	lookslikedatetome(char *);
 static void	testcompval(int, char *);
 static void	try_other_version(int, int);
+static void	try_drop_pagecache(int, off_t, off_t);
+static void	onexit_pagecache(int, void*);
 
 /*
 ** write a raw record to file
@@ -83,13 +85,17 @@ rawwrite(time_t curtime, int numsecs,
 	unsigned long		pcomplen = sizeof(struct tstat) *
 						devtstat->ntaskall;
 	struct iovec 		iov[3];
+	static off_t		rawfd_written;
 
 	/*
 	** first call:
 	**	take care that the log file is opened
 	*/
-	if (rawfd == -1)
+	if (rawfd == -1) {
 		rawfd = rawwopen();
+		rawfd_written = lseek(rawfd, 0, SEEK_CUR);
+		on_exit(onexit_pagecache, &rawfd);
+	}
 
 	/*
  	** register current size of file in order to "roll back"
@@ -170,8 +176,7 @@ rawwrite(time_t curtime, int numsecs,
 	iov[2].iov_base = pcompbuf;
 	iov[2].iov_len  = pcomplen;
 
-	if ( writev(rawfd, iov, 3) == -1)
-	{
+	if ( (rv = writev(rawfd, iov, 3)) == -1) {
 		fprintf(stderr, "%s - ", rawname);
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
 			mcleanstop(8,
@@ -182,6 +187,21 @@ rawwrite(time_t curtime, int numsecs,
 		   "failed to write raw/status/process record to %s\n",
 		   rawname);
 	}
+
+	/*
+	** try to drop page cache every DROPCACHESIZE
+	*/
+	if ( (rawfd_written >> DROPCACHEOFF)
+			!= ((rawfd_written + rv) >> DROPCACHEOFF)) {
+		off_t align = (rawfd_written >> DROPCACHEOFF) << DROPCACHEOFF;
+		try_drop_pagecache(rawfd, align, DROPCACHESIZE);
+
+		if ( (rawfd_written >> DROPFULLCACHEOFF)
+				!= ((rawfd_written + rv) >> DROPFULLCACHEOFF)) {
+			try_drop_pagecache(rawfd, 0, 0);
+		}
+	}
+	rawfd_written += rv;
 
 	free(pcompbuf);
 
@@ -297,7 +317,8 @@ rawwopen()
 int
 rawread(void)
 {
-	int			i, j, rawfd, len, isregular = 1;
+	static int 		rawfd;
+	int			i, j, len, isregular = 1;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
@@ -454,6 +475,7 @@ rawread(void)
 		}
 	}
 
+	on_exit(onexit_pagecache, &rawfd);
 	/* make the kernel readahead more effective, */
 	if (isregular)
 		posix_fadvise(rawfd, 0, 0, POSIX_FADV_SEQUENTIAL);
@@ -503,7 +525,9 @@ rawread(void)
 				" be binary incompatible)\n");
 		}
 
+		try_drop_pagecache(rawfd, 0, 0);
 		close(rawfd);
+		rawfd = -1;
 
 		if (((rh.aversion >> 8) & 0x7f) != (getnumvers()   >> 8) ||
 		     (rh.aversion       & 0xff) != (getnumvers() & 0x7f)   )
@@ -652,7 +676,9 @@ rawread(void)
 				if (isregular)
 					free(offlist);
 
+				try_drop_pagecache(rawfd, 0, 0);
 				close(rawfd);
+				rawfd = -1;
 				return isregular;
 			}
 
@@ -834,7 +860,9 @@ rawread(void)
 	if (isregular)
 		free(offlist);
 
+	try_drop_pagecache(rawfd, 0, 0);
 	close(rawfd);
+	rawfd = -1;
 
 	return isregular;
 }
@@ -1036,4 +1064,24 @@ try_other_version(int majorversion, int minorversion)
 	** point of no return, except when exec failed
 	*/
 	fprintf(stderr, "activation of %s failed!\n", tmpbuf);
+}
+
+static void
+try_drop_pagecache(int fd, off_t offset, off_t len)
+{
+#ifdef POSIX_FADV_DONTNEED
+	off_t l = len;
+
+	if (len == 0)
+		l = lseek(fd, 0, SEEK_END);
+	posix_fadvise(fd, offset, l, POSIX_FADV_DONTNEED);
+#endif
+}
+
+static void
+onexit_pagecache(int e, void* p)
+{
+	int fd = *(int*)p;
+	if (fd > 0)
+		try_drop_pagecache(fd, 0, 0);
 }

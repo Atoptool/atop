@@ -16,6 +16,9 @@
 #define	MYMAGIC		(unsigned int) 0xfeedbeef
 #define READAHEADOFF	22
 #define READAHEADSIZE	(1 << READAHEADOFF)
+#define DROPCACHEOFF	24
+#define DROPCACHESIZE	(1 << DROPCACHEOFF)
+#define DROPFULLCACHEOFF	26
 
 struct rawheader {
 	unsigned int	magic;
