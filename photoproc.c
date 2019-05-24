@@ -769,15 +769,20 @@ proccmd(struct tstat *curtask)
 ** that could look like this:
 **    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
 **    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
+**
+** docker created by k8s looks like this:
+**    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
+**
+** instead of checking prefix "docker", we usually get 12 char from last '/',
+** show the result looking like `docker ps`
 */
-#define	CIDPREFIX	"docker"
 #define	CIDSIZE		12
 
 static int
 proccont(struct tstat *curtask)
 {
 	FILE		*fp;
-	char		line[80];
+	char		line[256];
 
 	if ( (fp = fopen("cpuset", "r")) != NULL)
 	{
@@ -785,12 +790,10 @@ proccont(struct tstat *curtask)
 
 		if ( fgets(line, sizeof line, fp) )
 		{
-			// default string (so if not used) is "/"
-			if (line[1] && (p = strstr(line, CIDPREFIX)) )
+			p = strrchr(line, '/');
+			if ( strlen(p) > CIDSIZE )
 			{
-				memcpy(curtask->gen.container,
-					p + sizeof CIDPREFIX, CIDSIZE);
-
+				memcpy(curtask->gen.container, p + 1, CIDSIZE);
 				fclose(fp);
 				return 1;
 			}
