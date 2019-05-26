@@ -311,9 +311,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 			{
 				dirtask = opendir(".");
 	
+				/*
+				** due to race condition, opendir() might
+				** have failed (leave task and process-level
+				** directories)
+				*/
 				if( dirtask == NULL )		
 				{
-					if(chdir("../..") == -1);  /* leave task and process-level directories */
+					if(chdir("../..") == -1); 
 					continue;
 				}
 
