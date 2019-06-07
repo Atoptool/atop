@@ -44,6 +44,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 #include "atop.h"
 #include "showgeneric.h"
@@ -140,6 +141,7 @@ rawwrite(time_t curtime, int numsecs,
 	unsigned long		scomplen = sizeof scompbuf;
 	unsigned long		pcomplen = sizeof(struct tstat) *
 						devtstat->ntaskall;
+	struct iovec iov[3];
 
 	/*
 	** first call:
@@ -214,34 +216,20 @@ rawwrite(time_t curtime, int numsecs,
 	if (supportflags & GPUSTAT)
 		rr.flags |= RRGPUSTAT;
 
-	if ( write(rawfd, &rr, sizeof rr) == -1)
-	{
-		fprintf(stderr, "%s - ", rawname);
-		perror("write raw record");
-		if ( ftruncate(rawfd, filestat.st_size) == -1)
-			cleanstop(8);
-		cleanstop(7);
-	}
-
 	/*
-	** write compressed system status structure to file
+	** use 1-writev instead of 3-write, make record operation atomic
+	** to avoid write uncompleted record data.
 	*/
-	if ( write(rawfd, scompbuf, scomplen) == -1)
+	iov[0].iov_base = &rr;
+	iov[0].iov_len = sizeof (rr);
+	iov[1].iov_base = scompbuf;
+	iov[1].iov_len = scomplen;
+	iov[2].iov_base = pcompbuf;
+	iov[2].iov_len = pcomplen;
+	if ( writev(rawfd, iov, 3) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
-		perror("write raw status record");
-		if ( ftruncate(rawfd, filestat.st_size) == -1)
-			cleanstop(8);
-		cleanstop(7);
-	}
-
-	/*
-	** write compressed list of process status structures to file
-	*/
-	if ( write(rawfd, pcompbuf, pcomplen) == -1)
-	{
-		fprintf(stderr, "%s - ", rawname);
-		perror("write raw process record");
+		perror("write raw record & status record & process record");
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
 			cleanstop(8);
 		cleanstop(7);
