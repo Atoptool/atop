@@ -141,7 +141,7 @@ rawwrite(time_t curtime, int numsecs,
 	unsigned long		scomplen = sizeof scompbuf;
 	unsigned long		pcomplen = sizeof(struct tstat) *
 						devtstat->ntaskall;
-	struct iovec iov[3];
+	struct iovec 		iov[3];
 
 	/*
 	** first call:
@@ -217,15 +217,18 @@ rawwrite(time_t curtime, int numsecs,
 		rr.flags |= RRGPUSTAT;
 
 	/*
-	** use 1-writev instead of 3-write, make record operation atomic
+	** use 1-writev to make record operation atomic
 	** to avoid write uncompleted record data.
 	*/
 	iov[0].iov_base = &rr;
-	iov[0].iov_len = sizeof (rr);
+	iov[0].iov_len  = sizeof (rr);
+
 	iov[1].iov_base = scompbuf;
-	iov[1].iov_len = scomplen;
+	iov[1].iov_len  = scomplen;
+
 	iov[2].iov_base = pcompbuf;
-	iov[2].iov_len = pcomplen;
+	iov[2].iov_len  = pcomplen;
+
 	if ( writev(rawfd, iov, 3) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
