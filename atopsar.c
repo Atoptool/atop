@@ -29,8 +29,6 @@
 ** --------------------------------------------------------------------------
 */
 
-static const char rcsid[] = "$Id: atopsar.c,v 1.28 2010/11/26 06:19:43 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/mman.h>

@@ -149,8 +149,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof Exp $";
-
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
@@ -164,6 +162,7 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <signal.h>
 #include <string.h>
 #include <dirent.h>
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 
@@ -321,7 +320,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-			            "%s   %lld %lld %lld %lld %lld %lld %lld "
+			            "%63s   %lld %lld %lld %lld %lld %lld %lld "
 			            "%lld %lld %lld %lld %lld %lld %lld %lld ",
 			  	nam,
 			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
@@ -574,7 +573,7 @@ photosyst(struct sstat *si)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			nr = sscanf(linebuf, "%s %lld", nam, &cnts[0]);
+			nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
 
 			if (nr < 2)		/* headerline ? --> skip */
 				continue;
@@ -640,7 +639,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-				"%s %lld %lld %lld %lld %lld %lld %lld "
+				"%63s %lld %lld %lld %lld %lld %lld %lld "
 			        "%lld %lld %lld\n",
 				nam,
 			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
@@ -764,7 +763,7 @@ photosyst(struct sstat *si)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			nr = sscanf(linebuf, "%s %lld ", nam, &cnts[0]);
+			nr = sscanf(linebuf, "%63s %lld ", nam, &cnts[0]);
 
 			if ( strcmp("current:", nam) == EQ)
 			{
@@ -840,7 +839,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-			 "%s   %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+			 "%63s   %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
@@ -909,7 +908,7 @@ photosyst(struct sstat *si)
 		*/
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-		   	nr = sscanf(linebuf, "%s %lld", nam, &countval);
+		   	nr = sscanf(linebuf, "%63s %lld", nam, &countval);
 
 			if (nr < 2)		/* unexpected line ? --> skip */
 				continue;
@@ -1573,7 +1572,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 		DIR		*dirp;
 		struct dirent	*dentry;
 		struct stat	statbuf;
-		char		path[64];
+		char		path[ PATH_MAX ];
 
 		if ( (dirp = opendir(MAPDIR)) )
 		{
@@ -1812,7 +1811,7 @@ get_infiniband(struct ifbstat *si)
 
 	if (firstcall)
 	{
-		char		path[128], *p;
+		char		path[ PATH_MAX ], *p;
 		struct stat	statbuf;
 		struct dirent	*contdent, *portdent;
 		DIR		*contp, *portp;
@@ -1940,8 +1939,22 @@ ibprep(struct ibcachent *ibc)
 			(void) sscanf(linebuf, "%lld %c%*s (%hdX",
 				&(ibc->rate), &speedunit, &(ibc->lanes));
 		}
+		else
+		{
+			// TODO: What if it fails?
+			//       At least set speed unit used ahead
+			// TODO: Insert a log here
+			speedunit = 'M';
+		}
 
 		fclose(fp);
+	}
+	else
+	{
+		// TODO: What if it fails?
+		//       At least set speed unit used ahead
+		// TODO: Insert a log here
+		speedunit = 'M';
 	}
 
 	// calculate megabits/second
@@ -2068,6 +2081,7 @@ getperfevents(struct cpustat *cs)
 {
 	static int	firstcall = 1, cpualloced, *fdi, *fdc;
 	int		i;
+	int		liResult;
 
 	/*
  	** once initialize perf event counter retrieval
@@ -2150,11 +2164,29 @@ getperfevents(struct cpustat *cs)
         {
 		if (*(fdi+i) != -1)
 		{
-                	read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
+                	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
                         cs->all.instr += cs->cpu[i].instr;
+			if( liResult < 0 )
+			{
+				// TODO: Return verification enforced by gcc
+				//       Since I don't know(yet) where to log
+				//       I just created the message
+				char lcMessage[ 64 ];
+				snprintf( lcMessage, sizeof( lcMessage ), 
+					  "%s:%d - Error %d reading counters\n", __FILE__, __LINE__, errno );
+			}
 
-                	read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
+                	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
                         cs->all.cycle += cs->cpu[i].cycle;
+			if( liResult < 0 )
+			{
+				// TODO: Return verification enforced by gcc
+				//       Since I don't know(yet) where to log
+				//       I just created the message
+				char lcMessage[ 64 ];
+				snprintf( lcMessage, sizeof( lcMessage ), 
+					  "%s:%d - Error %d reading counters\n", __FILE__, __LINE__, errno );
+			}
 		}
         }
 }

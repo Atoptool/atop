@@ -82,8 +82,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: showprocs.c,v 1.15 2011/09/05 11:44:16 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>

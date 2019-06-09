@@ -68,8 +68,6 @@
 **
 */
 
-static const char rcsid[] = "XXXXXX";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -2124,6 +2122,16 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
                                		(sstat->intf.intf[as->index].speed *10);
 		}
 
+		if( busy < 0 )
+		{
+			// TODO: insert some log
+			busy = 0;
+		}		
+		else if( busy > 999 )
+		{
+			// TODO: insert some log
+			busy = 999;
+		}
 	        snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%", 
        		          sstat->intf.intf[as->index].name, busy);
 
@@ -2204,7 +2212,18 @@ char *makenetspeed(count_t val, int nsecs)
                 c = 'T';
         }
 
-        sprintf(buf+3, "%4lld %cbps", val, c);
+	if( val < 0 )
+	{
+		// TODO: insert some log
+		val = 0;
+	}
+	else if( val > 9999 )
+	{
+		// TODO: insert some log
+		val = 9999;
+	}
+
+        snprintf(buf+3, sizeof( buf ) - 3, "%4lld %cbps", val, c);
 
         return buf;
 }
@@ -2226,6 +2245,11 @@ sysprt_NETSPEEDMAX(void *p, void *q, int badness, int *color)
 	else
 	{
 		speed /= 1000;
+		if( speed > 9999 )
+		{
+			// TODO: insert some log
+			speed = 9999;
+		}
         	snprintf(buf, sizeof buf, "sp %4lld Gbps", speed);
 	}
 
@@ -2424,6 +2448,11 @@ sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color)
 	else
 	{
 		rate /= 1000;
+		if( rate > 9999 )
+		{
+			// TODO: insert some log
+			rate = 9999;
+		}
         	snprintf(buf, sizeof buf, "sp %4lld Gbps", rate);
 	}
 
