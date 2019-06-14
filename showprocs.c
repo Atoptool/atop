@@ -616,7 +616,7 @@ procprt_VGROW_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vgrow*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vgrow*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -634,7 +634,7 @@ procprt_RGROW_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.rgrow*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.rgrow*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -676,7 +676,7 @@ procprt_VSTEXT_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vexec*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vexec*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -694,7 +694,7 @@ procprt_VSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vmem*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vmem*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -712,7 +712,7 @@ procprt_RSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.rmem*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.rmem*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -733,7 +733,7 @@ procprt_PSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 	if (curstat->mem.pmem == (unsigned long long)-1LL)	
         	return "    ?K";
 
-       	val2memstr(curstat->mem.pmem*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.pmem*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -751,7 +751,7 @@ procprt_VSLIBS_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vlibs*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vlibs*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -769,7 +769,7 @@ procprt_VDATA_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vdata*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vdata*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -787,7 +787,7 @@ procprt_VSTACK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vstack*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vstack*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -805,7 +805,7 @@ procprt_SWAPSZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->mem.vswap*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->mem.vswap*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -1451,7 +1451,7 @@ char *
 procprt_RDDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        val2memstr(curstat->dsk.rsz*512, buf, KBFORMAT, avgval, nsecs);
+        val2memstr(curstat->dsk.rsz*512, buf, BFORMAT, avgval, nsecs);
 
         return buf;
 }
@@ -1470,7 +1470,7 @@ procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->dsk.wsz*512, buf, KBFORMAT, avgval, nsecs);
+        val2memstr(curstat->dsk.wsz*512, buf, BFORMAT, avgval, nsecs);
 
         return buf;
 }
@@ -1495,7 +1495,7 @@ procprt_CWRDSK_a(struct tstat *curstat, int avgval, int nsecs)
 	else
 		nett_wsz = 0;
 
-        val2memstr(nett_wsz*512, buf, KBFORMAT, avgval, nsecs);
+        val2memstr(nett_wsz*512, buf, BFORMAT, avgval, nsecs);
 
         return buf;
 }
@@ -1507,7 +1507,7 @@ char *
 procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        val2memstr(curstat->dsk.cwsz*512, buf, KBFORMAT, avgval, nsecs);
+        val2memstr(curstat->dsk.cwsz*512, buf, BFORMAT, avgval, nsecs);
 
         return buf;
 }
@@ -1955,7 +1955,7 @@ procprt_GPUMEMNOW_ae(struct tstat *curstat, int avgval, int nsecs)
 	if (!curstat->gpu.state)
 		return "     -";
 
-        val2memstr(curstat->gpu.memnow*1024, buf, KBFORMAT, 0, 0);
+        val2memstr(curstat->gpu.memnow*1024, buf, BFORMAT, 0, 0);
         return buf;
 }
 
@@ -1974,7 +1974,7 @@ procprt_GPUMEMAVG_ae(struct tstat *curstat, int avgval, int nsecs)
 		return("    0K");
 
        	val2memstr(curstat->gpu.nrgpus * curstat->gpu.memcum /
-	           curstat->gpu.sample*1024, buf, KBFORMAT, 0, 0);
+	           curstat->gpu.sample*1024, buf, BFORMAT, 0, 0);
        	return buf;
 }
 
