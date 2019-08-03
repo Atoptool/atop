@@ -210,7 +210,7 @@ netatop_signoff(void)
 		kill(nahp->mypid, SIGHUP);
 
        		if (! droprootprivs())
-       			cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		(void) munmap(nahp, sizeof *nahp);
 		(void) close(netexitfd);
@@ -248,7 +248,7 @@ netatop_gettask(pid_t id, char type, struct tstat *tp)
 		memset(&tp->net, 0, sizeof tp->net);
 
         	if (! droprootprivs())
-        		cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		if (errno == ENOPROTOOPT || errno == EPERM)
 		{
@@ -262,7 +262,7 @@ netatop_gettask(pid_t id, char type, struct tstat *tp)
 	}
 
        	if (! droprootprivs())
-       		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** statistics available: fill counters
@@ -302,7 +302,7 @@ netatop_exitstore(void)
 	*/
 	if (getsockopt(netsock, SOL_IP, NETATOP_FORCE_GC, NULL, &socklen)!=0) {
         	if (! droprootprivs())
-        		cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		if (errno == ENOPROTOOPT || errno == EPERM)
 		{
@@ -321,7 +321,7 @@ netatop_exitstore(void)
 	*/
 	if (getsockopt(netsock, SOL_IP, NETATOP_EMPTY_EXIT, 0, &socklen) !=0) {
         	if (! droprootprivs())
-        		cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		if (errno == ENOPROTOOPT || errno == EPERM)
 		{
@@ -335,7 +335,7 @@ netatop_exitstore(void)
 	}
 
        	if (! droprootprivs())
-       		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** verify how many exited processes are available to be read

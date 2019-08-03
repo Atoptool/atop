@@ -200,7 +200,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		}
 
 		if (! droprootprivs())
-			cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		/*
  		** find epoch time of boot moment
@@ -219,22 +219,16 @@ photoproc(struct tstat *tasklist, int maxtask)
 	netatop_probe();
 
 	if (! droprootprivs())
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** read all subdirectory-names below the /proc directory
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-	{
-		perror("save current dir");
-		cleanstop(53);
-	}
+		mcleanstop(53, "failed to save current dir\n");
 
 	if ( chdir("/proc") == -1)
-	{
-		perror("change to /proc");
-		cleanstop(54);
-	}
+		mcleanstop(54, "failed to change to /proc\n");
 
 	dirp = opendir(".");
 
@@ -389,10 +383,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 	closedir(dirp);
 
 	if ( chdir(origdir) == -1)
-	{
-		perror(origdir);
-		cleanstop(55);
-	}
+		mcleanstop(55, "cannot change to %s\n", origdir);
 
 	if (dockstat)
 		supportflags |= DOCKSTAT;
@@ -424,25 +415,25 @@ counttasks(void)
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			if ( sscanf(linebuf, "%*f %*f %*f %*d/%lu", &nr) < 1)
-				cleanstop(53);
+				mcleanstop(53, "wrong /proc/loadavg\n");
 		}
 		else
-			cleanstop(53);
+			mcleanstop(53, "unreadable /proc/loadavg\n");
 
 		fclose(fp);
 	}
 	else
-		cleanstop(53);
+		mcleanstop(53, "can not open /proc/loadavg\n");
 
 
 	/*
 	** add total number of processes 
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-		cleanstop(53);
+		mcleanstop(53, "cannot determine cwd\n");
 
 	if ( chdir("/proc") == -1)
-		cleanstop(53);
+		mcleanstop(53, "cannot change to /proc\n");
 
 	dirp = opendir(".");
 
@@ -458,7 +449,7 @@ counttasks(void)
 	closedir(dirp);
 
 	if ( chdir(origdir) == -1)
-		cleanstop(53);
+		mcleanstop(53, "cannot change to %s\n", origdir);
 
 	return nr;
 }
@@ -728,7 +719,7 @@ procio(struct tstat *curtask)
 		}
 
 		if (! droprootprivs())
-			cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 	}
 
 	return 1;
@@ -871,5 +862,5 @@ procsmaps(struct tstat *curtask)
 	}
 
 	if (! droprootprivs())
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 }

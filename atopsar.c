@@ -384,7 +384,7 @@ atopsar(int argc, char *argv[])
 	** effective user-id to real user-id
 	*/
 	if (! droprootprivs() )
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** start live reporting

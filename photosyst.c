@@ -300,17 +300,10 @@ photosyst(struct sstat *si)
 	memset(si, 0, sizeof(struct sstat));
 
 	if ( getcwd(origdir, sizeof origdir) == NULL)
-	{
-		perror("save current dir");
-		cleanstop(53);
-	}
+		mcleanstop(54, "failed to save current dir\n");
 
 	if ( chdir("/proc") == -1)
-	{
-		perror("change to /proc");
-		cleanstop(54);
-	}
-
+		mcleanstop(54, "failed to change to /proc\n");
 
 	/*
 	** gather various general statistics from the file /proc/stat and
@@ -1292,7 +1285,7 @@ photosyst(struct sstat *si)
 	}
 
 	if (! droprootprivs())
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** pressure statistics in /proc/pressure (>= 4.20)
@@ -1379,10 +1372,7 @@ photosyst(struct sstat *si)
 		}
 
 		if ( chdir("..") == -1)
-		{
-			perror("return to /proc");
-			cleanstop(54);
-		}
+			mcleanstop(54, "failed to return to /proc\n");
 	}
 	else
 	{
@@ -1495,10 +1485,7 @@ photosyst(struct sstat *si)
  	** return to original directory
 	*/
 	if ( chdir(origdir) == -1)
-	{
-		perror(origdir);
-		cleanstop(55);
-	}
+		mcleanstop(55, "failed to change to %s\n", origdir);
 
 #ifndef	NOPERFEVENT
 	/*
@@ -2114,7 +2101,8 @@ getperfevents(struct cpustat *cs)
 		}
 
 		if (! droprootprivs())
-			cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
+
 
 		/*
 		** all failed (probably no kernel support)?

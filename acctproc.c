@@ -222,7 +222,7 @@ acctswon(void)
 			** open active account file with the specified name
 			*/
 			if (! droprootprivs() )
-				cleanstop(42);
+				mcleanstop(42, "failed to drop root privs\n");
 
 			if ( (acctfd = open(ep, O_RDONLY) ) == -1)
 				return 1;
@@ -257,7 +257,7 @@ acctswon(void)
         	struct flock            flock;
 
 		if (! droprootprivs() )
-			cleanstop(42);
+			mcleanstop(42, "failed to drop root privs\n");
 
 		(void) semop(sempacctpubid, &semclaim, 1);
 
@@ -550,8 +550,7 @@ acctvers(int fd)
 		break;
 
 	   default:
-		fprintf(stderr, "Unknown format of process accounting file\n");
-		cleanstop(8);
+		mcleanstop(8, "Unknown format of process accounting file\n");
 	}
 
 	/*
@@ -631,7 +630,8 @@ acctswoff(void)
 				(void) rmdir(ACCTDIR);
 
 				if (! droprootprivs() )
-					cleanstop(42);
+					mcleanstop(42,
+						"failed to drop root privs\n");
 			}
 		}
 
@@ -971,7 +971,7 @@ acctrestarttrial()
 	(void) acct(ACCTDIR "/" ACCTFILE);
 
 	if (! droprootprivs() )
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	acctsize = 0;
 

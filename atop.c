@@ -696,7 +696,7 @@ main(int argc, char *argv[])
 	** effective user-id to real user-id
 	*/
         if (! droprootprivs() )
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
 	** start the engine now .....
@@ -1164,12 +1164,11 @@ readrc(char *path, int syslevel)
 				if (tagname[0] == '#')
 					continue;
 
-				fprintf(stderr,
+				mcleanstop(1,
 					"%s: syntax error line "
 					"%d (no value specified)\n",
 					path, line);
 
-				cleanstop(1);
 				break;		/* not reached */
 
 			   default:
@@ -1179,12 +1178,10 @@ readrc(char *path, int syslevel)
 				if (tagvalue[0] != '#')
 					break;
 
-				fprintf(stderr,
+				mcleanstop(1,
 					"%s: syntax error line "
 					"%d (no value specified)\n",
 					path, line);
-
-				cleanstop(1);
 			}
 
 			/*

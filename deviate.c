@@ -934,7 +934,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	initifprop();		/* refresh interface info   */
 
 	if (! droprootprivs())  /* drop setuid-root privs   */
-		cleanstop(42);
+		mcleanstop(42, "failed to drop root privs\n");
 
 	for (i=0; cur->intf.intf[i].name[0]; i++)
 	{

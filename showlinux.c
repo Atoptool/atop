@@ -711,12 +711,8 @@ makeargv(char *line, const char *linename, name_prio *vec)
                         *p=0;
                 }
                 else
-                {
-		        fprintf(stderr,
-	                "atoprc - %s: no name:prio pair for "
-                        "`%s'\n", name, linename);
-                        cleanstop(1);
-                }
+                        mcleanstop(1,	"atoprc - %s: no name:prio pair for "
+                        		"`%s'\n", name, linename);
 
                 /* now get number */
                 p++;
@@ -778,12 +774,9 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
                         }
                 }
                 if (permissables[j]==0)
-                {
-                        fprintf(stderr,
-				"atoprc - own system line: item %s invalid in %s line!\n",
-				name, linename);
-                        cleanstop(1);
-                }
+			mcleanstop(1,
+			"atoprc - own system line: item %s invalid in %s line\n",
+			name, linename);
         }
         ar[i].f=0;
         ar[i].prio=0;
@@ -867,10 +860,9 @@ const char *linename)
                 }
                 if (allprocpdefs[j]==0)
                 {
-                        fprintf(stderr,
+                        mcleanstop(1,
 				"atoprc - ownprocline: item %s invalid!\n",
 				name);
-                        cleanstop(1);
                 }
         }
         ar[i].f=0;

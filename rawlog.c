@@ -232,10 +232,14 @@ rawwrite(time_t curtime, int numsecs,
 	if ( writev(rawfd, iov, 3) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
-		perror("write raw record & status record & process record");
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
-			cleanstop(8);
-		cleanstop(7);
+			mcleanstop(8,
+			   "failed to write raw/status/process record to %s\n",
+			   rawname);
+
+		mcleanstop(7,
+		   "failed to write raw/status/process record to %s\n",
+		   rawname);
 	}
 
 	free(pcompbuf);
@@ -272,19 +276,11 @@ rawwopen()
 		** read and verify header record
 		*/
 		if ( read(fd, &rh, sizeof rh) < sizeof rh)
-		{
-			fprintf(stderr, "%s - cannot read header\n", rawname);
-			cleanstop(7);
-		}
+			mcleanstop(7, "%s - cannot read header\n", rawname);
 
 		if (rh.magic != MYMAGIC)
-		{
-			fprintf(stderr,
-				"file %s exists but does not contain raw "
+			mcleanstop(7, "file %s exists but does not contain raw "
 				"atop output (wrong magic number)\n", rawname);
-
-			cleanstop(7);
-		}
 
 		if ( rh.sstatlen	!= sizeof(struct sstat)		||
 		     rh.tstatlen	!= sizeof(struct tstat)		||
@@ -893,24 +889,20 @@ testcompval(int rv, char *func)
 		break;
 
 	   case Z_MEM_ERROR:
-		fprintf(stderr, "atop/atopsar - "
+		mcleanstop(7, "atop/atopsar - "
 		        "%s: failed due to lack of memory\n", func);
-		cleanstop(7);
 
 	   case Z_BUF_ERROR:
-		fprintf(stderr, "atop/atopsar - "
+		mcleanstop(7, "atop/atopsar - "
 			"%s: failed due to lack of room in buffer\n", func);
-		cleanstop(7);
 
    	   case Z_DATA_ERROR:
-		fprintf(stderr, "atop/atopsar - "
+		mcleanstop(7, "atop/atopsar - "
 		        "%s: failed due to corrupted/incomplete data\n", func);
-		cleanstop(7);
 
 	   default:
-		fprintf(stderr, "atop/atopsar - "
+		mcleanstop(7, "atop/atopsar - "
 		        "%s: unexpected error %d\n", func, rv);
-		cleanstop(7);
 	}
 }
 
