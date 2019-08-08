@@ -295,9 +295,10 @@
 #include "photosyst.h"
 #include "showgeneric.h"
 #include "parseable.h"
+#include "json.h"
 #include "gpucom.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
+#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNO:P:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -332,9 +333,13 @@ int 		ossub;
 int		supportflags;	/* supported features             	*/
 char		**argvp;
 
-
-struct visualize vis = {generic_samp, generic_error,
-			generic_end,  generic_usage};
+struct visualize vis = {
+	.show_samp = generic_samp,
+	.show_samp_secondary = NULL,
+	.show_error = generic_error,
+	.show_end = generic_end,
+	.show_usage = generic_usage
+};
 
 /*
 ** argument values
@@ -579,6 +584,21 @@ main(int argc, char *argv[])
 					prusage(argv[0]);
 
 				vis.show_samp = parseout;
+				break;
+
+                           case 'O':		/* json output                */
+				if ( !jsondef(optarg) )
+					prusage(argv[0]);
+
+				if (!strcmp(optarg, "stdio")) {
+					vis.show_samp_secondary = jsonout;
+				} else if (!strcmp(optarg, "only")) {
+					vis.show_samp = jsonout;
+					vis.show_samp_secondary = NULL;
+				} else if (!strcmp(optarg, "unixsock")) {
+					vis.show_samp_secondary = jsonout;
+					signal(SIGPIPE, SIG_IGN);
+				}
 				break;
 
                            case 'L':		/* line length                */
@@ -1026,6 +1046,16 @@ engine(void)
 		                     nprocexit, noverflow, sampcnt==0);
 
 		/*
+		** support secondary samp output
+		** currently support json style output if -O is defined
+		*/
+		if (vis.show_samp_secondary)
+			(vis.show_samp_secondary)(curtime,
+		                     curtime-pretime > 0 ? curtime-pretime : 1,
+		                     &devtstat, devsstat,
+		                     nprocexit, noverflow, sampcnt==0);
+
+		/*
 		** release dynamically allocated memory
 		*/
 		if (nprocexit > 0)
@@ -1077,6 +1107,7 @@ prusage(char *myname)
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
+	printf("\t  -O  generate json style output for all label(s) \n");
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
 

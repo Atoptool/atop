@@ -2019,6 +2019,54 @@ again before the cache buffers have been flushed to disk.
 Then the original process shows the written data as WRDSK, while
 the process that removes/truncates the file shows
 the unflushed removed data as WCANCL.
+.SH JSON STYLE OUTPUT
+With the flag
+.B -O
+followed by three types of output (stdio, only, unixsock), json style
+output is produced for each sample, including system-level statistics
+and process-level statistics.
+Currently, atop data can only be viewed when logging into a machine.
+But sometimes we need to aggregate atop data of multiple machines
+belonging to the same cluster, such as aggregation of the same
+application processes, and then draw and show historical graphs
+for users to query and use. Considering json is widely used in data
+processing, json style output is a decent solution to solve this.
+Three types of output are supported:
+.PP
+.B \ 1. atop -O stdio
+.PP
+.br
+.B \ 2. atop -O only
+.PP
+.br
+.B \ 3. atop -O unixsock -w /path/to/file 10
+.PP
+.br
+The following examples will show how to generate json style indicators:
+.PP
+Overwrite parseout, show json to stdio only
+.PP
+.B \ atop -O only
+.PP
+Show both parseout and json stdio
+.PP
+.B \ atop -O stdio -P ALL
+.PP
+Print to stdio, as well as file
+.PP
+.B \ atop -O stdio -w atop.log
+.PP
+Overwrite parseout, send json data to unixsock
+.PP
+.B \ atop -O unixsock
+.PP
+Both parseout and json unixsock
+.PP
+.B \ atop -O unixsock -P ALL
+.PP
+Write json to unixsock and file
+.PP
+.B \ atop -O unixsock -w atop.log
 .SH PARSEABLE OUTPUT
 With the flag
 .B -P

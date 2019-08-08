@@ -62,8 +62,11 @@ struct netpertask;
 
 struct visualize {
 	char	(*show_samp)  (time_t, int,
-	                struct devtstat *, struct sstat *,
-			int, unsigned int, char);
+	                       struct devtstat *, struct sstat *,
+	                       int, unsigned int, char);
+	char	(*show_samp_secondary) (time_t, int,
+	                                struct devtstat *, struct sstat *,
+	                                int, unsigned int, char);
 	void	(*show_error) (const char *, ...);
 	void	(*show_end)   (void);
 	void	(*show_usage) (void);
