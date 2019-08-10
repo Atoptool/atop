@@ -221,7 +221,7 @@ enum {
 	PERF_EVENTS_DISABLE,
 };
 
-static int perfevents = PERF_EVENTS_AUTO;
+static int	perfevents = PERF_EVENTS_AUTO;
 static void	getperfevents(struct cpustat *);
 #endif
 
@@ -2089,7 +2089,8 @@ do_perfevents(char *tagname, char *tagvalue)
 	}
 }
 
-static int enable_perfevents()
+static int
+enable_perfevents()
 {
 	if (perfevents == PERF_EVENTS_AUTO)
 		do_perfevents("perfevents", "auto");
@@ -2112,6 +2113,7 @@ getperfevents(struct cpustat *cs)
 
 	if (!enable_perfevents())
 		return;
+
 	/*
  	** once initialize perf event counter retrieval
 	*/
@@ -2206,8 +2208,7 @@ getperfevents(struct cpustat *cs)
 void
 do_perfevents(char *tagname, char *tagvalue)
 {
-	perror("this binary is built with NOPERFEVENT, can not use perfevents");
-	cleanstop(1);
+	wcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
 }
 #endif
 
@@ -2326,6 +2327,7 @@ getwwwstat(unsigned short port, struct wwwstat *wp)
 	return 1;
 }
 #endif
+
 
 #if defined(__x86_64__) || defined(__i386__)
 #define HYPERVISOR_INFO_LEAF   0x40000000

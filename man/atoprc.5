@@ -194,6 +194,16 @@ are 'S', 'x', 'C', 'M', 'H', 'a', 'A' and the flags to select
 one or more specific reports.
 .PP
 .TP 4
+.B perfevents
+Defines whether or not the CPU cycle counter should be retrieved
+by
+.B atop
+via the 'perf' counters. The values 'auto' (default), 'enable' 
+or 'disable' can be specified. In case of 'auto', the CPU cycle
+counter will not be retrieved on virtual machines due to the
+overhead of reading this counter in a guest.
+.PP
+.TP 4
 .B pacctdir
 The name of the topdirectory used by the
 .B atopacctd
