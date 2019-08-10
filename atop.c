@@ -391,6 +391,7 @@ void do_swoutcritsec(char *, char *);
 void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
 void do_pacctdir(char *, char *);
+void do_perfevents(char *, char *);
 
 static struct {
 	char	*tag;
@@ -438,6 +439,7 @@ static struct {
 	{	"swoutcritsec",		do_swoutcritsec,	0, },
 	{	"almostcrit",		do_almostcrit,		0, },
 	{	"atopsarflags",		do_atopsarflags,	0, },
+	{	"perfevents",		do_perfevents,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
 };
 
