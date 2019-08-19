@@ -136,13 +136,19 @@
 **
 */
 
+#define _XOPEN_SOURCE 500
+#include <ftw.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <glib.h>
 #include <time.h>
 
 #include "atop.h"
@@ -160,14 +166,71 @@
 #define ATOPSTAT	"%lld %llu %lld %llu %lld %llu %lld %llu "	\
 			"%lld %llu %lld %llu %lld %lld"
 
+#define	CIDSIZE		12
+#define	NAME_MAX	255
+
 static int	procstat(struct tstat *, unsigned long long, char);
 static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
-static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 static void	procwchan(struct tstat *);
 static count_t	procschedstat(struct tstat *);
+GHashTable	*ghash = NULL;
+
+static
+int save_cid_hash(const char *fpath, const struct stat *sb,
+		  int tflag, struct FTW *ftwbuf)
+{
+	FILE *ctask;
+	char *cid_name;
+	register char *p;
+	register int i = 0;
+
+	/* we only get the last dir's tasks file, and omit other dirs' */
+	if (tflag != FTW_F || tflag == FTW_DP || ftwbuf->level == 1)
+		return 0;
+
+	p = strrchr(fpath, '/');
+	if ( strcmp((p + 1), "tasks") )
+		return 0;
+
+	cid_name = malloc(NAME_MAX * sizeof(char));
+	ptrverify(cid_name, "Malloc failed for parsing container_id name");
+	while ( (p - 1) && *(p - 1) != '/') {
+		p--;
+		i++;
+	}
+	g_strlcpy(cid_name, p, (i + 1) < NAME_MAX ? (i + 1) : NAME_MAX);
+
+	if ( strchr(cid_name, '-') || !strcmp(cid_name, "cpuset") ) {
+		free(cid_name);
+		return 0;
+	}
+
+	if ( (ctask = fopen(fpath, "r")) != NULL ) {
+		char linebuf[16];
+		while ( fgets(linebuf, sizeof(linebuf), ctask) ) {
+			char *tmp;
+			gint *key = g_new(gint, 1);
+			*key = strtol(linebuf, &tmp, 10);
+			if (*key == 0) {
+				fprintf(stderr,
+					"strtol /sys/fs/cgroup/xxx/tasks failed: %s\n",
+					strerror(-errno));
+				break;
+			}
+
+			gchar *value = g_strndup(cid_name, CIDSIZE);
+
+			g_hash_table_insert(ghash, key, value);
+		}
+		fclose(ctask);
+	}
+	free(cid_name);
+
+	return 0;
+}
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -182,6 +245,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 	struct dirent	*entp;
 	char		origdir[1024], dockstat=0;
 	unsigned long	tval=0;
+	ghash = g_hash_table_new_full(g_int_hash, g_int_equal, g_free, g_free);
+	gpointer *cid = NULL;
 
 	/*
 	** one-time initialization stuff
@@ -222,13 +287,28 @@ photoproc(struct tstat *tasklist, int maxtask)
 		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
-	** read all subdirectory-names below the /proc directory
+	** store the current path, and later will be back
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
 		mcleanstop(53, "failed to save current dir\n");
 
-	if ( chdir("/proc") == -1)
+	/*
+	** Currently we read /sys/fs/cgroup/cpuset/.../container_id
+	** as a workaround for the fatal case when css_tryget() meets
+	** offcpu and then gets stuck indefinitely.  The corresponding
+	** kernel patch is:
+	** https://lore.kernel.org/lkml/20190617210753.742447720@linuxfoundation.org/
+	*/
+	dockstat = nftw("/sys/fs/cgroup/cpuset", save_cid_hash, 20, FTW_PHYS | FTW_DEPTH | FTW_MOUNT);
+	if (dockstat == -1)
+		perror("nftw failed when reading container id");
+
+	/*
+	** read all subdirectory-names below the /proc directory
+	*/
+	if ( chdir("/proc") == -1) {
 		mcleanstop(54, "failed to change to /proc\n");
+	}
 
 	dirp = opendir(".");
 
@@ -271,7 +351,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 		procschedstat(curtask);		/* from /proc/pid/schedstat */
 		proccmd(curtask);		/* from /proc/pid/cmdline */
-		dockstat += proccont(curtask);	/* from /proc/pid/cpuset  */
+
+		/* match the pid and get its container_id */
+		if ( (dockstat > -1) &&
+		     (cid = g_hash_table_lookup(ghash, &(curtask->gen.tgid))) ) {
+			g_strlcpy(curtask->gen.container, (gchar *)cid, CIDSIZE + 1);
+		}
 
 		/*
 		** reading the smaps file for every process with every sample
@@ -409,8 +494,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 	closedir(dirp);
 
-	if ( chdir(origdir) == -1)
+	g_hash_table_destroy(ghash);
+	ghash = NULL;
+
+	if ( chdir(origdir) == -1) {
 		mcleanstop(55, "cannot change to %s\n", origdir);
+	}
 
 	if (dockstat)
 		supportflags |= DOCKSTAT;
@@ -820,73 +909,6 @@ procwchan(struct tstat *curtask)
 
         curtask->cpu.wchan[nr] = 0;
 }
-
-
-/*
-** store the Docker container ID, retrieved from the 'cpuset'
-** that might look like this:
-**    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
-**    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
-**
-** docker created by k8s might look like this:
-**    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
-**
-** In general:
-** - search for last '/' (basename)
-** - check if '/' followed by 'docker-': then skip 'docker-'
-** - take 12 positions for the container ID
-**
-** Return value:
-**	0 - no container
-**	1 - container
-*/
-#define	CIDSIZE		12
-#define	SHA256SIZE	64
-#define	DOCKPREFIX	"docker-"
-
-static int
-proccont(struct tstat *curtask)
-{
-	FILE	*fp;
-	char	line[256];
-
-	if ( (fp = fopen("cpuset", "r")) != NULL)
-	{
-		register char *p;
-
-		if ( fgets(line, sizeof line, fp) )
-		{
-			fclose(fp);
-
-			// fast check for processes not using cpuset
-			// i.e. anyhow not container
-			if (memcmp(line, "/\n", 3) == 0)
-				return 0;
-
-			// possibly container: find basename in path and
-			// verify that its minimum length is the size of SHA256
-			if ( (p = strrchr(line, '/')) != NULL &&
-			                    strlen(p) >= SHA256SIZE)
-			{
-				p++;
-
-				if (memcmp(p, DOCKPREFIX,
-						sizeof(DOCKPREFIX)-1) == 0)
-					p += sizeof(DOCKPREFIX)-1;
-
-				memcpy(curtask->gen.container, p, CIDSIZE);
-				return 1;
-			}
-		}
-		else
-		{
-			fclose(fp);
-		}
-	}
-
-	return 0;
-}
-
 
 /*
 ** open file "smaps" and obtain required info
