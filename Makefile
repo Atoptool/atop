@@ -20,7 +20,8 @@ PMPATH1  = /usr/lib/pm-utils/sleep.d
 PMPATH2  = /usr/lib64/pm-utils/sleep.d
 PMPATHD  = /usr/lib/systemd/system-sleep
 
-CFLAGS  += -O2 -I. -Wall  # -DNOPERFEVENT   # -DHTTPSTATS
+CFLAGS  += -O2 -I. -Wall $(shell pkg-config --cflags glib-2.0)  # -DNOPERFEVENT   # -DHTTPSTATS
+LDFLAGS  = $(shell pkg-config --libs glib-2.0)
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
