@@ -287,6 +287,8 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			** further calculations) and store new statistics
 			** in task-database
 			*/
+			prestat = pinfo->tstat;
+
 			if (memcmp(curstat, &pinfo->tstat, 
 					           sizeof(struct tstat)) == EQ)
 			{
@@ -302,7 +304,6 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 				** and overwrite the previous sample in
 				** the database with the current sample
 				*/
-				prestat 	= pinfo->tstat;
 				pinfo->tstat 	= *curstat;
 
 				curstat->gen.wasinactive = 0;
