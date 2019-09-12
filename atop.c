@@ -311,6 +311,7 @@ unsigned long	interval = 10;
 unsigned long 	sampcnt;
 char		screen;
 int		linelen  = 80;
+int		generations = 5; /* only keep recent 7 days' log */
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
@@ -351,6 +352,7 @@ static void		readrc(char *, int);
 void do_flags(char *, char *);
 void do_interval(char *, char *);
 void do_linelength(char *, char *);
+void do_generations(char *, char *);
 void do_username(char *, char *);
 void do_procname(char *, char *);
 void do_maxcpu(char *, char *);
@@ -399,6 +401,7 @@ static struct {
 	{	"flags",		do_flags,		0, },
 	{	"interval",		do_interval,		0, },
 	{	"linelen",		do_linelength,		0, },
+	{	"generations",		do_generations,		0, },
 	{	"username",		do_username,		0, },
 	{	"procname",		do_procname,		0, },
 	{	"maxlinecpu",		do_maxcpu,		0, },
@@ -1139,6 +1142,12 @@ void
 do_linelength(char *name, char *val)
 {
 	linelen = get_posval(name, val);
+}
+
+void
+do_generations(char *name, char *val)
+{
+	generations = get_posval(name, val);
 }
 
 /*
