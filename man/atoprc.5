@@ -43,6 +43,10 @@ The default interval value in seconds.
 The length of a screen line when sending output to a file or pipe (default 80).
 .PP
 .TP 4
+.B generations
+The number of day logs need to keep, considering disk space usage and other needs.
+.PP
+.TP 4
 .B username
 The default regular expression for the users for which active
 processes will be shown.
@@ -231,6 +235,8 @@ file:
 flags\ \ \ \ \ \ \ \ \ Aaf
 .br
 interval\ \ \ \ \ \ 5
+.br
+generations\ \ \ 3
 .br
 username
 .br

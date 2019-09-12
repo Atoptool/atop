@@ -51,6 +51,15 @@ then
 	rm "$PIDFILE"
 fi
 
+#e.g. generations 5
+ATOPRC="/etc/atoprc"
+if [ -f $ATOPRC ]; then
+	RCGENERATIONS=`cat $ATOPRC | grep -w '^generations' -m 1 | awk '{print $2}'`
+	if [ -n "$RCGENERATIONS" ]; then
+		LOGGENERATIONS=$RCGENERATIONS
+	fi
+fi
+
 # delete logfiles older than N days (configurable)
 # start a child shell that activates another child shell in
 # the background to avoid a zombie
