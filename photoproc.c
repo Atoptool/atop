@@ -801,7 +801,7 @@ proccont(struct tstat *curtask)
 
 				if (memcmp(p, DOCKPREFIX, sizeof(DOCKPREFIX)-1)
 									== 0)
-					p += sizeof DOCKPREFIX;
+					p += sizeof(DOCKPREFIX)-1;
 
 				memcpy(curtask->gen.container, p, CIDSIZE);
 				fclose(fp);
