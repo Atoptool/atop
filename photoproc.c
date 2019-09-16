@@ -773,16 +773,20 @@ proccmd(struct tstat *curtask)
 ** docker created by k8s looks like this:
 **    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
 **
-** instead of checking prefix "docker", we usually get 12 char from last '/',
-** show the result looking like `docker ps`
+** In general:
+** - search for last '/'
+** - check if '/' followed by 'docker-'
+** - take 12 positions for the container ID
 */
 #define	CIDSIZE		12
+#define	DOCKPREFIX	"docker-"
 
 static int
 proccont(struct tstat *curtask)
 {
-	FILE		*fp;
-	char		line[256];
+	FILE	*fp;
+	char	line[256];
+	int	n;
 
 	if ( (fp = fopen("cpuset", "r")) != NULL)
 	{
@@ -790,10 +794,16 @@ proccont(struct tstat *curtask)
 
 		if ( fgets(line, sizeof line, fp) )
 		{
-			p = strrchr(line, '/');
-			if ( strlen(p) > CIDSIZE )
+			if ( (p = strrchr(line, '/')) != NULL &&
+			     (n = strlen(p)) > sizeof(DOCKPREFIX)+CIDSIZE)
 			{
-				memcpy(curtask->gen.container, p + 1, CIDSIZE);
+				p++;
+
+				if (memcmp(p, DOCKPREFIX, sizeof(DOCKPREFIX)-1)
+									== 0)
+					p += sizeof DOCKPREFIX;
+
+				memcpy(curtask->gen.container, p, CIDSIZE);
 				fclose(fp);
 				return 1;
 			}
