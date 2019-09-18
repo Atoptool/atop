@@ -765,20 +765,25 @@ proccmd(struct tstat *curtask)
 
 
 /*
-** store the Docker container ID, retrieved from the cpuset
-** that could look like this:
+** store the Docker container ID, retrieved from the 'cpuset'
+** that might look like this:
 **    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
 **    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
 **
-** docker created by k8s looks like this:
+** docker created by k8s might look like this:
 **    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
 **
 ** In general:
-** - search for last '/'
-** - check if '/' followed by 'docker-'
+** - search for last '/' (basename)
+** - check if '/' followed by 'docker-': then skip 'docker-'
 ** - take 12 positions for the container ID
+**
+** Return value:
+**	0 - no container
+**	1 - container
 */
 #define	CIDSIZE		12
+#define	SHA256SIZE	64
 #define	DOCKPREFIX	"docker-"
 
 static int
@@ -786,7 +791,6 @@ proccont(struct tstat *curtask)
 {
 	FILE	*fp;
 	char	line[256];
-	int	n;
 
 	if ( (fp = fopen("cpuset", "r")) != NULL)
 	{
@@ -794,22 +798,32 @@ proccont(struct tstat *curtask)
 
 		if ( fgets(line, sizeof line, fp) )
 		{
+			fclose(fp);
+
+			// fast check for processes not using cpuset
+			// i.e. anyhow not container
+			if (memcmp(line, "/\n", 3) == 0)
+				return 0;
+
+			// possibly container: find basename in path and
+			// verify that its minimum length is the size of SHA256
 			if ( (p = strrchr(line, '/')) != NULL &&
-			     (n = strlen(p)) > sizeof(DOCKPREFIX)+CIDSIZE)
+			                    strlen(p) >= SHA256SIZE)
 			{
 				p++;
 
-				if (memcmp(p, DOCKPREFIX, sizeof(DOCKPREFIX)-1)
-									== 0)
+				if (memcmp(p, DOCKPREFIX,
+						sizeof(DOCKPREFIX)-1) == 0)
 					p += sizeof(DOCKPREFIX)-1;
 
 				memcpy(curtask->gen.container, p, CIDSIZE);
-				fclose(fp);
 				return 1;
 			}
 		}
-
-		fclose(fp);
+		else
+		{
+			fclose(fp);
+		}
 	}
 
 	return 0;
