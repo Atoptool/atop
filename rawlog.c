@@ -451,6 +451,23 @@ rawread(void)
 	}
 
 	/*
+	** make sure the file is regular (because we are going to seek in it)
+	*/
+	struct stat statbuf;
+	if( stat(rawname, &statbuf) == -1)
+	{
+		fprintf(stderr, "%s - ", rawname);
+		perror("stat raw file");
+		cleanstop(7);
+	}
+
+	if( ! S_ISREG(statbuf.st_mode) )
+	{
+		fprintf(stderr, "raw file must be a regular, seekable file\n");
+		cleanstop(7);
+	}
+
+	/*
 	** open raw file
 	*/
 	if ( (rawfd = open(rawname, O_RDONLY)) == -1)
