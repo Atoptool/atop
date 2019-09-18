@@ -318,7 +318,10 @@ atopsar(int argc, char *argv[])
 				prinow    = i;
 				daylim    = 0;
 				begintime = saved_begintime;
-				rawread();
+
+				if (!rawread())	// reading from named pipe
+					break;	// can only be done once
+
 				printf("\n");
 			}
 		}

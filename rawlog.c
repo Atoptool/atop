@@ -119,6 +119,7 @@ static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
 static int	rawwopen(void);
+static int	readchunk(int, void *, int);
 static int	lookslikedatetome(char *);
 static void	testcompval(int, char *);
 static void	try_other_version(int, int);
@@ -353,10 +354,10 @@ rawwopen()
 */
 #define	OFFCHUNK	256
 
-void
+int
 rawread(void)
 {
-	int			i, j, rawfd, len;
+	int			i, j, rawfd, len, isregular = 1;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
@@ -369,7 +370,7 @@ rawread(void)
 	** variables to maintain the offsets of the raw records
 	** to be able to see previous samples again
 	*/
-	off_t			*offlist;
+	off_t			*offlist = NULL;
 	unsigned int		offsize = 0;
 	unsigned int		offcur  = 0;
 	char			lastcmd = 'X', flags;
@@ -451,21 +452,23 @@ rawread(void)
 	}
 
 	/*
-	** make sure the file is regular (because we are going to seek in it)
+	** make sure the file is a regular file (seekable) or
+	** a pipe (not seekable)
 	*/
-	struct stat statbuf;
-	if( stat(rawname, &statbuf) == -1)
+	if (stat(rawname, &filestat) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
 		perror("stat raw file");
 		cleanstop(7);
 	}
 
-	if( ! S_ISREG(statbuf.st_mode) )
+	if (!S_ISREG(filestat.st_mode) && !S_ISFIFO(filestat.st_mode))
 	{
-		fprintf(stderr, "raw file must be a regular, seekable file\n");
+		fprintf(stderr, "raw file must be a regular file or pipe\n");
 		cleanstop(7);
 	}
+
+	isregular = S_ISREG(filestat.st_mode);
 
 	/*
 	** open raw file
@@ -514,7 +517,7 @@ rawread(void)
 	/*
 	** read the raw header and verify the magic
 	*/
-	if ( read(rawfd, &rh, sizeof rh) < sizeof rh)
+	if ( readchunk(rawfd, &rh, sizeof rh) < sizeof rh)
 	{
 		fprintf(stderr, "can not read raw file header\n");
 		cleanstop(7);
@@ -586,14 +589,17 @@ rawread(void)
 	/*
 	** allocate a list for backtracking of rawrecord-offsets
 	*/
-	offlist = malloc(sizeof(off_t) * OFFCHUNK);
+	if (isregular)
+	{
+		offlist = malloc(sizeof(off_t) * OFFCHUNK);
 
-	ptrverify(offlist, "Malloc failed for backtrack list\n");
+		ptrverify(offlist, "Malloc failed for backtrack list\n");
 
-	offsize = OFFCHUNK;
+		offsize = OFFCHUNK;
 
-	*offlist = lseek(rawfd, 0, SEEK_CUR);
-	offcur   = 1;
+		*offlist = lseek(rawfd, 0, SEEK_CUR);
+		offcur   = 1;
+	}
 
 	/*
 	** read a raw record header until end-of-file
@@ -611,18 +617,21 @@ rawread(void)
 			** store the offset of the raw record in the offset list
 			** in case of offset list overflow, extend the list
 			*/
-			*(offlist+offcur) = lseek(rawfd, 0, SEEK_CUR) -
+			if (isregular)
+			{
+				*(offlist+offcur) = lseek(rawfd, 0, SEEK_CUR) -
 								rh.rawreclen;
 
-			if ( ++offcur >= offsize )
-			{
-				offlist = realloc(offlist,
+				if ( ++offcur >= offsize )
+				{
+					offlist = realloc(offlist,
 				             (offsize+OFFCHUNK)*sizeof(off_t));
 
-				ptrverify(offlist,
+					ptrverify(offlist,
 				        "Realloc failed for backtrack list\n");
 
-				offsize+= OFFCHUNK;
+					offsize+= OFFCHUNK;
+				}
 			}
 	
 			/*
@@ -632,7 +641,26 @@ rawread(void)
 			if ( (begintime && begintime > secsinday) )
 			{
 				lastcmd = 1;
-				lseek(rawfd, rr.scomplen+rr.pcomplen, SEEK_CUR);
+						
+				if (isregular)
+				{
+					lseek(rawfd, rr.scomplen+rr.pcomplen,
+								SEEK_CUR);
+				}
+				else	// named pipe not seekable
+				{
+					char *dummybuf =
+						malloc(rr.scomplen+rr.pcomplen);
+
+					ptrverify(dummybuf,
+				        "Malloc rawlog pipe buffer failed\n");
+
+					readchunk(rawfd, dummybuf,
+						rr.scomplen+rr.pcomplen);
+
+					free(dummybuf);
+				}
+
 				continue;
 			}
 
@@ -640,9 +668,11 @@ rawread(void)
 
 			if ( (endtime && endtime < secsinday) )
 			{
-				free(offlist);
+				if (isregular)
+					free(offlist);
+
 				close(rawfd);
-				return;
+				return isregular;
 			}
 
 			/*
@@ -752,32 +782,44 @@ rawread(void)
 
 			nrgpus = sstat.gpu.nrgpus;
 
-			(void) fstat(rawfd, &filestat);
+			if (isregular)
+			{
+				(void) fstat(rawfd, &filestat);
 
-			if ( filestat.st_size -
-			     lseek(rawfd, (off_t)0, SEEK_CUR) <= rh.rawreclen)
-				flags |= RRLAST;
+				if ( filestat.st_size -
+			     		lseek(rawfd, (off_t)0, SEEK_CUR)
+							<= rh.rawreclen)
+					flags |= RRLAST;
+			}
 
-			lastcmd = (vis.show_samp)(rr.curtime, rr.interval,
+			do
+			{
+				lastcmd = (vis.show_samp)(rr.curtime,
+				     rr.interval,
 			             &devtstat, &sstat,
 			             rr.nexit, rr.noverflow, flags);
+			}
+			while (!isregular &&
+					(lastcmd == MSAMPPREV	||
+					 lastcmd == MSAMPBRANCH	||
+					 lastcmd == MRESET        ));
 
 			free(devtstat.taskall);
 			free(devtstat.procall);
 			free(devtstat.procactive);
-	
+
 			switch (lastcmd)
 			{
-			   case MSAMPPREV:
+		   	   case MSAMPPREV:
 				if (offcur >= 2)
 					offcur-= 2;
 				else
 					offcur = 0;
-	
+
 				lseek(rawfd, *(offlist+offcur), SEEK_SET);
 				break;
 
-			   case MRESET:
+		   	   case MRESET:
 				lseek(rawfd, *offlist, SEEK_SET);
 				offcur = 1;
 				break;
@@ -785,7 +827,8 @@ rawread(void)
 			   case MSAMPBRANCH:
 				if (begintime && begintime < secsinday)
 				{
-					lseek(rawfd, *offlist, SEEK_SET);
+					lseek(rawfd, *offlist,
+							SEEK_SET);
 					offcur = 1;
 				}
 			}
@@ -793,15 +836,25 @@ rawread(void)
 
 		begintime = 0;	// allow earlier times from now on
 
-		if (offcur >= 1)
-			offcur--;
+		if (isregular)
+		{
+			if (offcur >= 1)
+				offcur--;
 
-		lseek(rawfd, *(offlist+offcur), SEEK_SET);
+			lseek(rawfd, *(offlist+offcur), SEEK_SET);
+		}
+		else
+		{
+			lastcmd = 'q';
+		}
 	}
 
-	free(offlist);
+	if (isregular)
+		free(offlist);
 
 	close(rawfd);
+
+	return isregular;
 }
 
 /*
@@ -810,7 +863,7 @@ rawread(void)
 static int
 getrawrec(int rawfd, struct rawrecord *prr, int rrlen)
 {
-	return read(rawfd, prr, rrlen);
+	return readchunk(rawfd, prr, rrlen);
 }
 
 /*
@@ -823,11 +876,11 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 	unsigned long	uncomplen = sizeof(struct sstat);
 	int		rv;
 
-	if ( (compbuf = malloc(complen)) == NULL)
+	compbuf = malloc(complen);
 
 	ptrverify(compbuf, "Malloc failed for reading compressed sysstats\n");
 
-	if ( read(rawfd, compbuf, complen) < complen)
+	if ( readchunk(rawfd, compbuf, complen) < complen)
 	{
 		free(compbuf);
 		return 0;
@@ -856,7 +909,7 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 
 	ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
 
-	if ( read(rawfd, compbuf, complen) < complen)
+	if ( readchunk(rawfd, compbuf, complen) < complen)
 	{
 		free(compbuf);
 		return 0;
@@ -921,6 +974,30 @@ testcompval(int rv, char *func)
 		mcleanstop(7, "atop/atopsar - "
 		        "%s: unexpected error %d\n", func, rv);
 	}
+}
+
+static int
+readchunk(int fd, void *buf, int len)
+{
+	char	*p = buf;
+	int	n;
+
+	while (len > 0)
+	{
+ 		switch (n = read(fd, p, len))
+		{
+		   case 0:
+			return 0;	// EOF
+		   case -1:
+			perror("read raw file");
+			cleanstop(9);
+		   default:
+			len -= n;
+			p   += n;
+		}
+	}
+
+	return (char *)p - (char *)buf;
 }
 
 /*

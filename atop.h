@@ -164,7 +164,7 @@ int		nfsmcompar(const void *, const void *);
 int		contcompar(const void *, const void *);
 
 count_t		subcount(count_t, count_t);
-void  		rawread(void);
+int  		rawread(void);
 char		rawwrite (time_t, int,
 		            struct devtstat *, struct sstat *,
 		            int, unsigned int, char);
