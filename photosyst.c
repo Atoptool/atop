@@ -1955,48 +1955,52 @@ ibprep(struct ibcachent *ibc)
 		{
 			(void) sscanf(linebuf, "%lld %c%*s (%hdX",
 				&(ibc->rate), &speedunit, &(ibc->lanes));
+
+            // calculate megabits/second
+            switch (speedunit)
+            {
+               case 'M':
+               case 'm':
+                break;
+               case 'G':
+               case 'g':
+                ibc->rate *= 1000;
+                break;
+               case 'T':
+               case 't':
+                ibc->rate *= 1000000;
+                break;
+            }
+
+            // build all pathnames to obtain the counters
+            // of this port later on
+            snprintf(path, sizeof path,
+                     "%s/ports/%d/counters/port_rcv_data",
+                     ibc->ibha, ibc->port);
+            ibc->pathrcvb = malloc( strlen(path)+1 );
+            strcpy(ibc->pathrcvb, path);
+
+            snprintf(path, sizeof path,
+                     "%s/ports/%d/counters/port_xmit_data",
+                     ibc->ibha, ibc->port);
+            ibc->pathsndb = malloc( strlen(path)+1 );
+            strcpy(ibc->pathsndb, path);
+
+            snprintf(path, sizeof path,
+                     "%s/ports/%d/counters/port_rcv_packets",
+                     ibc->ibha, ibc->port);
+            ibc->pathrcvp = malloc( strlen(path)+1 );
+            strcpy(ibc->pathrcvp, path);
+
+            snprintf(path, sizeof path,
+                     "%s/ports/%d/counters/port_xmit_packets",
+                     ibc->ibha, ibc->port);
+            ibc->pathsndp = malloc( strlen(path)+1 );
+            strcpy(ibc->pathsndp, path);
 		}
 
 		fclose(fp);
 	}
-
-	// calculate megabits/second
-	switch (speedunit)
-	{
-	   case 'M':
-	   case 'm':
-		break;
-	   case 'G':
-	   case 'g':
-		ibc->rate *= 1000;
-		break;
-	   case 'T':
-	   case 't':
-		ibc->rate *= 1000000;
-		break;
-	}
-
-	// build all pathnames to obtain the counters
-	// of this port later on
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_data",
-						    ibc->ibha, ibc->port);
-	ibc->pathrcvb = malloc( strlen(path)+1 );
-	strcpy(ibc->pathrcvb, path);
-
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_data",
-						    ibc->ibha, ibc->port);
-	ibc->pathsndb = malloc( strlen(path)+1 );
-	strcpy(ibc->pathsndb, path);
-
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_packets",
-						    ibc->ibha, ibc->port);
-	ibc->pathrcvp = malloc( strlen(path)+1 );
-	strcpy(ibc->pathrcvp, path);
-
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_packets",
-						    ibc->ibha, ibc->port);
-	ibc->pathsndp = malloc( strlen(path)+1 );
-	strcpy(ibc->pathsndp, path);
 }
 
 /*
