@@ -64,36 +64,49 @@ systemdinstall:	genericinstall
 		if [ ! -d $(DESTDIR)$(PMPATHD) ]; 			\
 		then	mkdir -p $(DESTDIR)$(PMPATHD); fi
 		#
-		cp atop.service       $(DESTDIR)$(SYSDPATH)
-		chmod 0644            $(DESTDIR)$(SYSDPATH)/atop.service
-		cp atopgpu.service    $(DESTDIR)$(SYSDPATH)
-		chmod 0644            $(DESTDIR)$(SYSDPATH)/atopgpu.service
-		cp atopacct.service   $(DESTDIR)$(SYSDPATH)
-		chmod 0644            $(DESTDIR)$(SYSDPATH)/atopacct.service
-		cp atop.cronsystemd   $(DESTDIR)$(CRNPATH)/atop
-		cp atop-pm.sh         $(DESTDIR)$(PMPATHD)
-		chmod 0711            $(DESTDIR)$(PMPATHD)/atop-pm.sh
+		cp atop.service        $(DESTDIR)$(SYSDPATH)
+		chmod 0644             $(DESTDIR)$(SYSDPATH)/atop.service
+		cp atopgpu.service     $(DESTDIR)$(SYSDPATH)
+		chmod 0644             $(DESTDIR)$(SYSDPATH)/atopgpu.service
+		cp atop-rotate.service $(DESTDIR)$(SYSDPATH)
+		chmod 0644             $(DESTDIR)$(SYSDPATH)/atop-rotate.service
+		cp atop-rotate.timer   $(DESTDIR)$(SYSDPATH)
+		chmod 0644             $(DESTDIR)$(SYSDPATH)/atop-rotate.timer
+		cp atopacct.service    $(DESTDIR)$(SYSDPATH)
+		chmod 0644             $(DESTDIR)$(SYSDPATH)/atopacct.service
+		cp atop-pm.sh          $(DESTDIR)$(PMPATHD)
+		chmod 0711             $(DESTDIR)$(PMPATHD)/atop-pm.sh
 		#
 		# only when making on target system:
 		#
-		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 		\
-		then	/bin/systemctl stop    atop     2> /dev/null;	\
-			/bin/systemctl disable atop     2> /dev/null;	\
-			/bin/systemctl stop    atopacct 2> /dev/null;	\
-			/bin/systemctl disable atopacct 2> /dev/null;	\
-			/bin/systemctl enable  atopacct;		\
-			/bin/systemctl start   atopacct;		\
-			/bin/systemctl enable  atop;			\
-			/bin/systemctl start   atop;			\
+		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 			\
+		then	/bin/systemctl disable --now atop     2> /dev/null;	\
+			/bin/systemctl disable --now atopacct 2> /dev/null;	\
+			/bin/systemctl daemon-reload				\
+			/bin/systemctl enable --now atopacct ;			\
+			/bin/systemctl enable --now atop;			\
+			/bin/systemctl enable --now atop-timer;			\
 		fi
 
 sysvinstall:	genericinstall
 		if [ ! -d $(DESTDIR)$(INIPATH) ]; 			\
-		then	mkdir -p  $(DESTDIR)$(INIPATH); fi
+		then	mkdir -p  $(DESTDIR)$(INIPATH);	fi
+		if [ ! -d $(DESTDIR)$(SCRPATH) ]; 			\
+		then	mkdir -p $(DESTDIR)$(SCRPATH);	fi
+		if [ ! -d $(DESTDIR)$(CRNPATH) ]; 			\
+		then	mkdir -p $(DESTDIR)$(CRNPATH);	fi
+		if [ ! -d $(DESTDIR)$(ROTPATH) ]; 			\
+		then	mkdir -p $(DESTDIR)$(ROTPATH);	fi
 		#
 		cp atop.init      $(DESTDIR)$(INIPATH)/atop
 		cp atopacct.init  $(DESTDIR)$(INIPATH)/atopacct
 		cp atop.cronsysv  $(DESTDIR)$(CRNPATH)/atop
+		cp atop.daily     $(DESTDIR)$(SCRPATH)
+		chmod 0711        $(DESTDIR)$(SCRPATH)/atop.daily
+		cp psaccs_atop    $(DESTDIR)$(ROTPATH)/psaccs_atop
+		cp psaccu_atop    $(DESTDIR)$(ROTPATH)/psaccu_atop
+		touch             $(DESTDIR)$(LOGPATH)/dummy_before
+		touch             $(DESTDIR)$(LOGPATH)/dummy_after
 		#
 		if [   -d $(DESTDIR)$(PMPATH1) ]; 			\
 		then	cp 45atoppm $(DESTDIR)$(PMPATH1); 		\
@@ -130,18 +143,12 @@ genericinstall:	atop atopacctd atopconvert
 		then	mkdir -p $(DESTDIR)$(BINPATH); fi
 		if [ ! -d $(DESTDIR)$(SBINPATH) ]; 		\
 		then mkdir -p $(DESTDIR)$(SBINPATH); fi
-		if [ ! -d $(DESTDIR)$(SCRPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(SCRPATH); fi	
 		if [ ! -d $(DESTDIR)$(MAN1PATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(MAN1PATH);	fi
 		if [ ! -d $(DESTDIR)$(MAN5PATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(MAN5PATH);	fi
 		if [ ! -d $(DESTDIR)$(MAN8PATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(MAN8PATH);	fi
-		if [ ! -d $(DESTDIR)$(CRNPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(CRNPATH);	fi
-		if [ ! -d $(DESTDIR)$(ROTPATH) ]; 		\
-		then	mkdir -p $(DESTDIR)$(ROTPATH);	fi
 		#
 		cp atop   		$(DESTDIR)$(BINPATH)/atop
 		chown root		$(DESTDIR)$(BINPATH)/atop
@@ -158,18 +165,12 @@ genericinstall:	atop atopacctd atopconvert
 		cp atopconvert 		$(DESTDIR)$(BINPATH)/atopconvert
 		chown root		$(DESTDIR)$(BINPATH)/atopconvert
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
-		cp atop.daily    	$(DESTDIR)$(SCRPATH)
-		chmod 0711 	 	$(DESTDIR)$(SCRPATH)/atop.daily
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atopconvert.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
 		cp man/atopgpud.8  	$(DESTDIR)$(MAN8PATH)
-		cp psaccs_atop   	$(DESTDIR)$(ROTPATH)/psaccs_atop
-		cp psaccu_atop  	$(DESTDIR)$(ROTPATH)/psaccu_atop
-		touch          	  	$(DESTDIR)$(LOGPATH)/dummy_before
-		touch            	$(DESTDIR)$(LOGPATH)/dummy_after
 
 ##########################################################################
 
