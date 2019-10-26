@@ -57,6 +57,9 @@ install -Dp -m 0644 atop.cronsysv $RPM_BUILD_ROOT/etc/cron.d/atop
 install -Dp -m 0711 45atoppm	  $RPM_BUILD_ROOT/etc/atop/45atoppm
 install -d  -m 0755 		  $RPM_BUILD_ROOT/var/log/atop
 
+touch                             $RPM_BUILD_ROOT/etc/default/atop
+chmod 0644                        $RPM_BUILD_ROOT/etc/default/atop
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 

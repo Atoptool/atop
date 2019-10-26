@@ -12,6 +12,7 @@ MAN1PATH = /usr/share/man/man1
 MAN5PATH = /usr/share/man/man5
 MAN8PATH = /usr/share/man/man8
 INIPATH  = /etc/init.d
+DEFPATH  = /etc/default
 SYSDPATH = /usr/lib/systemd/system
 CRNPATH  = /etc/cron.d
 ROTPATH  = /etc/logrotate.d
@@ -79,13 +80,13 @@ systemdinstall:	genericinstall
 		#
 		# only when making on target system:
 		#
-		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 			\
-		then	/bin/systemctl disable --now atop     2> /dev/null;	\
-			/bin/systemctl disable --now atopacct 2> /dev/null;	\
-			/bin/systemctl daemon-reload				\
-			/bin/systemctl enable --now atopacct ;			\
-			/bin/systemctl enable --now atop;			\
-			/bin/systemctl enable --now atop-timer;			\
+		if [ -z "$(DESTDIR)" -a -f /bin/systemctl ]; 		\
+		then	/bin/systemctl disable --now atop     2> /dev/null; \
+			/bin/systemctl disable --now atopacct 2> /dev/null; \
+			/bin/systemctl daemon-reload;			\
+			/bin/systemctl enable  --now atopacct;		\
+			/bin/systemctl enable  --now atop;		\
+			/bin/systemctl enable  --now atop-rotate.timer;	\
 		fi
 
 sysvinstall:	genericinstall
@@ -149,6 +150,9 @@ genericinstall:	atop atopacctd atopconvert
 		then	mkdir -p $(DESTDIR)$(MAN5PATH);	fi
 		if [ ! -d $(DESTDIR)$(MAN8PATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(MAN8PATH);	fi
+		#
+		touch       		$(DESTDIR)$(DEFPATH)/atop
+		chmod 644      		$(DESTDIR)$(DEFPATH)/atop
 		#
 		cp atop   		$(DESTDIR)$(BINPATH)/atop
 		chown root		$(DESTDIR)$(BINPATH)/atop
