@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart atop daemon to rotate logs
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl try-restart atop.service

@@ -927,26 +927,19 @@ With the flag
 (end time) followed by a time argument of the form HH:MM,
 a certain time period within the raw file can be selected.
 .PP
-When
+Every day at midnight
 .B atop
-is installed, the script
-.B atop.daily
-is stored in the
-.I /usr/share/atop
-directory.
-This scripts takes care that
-.B atop
-is activated every day at midnight to write compressed binary data to the file
+is restarted to write compressed binary data to the file
 .BI /var/log/atop/atop_ YYYYMMDD
 with an interval of 10 minutes by default. The
 .B -R
 flag is passed by default to gather information about the proportional
 set size of every process.
 .br
-Furthermore the script removes all raw files which are by default
-older than 28 days.
+Furthermore all raw files are removed that are older than 28 days
+(by default).
 .br
-The mentioned default values can be overruled by creating the file
+The mentioned default values can be overruled in the file
 .B /etc/default/atop
 that might contain other values for
 .B LOGOPTS
@@ -957,34 +950,6 @@ flag),
 (in seconds, by default 600), and
 .B LOGGENERATIONS
 (in days, by default 28).
-.PP
-The
-.B atop.daily
-script is activated via the
-.B cron
-daemon using the file
-.I /etc/cron.d/atop
-with the contents
-.br
-.B \ \ \ \ \ \ \ \ 0 0 * * * root /usr/share/atop/atop.daily
-.PP
-When the package
-.B psacct
-is installed, the process accounting is automatically restarted via the
-.B logrotate
-mechanism. The file
-.B /etc/logrotate.d/psaccs_atop
-takes care that
-.B atop
-is finished just before the rotation of the process accounting file
-and the file
-.B /etc/logrotate.d/psaccu_atop
-takes care that
-.B atop
-is restarted again after the rotation.
-When the package
-.B psacct
-is not installed, these logrotate-files have no effect.
 .PP
 Unfortunately, it is not always possible to keep the format of the raw files
 compatible in newer versions of
@@ -2390,10 +2355,9 @@ See related man-page.
 Configuration file to overrule the settings of
 .I atop
 that runs in the background to create the daily logfile.
-This file is not created or overwritten when
+This file is created when
 .I atop
-is installed, so it has to be created manually to override
-the default settings.
+is installed.
 The default settings are:
 .TP 8
 \
@@ -2409,9 +2373,9 @@ LOGGENERATIONS=28
 Raw file, where
 .I YYYYMMDD
 are digits representing the current date.
-This name is used by the script
-.B atop.daily
-as default name for the output file, and by
+This name is used by
+.B atop 
+running in the background as default name for the output file, and by
 .B atop
 as default name for the input file when using the
 .B -r
