@@ -67,6 +67,9 @@
 #include "prev/photosyst_24.h"
 #include "prev/photoproc_24.h"
 
+#include "prev/photosyst_25.h"
+#include "prev/photoproc_25.h"
+
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions
@@ -234,6 +237,7 @@ struct sstat_21		sstat_21;
 struct sstat_22		sstat_22;
 struct sstat_23		sstat_23;
 struct sstat_24		sstat_24;
+struct sstat_25		sstat_25;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -241,6 +245,7 @@ struct tstat_21		tstat_21;
 struct tstat_22		tstat_22;
 struct tstat_23		tstat_23;
 struct tstat_24		tstat_24;
+struct tstat_25		tstat_25;
 struct tstat		tstat;
 
 struct convertall {
@@ -418,6 +423,36 @@ struct convertall {
 			STROFFSET(&tstat_24.net, &tstat_24),	justcopy},
 		{sizeof(struct gpu_24),
 			STROFFSET(&tstat_24.gpu, &tstat_24),	justcopy},
+	},
+
+	{SETVERSION(2,5), // 2.4 --> 2.5
+		 sizeof(struct sstat_25),	&sstat_25,
+		 sizeof(struct tstat_25), 	NULL,
+
+		{sizeof(struct cpustat_25),  	&sstat_25.cpu,	justcopy},
+		{sizeof(struct memstat_25),  	&sstat_25.mem,	justcopy},
+		{sizeof(struct netstat_25),  	&sstat_25.net,	justcopy},
+		{sizeof(struct intfstat_25), 	&sstat_25.intf,	justcopy},
+		{sizeof(struct dskstat_25),  	&sstat_25.dsk,	justcopy},
+		{sizeof(struct nfsstat_25),  	&sstat_25.nfs,	justcopy},
+		{sizeof(struct contstat_25), 	&sstat_25.cfs,	justcopy},
+		{sizeof(struct wwwstat_25),  	&sstat_25.www,	justcopy},
+		{sizeof(struct pressure_25),  	&sstat_25.psi,	justcopy},
+		{sizeof(struct gpustat_25),  	&sstat_25.gpu,	justcopy},
+		{sizeof(struct ifbstat_25),  	&sstat_25.ifb,	justcopy},
+
+		{sizeof(struct gen_25),
+			STROFFSET(&tstat_25.gen, &tstat_25),	justcopy},
+		{sizeof(struct cpu_25),
+			STROFFSET(&tstat_25.cpu, &tstat_25),	justcopy},
+		{sizeof(struct dsk_25),
+			STROFFSET(&tstat_25.dsk, &tstat_25),	justcopy},
+		{sizeof(struct mem_25),
+			STROFFSET(&tstat_25.mem, &tstat_25),	justcopy},
+		{sizeof(struct net_25),
+			STROFFSET(&tstat_25.net, &tstat_25),	justcopy},
+		{sizeof(struct gpu_25),
+			STROFFSET(&tstat_25.gpu, &tstat_25),	justcopy},
 	},
 };
 
