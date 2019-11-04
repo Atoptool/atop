@@ -140,6 +140,8 @@ sysvinstall:	genericinstall
 genericinstall:	atop atopacctd atopconvert
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
+		if [ ! -d $(DESTDIR)$(DEFPATH) ]; 		\
+		then	mkdir -p $(DESTDIR)$(DEFPATH); fi
 		if [ ! -d $(DESTDIR)$(BINPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(BINPATH); fi
 		if [ ! -d $(DESTDIR)$(SBINPATH) ]; 		\
