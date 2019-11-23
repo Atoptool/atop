@@ -103,5 +103,5 @@ ln -sf /usr/bin/atop-XVERSX     /usr/bin/atopsar-XVERSX
 /usr/lib/systemd/system/atopacct.service
 /usr/lib/systemd/system/atopgpu.service
 /usr/lib/systemd/system-sleep/atop-pm.sh
-/etc/default/atop
+%config(noreplace) /etc/default/atop
 %dir /var/log/atop/

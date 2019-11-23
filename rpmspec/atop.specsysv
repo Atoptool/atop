@@ -121,6 +121,7 @@ ln -sf /usr/bin/atop-XVERSX 	/usr/bin/atopsar-XVERSX
 /usr/share/man/man8/atopacctd.8*
 %config /etc/init.d/atop
 %config /etc/init.d/atopacct
+%config(noreplace) /etc/default/atop
 /usr/share/atop/atop.daily
 /etc/atop/45atoppm
 /etc/cron.d/atop
