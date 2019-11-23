@@ -69,6 +69,8 @@
 ** etcetera .....
 */
 #define	MYMAGIC		(unsigned int) 0xfeedbeef
+#define READAHEADOFF	22
+#define READAHEADSIZE	(1 << READAHEADOFF)
 
 struct rawheader {
 	unsigned int	magic;
@@ -514,6 +516,10 @@ rawread(void)
 		}
 	}
 
+	/* make the kernel readahead more effective, */
+	if (isregular)
+		posix_fadvise(rawfd, 0, 0, POSIX_FADV_SEQUENTIAL);
+
 	/*
 	** read the raw header and verify the magic
 	*/
@@ -644,8 +650,22 @@ rawread(void)
 						
 				if (isregular)
 				{
-					lseek(rawfd, rr.scomplen+rr.pcomplen,
-								SEEK_CUR);
+					static off_t curr_pos = -1;
+					off_t next_pos;
+
+					lastcmd = 1;
+					next_pos = lseek(rawfd, rr.scomplen+rr.pcomplen, SEEK_CUR);
+					if ((curr_pos >> READAHEADOFF) != (next_pos >> READAHEADOFF))
+					{
+						/* just read READAHEADSIZE bytes into page cache */
+						char *buf = malloc(READAHEADSIZE);
+						ptrverify(buf, "Malloc failed for readahead");
+						pread(rawfd, buf, READAHEADSIZE,
+							next_pos & ~(READAHEADSIZE - 1));
+						free(buf);
+					}
+					curr_pos = next_pos;
+					continue;
 				}
 				else	// named pipe not seekable
 				{
