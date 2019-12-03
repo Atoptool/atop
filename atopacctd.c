@@ -134,6 +134,7 @@ main(int argc, char *argv[])
 	time_t			gclast = time(0);
 
 	struct sigaction	sigcleanup;
+	int			liResult;
 
 	/*
 	** argument passed?
@@ -304,7 +305,16 @@ main(int argc, char *argv[])
 
 	umask(022);
 
-	(void) chdir("/tmp");			// go to a safe place
+	liResult = chdir("/tmp");			// go to a safe place
+	if( liResult != 0 )
+	{
+		// TODO: Return verification enforced by gcc
+		//       Since I don't know(yet) where to log
+		//       I just created the message
+		char lcMessage[ 64 ];
+		snprintf( lcMessage, sizeof( lcMessage ), 
+		          "%s:%d - Error %d changing to tmp dir\n", __FILE__, __LINE__, errno );
+	}
 
 	/*
 	** increase semaphore to define that atopacctd is running
@@ -368,7 +378,16 @@ main(int argc, char *argv[])
 	** raise priority (be sure the nice value becomes -20,
 	** independent of the current nice value)
 	*/
-	(void) nice(-39);
+	liResult = nice(-39);
+	if( liResult < 0 )
+	{
+		// TODO: Return verification enforced by gcc
+		//       Since I don't know(yet) where to log
+		//       I just created the message
+		char lcMessage[ 64 ];
+		snprintf( lcMessage, sizeof( lcMessage ), 
+		          "%s:%d - Error %d setting proccess priority\n", __FILE__, __LINE__, errno );
+	}
 
 	/*
  	** connect to NETLINK socket of kernel to be triggered
@@ -966,6 +985,7 @@ setcurrent(long curshadow)
 	static int	cfd = -1;
 	char		currentpath[128], currentdata[128];
 	int		len;
+	int		liResult;
 
 	/*
 	** assemble file name of currency file and open (only once)
@@ -992,9 +1012,28 @@ setcurrent(long curshadow)
 	/*
 	** wipe currency file and write new assembled string
 	*/
-	(void) ftruncate(cfd, 0);
+	liResult = ftruncate(cfd, 0);
+	if( liResult < 0 )
+	{
+		// TODO: Return verification enforced by gcc
+		//       Since I don't know(yet) where to log
+		//       I just created the message
+		char lcMessage[ 64 ];
+		snprintf( lcMessage, sizeof( lcMessage ), 
+		          "%s:%d - Error %d ftruncate\n", __FILE__, __LINE__, errno );
+	}
+
 	(void) lseek(cfd, 0, SEEK_SET);
-	(void) write(cfd, currentdata, len);
+	liResult = write(cfd, currentdata, len);
+	if( liResult < 0 )
+	{
+		// TODO: Return verification enforced by gcc
+		//       Since I don't know(yet) where to log
+		//       I just created the message
+		char lcMessage[ 64 ];
+		snprintf( lcMessage, sizeof( lcMessage ), 
+		          "%s:%d - Error %d writing\n", __FILE__, __LINE__, errno );
+	}
 }
 
 /*

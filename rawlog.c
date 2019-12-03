@@ -659,9 +659,19 @@ rawread(void)
 					{
 						/* just read READAHEADSIZE bytes into page cache */
 						char *buf = malloc(READAHEADSIZE);
+						int liResult;
 						ptrverify(buf, "Malloc failed for readahead");
-						pread(rawfd, buf, READAHEADSIZE,
+						liResult = pread(rawfd, buf, READAHEADSIZE,
 							next_pos & ~(READAHEADSIZE - 1));
+						if( liResult == -1 )
+						{
+							// TODO: Return verification enforced by gcc
+							//       Since I don't know(yet) where to log
+							//       I just created the message
+							char lcMessage[ 64 ];
+							snprintf( lcMessage, sizeof( lcMessage ),
+							          "%s:%d - Error %d reading rawbuf\n", __FILE__, __LINE__, errno );	
+						}
 						free(buf);
 					}
 					curr_pos = next_pos;

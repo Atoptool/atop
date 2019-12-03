@@ -633,5 +633,17 @@ droprootprivs(void)
 void
 regainrootprivs(void)
 {
-	seteuid(0);
+	int liResult;
+
+	liResult = seteuid(0);
+	if( liResult != 0 )
+	{
+		// TODO: Return verification enforced by gcc
+		//       Since I don't know(yet) where to log
+		//       I just created the message
+		char lcMessage[ 64 ];
+		snprintf( lcMessage, sizeof( lcMessage ), 
+		          "%s:%d - Error %d setting EUID\n", __FILE__, __LINE__, errno );
+	}
 }
+

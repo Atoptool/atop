@@ -156,6 +156,7 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <regex.h>
 #include <sys/stat.h>
 #include <sys/times.h>
@@ -2202,11 +2203,31 @@ getperfevents(struct cpustat *cs)
         {
 		if (*(fdi+i) != -1)
 		{
-                	read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
-                        cs->all.instr += cs->cpu[i].instr;
+			int liResult;
 
-                	read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
+                	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
+                        cs->all.instr += cs->cpu[i].instr;
+			if( liResult < 0 )
+			{
+				// TODO: Return verification enforced by gcc
+				//       Since I don't know(yet) where to log
+				//       I just created the message
+				char lcMessage[ 64 ];
+				snprintf( lcMessage, sizeof( lcMessage ), 
+					  "%s:%d - Error %d reading counters\n", __FILE__, __LINE__, errno );
+			}
+
+                	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
                         cs->all.cycle += cs->cpu[i].cycle;
+			if( liResult < 0 )
+			{
+				// TODO: Return verification enforced by gcc
+				//       Since I don't know(yet) where to log
+				//       I just created the message
+				char lcMessage[ 64 ];
+				snprintf( lcMessage, sizeof( lcMessage ), 
+					  "%s:%d - Error %d reading counters\n", __FILE__, __LINE__, errno );
+			}
 		}
         }
 }
