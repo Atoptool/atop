@@ -3,6 +3,8 @@
 
 Created/maintained by Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
 
+![](https://github.com/rpungartnik/atop/workflows/Compilation/badge.svg)
+
 ## Introduction
 <img align="right" width="100" height="116" src="http://www.atoptool.nl/images/atoplogo.png">
 
