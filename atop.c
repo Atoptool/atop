@@ -1,11 +1,11 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 **
 ** This source-file contains the main-function, which verifies the
-** calling-parameters and takes care of initialization. 
+** calling-parameters and takes care of initialization.
 ** The engine-function drives the main sample-loop in which after the
 ** indicated interval-time a snapshot is taken of the system-level and
 ** process-level counters and the deviations are calculated and
@@ -35,7 +35,7 @@
 ** --------------------------------------------------------------------------
 **
 ** After initialization, the main-function calls the ENGINE.
-** For every cycle (so after another interval) the ENGINE calls various 
+** For every cycle (so after another interval) the ENGINE calls various
 ** functions as shown below:
 **
 ** +---------------------------------------------------------------------+
@@ -48,15 +48,15 @@
 ** |   |     ^        |     ^        |    ^        |    ^        |    |  |
 ** +---|-----|--------|-----|--------|----|--------|----|--------|----|--+
 **     |     |        |     |        |    |        |    |        |    |
-**  +--V-----|--+  +--V-----|--+  +--V----|--+  +--V----|--+  +--V----|-+  
+**  +--V-----|--+  +--V-----|--+  +--V----|--+  +--V----|--+  +--V----|-+
 **  |           |  |           |  |          |  |          |  |         |
 **  | photosyst |  | photoproc |  |   acct   |  | deviate  |  |  print  |
 **  |           |  |           |  |photoproc |  |  ...syst |  |         |
 **  |           |  |           |  |          |  |  ...proc |  |         |
-**  +-----------+  +-----------+  +----------+  +----------+  +---------+  
+**  +-----------+  +-----------+  +----------+  +----------+  +---------+
 **        ^              ^             ^              ^            |
 **        |              |             |              |            |
-**        |              |             |              V            V 
+**        |              |             |              V            V
 **      ______       _________     __________     ________     _________
 **     /      \     /         \   /          \   /        \   /         \
 **      /proc          /proc       accounting       task       screen or
@@ -84,8 +84,8 @@
 ** When all counters have been gathered, functions are called to calculate
 ** the difference between the current counter-values and the counter-values
 ** of the previous cycle. These functions operate on the system-level
-** as well as on the task-level counters. 
-** These differences are stored in a new structure(-table). 
+** as well as on the task-level counters.
+** These differences are stored in a new structure(-table).
 **
 **    -	deviatsyst()
 **	Calculates the differences between the current system-level
@@ -98,7 +98,7 @@
 **	task-database; this "database" is implemented as a linked list
 **	of taskinfo structures in memory (so no disk-accesses needed).
 **	Within this linked list hash-buckets are maintained for fast searches.
-**	The entire task-database is handled via a set of well-defined 
+**	The entire task-database is handled via a set of well-defined
 ** 	functions from which the name starts with "pdb_..." (see the
 **	source-file procdbase.c).
 **	The processes which have been finished during the last cycle
@@ -112,7 +112,7 @@
 ** these addresses can be modified in the main-function depending on particular
 ** flags. In this way various representation-layers (ASCII, graphical, ...)
 ** can be linked with 'atop'; the one to use can eventually be chosen
-** at runtime. 
+** at runtime.
 **
 ** $Log: atop.c,v $
 ** Revision 1.49  2010/10/23 14:01:00  gerlof
@@ -296,6 +296,7 @@
 #include "showgeneric.h"
 #include "parseable.h"
 #include "gpucom.h"
+#include "photobpf.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
@@ -321,6 +322,16 @@ char      	usecolors  = 1;  /* boolean: colors for high occupation  */
 char		threadview = 0;	 /* boolean: show individual threads     */
 char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
 char      	getwchan   = 0;  /* boolean: obtain wchan string         */
+
+/*
+** arguments for bpf stats sampling
+** We enable bpf stats for bpfsampleinterval seconds every bpfsamplerate
+** atop intervals. bpfsampleinterval must be smaller than atop interval.
+**
+** If bpfsamplerate == 0, disable sampling of bpf stats.
+*/
+unsigned int	bpfsamplerate = 1;
+unsigned int	bpfsampleinterval = 1;
 
 unsigned short	hertz;
 unsigned int	pagesize;
@@ -391,6 +402,9 @@ void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
 void do_pacctdir(char *, char *);
 void do_perfevents(char *, char *);
+void do_bpflines(char *, char *);
+void do_bpfsamplerate(char *, char *);
+void do_bpfsampleinterval(char *, char *);
 
 static struct {
 	char	*tag;
@@ -440,6 +454,9 @@ static struct {
 	{	"atopsarflags",		do_atopsarflags,	0, },
 	{	"perfevents",		do_perfevents,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
+	{	"bpflines",		do_bpflines,		0, },
+	{	"bpfsamplerate",	do_bpfsamplerate,	0, },
+	{	"bpfsampleinterval",	do_bpfsampleinterval,	0, },
 };
 
 /*
@@ -465,6 +482,8 @@ main(int argc, char *argv[])
 		fprintf(stderr, "not possible to drop root privs\n");
                 exit(42);
 	}
+
+	photo_bpf_check();
 
 	/*
 	** preserve command arguments to allow restart of other version
@@ -497,12 +516,12 @@ main(int argc, char *argv[])
 	if ( memcmp(p, "atopsar", 7) == 0)
 		return atopsar(argc, argv);
 
-	/* 
-	** interpret command-line arguments & flags 
+	/*
+	** interpret command-line arguments & flags
 	*/
 	if (argc > 1)
 	{
-		/* 
+		/*
 		** gather all flags for visualization-functions
 		**
 		** generic flags will be handled here;
@@ -600,17 +619,17 @@ main(int argc, char *argv[])
 		}
 
 		/*
-		** get optional interval-value and optional number of samples	
+		** get optional interval-value and optional number of samples
 		*/
 		if (optind < argc && optind < MAXFL)
 		{
 			if (!numeric(argv[optind]))
 				prusage(argv[0]);
-	
+
 			interval = atoi(argv[optind]);
-	
+
 			optind++;
-	
+
 			if (optind < argc)
 			{
 				if (!numeric(argv[optind]) )
@@ -766,6 +785,7 @@ engine(void)
 				gpupending=0;	/* boolean: request sent      */
 
 	struct gpupidstat	*gp = NULL;
+	struct bstats		*bstats = NULL;
 
 	/*
 	** initialization: allocate required memory dynamically
@@ -817,6 +837,8 @@ engine(void)
 	if (nrgpus)
 		supportflags |= GPUSTAT;
 
+	if (system_support_bpf())
+		supportflags |= BPFSTAT;
 	/*
 	** MAIN-LOOP:
 	**    -	Wait for the requested number of seconds or for other trigger
@@ -838,10 +860,14 @@ engine(void)
 		/*
 		** if the limit-flag is specified:
 		**  check if the next sample is expected before midnight;
-		**  if not, stop atop now 
+		**  if not, stop atop now
 		*/
 		if (midnightflag && (curtime+interval) > timelimit)
 			break;
+
+		if ((supportflags & BPFSTAT) &&
+		    bpfsamplerate && sampcnt % bpfsamplerate == 0)
+			bstats = get_devbstats();
 
 		/*
 		** wait for alarm-signal to arrive (except first sample)
@@ -859,13 +885,13 @@ engine(void)
 		curtime  = time(0);		/* seconds since 1-1-1970 */
 
 		/*
-		** send request for statistics to atopgpud 
+		** send request for statistics to atopgpud
 		*/
 		if (nrgpus)
 			gpupending = gpud_statrequest();
 
 		/*
-		** take a snapshot of the current system-level statistics 
+		** take a snapshot of the current system-level statistics
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
 		*/
@@ -918,7 +944,7 @@ engine(void)
 				curtime-pretime > 0 ? curtime-pretime : 1);
 
 		/*
-		** take a snapshot of the current task-level statistics 
+		** take a snapshot of the current task-level statistics
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
 		**
@@ -1013,10 +1039,14 @@ engine(void)
 		** the deviations
 		*/
 		lastcmd = (vis.show_samp)( curtime,
-				     curtime-pretime > 0 ? curtime-pretime : 1,
-		           	     &devtstat, devsstat, 
-		                     nprocexit, noverflow, sampcnt==0);
+				    curtime-pretime > 0 ? curtime-pretime : 1,
+				    &devtstat, devsstat, bstats,
+				    nprocexit, noverflow, sampcnt==0);
 
+		if (bstats) {
+			free(bstats->bpfall);
+			bstats = NULL;
+		}
 		/*
 		** release dynamically allocated memory
 		*/
@@ -1065,7 +1095,7 @@ prusage(char *myname)
 	printf("\t  -%c  show version information\n", MVERSION);
 	printf("\t  -%c  show or log all processes (i.s.o. active processes "
 	                "only)\n", MALLPROC);
-	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
+	printf("\t  -%c  calculate proportional set size (PSS) per process\n",
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
@@ -1146,6 +1176,18 @@ do_linelength(char *name, char *val)
 	linelen = get_posval(name, val);
 }
 
+void
+do_bpfsamplerate(char *name, char *val)
+{
+	bpfsamplerate = get_posval(name, val);
+}
+
+void
+do_bpfsampleinterval(char *name, char *val)
+{
+	bpfsampleinterval = get_posval(name, val);
+}
+
 /*
 ** read RC-file and modify defaults accordingly
 */
@@ -1196,7 +1238,7 @@ readrc(char *path, int syslevel)
 			   default:
 				if (tagname[0] == '#')
 					continue;
-				
+
 				if (tagvalue[0] != '#')
 					break;
 

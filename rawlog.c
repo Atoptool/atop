@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -52,12 +52,14 @@
 #include "photoproc.h"
 #include "photosyst.h"
 #include "rawlog.h"
+#include "photobpf.h"
 
-#define	BASEPATH	"/var/log/atop"  
+#define	BASEPATH	"/var/log/atop"
 
 static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
+static int	getrawbstat(int, struct bstat *, int, int);
 static int	rawwopen(void);
 static int	readchunk(int, void *, int);
 static int	lookslikedatetome(char *);
@@ -69,8 +71,8 @@ static void	try_other_version(int, int);
 ** (file is opened/created during the first call)
 */
 char
-rawwrite(time_t curtime, int numsecs, 
-         struct devtstat *devtstat, struct sstat *sstat,
+rawwrite(time_t curtime, int numsecs,
+         struct devtstat *devtstat, struct sstat *sstat, struct bstats *bstats,
          int nexit, unsigned int noverflow, char flag)
 {
 	static int		rawfd = -1;
@@ -79,10 +81,17 @@ rawwrite(time_t curtime, int numsecs,
 	struct stat		filestat;
 
 	Byte			scompbuf[sizeof(struct sstat)], *pcompbuf;
+	Byte			*bcompbuf;
 	unsigned long		scomplen = sizeof scompbuf;
 	unsigned long		pcomplen = sizeof(struct tstat) *
 						devtstat->ntaskall;
-	struct iovec 		iov[3];
+	unsigned long		bcomplen;
+	struct iovec 		iov[4];
+	struct bstats		dummybstats = {NULL, 0};
+
+	if (bstats == NULL)
+		bstats = &dummybstats;
+	bcomplen = sizeof(struct bstat) * bstats->nbpfall;
 
 	/*
 	** first call:
@@ -115,6 +124,17 @@ rawwrite(time_t curtime, int numsecs,
 
 	testcompval(rv, "compress");
 
+	bcompbuf = malloc(bcomplen);
+
+	ptrverify(bcompbuf, "Malloc failed for compression buffer\n");
+
+	if (bcomplen) {
+		rv = compress(bcompbuf, &bcomplen, (Byte *)bstats->bpfall,
+			      (unsigned long)bcomplen);
+
+		testcompval(rv, "compress");
+	}
+
 	/*
 	** fill record header and write to file
 	*/
@@ -135,6 +155,8 @@ rawwrite(time_t curtime, int numsecs,
 	rr.totzomb	= devtstat->totzombie;
 	rr.scomplen	= scomplen;
 	rr.pcomplen	= pcomplen;
+	rr.bcomplen	= bcomplen;
+	rr.totbpf	= bstats->nbpfall;
 
 	if (flag&RRBOOT)
 		rr.flags |= RRBOOT;
@@ -170,7 +192,10 @@ rawwrite(time_t curtime, int numsecs,
 	iov[2].iov_base = pcompbuf;
 	iov[2].iov_len  = pcomplen;
 
-	if ( writev(rawfd, iov, 3) == -1)
+	iov[3].iov_base = bcompbuf;
+	iov[3].iov_len  = bcomplen;
+
+	if ( writev(rawfd, iov, 4) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
@@ -184,6 +209,7 @@ rawwrite(time_t curtime, int numsecs,
 	}
 
 	free(pcompbuf);
+	free(bcompbuf);
 
 	return '\0';
 }
@@ -225,6 +251,7 @@ rawwopen()
 
 		if ( rh.sstatlen	!= sizeof(struct sstat)		||
 		     rh.tstatlen	!= sizeof(struct tstat)		||
+	    	     rh.bstatlen	!= sizeof(struct bstat)		||
 	    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
 		     rh.rawreclen	!= sizeof(struct rawrecord)	  )
 		{
@@ -268,6 +295,7 @@ rawwopen()
 	rh.aversion	= getnumvers() | 0x8000;
 	rh.sstatlen	= sizeof(struct sstat);
 	rh.tstatlen	= sizeof(struct tstat);
+	rh.bstatlen	= sizeof(struct bstat);
 	rh.rawheadlen	= sizeof(struct rawheader);
 	rh.rawreclen	= sizeof(struct rawrecord);
 	rh.supportflags	= supportflags | RAWLOGNG;
@@ -303,6 +331,7 @@ rawread(void)
 	struct rawrecord	rr;
 	struct sstat		sstat;
 	static struct devtstat	devtstat;
+	struct bstats		bstats = {NULL, 0};
 
 	struct stat		filestat;
 
@@ -328,7 +357,7 @@ rawread(void)
 		tp	= localtime(&timenow);
 
 		snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-			BASEPATH, 
+			BASEPATH,
 			tp->tm_year+1900,
 			tp->tm_mon+1,
 			tp->tm_mday);
@@ -340,7 +369,7 @@ rawread(void)
 	   ** the full pathname of the raw file
 	   */
 	   case 8:
-		if ( access(rawname, F_OK) == 0) 
+		if ( access(rawname, F_OK) == 0)
 			break;		/* existing file */
 
 		if (lookslikedatetome(rawname))
@@ -350,7 +379,7 @@ rawread(void)
 			strncpy(savedname, rawname, RAWNAMESZ-1);
 
 			snprintf(rawname, RAWNAMESZ, "%s/atop_%s",
-				BASEPATH, 
+				BASEPATH,
 				savedname);
 			break;
 		}
@@ -362,7 +391,7 @@ rawread(void)
 	   ** of y's).
 	   */
 	   default:
-		if ( access(rawname, F_OK) == 0) 
+		if ( access(rawname, F_OK) == 0)
 			break;		/* existing file */
 
 		/*
@@ -382,7 +411,7 @@ rawread(void)
 			tp	 = localtime(&timenow);
 
 			snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-				BASEPATH, 
+				BASEPATH,
 				tp->tm_year+1900,
 				tp->tm_mon+1,
 				tp->tm_mday);
@@ -479,6 +508,7 @@ rawread(void)
 	*/
 	if (rh.sstatlen   != sizeof(struct sstat)		||
 	    rh.tstatlen   != sizeof(struct tstat)		||
+	    rh.bstatlen   != sizeof(struct bstat)		||
 	    rh.rawheadlen != sizeof(struct rawheader)		||
 	    rh.rawreclen  != sizeof(struct rawrecord)		  )
 	{
@@ -591,7 +621,7 @@ rawread(void)
 					offsize+= OFFCHUNK;
 				}
 			}
-	
+
 			/*
 			** check if this sample is within the time-range
 			** specified with the -b and -e flags (if any)
@@ -599,7 +629,7 @@ rawread(void)
 			if ( (begintime > cursortime) )
 			{
 				lastcmd = 1;
-						
+
 				if (isregular)
 				{
 					static off_t curr_pos = -1;
@@ -721,6 +751,21 @@ rawread(void)
  			devtstat.totslpu	= rr.totslpu;
  			devtstat.totzombie	= rr.totzomb;
 
+			bstats.nbpfall = rr.totbpf;
+
+			if (rr.totbpf) {
+				bstats.bpfall = malloc(
+					sizeof(struct bstat) * rr.totbpf);
+
+				ptrverify(bstats.bpfall,
+					  "Malloc failed for %d stored bpf stats\n",
+					  rr.totbpf);
+
+				if ( !getrawbstat(rawfd, bstats.bpfall,
+					  rr.bcomplen, rr.totbpf) )
+				cleanstop(7);
+			}
+
 			/*
 			** activate the installed print-function to visualize
 			** the system- and process-level statistics
@@ -778,7 +823,7 @@ rawread(void)
 			{
 				lastcmd = (vis.show_samp)(rr.curtime,
 				     rr.interval,
-			             &devtstat, &sstat,
+				     &devtstat, &sstat, &bstats,
 			             rr.nexit, rr.noverflow, flags);
 			}
 			while (!isregular &&
@@ -790,6 +835,9 @@ rawread(void)
 			free(devtstat.taskall);
 			free(devtstat.procall);
 			free(devtstat.procactive);
+			free(bstats.bpfall);
+			bstats.bpfall = NULL;
+			bstats.nbpfall = 0;
 
 			switch (lastcmd)
 			{
@@ -878,7 +926,7 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 }
 
 /*
-** read the process-level statistics from the current offset
+** read the bpf statistics from the current offset
 */
 static int
 getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
@@ -906,7 +954,36 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 	return 1;
 }
 
-/* 
+/*
+** read the process-level statistics from the current offset
+*/
+static int
+getrawbstat(int rawfd, struct bstat *bp, int complen, int nbpfall)
+{
+	Byte		*compbuf;
+	unsigned long	uncomplen = sizeof(struct bstat) * nbpfall;
+	int		rv;
+
+	compbuf = malloc(complen);
+
+	ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
+
+	if ( readchunk(rawfd, compbuf, complen) < complen)
+	{
+		free(compbuf);
+		return 0;
+	}
+
+	rv = uncompress((Byte *)bp, &uncomplen, compbuf, complen);
+
+	testcompval(rv, "uncompress");
+
+	free(compbuf);
+
+	return 1;
+}
+
+/*
 ** verify if a particular ascii-string is in the format yyyymmdd
 */
 static int

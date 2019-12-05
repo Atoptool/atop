@@ -165,7 +165,7 @@ parsedef(char *pd)
 	}
 
 	/*
-	** check list of comma-separated labels 
+	** check list of comma-separated labels
 	*/
 	while (pd < ep)
 	{
@@ -173,7 +173,7 @@ parsedef(char *pd)
 		** exchange comma by null-byte
 		*/
 		if ( (p = strchr(pd, ',')) )
-			*p = 0;	
+			*p = 0;
 		else
 			p  = ep-1;
 
@@ -223,7 +223,7 @@ parsedef(char *pd)
 */
 char
 parseout(time_t curtime, int numsecs,
-         struct devtstat *devtstat, struct sstat *sstat,
+         struct devtstat *devtstat, struct sstat *sstat, struct bstats *bstats,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i;
@@ -274,15 +274,15 @@ parseout(time_t curtime, int numsecs,
 ** print functions for system-level statistics
 */
 void
-calc_freqscale(count_t maxfreq, count_t cnt, count_t ticks, 
+calc_freqscale(count_t maxfreq, count_t cnt, count_t ticks,
                count_t *freq, int *freqperc)
 {
         // if ticks != 0, do full calcs
-        if (maxfreq && ticks) 
+        if (maxfreq && ticks)
         {
             *freq=cnt/ticks;
             *freqperc=100* *freq / maxfreq;
-        } 
+        }
         else if (maxfreq)   // max frequency is known so % can be calculated
         {
             *freq=cnt;

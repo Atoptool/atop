@@ -30,7 +30,8 @@ struct rawheader {
 	unsigned int	sstatlen;	/* length of struct sstat        */
 	unsigned int	tstatlen;	/* length of struct tstat        */
 	struct utsname	utsname;	/* info about this system        */
-	char		cfuture[8];	/* future use                    */
+	unsigned int	bstatlen;	/* length of struct bstat        */
+	char		cfuture[4];	/* future use                    */
 
 	unsigned int	pagesize;	/* size of memory page (bytes)   */
 	int		supportflags;  	/* used features                 */
@@ -59,5 +60,7 @@ struct rawrecord {
 	unsigned int	totzomb;	/* number of zombie processes   */
 	unsigned int	nexit;		/* number of exited processes   */
 	unsigned int	noverflow;	/* number of overflow processes */
-	unsigned int	ifuture[6];	/* future use                   */
+	unsigned int	bcomplen;	/* length of compressed bstat's */
+	unsigned int	totbpf;		/* number of bstat's            */
+	unsigned int	ifuture[4];	/* future use                   */
 };

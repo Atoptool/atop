@@ -5,7 +5,7 @@
 ** the system on system-level as well as process-level.
 **
 ** This source-file contains various functions to a.o. format the
-** time-of-day, the cpu-time consumption and the memory-occupation. 
+** time-of-day, the cpu-time consumption and the memory-occupation.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
@@ -115,6 +115,7 @@
 
 #include "atop.h"
 #include "acctproc.h"
+#include "photobpf.h"
 
 /*
 ** Function convtime() converts a value (number of seconds since
@@ -193,7 +194,7 @@ getbranchtime(char *itim, time_t *newtime)
 		tm.tm_mon  -= 1;
 
 		if (tm.tm_year < 100 || tm.tm_mon  < 0  || tm.tm_mon > 11 ||
-                    tm.tm_mday < 1   || tm.tm_mday > 31 || 
+                    tm.tm_mday < 1   || tm.tm_mday > 31 ||
 		    tm.tm_hour < 0   || tm.tm_hour > 23 ||
 		    tm.tm_min  < 0   || tm.tm_min  > 59   )
 		{
@@ -250,7 +251,7 @@ getbranchtime(char *itim, time_t *newtime)
 
 /*
 ** Normalize an epoch time with the number of seconds within a day
-** Return-value:        Normalized epoch 
+** Return-value:        Normalized epoch
 */
 time_t
 normalize_epoch(time_t epoch, long secondsinday)
@@ -259,9 +260,9 @@ normalize_epoch(time_t epoch, long secondsinday)
 
 	localtime_r(&epoch, &tm);	// convert epoch to tm
 
-	tm.tm_hour   = 0;	
-	tm.tm_min    = 0;	
-	tm.tm_sec    = secondsinday;	
+	tm.tm_hour   = 0;
+	tm.tm_min    = 0;
+	tm.tm_sec    = secondsinday;
 	tm.tm_isdst  = -1;
 
 	return mktime(&tm);		// convert tm to epoch
@@ -269,7 +270,7 @@ normalize_epoch(time_t epoch, long secondsinday)
 
 
 /*
-** Function val2valstr() converts a positive value to an ascii-string of a 
+** Function val2valstr() converts a positive value to an ascii-string of a
 ** fixed number of positions; if the value does not fit, it will be formatted
 ** to exponent-notation (as short as possible, so not via the standard printf-
 ** formatters %f or %e). The offered string should have a length of width+1.
@@ -352,17 +353,17 @@ val2elapstr(int value, char *strvalue)
 {
         char	*p=strvalue;
 
-        if (value >= DAYSECS) 
+        if (value >= DAYSECS)
         {
                 p+=sprintf(p, "%dd", value/DAYSECS);
         }
 
-        if (value >= HOURSECS) 
+        if (value >= HOURSECS)
         {
                 p+=sprintf(p, "%dh", (value%DAYSECS)/HOURSECS);
         }
 
-        if (value >= MINSECS) 
+        if (value >= MINSECS)
         {
                 p+=sprintf(p, "%dm", (value%HOURSECS)/MINSECS);
         }
@@ -396,7 +397,7 @@ val2cpustr(count_t value, char *strvalue)
        	 	*/
         	value = (value + 500) / 1000;
 
-        	if (value < MAXSEC) 
+        	if (value < MAXSEC)
         	{
                	 	sprintf(strvalue, "%2lldm%02llds", value/60, value%60);
 		}
@@ -407,7 +408,7 @@ val2cpustr(count_t value, char *strvalue)
 			*/
 			value = (value + 30) / 60;
 
-			if (value < MAXMIN) 
+			if (value < MAXMIN)
 			{
 				sprintf(strvalue, "%2lldh%02lldm",
 							value/60, value%60);
@@ -429,7 +430,7 @@ val2cpustr(count_t value, char *strvalue)
 }
 
 /*
-** Function val2Hzstr() converts a value (in MHz) 
+** Function val2Hzstr() converts a value (in MHz)
 ** to an ascii-string.
 ** The result-string is placed in the area pointed to strvalue,
 ** which should be able to contain 7 positions plus null byte.
@@ -450,7 +451,7 @@ val2Hzstr(count_t value, char *strvalue)
 
                 if (fval >= 1000.0)            // prepare for the future
                 {
-                        prefix='T';        
+                        prefix='T';
                         fval /= 1000.0;
                 }
 
@@ -520,7 +521,7 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 		basewidth -= 2;
 		suffix     = "/s";
 	}
-	
+
 	/*
 	** determine which format will be used on bases of the value itself
 	*/
@@ -561,7 +562,7 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 
 	   case	MBFORMAT:
 		sprintf(strvalue, "%*.1lfM%s",
-			basewidth-1, (double)((double)value/ONEMBYTE), suffix); 
+			basewidth-1, (double)((double)value/ONEMBYTE), suffix);
 		break;
 
 	   case	GBFORMAT:
@@ -588,7 +589,7 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 
 
 /*
-** Function numeric() checks if the ascii-string contains 
+** Function numeric() checks if the ascii-string contains
 ** a numeric (positive) value.
 ** Returns 1 (true) if so, or 0 (false).
 */
@@ -607,7 +608,7 @@ numeric(char *ns)
 
 
 /*
-** Function getboot() returns the boot-time of this system 
+** Function getboot() returns the boot-time of this system
 ** as number of jiffies since 1-1-1970.
 */
 unsigned long long

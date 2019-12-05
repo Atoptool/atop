@@ -1,9 +1,9 @@
 /*
-** ATOP - System & Process Monitor 
+** ATOP - System & Process Monitor
 **
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
-** 
+**
 ** This source-file contains the print-functions to visualize the calculated
 ** figures.
 ** ==========================================================================
@@ -28,7 +28,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-** 
+**
 ** $Log: showgeneric.c,v $
 ** Revision 1.71  2010/10/25 19:08:32  gerlof
 ** When the number of lines is too small for the system-level
@@ -277,6 +277,7 @@
 #include "atop.h"
 #include "photoproc.h"
 #include "photosyst.h"
+#include "photobpf.h"
 #include "showgeneric.h"
 #include "showlinux.h"
 
@@ -321,11 +322,11 @@ static void	generic_init(void);
 
 
 static int	(*procsort[])(const void *, const void *) = {
-			[MSORTCPU&0x1f]=compcpu, 
-			[MSORTMEM&0x1f]=compmem, 
-			[MSORTDSK&0x1f]=compdsk, 
-			[MSORTNET&0x1f]=compnet, 
-			[MSORTGPU&0x1f]=compgpu, 
+			[MSORTCPU&0x1f]=compcpu,
+			[MSORTMEM&0x1f]=compmem,
+			[MSORTDSK&0x1f]=compdsk,
+			[MSORTNET&0x1f]=compnet,
+			[MSORTGPU&0x1f]=compgpu,
 };
 
 extern proc_printpair ownprocs[];
@@ -335,12 +336,15 @@ extern proc_printpair ownprocs[];
 */
 int	startoffset;
 
+int	bpflines = 3;
+
 /*
 ** print the deviation-counters on process- and system-level
 */
 char
 generic_samp(time_t curtime, int nsecs,
-           struct devtstat *devtstat, struct sstat *sstat, 
+	   struct devtstat *devtstat, struct sstat *sstat,
+	   struct bstats *bstats,
            int nexit, unsigned int noverflow, char flag)
 {
 	static int	callnr = 0;
@@ -370,7 +374,7 @@ generic_samp(time_t curtime, int nsecs,
 	** per accumulated (per user or per program) group of processes
 	**
 	** Xcumlist contains the pointers to all structs in tXcumlist
-	** 
+	**
 	** these lists will only be allocated 'lazy'
 	** only when accumulation is requested
 	*/
@@ -416,6 +420,11 @@ generic_samp(time_t curtime, int nsecs,
 
 	char		threadallowed = 0;
 
+	/*
+	** reserve 2 lines for proc and bpflines+1 lines for bpf programs
+	*/
+	int		proc_bpf_lines =
+		(bstats && bstats->nbpfall) ? bpflines + 1 : 2;
 
 	if (callnr == 0)	/* first call? */
 		generic_init();
@@ -425,7 +434,7 @@ generic_samp(time_t curtime, int nsecs,
 	startoffset = 0;
 
 	/*
-	** compute the total capacity of this system for the 
+	** compute the total capacity of this system for the
 	** four main resources
 	*/
 	totalcap(&syscap, sstat, devtstat->procactive, devtstat->nprocactive);
@@ -508,11 +517,11 @@ generic_samp(time_t curtime, int nsecs,
                 int lenavail 	= (screen ? COLS : linelen) -
 						50 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
-                int len2	= lenavail - len1 - len1; 
+                int len2	= lenavail - len1 - len1;
 
 		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
-		       "*s%s elapsed", 
-			utsname.nodename, len1, "", 
+		       "*s%s elapsed",
+			utsname.nodename, len1, "",
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
 			fixedhead  		      ? MSYSFIXED  : '-',
@@ -545,7 +554,7 @@ generic_samp(time_t curtime, int nsecs,
 
 		if (noverflow)
 		{
-			snprintf(statbuf, sizeof statbuf, 
+			snprintf(statbuf, sizeof statbuf,
 			         "Only %d exited processes handled "
 			         "-- %u skipped!", nexit, noverflow);
 
@@ -574,7 +583,7 @@ generic_samp(time_t curtime, int nsecs,
 		** limit the number of variable resource lines
 		** and try again
 		*/
-		if (screen && curline+2 > LINES)
+		if (screen && curline+proc_bpf_lines > LINES)
 		{
 			curline = 2;
 
@@ -583,7 +592,7 @@ generic_samp(time_t curtime, int nsecs,
 			move(curline, 0);
 
 			limitedlines();
-			
+
 			curline = prisyst(sstat, curline, nsecs, avgval,
 					fixedhead,  &syssel, &autoorder,
 					maxcpulines, maxgpulines,
@@ -596,7 +605,7 @@ generic_samp(time_t curtime, int nsecs,
  			** if system-wide statistics still do not fit,
 			** the window is really to small
 			*/
-			if (curline+2 > LINES)
+			if (curline+proc_bpf_lines > LINES)
 			{
 				endwin();	// finish curses interface
 
@@ -667,6 +676,10 @@ generic_samp(time_t curtime, int nsecs,
 				}
 			}
 		}
+
+		if (screen)
+        	        move(curline, 0);
+		curline = pribpf(bstats, curline);
 
 		/*
 		** select the required list with tasks to be shown
@@ -747,7 +760,7 @@ generic_samp(time_t curtime, int nsecs,
 			        "Malloc failed for %d pcum ptrs\n",  nproc);
 
 			for (i=0; i < nproc; i++)
-			{	
+			{
 				/* fill pointers */
 				pcumlist[i] = tpcumlist+i;
 			}
@@ -852,7 +865,7 @@ generic_samp(time_t curtime, int nsecs,
 				    suppressexit                   )
 					continue;
 
-				sellist[nsel++] = curlist[i]; 
+				sellist[nsel++] = curlist[i];
 			}
 
 			curlist    = sellist;
@@ -863,7 +876,7 @@ generic_samp(time_t curtime, int nsecs,
 		}
 
 		/*
-		** sort the list in required order 
+		** sort the list in required order
 		** (default CPU-consumption) and print the list
 		*/
 		if (showorder == MSORTAUTO)
@@ -949,7 +962,7 @@ generic_samp(time_t curtime, int nsecs,
 					    for (t = pcur - tall + 1;
 					         t < devtstat->ntaskall &&
 						 pcur->gen.tgid		&&
-					         pcur->gen.tgid == 
+					         pcur->gen.tgid ==
 					            (tall+t)->gen.tgid;
 					         t++)
 					    {
@@ -1046,7 +1059,7 @@ generic_samp(time_t curtime, int nsecs,
 				if (tsklist)   free(tsklist);
 				if (sellist)   free(sellist);
 
-				return lastchar;	
+				return lastchar;
 
 			   /*
 			   ** stop it
@@ -1983,7 +1996,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** per-process PSS calculation wanted 
+			   ** per-process PSS calculation wanted
 			   */
 			   case MCALCPSS:
 				if (calcpss)
@@ -1999,7 +2012,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** per-thread WCHAN definition 
+			   ** per-thread WCHAN definition
 			   */
 			   case MGETWCHAN:
 				if (getwchan)
@@ -2126,7 +2139,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** reset statistics 
+			   ** reset statistics
 			   */
 			   case MRESET:
 				getalarm(0);	/* restart the clock */
@@ -2183,7 +2196,7 @@ generic_samp(time_t curtime, int nsecs,
 			   /*
 			   ** handle arrow up to go one line up
 			   */
-			   case KEY_UP:	
+			   case KEY_UP:
 				if (firstproc > 0)
 					firstproc -= 1;
 				break;
@@ -2212,7 +2225,7 @@ generic_samp(time_t curtime, int nsecs,
 			   ** handle screen resize
 			   */
 			   case KEY_RESIZE:
-				snprintf(statbuf, sizeof statbuf, 
+				snprintf(statbuf, sizeof statbuf,
 					"Window resized to %dx%d...",
 			         		COLS, LINES);
 				statmsg = statbuf;
@@ -2268,7 +2281,7 @@ cumusers(struct tstat **curprocs, struct tstat *curusers, int numprocs)
 
 		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
- 
+
 		if ( curusers->gen.ruid != (*curprocs)->gen.ruid )
 		{
 			if (curusers->gen.pid)
@@ -2356,7 +2369,7 @@ cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
 
 		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
- 
+
 		if ( strcmp(curconts->gen.container,
                          (*curprocs)->gen.container) != 0)
 		{
@@ -2593,7 +2606,7 @@ limitedlines(void)
 }
 
 /*
-** get a numerical value from the user and verify 
+** get a numerical value from the user and verify
 */
 static long
 getnumval(char *ask, long valuenow, int statline)
@@ -3022,7 +3035,7 @@ showhelp(int helpline)
 	scrollok(helpwin, 1);
 
 	/*
-	** show help-lines 
+	** show help-lines
 	*/
 	for (i=0, shown=0; i < helplines; i++, shown++)
 	{
@@ -3035,7 +3048,7 @@ showhelp(int helpline)
 		{
 			wmove    (helpwin, winlines-1, 0);
 			wclrtoeol(helpwin);
-			wprintw  (helpwin, "Press 'q' to leave help, " 
+			wprintw  (helpwin, "Press 'q' to leave help, "
 					"space for next page or "
 					"other key for next line... ");
 
@@ -3281,6 +3294,12 @@ void
 do_maxcont(char *name, char *val)
 {
 	maxcontlines = get_posval(name, val);
+}
+
+void
+do_bpflines(char *name, char *val)
+{
+	bpflines = get_posval(name, val);
 }
 
 
