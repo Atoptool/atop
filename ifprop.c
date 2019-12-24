@@ -100,12 +100,18 @@ getifprop(struct ifprop *ifp)
 void
 initifprop(void)
 {
-	FILE 			*fp;
-	char 			*cp, linebuf[2048];
-	int			i=0, sockfd;
-	struct ethtool_cmd 	ethcmd;
-	struct ifreq	 	ifreq;
-	struct iwreq	 	iwreq;
+	FILE 				*fp;
+	char 				*cp, linebuf[2048];
+	int				i=0, sockfd;
+
+	struct ethtool_link_settings 	ethlink;	// preferred!
+	struct ethtool_cmd 		ethcmd;		// deprecated	
+
+	struct ifreq		 	ifreq;
+	struct iwreq		 	iwreq;
+
+	unsigned long			speed;
+	unsigned char			duplex, phy_addr, ethernet;
 
 	/*
 	** open /proc/net/dev to obtain all interface names and open
@@ -138,6 +144,8 @@ initifprop(void)
 
 		/*
 		** determine properties of ethernet interface
+		** preferably with actual struct ethtool_link_settings,
+		** otherwise with deprecated struct ethtool_cmd
 		*/
 		memset(&ifreq,  0, sizeof ifreq);
 		memset(&ethcmd, 0, sizeof ethcmd);
@@ -145,25 +153,57 @@ initifprop(void)
 		strncpy((void *)&ifreq.ifr_ifrn.ifrn_name, ifprops[i].name,
 				sizeof ifreq.ifr_ifrn.ifrn_name-1);
 
-		ifreq.ifr_ifru.ifru_data = (void *)&ethcmd;
+		ethlink.cmd              = ETHTOOL_GLINKSETTINGS;
+		ifreq.ifr_ifru.ifru_data = (void *)&ethlink;
 
-		ethcmd.cmd = ETHTOOL_GSET;
+		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0)
+		{
+			ethernet = 1;
+			speed    = ethlink.speed;
+			duplex   = ethlink.duplex;
+			phy_addr = ethlink.phy_address;
+		}
+		else
+		{
+			ethcmd.cmd               = ETHTOOL_GSET;
+			ifreq.ifr_ifru.ifru_data = (void *)&ethcmd;
 
-		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0) 
+			if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0) 
+			{
+				ethernet = 1;
+				speed    = ethcmd.speed;
+				duplex   = ethcmd.duplex;
+				phy_addr = ethcmd.phy_address;
+			}
+			else
+			{
+				ethernet = 0;
+			}
+		}
+
+		if (ethernet)
 		{
 			ifprops[i].type  = 'e';	// type ethernet
-			ifprops[i].speed = ethtool_cmd_speed(&ethcmd);
 
-			if (ifprops[i].speed == (u32)SPEED_UNKNOWN)
+			if (speed == (u32)SPEED_UNKNOWN)
 				ifprops[i].speed = 0;
+			else
+				ifprops[i].speed = speed;
 
-			switch (ethcmd.duplex)
+			switch (duplex)
 			{
 		   	   case DUPLEX_FULL:
 				ifprops[i].fullduplex	= 1;
 				break;
 		   	   default:
 				ifprops[i].fullduplex	= 0;
+			}
+
+			if (!phy_addr)	// virtual interface?
+			{
+				ifprops[i].type       = '?';	// set type unknown
+				ifprops[i].speed      = 0;
+				ifprops[i].fullduplex = 0;
 			}
 
 			if (++i >= MAXINTF-1)
@@ -195,8 +235,8 @@ initifprop(void)
 		}
 
 		ifprops[i].type       = '?';	// type unknown
-		ifprops[i].fullduplex = 0;
 		ifprops[i].speed      = 0;
+		ifprops[i].fullduplex = 0;
 
 		if (++i >= MAXINTF-1)
 			break;
