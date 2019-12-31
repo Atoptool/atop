@@ -1563,13 +1563,12 @@ swapline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 }
 
 /*
-** swapping statistics
+** PSI statistics
 */
 static void
 psihead(int osvers, int osrel, int ossub)
 {
-	printf("cs_10_60_300   ms_10_60_300 mf_10_60_300   "
-	       "is_10_60_300 if_10_60_300");
+	printf("cpusome    memsome  memfull    iosome  iofull");
 }
 
 static int
@@ -1578,25 +1577,52 @@ psiline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
+	// calculate pressure percentages for entire interval
+	unsigned int	csperc  = ss->psi.cpusome.total/(deltatic*10000/hz);
+	unsigned int	msperc  = ss->psi.memsome.total/(deltatic*10000/hz);
+	unsigned int	mfperc  = ss->psi.memfull.total/(deltatic*10000/hz);
+	unsigned int	isperc  = ss->psi.iosome.total /(deltatic*10000/hz);
+	unsigned int	ifperc  = ss->psi.iofull.total /(deltatic*10000/hz);
+	unsigned int	badness = 0;
+
 	if (!ss->psi.present)
 	{
-		printf("no PSI stats available for this system .....\n");
-		return 0;
+		printf("no PSI stats available for this interval...\n");
+		return 1;
 	}
 
-	printf("%3.0f%%%3.0f%%%3.0f%%   %3.0f%%%3.0f%%%3.0f%% "
-	       "%3.0f%%%3.0f%%%3.0f%%   %3.0f%%%3.0f%%%3.0f%% "
-	       "%3.0f%%%3.0f%%%3.0f%%\n",
-		ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
-		ss->psi.cpusome.avg300,
-		ss->psi.memsome.avg10, ss->psi.memsome.avg60,
-		ss->psi.memsome.avg300,
-		ss->psi.memfull.avg10, ss->psi.memfull.avg60,
-		ss->psi.memfull.avg300,
-		ss->psi.iosome.avg10, ss->psi.iosome.avg60,
-		ss->psi.iosome.avg300,
-		ss->psi.iofull.avg10, ss->psi.iofull.avg60,
-		ss->psi.iofull.avg300);
+	// correct percentages if needed
+	if (csperc > 100)
+		csperc = 100;
+
+	if (msperc > 100)
+		msperc = 100;
+
+	if (mfperc > 100)
+		mfperc = 100;
+
+	if (isperc > 100)
+		isperc = 100;
+
+	if (ifperc > 100)
+		ifperc = 100;
+
+	// consider a 'some' percentage > 0 as almost critical
+	// (I/O full tends to increase rapidly as well)
+	if (csperc || msperc || isperc || ifperc)
+		badness = 80;
+
+	// consider a memory 'full' percentage > 0 as critical
+	if (mfperc)
+		badness = 100;
+
+	// show results
+	preprint(badness);
+
+	printf("   %3u%%       %3u%%     %3u%%      %3u%%    %3u%%",
+		csperc, msperc, mfperc, isperc, ifperc);
+
+	postprint(badness);
 
 	return 1;
 }

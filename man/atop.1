@@ -1215,13 +1215,19 @@ are shown.
 .B PSI
 Pressure Stall Information.
 .br
-This line contains three percentages per category:
-average pressure percentage over the last 10, 60 and 300 seconds
-(separated by slashes).
+This line contains percentages about resource pressure related to CPU,
+memory and I/O. Certain percentages refer to 'some' meaning that some
+processes/threads were delayed due to resource overload. Other
+percentages refer to 'full' meaning a loss of overall throughput
+due to resource overload.
 .br
-The categories are: CPU for 'some' (`cs'),
-memory for 'some' (`ms'), memory for 'full' (`mf'),
-I/O for 'some' (`is'), and I/O for 'full' (`if').
+The values `cpusome', `memsome', `memfull', `iosome' and `iofull'
+show the pressure percentage during the entire interval.
+.br
+The values `cs' (cpu some), `ms' (memory some), `mf' (memory full),
+`is' (I/O some) and `if' (I/O full) each show
+three percentages separated by slashes:
+pressure percentage over the last 10, 60 and 300 seconds.
 .PP
 .TP 5
 .B LVM/MDD/DSK

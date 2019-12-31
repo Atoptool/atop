@@ -410,6 +410,11 @@ sys_printdef *pagsyspdefs[] = {
         0
 };
 sys_printdef *psisyspdefs[] = {
+	&syspdef_PSICPUSTOT,
+	&syspdef_PSIMEMSTOT,
+	&syspdef_PSIMEMFTOT,
+	&syspdef_PSIIOSTOT,
+	&syspdef_PSIIOFTOT,
 	&syspdef_PSICPUS,
 	&syspdef_PSIMEMS,
 	&syspdef_PSIMEMF,
@@ -1066,13 +1071,16 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (psiline[0].f == 0)
                 {
                     make_sys_prints(psiline, MAXITEMS,
-	                "PSICPUS:3 "
-	                "PSIMEMS:3 "
+	                "PSICPUSTOT:7 "
+	                "PSIMEMSTOT:7 "
+	                "PSIMEMFTOT:8 "
+	                "PSIIOSTOT:7 "
+	                "PSIIOFTOT:8 "
+	                "PSICPUS:6 "
+	                "PSIMEMS:5 "
 	                "PSIMEMF:3 "
-	                "PSIIOS:3 "
-	                "PSIIOF:3 "
-	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
+	                "PSIIOS:4 "
+	                "PSIIOF:2 "
 	                "BLANKBOX:0 ", psisyspdefs, "builtin psiline");
                 }
                 if (contline[0].f == 0)
