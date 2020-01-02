@@ -33,7 +33,6 @@ VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 all: 		atop atopsar atopacctd atopconvert
 
 atop:		atop.o    $(ALLMODS) Makefile
-		$(CC) -c version.c
 		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt $(LDFLAGS)
 
 atopsar:	atop
@@ -44,9 +43,6 @@ atopacctd:	atopacctd.o netlink.o
 
 atopconvert:	atopconvert.o
 		$(CC) atopconvert.o -o atopconvert -lz $(LDFLAGS)
-
-netlink.o:	netlink.c
-		$(CC) -I. -Wall -c netlink.c
 
 clean:
 		rm -f *.o atop atopacctd atopconvert
