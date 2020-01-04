@@ -68,8 +68,6 @@
 **
 */
 
-static const char rcsid[] = "XXXXXX";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
