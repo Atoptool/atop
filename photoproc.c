@@ -136,8 +136,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: photoproc.c,v 1.33 2010/04/23 12:19:35 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <dirent.h>
