@@ -156,6 +156,7 @@ static const char rcsid[] = "$Id: photosyst.c,v 1.38 2010/11/19 07:40:40 gerlof 
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <regex.h>
 #include <sys/stat.h>
 #include <sys/times.h>
@@ -2116,6 +2117,7 @@ getperfevents(struct cpustat *cs)
 {
 	static int	firstcall = 1, cpualloced, *fdi, *fdc;
 	int		i;
+	int 		liResult;
 
 	if (!enable_perfevents())
 		return;
@@ -2202,11 +2204,29 @@ getperfevents(struct cpustat *cs)
         {
 		if (*(fdi+i) != -1)
 		{
-                	read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
+                	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
                         cs->all.instr += cs->cpu[i].instr;
+			if( liResult < 0 )
+			{
+				char lcMessage[ 64 ];
+				memset( lcMessage, 0, sizeof( lcMessage ) );
+				snprintf( lcMessage, sizeof( lcMessage ) - 1,
+				          "%s:%d - Error %d reading instr counters\n",
+				           __FILE__, __LINE__, errno );
+				fprintf( stderr, "%s", lcMessage );
+			}
 
-                	read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
+                	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
                         cs->all.cycle += cs->cpu[i].cycle;
+			if( liResult < 0 )
+			{
+				char lcMessage[ 64 ];
+				memset( lcMessage, 0, sizeof( lcMessage ) );
+				snprintf( lcMessage, sizeof( lcMessage ) - 1,
+				          "%s:%d - Error %d reading cycle counters\n",
+				           __FILE__, __LINE__, errno );
+				fprintf( stderr, "%s", lcMessage );
+			}
 		}
         }
 }
