@@ -34,7 +34,7 @@ all: 		atop atopsar atopacctd atopconvert
 
 atop:		atop.o    $(ALLMODS) Makefile
 		$(CC) -c version.c
-		$(CC) atop.o $(ALLMODS) -o atop -lncurses -lz -lm -lrt $(LDFLAGS)
+		$(CC) atop.o $(ALLMODS) -o atop -lncursesw -lz -lm -lrt $(LDFLAGS)
 
 atopsar:	atop
 		ln -sf atop atopsar

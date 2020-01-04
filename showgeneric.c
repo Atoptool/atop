@@ -274,6 +274,7 @@ static const char rcsid[] = "$Id: showgeneric.c,v 1.71 2010/10/25 19:08:32 gerlo
 #include <pwd.h>
 #include <grp.h>
 #include <regex.h>
+#include <locale.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -2827,6 +2828,7 @@ generic_init(void)
 		/*
 		** initialize screen-handling via curses
 		*/
+		setlocale(LC_ALL, "");
 		initscr();
 		cbreak();
 		noecho();
