@@ -13,6 +13,8 @@
 #include <linux/genetlink.h>
 #include <linux/taskstats.h>
 
+#include "netlink.h"
+
 /*
 ** generic macro's
 */

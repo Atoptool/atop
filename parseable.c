@@ -82,30 +82,6 @@
 #include "photoproc.h"
 #include "parseable.h"
 
-void 	print_CPU();
-void 	print_cpu();
-void 	print_CPL();
-void 	print_GPU();
-void 	print_MEM();
-void 	print_SWP();
-void 	print_PAG();
-void 	print_PSI();
-void 	print_LVM();
-void 	print_MDD();
-void 	print_DSK();
-void 	print_NFM();
-void 	print_NFC();
-void 	print_NFS();
-void 	print_NET();
-void 	print_IFB();
-
-void 	print_PRG();
-void 	print_PRC();
-void 	print_PRM();
-void 	print_PRD();
-void 	print_PRN();
-void 	print_PRE();
-
 /*
 ** table with possible labels and the corresponding
 ** print-function for parseable output

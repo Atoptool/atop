@@ -294,6 +294,7 @@
 #include "photoproc.h"
 #include "photosyst.h"
 #include "showgeneric.h"
+#include "showlinux.h"
 #include "parseable.h"
 #include "gpucom.h"
 
@@ -348,48 +349,9 @@ static char		rawwriteflag;
 */
 static void		readrc(char *, int);
 
-void do_flags(char *, char *);
 void do_interval(char *, char *);
 void do_linelength(char *, char *);
-void do_username(char *, char *);
-void do_procname(char *, char *);
-void do_maxcpu(char *, char *);
-void do_maxgpu(char *, char *);
-void do_maxdisk(char *, char *);
-void do_maxmdd(char *, char *);
-void do_maxlvm(char *, char *);
-void do_maxintf(char *, char *);
-void do_maxifb(char *, char *);
-void do_maxnfsm(char *, char *);
-void do_maxcont(char *, char *);
-void do_colinfo(char *, char *);
-void do_colalmost(char *, char *);
-void do_colcrit(char *, char *);
-void do_colthread(char *, char *);
-void do_ownsysprcline(char *, char *);
-void do_ownallcpuline(char *, char *);
-void do_ownindivcpuline(char *, char *);
-void do_owncplline(char *, char *);
-void do_ownmemline(char *, char *);
-void do_ownswpline(char *, char *);
-void do_ownpagline(char *, char *);
-void do_owndskline(char *, char *);
-void do_ownnettransportline(char *, char *);
-void do_ownnetnetline(char *, char *);
-void do_ownnetinterfaceline(char *, char *);
-void do_owninfinibandline(char *, char *);
-void do_ownprocline(char *, char *);
-void do_cpucritperc(char *, char *);
-void do_gpucritperc(char *, char *);
-void do_memcritperc(char *, char *);
-void do_swpcritperc(char *, char *);
-void do_dskcritperc(char *, char *);
-void do_netcritperc(char *, char *);
-void do_swoutcritsec(char *, char *);
-void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
-void do_pacctdir(char *, char *);
-void do_perfevents(char *, char *);
 
 static struct {
 	char	*tag;
@@ -716,7 +678,6 @@ engine(void)
 {
 	struct sigaction 	sigact;
 	static time_t		timelimit;
-	void			getusr1(int), getusr2(int);
 
 	/*
 	** reserve space for system-level statistics
@@ -1110,7 +1071,6 @@ getusr2(int sig)
 /*
 ** functions to handle a particular tag in the .atoprc file
 */
-extern int get_posval(char *name, char *val);
 
 void
 do_interval(char *name, char *val)

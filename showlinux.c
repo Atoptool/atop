@@ -792,7 +792,7 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
  *                   dependent of dynamic values 
  */
 void 
-init_proc_prints()
+init_proc_prints(void)
 {
 	int 	i, numdigits = 5;
 	char	linebuf[64];

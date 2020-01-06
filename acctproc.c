@@ -150,7 +150,7 @@ static	char	*pacctdir = PACCTDIR;
 
 static count_t 	acctexp (comp_t  ct);
 static int	acctvers(int);
-static void	acctrestarttrial();
+static void	acctrestarttrial(void);
 static void	switchshadow(void);
 
 struct pacctadm {
@@ -915,7 +915,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 ** that is currently using the accounting file
 */
 static void
-acctrestarttrial()
+acctrestarttrial( void )
 {
 	struct stat 	statacc;
 	int		sematopid;

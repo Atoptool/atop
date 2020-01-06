@@ -61,6 +61,7 @@
 #include "version.h"
 #include "versdate.h"
 #include "atopacctd.h"
+#include "netlink.h"
 
 #define	RETRYCNT	10	// # retries to read account record
 #define	RETRYMS		25	// timeout (millisec) to read account record
@@ -110,10 +111,6 @@ static void	gcshadows(unsigned long *, unsigned long);
 static void	setcurrent(long);
 static int	acctsize(struct acct *);
 static void	cleanup(int);
-
-
-int		netlink_open(void);		// from netlink.c
-int		netlink_recv(int, int);		// from netlink.c
 
 
 int

@@ -70,6 +70,14 @@
 #include "prev/photosyst_25.h"
 #include "prev/photoproc_25.h"
 
+// Prototypes to conversion functions
+void justcopy(void *old, void *new, count_t oldsize, count_t newsize);
+void scpu_to_21(void *old, void *new, count_t oldsize, count_t newsize);
+void sdsk_to_21(void *old, void *new, count_t oldsize, count_t newsize);
+void sint_to_22(void *old, void *new, count_t oldsize, count_t newsize);
+void tgen_to_21(void *old, void *new, count_t oldsize, count_t newsize);
+void tmem_to_21(void *old, void *new, count_t oldsize, count_t newsize);
+void tgen_to_22(void *old, void *new, count_t oldsize, count_t newsize);
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions

@@ -1,6 +1,8 @@
 /* No manual changes in this file */
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include "atop.h"
 #include "version.h"
 #include "versdate.h"
 

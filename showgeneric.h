@@ -152,3 +152,21 @@ int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
 void	priphead(int, int, char *, char *, char);
+
+void do_username(char *name, char *val);
+void do_procname(char *name, char *val);
+void do_maxcpu(char *name, char *val);
+void do_maxgpu(char *name, char *val);
+void do_maxdisk(char *name, char *val);
+void do_maxmdd(char *name, char *val);
+void do_maxlvm(char *name, char *val);
+void do_maxintf(char *name, char *val);
+void do_maxifb(char *name, char *val);
+void do_maxnfsm(char *name, char *val);
+void do_maxcont(char *name, char *val);
+void do_colinfo(char *name, char *val);
+void do_colalmost(char *name, char *val);
+void do_colcrit(char *name, char *val);
+void do_colthread(char *name, char *val);
+void do_flags(char *name, char *val);
+

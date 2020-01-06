@@ -369,4 +369,7 @@ struct	sstat {
 void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
+unsigned long long getbootlinux(long hertz);
+void	do_perfevents(char *, char *);
+
 #endif

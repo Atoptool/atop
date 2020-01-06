@@ -191,3 +191,6 @@ unsigned int	netatop_exitstore(void);
 void		netatop_exiterase(void);
 void		netatop_exithash(char);
 void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);
+void		getusr1(int sig);
+void		getusr2(int sig);
+void		do_pacctdir(char *, char *);

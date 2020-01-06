@@ -399,3 +399,33 @@ extern char *procprt_TCPSASZ_e(struct tstat *, int, int);
 extern char *procprt_TCPRASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPSASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPRASZ_e(struct tstat *, int, int);
+
+void init_proc_prints(void);
+void make_sys_prints(sys_printpair *ar, int maxn, const char *pairs, 
+                sys_printdef *permissables[], const char *linename);
+void make_proc_prints(proc_printpair *ar, int maxn, const char *pairs, 
+const char *linename);
+int get_posval(char *name, char *val);
+int get_perc(char *name, char *val);
+void do_cpucritperc(char *, char *);
+void do_gpucritperc(char *, char *);
+void do_memcritperc(char *, char *);
+void do_swpcritperc(char *, char *);
+void do_dskcritperc(char *, char *);
+void do_netcritperc(char *, char *);
+void do_swoutcritsec(char *, char *);
+void do_almostcrit(char *, char *);
+void do_ownsysprcline(char *, char *);
+void do_ownallcpuline(char *, char *);
+void do_ownindivcpuline(char *, char *);
+void do_owncplline(char *, char *);
+void do_ownmemline(char *, char *);
+void do_ownswpline(char *, char *);
+void do_ownpagline(char *, char *);
+void do_owndskline(char *, char *);
+void do_ownnettransportline(char *, char *);
+void do_ownnetnetline(char *, char *);
+void do_ownnetinterfaceline(char *, char *);
+void do_owninfinibandline(char *, char *);
+void do_ownprocline(char *, char *);
+void do_owngpuline(char *, char *);
