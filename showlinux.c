@@ -261,8 +261,6 @@
 **
 */
 
-static const char rcsid[] = "$Id: showlinux.c,v 1.70 2010/10/23 14:04:12 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -2288,9 +2286,13 @@ compcpu(const void *a, const void *b)
         register count_t bcpu = (*(struct tstat **)b)->cpu.stime +
                                 (*(struct tstat **)b)->cpu.utime;
 
-        if (acpu < bcpu) return  1;
-        if (acpu > bcpu) return -1;
-                         return compmem(a, b);
+        if (acpu < bcpu)
+                return  1;
+
+        if (acpu > bcpu)
+                return -1;
+
+        return compmem(a, b);
 }
 
 int
@@ -2312,9 +2314,13 @@ compdsk(const void *a, const void *b)
 	else
 		bdsk = tb->dsk.rio;
 
-        if (adsk < bdsk) return  1;
-        if (adsk > bdsk) return -1;
-                         return compcpu(a, b);
+        if (adsk < bdsk)
+                return  1;
+
+        if (adsk > bdsk)
+                return -1;
+
+        return compcpu(a, b);
 }
 
 int
@@ -2323,9 +2329,13 @@ compmem(const void *a, const void *b)
         register count_t amem = (*(struct tstat **)a)->mem.rmem;
         register count_t bmem = (*(struct tstat **)b)->mem.rmem;
 
-        if (amem < bmem) return  1;
-        if (amem > bmem) return -1;
-                         return  0;
+        if (amem < bmem)
+                return  1;
+
+        if (amem > bmem)
+                return -1;
+
+        return  0;
 }
 
 int
@@ -2346,15 +2356,23 @@ compgpu(const void *a, const void *b)
 
 	if (abusy == -1 || bbusy == -1)
 	{
-        	if (amem < bmem)	return  1;
-	        if (amem > bmem) 	return -1;
-                         		return  0;
+                if (amem < bmem)
+                        return  1;
+
+                if (amem > bmem)
+                        return -1;
+
+                return  0;
 	}
 	else
 	{
-		if (abusy < bbusy)	return  1;
-		if (abusy > bbusy)	return -1;
-       		                  	return  0;
+                if (abusy < bbusy)
+                        return  1;
+
+                if (abusy > bbusy)
+                        return -1;
+
+       		return  0;
 	}
 }
 
@@ -2370,9 +2388,13 @@ compnet(const void *a, const void *b)
                                 (*(struct tstat **)b)->net.udpssz +
                                 (*(struct tstat **)b)->net.udprsz  ;
 
-        if (anet < bnet) return  1;
-        if (anet > bnet) return -1;
-                         return compcpu(a, b);
+        if (anet < bnet)
+                return  1;
+
+        if (anet > bnet)
+                return -1;
+
+	return compcpu(a, b);
 }
 
 int
@@ -2381,9 +2403,13 @@ compusr(const void *a, const void *b)
         register int uida = (*(struct tstat **)a)->gen.ruid;
         register int uidb = (*(struct tstat **)b)->gen.ruid;
 
-        if (uida > uidb) return  1;
-        if (uida < uidb) return -1;
-                         return  0;
+        if (uida > uidb)
+                return  1;
+
+        if (uida < uidb)
+                return -1;
+
+        return  0;
 }
 
 int
@@ -2415,9 +2441,13 @@ cpucompar(const void *a, const void *b)
         register count_t bidle = ((struct percpu *)b)->itime +
                                  ((struct percpu *)b)->wtime;
 
-        if (aidle < bidle) return -1;
-        if (aidle > bidle) return  1;
-                           return  0;
+        if (aidle < bidle)
+                return -1;
+
+        if (aidle > bidle)
+                return  1;
+
+	return  0;
 }
 
 int
@@ -2430,15 +2460,23 @@ gpucompar(const void *a, const void *b)
 
 	if (agpuperc == -1 || bgpuperc == -1)
 	{
-        	if (amemuse < bmemuse)	return  1;
-        	if (amemuse > bmemuse)	return -1;
-                      			return  0;
+                if (amemuse < bmemuse)
+                        return  1;
+
+                if (amemuse > bmemuse)
+                        return -1;
+
+		return  0;
 	}
 	else
 	{
-        	if (agpuperc < bgpuperc)	return  1;
-        	if (agpuperc > bgpuperc)	return -1;
-                      				return  0;
+                if (agpuperc < bgpuperc)
+                        return  1;
+
+                if (agpuperc > bgpuperc)
+                        return -1;
+
+		return  0;
 	}
 }
 
@@ -2448,9 +2486,13 @@ diskcompar(const void *a, const void *b)
         register count_t amsio = ((struct perdsk *)a)->io_ms;
         register count_t bmsio = ((struct perdsk *)b)->io_ms;
 
-        if (amsio < bmsio) return  1;
-        if (amsio > bmsio) return -1;
-                           return  0;
+        if (amsio < bmsio)
+                return  1;
+
+        if (amsio > bmsio)
+                return -1;
+
+        return  0;
 }
 
 int
@@ -2496,16 +2538,24 @@ intfcompar(const void *a, const void *b)
         */
         if (aspeed && bspeed)
         {
-                if (afactor < bfactor)  return  1;
-                if (afactor > bfactor)  return -1;
-                                        return  0;
+                if (afactor < bfactor)
+                        return  1;
+
+                if (afactor > bfactor)
+                        return -1;
+
+                return  0;
         }
 
         if (!aspeed && !bspeed)
         {
-                if ((arbyte + asbyte) < (brbyte + bsbyte))      return  1;
-                if ((arbyte + asbyte) > (brbyte + bsbyte))      return -1;
-                                                                return  0;
+                if ((arbyte + asbyte) < (brbyte + bsbyte))
+                        return  1;
+
+                if ((arbyte + asbyte) > (brbyte + bsbyte))
+                        return -1;
+
+                return  0;
         }
 
         if (aspeed)
@@ -2523,9 +2573,13 @@ ifbcompar(const void *a, const void *b)
         count_t btransfer  = ((struct perifb *)b)->rcvb +
                              ((struct perifb *)b)->sndb;
 
-	if (atransfer < btransfer)	return  1;
-	if (atransfer > btransfer)	return -1;
-					return  0;
+	if (atransfer < btransfer)
+                return  1;
+
+	if (atransfer > btransfer)
+                return -1;
+
+	return  0;
 }
 
 
@@ -2544,9 +2598,13 @@ nfsmcompar(const void *a, const void *b)
 	                         nb->bytestotread + nb->bytestotwrite +
                                  nb->pagesmread   + nb->pagesmwrite;
 
-        if (aused < bused) return  1;
-        if (aused > bused) return -1;
-                           return  0;
+        if (aused < bused)
+                return  1;
+
+        if (aused > bused)
+                return -1;
+
+        return  0;
 }
 
 int
@@ -2558,9 +2616,13 @@ contcompar(const void *a, const void *b)
         register count_t aused = ca->system + ca->user + ca->nice;
         register count_t bused = cb->system + cb->user + cb->nice;
 
-        if (aused < bused) return  1;
-        if (aused > bused) return -1;
-                           return  0;
+        if (aused < bused) 
+                return  1;
+
+        if (aused > bused)
+                return -1;
+
+        return  0;
 }
 
 /*

@@ -29,8 +29,6 @@
 ** --------------------------------------------------------------------------
 */
 
-static const char rcsid[] = "$Id: atopsar.c,v 1.28 2010/11/26 06:19:43 gerlof Exp $";
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/mman.h>
@@ -1716,7 +1714,7 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 			pn = dp->name;
 
 		printf("%-14s %3.0lf%% %6.1lf %7.1lf %7.1lf %7.1lf "
-		       "%5.1lf %6.2lf ms",
+		       "%5.1lf %9.5lf ms",
 		    	pn,
 			mstot ? (double)dp->io_ms  *  100.0 / mstot   : 0.0,
 			mstot ? (double)dp->nread  * 1000.0 / mstot   : 0.0,
