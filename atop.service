@@ -3,7 +3,7 @@ Description=Atop advanced performance monitor
 Documentation=man:atop(1)
 
 [Service]
-Environment=LOGOPTS="-R"
+Environment=LOGOPTS="-a"
 Environment=LOGINTERVAL=600
 Environment=LOGGENERATIONS=28
 Environment=LOGPATH=/var/log/atop
