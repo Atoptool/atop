@@ -1547,6 +1547,10 @@ during the interval. When the comma-separated list exceeds
 the width of the column, a hexadecimal value is shown.
 .PP
 .TP 9
+.B LOCKSZ
+The virtual amount of memory being locked (i.e. non-swappable) by this process (or user).
+.PP
+.TP 9
 .B MAJFLT
 The number of page faults issued by this process that have been solved
 by creating/loading the requested memory page.
@@ -2236,8 +2240,9 @@ virtual library exec size (Kbytes),
 virtual data size (Kbytes),
 virtual stack size (Kbytes),
 swap space used (Kbytes),
-TGID (group number of related tasks/threads), is_process (y/n) and
-proportional set size (Kbytes) if in 'R' option is specified.
+TGID (group number of related tasks/threads), is_process (y/n),
+proportional set size (Kbytes) if in 'R' option is specified and
+virtually locked memory space (Kbytes).
 .TP 9
 .B PRD
 For every process one line is shown.

@@ -653,6 +653,12 @@ procstatus(struct tstat *curtask)
 			continue;
 		}
 
+		if (memcmp(line, "VmLck:", 6)==0)
+		{
+			sscanf(line, "VmLck: %lld", &(curtask->mem.vlock));
+			continue;
+		}
+
 		if (memcmp(line, "SigQ:", 5)==0)
 			break;
 	}

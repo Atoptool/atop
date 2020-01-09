@@ -103,7 +103,8 @@ struct tstat {
 		count_t vstack;		/* virtmem stack    (Kb)     	*/
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
-		count_t	cfuture[4];	/* reserved for future use	*/
+		count_t	vlock;		/* virtual locked   (Kb) 	*/
+		count_t	cfuture[3];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/

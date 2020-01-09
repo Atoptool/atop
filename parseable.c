@@ -732,7 +732,7 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d (%s) %c %u %lld %lld %lld %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %d %c %lld\n",
+		       "%lld %lld %lld %lld %lld %d %c %lld %lld\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
@@ -752,7 +752,8 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->gen.tgid,
 				ps->gen.isproc ? 'y':'n',
 				ps->mem.pmem == (unsigned long long)-1LL ?
-								0:ps->mem.pmem);
+								0:ps->mem.pmem,
+				ps->mem.vlock);
 	}
 }
 

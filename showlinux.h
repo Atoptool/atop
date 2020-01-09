@@ -319,6 +319,7 @@ extern proc_printdef procprt_VSLIBS;
 extern proc_printdef procprt_VDATA;
 extern proc_printdef procprt_VSTACK;
 extern proc_printdef procprt_SWAPSZ;
+extern proc_printdef procprt_LOCKSZ;
 extern proc_printdef procprt_CMD;
 extern proc_printdef procprt_RUID;
 extern proc_printdef procprt_EUID;

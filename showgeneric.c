@@ -2412,6 +2412,7 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 		curstat->mem.vdata  += curproc->mem.vdata;
 		curstat->mem.vstack += curproc->mem.vstack;
 		curstat->mem.vswap  += curproc->mem.vswap;
+		curstat->mem.vlock  += curproc->mem.vlock;
 		curstat->mem.rgrow  += curproc->mem.rgrow;
 		curstat->mem.vgrow  += curproc->mem.vgrow;
 
