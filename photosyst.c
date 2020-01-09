@@ -1587,7 +1587,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 		DIR		*dirp;
 		struct dirent	*dentry;
 		struct stat	statbuf;
-		char		path[64];
+		char		path[ PATH_MAX ];
 
 		if ( (dirp = opendir(MAPDIR)) )
 		{
@@ -1826,7 +1826,7 @@ get_infiniband(struct ifbstat *si)
 
 	if (firstcall)
 	{
-		char		path[128], *p;
+		char		path[ PATH_MAX ], *p;
 		struct stat	statbuf;
 		struct dirent	*contdent, *portdent;
 		DIR		*contp, *portp;
@@ -1942,7 +1942,7 @@ static void
 ibprep(struct ibcachent *ibc)
 {
 	FILE	*fp;
-	char	path[128], linebuf[64], speedunit;
+	char	path[ PATH_MAX ], linebuf[64], speedunit;
 
 	// determine port rate and number of lanes
 	snprintf(path, sizeof path, "%s/ports/%d/rate", ibc->ibha, ibc->port); 
