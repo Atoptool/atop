@@ -1130,11 +1130,11 @@ postprint(unsigned int badness)
 }
 
 /*
-** function the handle the default flags for atopsar as
-** read from the file ~/.atoprc
+** function to handle the default flags for atopsar as
+** read from the files ~/.atoprc and /etc/atoprc
 */
 void
-do_atopsarflags(char *val)
+do_atopsarflags(char *name, char *val)
 {
 	int     i, j;
 
