@@ -2204,26 +2204,26 @@ getperfevents(struct cpustat *cs)
 		{
                 	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
                         cs->all.instr += cs->cpu[i].instr;
-			if( liResult < 0 )
+			if(liResult < 0)
 			{
-				char lcMessage[ 64 ];
-				memset( lcMessage, 0, sizeof( lcMessage ) );
-				snprintf( lcMessage, sizeof( lcMessage ) - 1,
+				char lcMessage[64];
+
+				snprintf(lcMessage, sizeof(lcMessage) - 1,
 				          "%s:%d - Error %d reading instr counters\n",
-				           __FILE__, __LINE__, errno );
-				fprintf( stderr, "%s", lcMessage );
+				           __FILE__, __LINE__, errno);
+				fprintf(stderr, "%s", lcMessage);
 			}
 
                 	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
                         cs->all.cycle += cs->cpu[i].cycle;
-			if( liResult < 0 )
+			if(liResult < 0)
 			{
-				char lcMessage[ 64 ];
-				memset( lcMessage, 0, sizeof( lcMessage ) );
-				snprintf( lcMessage, sizeof( lcMessage ) - 1,
+				char lcMessage[64];
+
+				snprintf(lcMessage, sizeof(lcMessage) - 1,
 				          "%s:%d - Error %d reading cycle counters\n",
 				           __FILE__, __LINE__, errno );
-				fprintf( stderr, "%s", lcMessage );
+				fprintf(stderr, "%s", lcMessage);
 			}
 		}
         }

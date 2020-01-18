@@ -636,14 +636,10 @@ regainrootprivs(void)
 {
 	int liResult;
 
+	// this will fail for non-privileged processes
 	liResult = seteuid(0);
-	if( liResult != 0 )
+
+	if (liResult != 0)
 	{
-		char lcMessage[ 64 ];
-		memset( lcMessage, 0, sizeof( lcMessage ) );
-		snprintf( lcMessage, sizeof( lcMessage ) - 1,
-		          "%s:%d - Error %d setting EUID\n", __FILE__, __LINE__,
-		          errno );
-		fprintf( stderr, "%s", lcMessage );
 	}
 }

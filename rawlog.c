@@ -662,16 +662,15 @@ rawread(void)
 						/* just read READAHEADSIZE bytes into page cache */
 						char *buf = malloc(READAHEADSIZE);
 						ptrverify(buf, "Malloc failed for readahead");
-						liResult = pread(rawfd, buf, READAHEADSIZE,
-							next_pos & ~(READAHEADSIZE - 1));
-						if( liResult != 0 )
+						liResult = pread(rawfd, buf, READAHEADSIZE, next_pos & ~(READAHEADSIZE - 1));
+						if(liResult != 0)
 						{
-							char lcMessage[ 64 ];
-							memset( lcMessage, 0, sizeof( lcMessage ) );
-							snprintf( lcMessage, sizeof( lcMessage ) - 1,
+							char lcMessage[64];
+
+							snprintf(lcMessage, sizeof(lcMessage) - 1,
 								  "%s:%d - Error %d in readahead\n",
-							          __FILE__, __LINE__, errno );
-							fprintf( stderr, "%s", lcMessage );
+							          __FILE__, __LINE__, errno);
+							fprintf(stderr, "%s", lcMessage);
 						}
 						free(buf);
 					}

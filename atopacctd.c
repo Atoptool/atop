@@ -308,12 +308,12 @@ main(int argc, char *argv[])
 	liResult = chdir("/tmp");			// go to a safe place
 	if( liResult != 0 )
 	{
-		char lcMessage[ 64 ];
-		memset( lcMessage, 0, sizeof( lcMessage ) );
-		snprintf( lcMessage, sizeof( lcMessage ) - 1,
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
 		          "%s:%d - Error %d changing to tmp dir\n", 
 		          __FILE__, __LINE__, errno );
-		fprintf( stderr, "%s", lcMessage );
+		fprintf(stderr, "%s", lcMessage);
 	}
 
 	/*
@@ -377,6 +377,7 @@ main(int argc, char *argv[])
 	/*
 	** raise priority (be sure the nice value becomes -20,
 	** independent of the current nice value)
+	** this may fail without notice for non-privileged processes
 	*/
 	liResult = nice(-39);
 
@@ -1006,24 +1007,24 @@ setcurrent(long curshadow)
 	liResult = ftruncate(cfd, 0);
 	if( liResult != 0 )
 	{
-		char lcMessage[ 64 ];
-		memset( lcMessage, 0, sizeof( lcMessage ) );
-		snprintf( lcMessage, sizeof( lcMessage ) - 1,
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
 		          "%s:%d - Error %d ftruncate\n\n", __FILE__, __LINE__,
 		          errno );
-		fprintf( stderr, "%s", lcMessage );
+		fprintf(stderr, "%s", lcMessage);
 	}
 
 	(void) lseek(cfd, 0, SEEK_SET);
 	liResult = write(cfd, currentdata, len);
 	if( liResult != 0 )
 	{
-		char lcMessage[ 64 ];
-		memset( lcMessage, 0, sizeof( lcMessage ) );
-		snprintf( lcMessage, sizeof( lcMessage ) - 1,
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
 		          "%s:%d - Error %d writing\n\n", __FILE__, __LINE__,
 		          errno );
-		fprintf( stderr, "%s", lcMessage );
+		fprintf(stderr, "%s", lcMessage);
 	}
 }
 
