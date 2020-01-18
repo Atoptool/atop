@@ -1602,14 +1602,14 @@ sys_printdef syspdef_PSIIOF = {"PSIIOF", sysprt_PSIIOF};
 void
 psiformattot(struct psi *p, char *head, void *q, int *color, char *buf, int bufsize)
 {
-	static char	formats[] = "%-7.7s %3.0f%%";
+	static char	formats[] = "%-7.7s %3lu%%";
         extraparam      *as=q;
-	double 		perc = p->total/(as->nsecs*10000);
+	unsigned long 	perc = p->total/(as->nsecs*10000);
 
-	if (perc > 100.0)
-		perc = 100.0;
+	if (perc > 100)
+		perc = 100;
 
-	if (perc >= 1.0)
+	if (perc >= 1)
 		*color = COLORALMOST;
 
 	snprintf(buf, bufsize, formats, head, perc);
