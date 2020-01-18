@@ -111,6 +111,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -633,5 +634,16 @@ droprootprivs(void)
 void
 regainrootprivs(void)
 {
-	seteuid(0);
+	int liResult;
+
+	liResult = seteuid(0);
+	if( liResult != 0 )
+	{
+		char lcMessage[ 64 ];
+		memset( lcMessage, 0, sizeof( lcMessage ) );
+		snprintf( lcMessage, sizeof( lcMessage ) - 1,
+		          "%s:%d - Error %d setting EUID\n", __FILE__, __LINE__,
+		          errno );
+		fprintf( stderr, "%s", lcMessage );
+	}
 }
