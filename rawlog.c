@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <ctype.h>
+#include <string.h>
 #include <sys/utsname.h>
 #include <string.h>
 #include <regex.h>
@@ -657,11 +658,20 @@ rawread(void)
 					next_pos = lseek(rawfd, rr.scomplen+rr.pcomplen, SEEK_CUR);
 					if ((curr_pos >> READAHEADOFF) != (next_pos >> READAHEADOFF))
 					{
+						int liResult;
 						/* just read READAHEADSIZE bytes into page cache */
 						char *buf = malloc(READAHEADSIZE);
 						ptrverify(buf, "Malloc failed for readahead");
-						pread(rawfd, buf, READAHEADSIZE,
-							next_pos & ~(READAHEADSIZE - 1));
+						liResult = pread(rawfd, buf, READAHEADSIZE, next_pos & ~(READAHEADSIZE - 1));
+						if(liResult != 0)
+						{
+							char lcMessage[64];
+
+							snprintf(lcMessage, sizeof(lcMessage) - 1,
+								  "%s:%d - Error %d in readahead\n",
+							          __FILE__, __LINE__, errno);
+							fprintf(stderr, "%s", lcMessage);
+						}
 						free(buf);
 					}
 					curr_pos = next_pos;

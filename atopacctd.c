@@ -134,6 +134,7 @@ main(int argc, char *argv[])
 	time_t			gclast = time(0);
 
 	struct sigaction	sigcleanup;
+	int			liResult;
 
 	/*
 	** argument passed?
@@ -304,7 +305,16 @@ main(int argc, char *argv[])
 
 	umask(022);
 
-	(void) chdir("/tmp");			// go to a safe place
+	liResult = chdir("/tmp");			// go to a safe place
+	if( liResult != 0 )
+	{
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
+		          "%s:%d - Error %d changing to tmp dir\n", 
+		          __FILE__, __LINE__, errno );
+		fprintf(stderr, "%s", lcMessage);
+	}
 
 	/*
 	** increase semaphore to define that atopacctd is running
@@ -367,8 +377,9 @@ main(int argc, char *argv[])
 	/*
 	** raise priority (be sure the nice value becomes -20,
 	** independent of the current nice value)
+	** this may fail without notice for non-privileged processes
 	*/
-	(void) nice(-39);
+	liResult = nice(-39);
 
 	/*
  	** connect to NETLINK socket of kernel to be triggered
@@ -966,6 +977,7 @@ setcurrent(long curshadow)
 	static int	cfd = -1;
 	char		currentpath[128], currentdata[128];
 	int		len;
+	int		liResult;
 
 	/*
 	** assemble file name of currency file and open (only once)
@@ -992,9 +1004,28 @@ setcurrent(long curshadow)
 	/*
 	** wipe currency file and write new assembled string
 	*/
-	(void) ftruncate(cfd, 0);
+	liResult = ftruncate(cfd, 0);
+	if( liResult != 0 )
+	{
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
+		          "%s:%d - Error %d ftruncate\n\n", __FILE__, __LINE__,
+		          errno );
+		fprintf(stderr, "%s", lcMessage);
+	}
+
 	(void) lseek(cfd, 0, SEEK_SET);
-	(void) write(cfd, currentdata, len);
+	liResult = write(cfd, currentdata, len);
+	if( liResult != 0 )
+	{
+		char lcMessage[64];
+
+		snprintf(lcMessage, sizeof(lcMessage) - 1,
+		          "%s:%d - Error %d writing\n\n", __FILE__, __LINE__,
+		          errno );
+		fprintf(stderr, "%s", lcMessage);
+	}
 }
 
 /*

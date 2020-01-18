@@ -111,6 +111,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -633,5 +634,12 @@ droprootprivs(void)
 void
 regainrootprivs(void)
 {
-	seteuid(0);
+	int liResult;
+
+	// this will fail for non-privileged processes
+	liResult = seteuid(0);
+
+	if (liResult != 0)
+	{
+	}
 }
