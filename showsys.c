@@ -2208,9 +2208,10 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
                                		(sstat->intf.intf[as->index].speed *10);
 		}
 
-		if( busy < 0 )
+		if( busy < -99 )
 		{
-			busy = 0;
+			// when we get wrong values, show wrong values
+			busy = -99;
 		}		
 		else if( busy > 999 )
 		{
@@ -2296,16 +2297,17 @@ char *makenetspeed(count_t val, int nsecs)
                 c = 'T';
         }
 
-        if( val < 0 )
+        if(val < -999)
         {
-                val = 0;
+		// when we get wrong values, show wrong values
+                val = -999;
         }
-        else if( val > 9999 )
+        else if(val > 9999)
         {
                 val = 9999;
         }
 
-        snprintf(buf+3, sizeof( buf ) - 3, "%4lld %cbps", val, c);
+        snprintf(buf+3, sizeof(buf)-3, "%4lld %cbps", val, c);
 
         return buf;
 }
@@ -2330,7 +2332,8 @@ sysprt_NETSPEEDMAX(void *p, void *q, int badness, int *color)
 	else
 	{
 		speed /= 1000;
-		if( speed > 9999 )
+
+		if (speed > 9999)
 		{
 			speed = 9999;
 		}
@@ -2532,7 +2535,8 @@ sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color)
 	else
 	{
 		rate /= 1000;
-		if( rate > 9999 )
+
+		if (rate > 9999)
 		{
 			rate = 9999;
 		}
