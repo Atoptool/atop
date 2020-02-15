@@ -931,10 +931,7 @@ Every day at midnight
 .B atop
 is restarted to write compressed binary data to the file
 .BI /var/log/atop/atop_ YYYYMMDD
-with an interval of 10 minutes by default. The
-.B -R
-flag is passed by default to gather information about the proportional
-set size of every process.
+with an interval of 10 minutes by default.
 .br
 Furthermore all raw files are removed that are older than 28 days
 (by default).
@@ -943,9 +940,7 @@ The mentioned default values can be overruled in the file
 .B /etc/default/atop
 that might contain other values for
 .B LOGOPTS
-(by default the
-.B -R
-flag), 
+(by default without any flag),
 .B LOGINTERVAL
 (in seconds, by default 600),
 .B LOGGENERATIONS
@@ -2375,7 +2370,7 @@ The default settings are:
 .TP 8
 \
 .br
-LOGOPTS="-R"
+LOGOPTS=""
 .br
 LOGINTERVAL=600
 .br
