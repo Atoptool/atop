@@ -153,13 +153,15 @@ convdate(time_t utime, char *chardat)
 
 
 /*
-** Convert a hh:mm string into a number of seconds since 00:00
+** TODO: Convert a string in format [[YYYY]MMDD/]hh[:]mm into an epoch time value
+** TODO: When only the value hh[:]mm was given, take this time from midnight
+** Convert a string in format hh:mm number of seconds since midnight.
 **
 ** Return-value:	0 - Wrong input-format
 **			1 - Success
 */
 int
-hhmm2secs(char *itim, unsigned int *otim)
+branchtime2secs(char *itim, time_t *otim)
 {
 	register int	i;
 	int		hours, minutes;

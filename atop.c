@@ -314,7 +314,7 @@ int		linelen  = 80;
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
-unsigned int	begintime, endtime;
+time_t		begintime, endtime;
 char		flaglist[MAXFL];
 char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
@@ -551,12 +551,12 @@ main(int argc, char *argv[])
 				break;
 
                            case 'b':		/* begin time ?               */
-				if ( !hhmm2secs(optarg, &begintime) )
+				if ( !branchtime2secs(optarg, &begintime) )
 					prusage(argv[0]);
 				break;
 
                            case 'e':		/* end   time ?               */
-				if ( !hhmm2secs(optarg, &endtime) )
+				if ( !branchtime2secs(optarg, &endtime) )
 					prusage(argv[0]);
 				break;
 

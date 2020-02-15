@@ -82,7 +82,7 @@ extern char		threadview;
 extern char		calcpss;
 extern char		rawname[];
 extern char		rawreadflag;
-extern unsigned int	begintime, endtime;
+extern time_t		begintime, endtime;
 extern char		flaglist[];
 extern struct visualize vis;
 
@@ -137,7 +137,7 @@ void		generic_usage(void);
 int		atopsar(int, char *[]);
 char   		*convtime(time_t, char *);
 char   		*convdate(time_t, char *);
-int   		hhmm2secs(char *, unsigned int *);
+int   		branchtime2secs(char *, time_t *);
 int		daysecs(time_t);
 
 char   		*val2valstr(count_t, char *, int, int, int);

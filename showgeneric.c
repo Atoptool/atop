@@ -350,7 +350,7 @@ generic_samp(time_t curtime, int nsecs,
 	register int	i, curline, statline, nproc;
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
-	char		format1[16], format2[16], hhmm[16];
+	char		format1[16], format2[16], branchtime[32];
 	char		*statmsg = NULL, statbuf[80], genline[80];
 	char		 *lastsortp, curorder, autoorder;
 	char		buf[33];
@@ -1120,13 +1120,15 @@ generic_samp(time_t curtime, int nsecs,
                                 echo();
                                 move(statline, 0);
                                 clrtoeol();
-                                printw("Enter new time (format hh:mm): ");
+                                printw("Enter new time "
+				       "(format hh:mm): ");
+				// TODO:       "(format [[YYYY]MMDD/]hh:mm): ");
 
-                                hhmm[0] = '\0';
-                                scanw("%15s\n", hhmm);
+                                branchtime[0] = '\0';
+                                scanw("%31s\n", branchtime);
                                 noecho();
 
-                                if ( !hhmm2secs(hhmm, &begintime) )
+                                if ( !branchtime2secs(branchtime, &begintime) )
                                 {
                                         move(statline, 0);
                                         clrtoeol();

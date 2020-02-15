@@ -663,7 +663,7 @@ rawread(void)
 						char *buf = malloc(READAHEADSIZE);
 						ptrverify(buf, "Malloc failed for readahead");
 						liResult = pread(rawfd, buf, READAHEADSIZE, next_pos & ~(READAHEADSIZE - 1));
-						if(liResult != 0)
+						if(liResult == -1)
 						{
 							char lcMessage[64];
 

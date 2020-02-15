@@ -306,7 +306,8 @@ main(int argc, char *argv[])
 	umask(022);
 
 	liResult = chdir("/tmp");			// go to a safe place
-	if( liResult != 0 )
+
+	if(liResult != 0)
 	{
 		char lcMessage[64];
 
@@ -1005,7 +1006,8 @@ setcurrent(long curshadow)
 	** wipe currency file and write new assembled string
 	*/
 	liResult = ftruncate(cfd, 0);
-	if( liResult != 0 )
+
+	if(liResult != 0)
 	{
 		char lcMessage[64];
 
@@ -1016,8 +1018,10 @@ setcurrent(long curshadow)
 	}
 
 	(void) lseek(cfd, 0, SEEK_SET);
+
 	liResult = write(cfd, currentdata, len);
-	if( liResult != 0 )
+
+	if(liResult == -1)
 	{
 		char lcMessage[64];
 

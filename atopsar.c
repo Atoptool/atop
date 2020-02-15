@@ -154,14 +154,14 @@ atopsar(int argc, char *argv[])
 				break;
 
                            case 'b':		/* begin time ?          */
-				if ( !hhmm2secs(optarg, &begintime) )
+				if ( !branchtime2secs(optarg, &begintime) )
 					pratopsaruse(argv[0]);
 
 				saved_begintime = begintime;
 				break;
 
                            case 'e':		/* end   time ?          */
-				if ( !hhmm2secs(optarg, &endtime) )
+				if ( !branchtime2secs(optarg, &endtime) )
 					pratopsaruse(argv[0]);
 				break;
 
