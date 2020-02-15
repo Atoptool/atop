@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # atop		Startup script for the Atop process logging in background
 #
@@ -47,7 +47,7 @@ case "$1" in
 
 		while ps -p `cat $PIDFILE` > /dev/null
 		do
-			let CNT+=1
+			CNT=$((CNT + 1))
 
 			if [ $CNT -gt 5 ]
 			then

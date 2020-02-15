@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 LOGOPTS=""				# default options
 LOGINTERVAL=600				# default interval in seconds
@@ -38,7 +38,7 @@ then
 
 	while ps -p `cat "$PIDFILE"` > /dev/null
 	do
-		let CNT+=1
+		CNT=$((CNT + 1))
 
 		if [ $CNT -gt 5 ]
 		then

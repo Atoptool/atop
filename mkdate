@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Make a new versdate.h with the current date filled
 #
