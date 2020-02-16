@@ -959,9 +959,13 @@ char *
 sysprt_CPLAVG1(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
-        static char buf[15]="avg1 ";
+        static char buf[17]="avg1 ";
 
-        if (sstat->cpu.lavg1  > 999.0)
+        if (sstat->cpu.lavg1 > 999999.0)
+        {
+                sprintf(buf+5, ">999999");
+        }
+        else if (sstat->cpu.lavg1 > 999.0)
         {
                 sprintf(buf+5, "%7.0f", sstat->cpu.lavg1);
         }
@@ -980,7 +984,11 @@ sysprt_CPLAVG5(void *p, void *notused, int badness, int *color)
         struct sstat *sstat=p;
         static char buf[15]="avg5 ";
 
-        if (sstat->cpu.lavg5  > 999.0)
+        if (sstat->cpu.lavg5 > 999999.0)
+        {
+                sprintf(buf+5, ">999999");
+        }
+        else if (sstat->cpu.lavg5 > 999.0)
         {
                 sprintf(buf+5, "%7.0f", sstat->cpu.lavg5);
         }
@@ -1002,7 +1010,11 @@ sysprt_CPLAVG15(void *p, void *notused, int badness, int *color)
 	if (sstat->cpu.lavg15 > (2 * sstat->cpu.nrcpu) )
 		*color = COLORALMOST;
 
-        if (sstat->cpu.lavg15  > 999.0)
+        if (sstat->cpu.lavg15 > 99999.0)
+        {
+                sprintf(buf+6, ">99999");
+        }
+        else if (sstat->cpu.lavg15 > 999.0)
         {
                 sprintf(buf+6, "%6.0f", sstat->cpu.lavg15);
         }
