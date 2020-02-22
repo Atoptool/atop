@@ -1121,20 +1121,21 @@ generic_samp(time_t curtime, int nsecs,
                                 move(statline, 0);
                                 clrtoeol();
                                 printw("Enter new time "
-				       "(format hh:mm): ");
-				// TODO:       "(format [[YYYY]MMDD/]hh:mm): ");
+				       "(format [YYYYMMDD]hhmm): ");
 
                                 branchtime[0] = '\0';
                                 scanw("%31s\n", branchtime);
                                 noecho();
 
-                                if ( !branchtime2secs(branchtime, &begintime) )
+				begintime = cursortime;
+
+                                if ( !getbranchtime(branchtime, &begintime) )
                                 {
                                         move(statline, 0);
                                         clrtoeol();
                                         statmsg = "Wrong time format!";
                                         beep();
-                                        begintime = 0;
+					begintime = 0;
                                         break;
                                 }
 

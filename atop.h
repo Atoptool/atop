@@ -22,7 +22,7 @@
 ** See the GNU General Public License for more details.
 */
 #define	EQ		0
-#define SECSDAY		86400
+#define SECONDSINDAY	86400
 #define RAWNAMESZ	256
 
 /*
@@ -82,7 +82,7 @@ extern char		threadview;
 extern char		calcpss;
 extern char		rawname[];
 extern char		rawreadflag;
-extern time_t		begintime, endtime;
+extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];
 extern struct visualize vis;
 
@@ -137,8 +137,9 @@ void		generic_usage(void);
 int		atopsar(int, char *[]);
 char   		*convtime(time_t, char *);
 char   		*convdate(time_t, char *);
-int   		branchtime2secs(char *, time_t *);
-int		daysecs(time_t);
+int   		getbranchtime(char *, time_t *);
+time_t		normalize_epoch(time_t, long);
+
 
 char   		*val2valstr(count_t, char *, int, int, int);
 char   		*val2memstr(count_t, char *, int, int, int);

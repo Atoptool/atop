@@ -617,8 +617,22 @@ rawread(void)
 	{
 		while ( getrawrec(rawfd, &rr, rh.rawreclen) == rh.rawreclen)
 		{
-			unsigned int	secsinday = daysecs(rr.curtime);
 			unsigned int	k, l;
+
+			cursortime = rr.curtime;	// maintain current
+
+			/*
+			** normalize the begintime and endtime if the
+			** format hh:mm has been used instead of an
+			** absolute date-time string
+			** (only happens for the first record)
+			*/
+			if (begintime <= SECONDSINDAY)
+				begintime = normalize_epoch(cursortime,
+								begintime);
+
+			if (endtime && endtime <= SECONDSINDAY)
+				endtime = normalize_epoch(cursortime, endtime);
 
 			/*
 			** store the offset of the raw record in the offset list
@@ -645,7 +659,7 @@ rawread(void)
 			** check if this sample is within the time-range
 			** specified with the -b and -e flags (if any)
 			*/
-			if ( (begintime && begintime > secsinday) )
+			if ( (begintime > cursortime) )
 			{
 				lastcmd = 1;
 						
@@ -696,7 +710,7 @@ rawread(void)
 
 			begintime = 0;	// allow earlier times from now on
 
-			if ( (endtime && endtime < secsinday) )
+			if ( (endtime && endtime < cursortime) )
 			{
 				if (isregular)
 					free(offlist);
@@ -855,10 +869,9 @@ rawread(void)
 				break;
 
 			   case MSAMPBRANCH:
-				if (begintime && begintime < secsinday)
+				if (begintime < cursortime)
 				{
-					lseek(rawfd, *offlist,
-							SEEK_SET);
+					lseek(rawfd, *offlist, SEEK_SET);
 					offcur = 1;
 				}
 			}
