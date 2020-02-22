@@ -154,14 +154,14 @@ atopsar(int argc, char *argv[])
 				break;
 
                            case 'b':		/* begin time ?          */
-				if ( !branchtime2secs(optarg, &begintime) )
+				if ( !getbranchtime(optarg, &begintime) )
 					pratopsaruse(argv[0]);
 
 				saved_begintime = begintime;
 				break;
 
                            case 'e':		/* end   time ?          */
-				if ( !branchtime2secs(optarg, &endtime) )
+				if ( !getbranchtime(optarg, &endtime) )
 					pratopsaruse(argv[0]);
 				break;
 
@@ -1002,7 +1002,7 @@ pratopsaruse(char *myname)
 	int	i;
 
 	fprintf(stderr,
-		"Usage: %s [-flags] [-r file|date|y...] [-R cnt] [-b hh:mm] [-e hh:mm]\n",
+		"Usage: %s [-flags] [-r file|date|y...] [-R cnt] [-b time] [-e time]\n",
 								myname);
 	fprintf(stderr, "\t\tor\n");
 	fprintf(stderr,
@@ -1020,9 +1020,9 @@ pratopsaruse(char *myname)
 	fprintf(stderr,
 		"\t  -R  summarize <cnt> samples into one sample\n");
 	fprintf(stderr,
-		"\t  -b  begin  showing data from  specified time\n");
+		"\t  -b  begin  showing data from  specified time as [YYYYMMDD]hhmm\n");
 	fprintf(stderr,
-		"\t  -e  finish showing data after specified time\n");
+		"\t  -e  finish showing data after specified time as [YYYYMMDD]hhmm\n");
 	fprintf(stderr,
 		"\t  -S  print timestamp on every line in case of more "
 		"resources\n");

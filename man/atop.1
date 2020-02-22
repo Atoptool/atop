@@ -29,9 +29,9 @@ Writing and reading raw logfiles:
 \-r [
 .I rawfile
 ] [\-b 
-.I hh:mm
+.I [YYYYMMDD]hhmm
 ] [\-e
-.I hh:mm
+.I [YYYYMMDD]hhmm
 ] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
 .SH DESCRIPTION
 The program
@@ -924,7 +924,7 @@ With the flag
 .B -b
 (begin time) and/or
 .B -e
-(end time) followed by a time argument of the form HH:MM,
+(end time) followed by a time argument of the form [YYYYMMDD]hhmm,
 a certain time period within the raw file can be selected.
 .PP
 Every day at midnight
@@ -2329,7 +2329,7 @@ interactively:
 View the contents of the standard logfile of 2014, June 7 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20140607 -b 14:00
+.B \  atop -r 20140607 -b 1400
 .PP
 .SH FILES
 .PP

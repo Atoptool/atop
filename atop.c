@@ -314,7 +314,7 @@ int		linelen  = 80;
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
-time_t		begintime, endtime;
+time_t		begintime, endtime, cursortime;	// epoch or time in day
 char		flaglist[MAXFL];
 char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
@@ -551,12 +551,12 @@ main(int argc, char *argv[])
 				break;
 
                            case 'b':		/* begin time ?               */
-				if ( !branchtime2secs(optarg, &begintime) )
+				if ( !getbranchtime(optarg, &begintime) )
 					prusage(argv[0]);
 				break;
 
                            case 'e':		/* end   time ?               */
-				if ( !branchtime2secs(optarg, &endtime) )
+				if ( !getbranchtime(optarg, &endtime) )
 					prusage(argv[0]);
 				break;
 
@@ -1038,7 +1038,7 @@ prusage(char *myname)
 	printf("\t\tor\n");
 	printf("Usage: %s -w  file  [-S] [-%c] [interval [samples]]\n",
 					myname, MALLPROC);
-	printf("       %s -r [file] [-b hh:mm] [-e hh:mm] [-flags]\n",
+	printf("       %s -r [file] [-b [YYYYMMDD]hhmm] [-e [YYYYMMDD]hhmm] [-flags]\n",
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");

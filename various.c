@@ -153,53 +153,118 @@ convdate(time_t utime, char *chardat)
 
 
 /*
-** TODO: Convert a string in format [[YYYY]MMDD/]hh[:]mm into an epoch time value
-** TODO: When only the value hh[:]mm was given, take this time from midnight
-** Convert a string in format hh:mm number of seconds since midnight.
+** Convert a string in format [YYYYMMDD]hh[:]mm into an epoch time value or
+** when only the value hh[:]mm was given, take this time from midnight.
+**
+** Arguments:		String with date-time in format [YYYYMMDD]hh[:]mm
+** 			or hh[:]mm.
+**
+**			Pointer to time_t containing 0 or current epoch time.
 **
 ** Return-value:	0 - Wrong input-format
 **			1 - Success
 */
 int
-branchtime2secs(char *itim, time_t *otim)
+getbranchtime(char *itim, time_t *newtime)
 {
-	register int	i;
+	register int	ilen = strlen(itim);
 	int		hours, minutes;
+	time_t		epoch;
+	struct tm	tm;
+
+	memset(&tm, 0, sizeof tm);
 
 	/*
-	** check string syntax
+	** verify length of input string
 	*/
-	for (i=0; *(itim+i); i++)
-		if ( !isdigit(*(itim+i)) && *(itim+i) != ':' )
-			return(0);
+	if (ilen != 4 && ilen != 5 && ilen != 12 && ilen != 13)
+		return 0;		// wrong date-time format
 
-	sscanf(itim, "%d:%d", &hours, &minutes);
+	/*
+	** check string syntax for absolute time specified as
+	** YYYYMMDDhh:mm or YYYYMMDDhhmm
+	*/
+	if ( sscanf(itim, "%4d%2d%2d%2d:%2d", &tm.tm_year, &tm.tm_mon,
+				&tm.tm_mday,  &tm.tm_hour, &tm.tm_min) == 5 ||
+	     sscanf(itim, "%4d%2d%2d%2d%2d",  &tm.tm_year, &tm.tm_mon,
+				&tm.tm_mday,  &tm.tm_hour, &tm.tm_min) == 5   )
+	{
+		tm.tm_year -= 1900;
+		tm.tm_mon  -= 1;
 
-	if ( hours < 0 || hours > 23 || minutes < 0 || minutes > 59 )
-		return(0);
+		if (tm.tm_year < 100 || tm.tm_mon  < 0  || tm.tm_mon > 11 ||
+                    tm.tm_mday < 1   || tm.tm_mday > 31 || 
+		    tm.tm_hour < 0   || tm.tm_hour > 23 ||
+		    tm.tm_min  < 0   || tm.tm_min  > 59   )
+		{
+			return 0;	// wrong date-time format
+		}
 
-	*otim = (hours * 3600) + (minutes * 60);
+		tm.tm_isdst = -1;
 
-	if (*otim >= SECSDAY)
-		*otim = SECSDAY-1;
+		if ((epoch = mktime(&tm)) == -1)
+			return 0;	// wrong date-time format
 
-	return(1);
+		// correct date-time format
+		*newtime = epoch;
+		return 1;
+	}
+
+	/*
+	** check string syntax for relative time specified as
+	** hh:mm or hhmm
+	*/
+	if ( sscanf(itim, "%2d:%2d", &hours, &minutes) == 2	||
+	     sscanf(itim, "%2d%2d",  &hours, &minutes) == 2 	  )
+	{
+		if ( hours < 0 || hours > 23 || minutes < 0 || minutes > 59 )
+			return 0;	// wrong date-time format
+
+		/*
+		** when the new time is already filled with an epoch time,
+		** the relative time will be on the same day as indicated by
+		** that epoch time
+		** when the new time is the time within a day or 0, the new
+		** time will be stored again as the time within a day.
+		*/
+		if (*newtime <= SECONDSINDAY)	// time within the day?
+		{
+			*newtime = (hours * 3600) + (minutes * 60);
+
+			if (*newtime >= SECONDSINDAY)
+				*newtime = SECONDSINDAY-1;
+
+			return 1;
+		}
+		else
+		{
+			*newtime = normalize_epoch(*newtime,
+						(hours*3600) + (minutes*60));
+			return 1;
+		}
+	}
+
+	return 0;	// wrong date-time format
 }
 
 
 /*
-** Return number of seconds since midnight according local clock time
-**
-** Return-value:        Number of seconds
+** Normalize an epoch time with the number of seconds within a day
+** Return-value:        Normalized epoch 
 */
-int
-daysecs(time_t itime)
+time_t
+normalize_epoch(time_t epoch, long secondsinday)
 {
-	struct tm *tt;
+	struct tm	tm;
 
-	tt = localtime(&itime);
+	localtime_r(&epoch, &tm);	// convert epoch to tm
 
-	return( (tt->tm_hour*3600) + (tt->tm_min*60) );
+	tm.tm_hour   = 0;	
+	tm.tm_min    = 0;	
+	tm.tm_sec    = secondsinday;	
+	tm.tm_isdst  = -1;
+
+	return mktime(&tm);		// convert tm to epoch
 }
 
 

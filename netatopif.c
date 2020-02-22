@@ -55,7 +55,7 @@ static unsigned long	lastseq;
 /*
 ** storage of last exited tasks read from exitfile
 ** every exitstore struct is registered in hash buckets,
-** by its pid or by its begintime
+** by its pid or by its begin time
 */
 struct exitstore {
 	struct exitstore  *next;
@@ -430,7 +430,7 @@ netatop_exiterase(void)
 
 /*
 ** add all stored tasks to a hash bucket, either
-** by pid (argument 'p') or by begintime (argument 'b')
+** by pid (argument 'p') or by begin time (argument 'b')
 */
 void
 netatop_exithash(char hashtype)
@@ -485,7 +485,7 @@ netatop_exitfind(unsigned long key, struct tstat *dev, struct tstat *pre)
 			fill_networkcnt(dev, pre, esp);
 			break;
 
-		   case 'b':		// search by begintime
+		   case 'b':		// search by begin time
 			if (esp->isused)
 				continue;
 
