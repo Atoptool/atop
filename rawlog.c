@@ -677,7 +677,8 @@ rawread(void)
 				devtstat.procall = malloc(sizeof(struct tstat *)
 								* rr.totproc);
 
-			devtstat.procactive = malloc(sizeof(struct tstat *) * rr.nactproc);
+			devtstat.procactive = malloc(sizeof(struct tstat *) *
+								rr.nactproc);
 
 			ptrverify(devtstat.taskall,
 			          "Malloc failed for %d stored tasks\n",
@@ -781,9 +782,10 @@ rawread(void)
 			             rr.nexit, rr.noverflow, flags);
 			}
 			while (!isregular &&
-					(lastcmd == MSAMPPREV	||
-					 lastcmd == MSAMPBRANCH	||
-					 lastcmd == MRESET        ));
+				( lastcmd == MSAMPPREV		||
+				  lastcmd == MRESET     	||
+				 (lastcmd == MSAMPBRANCH &&
+						begintime < cursortime) ));
 
 			free(devtstat.taskall);
 			free(devtstat.procall);
@@ -806,7 +808,7 @@ rawread(void)
 				break;
 
 			   case MSAMPBRANCH:
-				if (begintime < cursortime)
+				if (begintime < cursortime && isregular)
 				{
 					lseek(rawfd, *offlist, SEEK_SET);
 					offcur = 1;

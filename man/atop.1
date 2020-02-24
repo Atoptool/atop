@@ -680,19 +680,20 @@ can be used as a stopwatch to measure the load being caused by a
 particular application transaction, without knowing on beforehand how many
 seconds this transaction will last.
 
-When viewing the contents of a raw file, this key can be used to show the
-next sample from the file.
+When viewing the contents of a raw file this key can be used to show the
+next sample from the file. This key can also be used when viewing raw data
+via a pipe.
 .PP
 .TP 5
 .B T
-When viewing the contents of a raw file, this key can be used to show the
-previous sample from the file (except when reading raw data from a named pipe).
+When viewing the contents of a raw file this key can be used to show the
+previous sample from the file, however not when reading raw data from a pipe.
 .PP
 .TP 5
 .B b
 When viewing the contents of a raw file, this key can be used to branch
-to a certain timestamp within the file either forward or backward
-(except when reading raw data from a named pipe).
+to a certain timestamp within the file either forward or backward.
+When viewing raw data from a pipe only forward branches are possible.
 .PP
 .TP 5
 .B r
@@ -700,8 +701,7 @@ Reset all counters to zero to see the system and process activity since
 boot again.
 
 When viewing the contents of a raw file, this key can be used to rewind
-to the beginning of the file again
-(except when reading raw data from a named pipe).
+to the beginning of the file again (except when reading raw data from a pipe).
 .PP
 .TP 5
 .B U
