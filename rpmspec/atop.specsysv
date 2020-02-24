@@ -37,6 +37,7 @@ rm    -rf 			  $RPM_BUILD_ROOT
 install -Dp -m 04711 atop 	  $RPM_BUILD_ROOT/usr/bin/atop
 ln -s atop                        $RPM_BUILD_ROOT/usr/bin/atopsar
 install -Dp -m 0711 atopconvert	  $RPM_BUILD_ROOT/usr/bin/atopconvert
+install -Dp -m 0711 atopcat	  $RPM_BUILD_ROOT/usr/bin/atopcat
 install -Dp -m 0700 atopacctd 	  $RPM_BUILD_ROOT/usr/sbin/atopacctd
 
 install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/usr/share/atop/atop.daily
@@ -44,6 +45,7 @@ install -Dp -m 0711 atop.daily	  $RPM_BUILD_ROOT/usr/share/atop/atop.daily
 install -Dp -m 0644 man/atop.1 	  $RPM_BUILD_ROOT/usr/share/man/man1/atop.1
 install -Dp -m 0644 man/atopsar.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopsar.1
 install -Dp -m 0644 man/atopconvert.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopconvert.1
+install -Dp -m 0644 man/atopcat.1 $RPM_BUILD_ROOT/usr/share/man/man1/atopcat.1
 install -Dp -m 0644 man/atoprc.5  $RPM_BUILD_ROOT/usr/share/man/man5/atoprc.5
 install -Dp -m 0644 man/atopacctd.8  $RPM_BUILD_ROOT/usr/share/man/man8/atopacctd.8
 
@@ -113,10 +115,12 @@ ln -sf /usr/bin/atop-XVERSX 	/usr/bin/atopsar-XVERSX
 /usr/bin/atop
 /usr/bin/atopsar
 /usr/bin/atopconvert
+/usr/bin/atopcat
 /usr/sbin/atopacctd
 /usr/share/man/man1/atop.1*
 /usr/share/man/man1/atopsar.1*
 /usr/share/man/man1/atopconvert.1*
+/usr/share/man/man1/atopcat.1*
 /usr/share/man/man5/atoprc.5*
 /usr/share/man/man8/atopacctd.8*
 %config /etc/init.d/atop

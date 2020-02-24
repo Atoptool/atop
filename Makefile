@@ -30,7 +30,7 @@ ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
-all: 		atop atopsar atopacctd atopconvert
+all: 		atop atopsar atopacctd atopconvert atopcat
 
 atop:		atop.o    $(ALLMODS) Makefile
 		$(CC) atop.o $(ALLMODS) -o atop -lncursesw -lz -lm -lrt $(LDFLAGS)
@@ -44,8 +44,11 @@ atopacctd:	atopacctd.o netlink.o
 atopconvert:	atopconvert.o
 		$(CC) atopconvert.o -o atopconvert -lz $(LDFLAGS)
 
+atopcat:	atopcat.o
+		$(CC) atopcat.o -o atopcat $(LDFLAGS)
+
 clean:
-		rm -f *.o atop atopacctd atopconvert
+		rm -f *.o atop atopacctd atopconvert atopcat
 
 distr:
 		rm -f *.o atop
@@ -133,7 +136,7 @@ sysvinstall:	genericinstall
 			/sbin/service atop     start;			\
 		fi
 
-genericinstall:	atop atopacctd atopconvert
+genericinstall:	atop atopacctd atopconvert atopcat
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(DEFPATH) ]; 		\
@@ -167,9 +170,13 @@ genericinstall:	atop atopacctd atopconvert
 		cp atopconvert 		$(DESTDIR)$(BINPATH)/atopconvert
 		chown root		$(DESTDIR)$(BINPATH)/atopconvert
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
+		cp atopcat 		$(DESTDIR)$(BINPATH)/atopcat
+		chown root		$(DESTDIR)$(BINPATH)/atopcat
+		chmod 0711 		$(DESTDIR)$(BINPATH)/atopcat
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atopconvert.1 	$(DESTDIR)$(MAN1PATH)
+		cp man/atopcat.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
 		cp man/atopgpud.8  	$(DESTDIR)$(MAN8PATH)
@@ -181,7 +188,7 @@ versdate.h:
 
 atop.o:		atop.h	photoproc.h photosyst.h  acctproc.h showgeneric.h
 atopsar.o:	atop.h	photoproc.h photosyst.h                           
-rawlog.o:	atop.h	photoproc.h photosyst.h             showgeneric.h
+rawlog.o:	atop.h	photoproc.h photosyst.h  rawlog.h   showgeneric.h
 various.o:	atop.h                           acctproc.h
 ifprop.o:	atop.h	            photosyst.h             ifprop.h
 parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
@@ -200,4 +207,5 @@ gpucom.o:	atop.h	photoproc.h photosyst.h
 
 atopacctd.o:	atop.h  photoproc.h acctproc.h   atopacctd.h   version.h versdate.h
 
-atopconvert.o:	atop.h  photoproc.h photosyst.h
+atopconvert.o:	atop.h  photoproc.h photosyst.h  rawlog.h
+atopcat.o:	atop.h  rawlog.h
