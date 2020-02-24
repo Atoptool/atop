@@ -1,4 +1,4 @@
-.TH ATOP 1 "November 2019" "Linux"
+.TH ATOP 1 "February 2020" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -907,6 +907,9 @@ If a filename with the symbolic name
 .BI y
 is specified, yesterday's daily logfile is opened
 (this can be repeated so 'yyyy' indicates the logfile of four days ago). 
+If the filename
+.BI -
+is used, stdin will be read.
 .br
 The samples from the file can be viewed interactively by using the key 't'
 to show the next sample, the key 'T' to show the previous sample, the
@@ -2331,6 +2334,12 @@ View the contents of the standard logfile of 2014, June 7 from
 .PP
 .B \  atop -r 20140607 -b 1400
 .PP
+Concatenate all raw log files of January 2020 and generate parsable
+output about the CPU utilization:
+.PP
+.TP 12
+.B \  atopcat /var/log/atop/atop_202001?? | atop -r -  -PCPU
+.PP
 .SH FILES
 .PP
 .TP 5
@@ -2403,6 +2412,7 @@ after reading the standard process accounting records.
 .SH SEE ALSO
 .B atopsar(1),
 .B atopconvert(1),
+.B atopcat(1),
 .B atoprc(5),
 .B atopacctd(8),
 .B netatop(4),

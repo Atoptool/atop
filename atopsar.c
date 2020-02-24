@@ -167,6 +167,10 @@ atopsar(int argc, char *argv[])
 
 			   case 'r':		/* reading of file data ? */
 				strncpy(rawname, optarg, RAWNAMESZ-1);
+
+				if (strcmp(rawname, "-") == 0)
+					strcpy(rawname, "/dev/stdin");
+
 				rawreadflag++;
 				break;
 
@@ -1002,7 +1006,7 @@ pratopsaruse(char *myname)
 	int	i;
 
 	fprintf(stderr,
-		"Usage: %s [-flags] [-r file|date|y...] [-R cnt] [-b time] [-e time]\n",
+		"Usage: %s [-flags] [-r file|-|date|y...] [-R cnt] [-b time] [-e time]\n",
 								myname);
 	fprintf(stderr, "\t\tor\n");
 	fprintf(stderr,
@@ -1016,7 +1020,7 @@ pratopsaruse(char *myname)
 	fprintf(stderr,
 		"\t  -r  read statistical data from specific atop logfile\n");
 	fprintf(stderr,
-		"\t      (pathname, or date in format YYYYMMDD, or y[y..])\n");
+		"\t      (pathname, - for stdin, date in format YYYYMMDD, or y[y..])\n");
 	fprintf(stderr,
 		"\t  -R  summarize <cnt> samples into one sample\n");
 	fprintf(stderr,

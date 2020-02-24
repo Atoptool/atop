@@ -2828,6 +2828,17 @@ generic_init(void)
        	if (screen)
 	{
 		/*
+		** if stdin is not connected to a tty (might be redirected
+		** to pipe or file), close it and duplicate stdout (tty)
+		** to stdin
+		*/
+       		if ( !isatty(0) )
+		{
+			(void) close(0);
+			(void) dup(1);
+		}
+
+		/*
 		** initialize screen-handling via curses
 		*/
 		setlocale(LC_ALL, "");

@@ -531,9 +531,24 @@ main(int argc, char *argv[])
 				break;
 
 			   case 'r':		/* reading of raw data ?      */
-				if (optind < argc && *(argv[optind]) != '-')
-					strncpy(rawname, argv[optind++],
-							RAWNAMESZ-1);
+				if (optind < argc)
+				{
+					if (*(argv[optind]) == '-')
+					{
+						if (strlen(argv[optind]) == 1)
+						{
+							strcpy(rawname,
+								"/dev/stdin");
+							optind++;
+						}
+					}
+					else
+					{
+						strncpy(rawname, argv[optind],
+								RAWNAMESZ-1);
+						optind++;
+					}
+				}
 
 				rawreadflag++;
 				break;
@@ -1057,11 +1072,12 @@ prusage(char *myname)
 	printf("\tspecific flags for raw logfiles:\n");
 	printf("\t  -w  write raw data to   file (compressed)\n");
 	printf("\t  -r  read  raw data from file (compressed)\n");
-	printf("\t      special file: y[y...] for yesterday (repeated)\n");
+	printf("\t      symbolic file: y[y...] for yesterday (repeated)\n");
+	printf("\t      file name '-': read raw data from stdin\n");
 	printf("\t  -S  finish atop automatically before midnight "
 	                "(i.s.o. #samples)\n");
-	printf("\t  -b  begin showing data from specified time\n");
-	printf("\t  -e  finish showing data after specified time\n");
+	printf("\t  -b  begin showing data from specified date/time\n");
+	printf("\t  -e  finish showing data after specified date/time\n");
 	printf("\n");
 	printf("\tinterval: number of seconds   (minimum 0)\n");
 	printf("\tsamples:  number of intervals (minimum 1)\n");

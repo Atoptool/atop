@@ -1,4 +1,4 @@
-.TH ATOPSAR 1 "November 2019" "Linux"
+.TH ATOPSAR 1 "February 2020" "Linux"
 .SH NAME
 .B atopsar
 - Advanced System Activity Report (atop related)
@@ -7,7 +7,7 @@
 .B atopsar
 [\-flags...]
 [\-r
-.I file|date
+.I file|date|-
 ] [\-R
 .I cnt
 ] [\-b
@@ -53,7 +53,8 @@ the required date of the form YYYYMMDD can be specified with the
 .B -r
 option instead of the filename, or
 the symbolic name 'y' can be used for yesterday's daily logfile
-(this can be repeated so 'yyyy' indicates the logfile of four days ago).
+(this can be repeated so 'yyyy' indicates the logfile of four days ago), or
+the filename '-' can be used to read raw data from stdin.
 If the
 .B -r
 option is not specified at all, today's daily logfile is used by default.
@@ -1235,6 +1236,7 @@ are digits representing the date.
 .SH SEE ALSO
 .B atop(1),
 .B atopconvert(1),
+.B atopcat(1),
 .B atoprc(5),
 .B atopacctd(8),
 .B netatop(4),
