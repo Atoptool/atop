@@ -4,12 +4,12 @@
 ** The program 'atop' offers the possibility to view the activity of 
 ** the system on system-level as well as process-level.
 **
-** This program concatenates several raw logfiles into one output stream
+** This program concatenates several raw logfiles into one output stream,
 ** to be stored as new file or to be passed via a pipe to atop/atopsar directly.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
-** Initial:     Februar 2020
+** Initial:     March 2020
 ** --------------------------------------------------------------------------
 ** Copyright (C) 2020 Gerlof Langeveld
 **
@@ -42,10 +42,14 @@
 #include "atop.h"
 #include "rawlog.h"
 
+char	*convepoch(time_t);
+void	prusage(char *);
+
 int
 main(int argc, char *argv[])
 {
-	int			i, fd, firstfile;
+	int			i, fd, n, c;
+	int			firstfile, beverbose=0, dryrun=0;
 	struct rawheader	rh;
 	struct rawrecord	rr;
 	char			*infile, *sstat, *pstat;
@@ -56,7 +60,29 @@ main(int argc, char *argv[])
 	if (argc < 2)
 		prusage(argv[0]);
 
-	if ( isatty(1) )
+	while ((c = getopt(argc, argv, "?hvd")) != EOF)
+	{
+		switch (c)
+		{
+		   case '?':            	// usage wanted?
+		   case 'h':            	// usage wanted?
+			prusage(argv[0]);
+			break;
+
+		   case 'v': 			// verbosity wanted?
+			beverbose = 1;
+			break;
+
+		   case 'd': 			// dry run wanted?
+			dryrun = 1;
+			break;
+
+		   default:
+			prusage(argv[0]);
+		}
+	}
+
+	if ( isatty(1) && !dryrun)
 	{
 		fprintf(stderr,
 			"this program produces binary output on stdout "
@@ -66,7 +92,7 @@ main(int argc, char *argv[])
 
 	// open all input files one-by-one
 	//
-	for (i=1, firstfile=1; i < argc; i++, firstfile=0)
+	for (i=optind, firstfile=1; i < argc; i++, firstfile=0)
 	{
 		infile = argv[i];
 
@@ -108,11 +134,28 @@ main(int argc, char *argv[])
 		{
 			aversion = rh.aversion;
 
-			if ( write(1, &rh, sizeof rh) < sizeof rh)
+			if (!dryrun)
 			{
-				fprintf(stderr, "can not write raw header\n");
-				exit(10);
+				if ( write(1, &rh, sizeof rh) < sizeof rh)
+				{
+					fprintf(stderr,
+						"can not write raw header\n");
+					exit(10);
+				}
 			}
+
+			if (beverbose)
+			{
+				fprintf(stderr,
+				     "Logs created by atop version %d.%d\n\n", 
+                        	     (rh.aversion >> 8) & 0x7f,
+				      rh.aversion & 0xff);
+
+				fprintf(stderr, "%-10s %-8s %12s  %8s  %9s\n",
+					"date", "time", "interval",
+					"comprsys", "comprproc");
+			}
+					
 		}
 		else	// subsequent file
 		{
@@ -131,6 +174,14 @@ main(int argc, char *argv[])
 		//
 		while ( read(fd, &rr, sizeof rr) == sizeof rr )
 		{
+			if (beverbose)
+			{
+				fprintf(stderr, "%19s %12u  %8u  %9u   %s\n",
+					convepoch(rr.curtime),
+					rr.interval, rr.scomplen, rr.pcomplen,
+					rr.flags&RRBOOT ? "boot" : "");
+			}
+
 			// dynamically allocate space to read stats
 			// 
 			if ( (sstat = malloc(rr.scomplen)) == NULL)
@@ -147,39 +198,69 @@ main(int argc, char *argv[])
 
 			// read system-level and process-level stats
 			// 
-			if ( read(fd, sstat, rr.scomplen) != rr.scomplen )
+			if ((n = read(fd, sstat, rr.scomplen)) != rr.scomplen)
 			{
-				fprintf(stderr,
-				    	"read file %s failed\n", infile); 
-				exit(8);
+				if (n == -1)
+				{
+					fprintf(stderr, "read file %s", infile);
+					perror("");
+					exit(8);
+				}
+				else
+				{
+					fprintf(stderr,
+					     "file %s incomplete!\n", infile);
+
+					free(sstat);
+					free(pstat);
+					break;
+				}
 			}
 
-			if ( read(fd, pstat, rr.pcomplen) != rr.pcomplen )
+			if ((n = read(fd, pstat, rr.pcomplen)) != rr.pcomplen)
 			{
-				fprintf(stderr,
-				    	"read file %s failed\n", infile); 
-				exit(8);
+				if (n == -1)
+				{
+					fprintf(stderr, "read file %s", infile);
+					perror("");
+					exit(8);
+				}
+				else
+				{
+					fprintf(stderr,
+					     "file %s incomplete!\n", infile);
+
+					free(sstat);
+					free(pstat);
+					break;
+				}
 			}
 
-			// write raw record followed by the compressed
-			// system-level and process-level stats
-			//
-			if ( write(1, &rr, sizeof rr) < sizeof rr)
+			if (!dryrun)
 			{
-				fprintf(stderr, "can not write raw record\n");
-				exit(11);
-			}
+				// write raw record followed by the compressed
+				// system-level and process-level stats
+				//
+				if ( write(1, &rr, sizeof rr) < sizeof rr)
+				{
+					fprintf(stderr,
+						"can not write raw record\n");
+					exit(11);
+				}
 
-			if ( write(1, sstat, rr.scomplen) < rr.scomplen)
-			{
-				fprintf(stderr, "can not write sstat\n");
-				exit(11);
-			}
+				if ( write(1, sstat, rr.scomplen) < rr.scomplen)
+				{
+					fprintf(stderr,
+						"can not write sstat\n");
+					exit(11);
+				}
 
-			if ( write(1, pstat, rr.pcomplen) < rr.pcomplen)
-			{
-				fprintf(stderr, "can not write pstat\n");
-				exit(11);
+				if ( write(1, pstat, rr.pcomplen) < rr.pcomplen)
+				{
+					fprintf(stderr,
+						"can not write pstat\n");
+					exit(11);
+				}
 			}
 
 			// free dynamically allocated buffers
@@ -194,11 +275,31 @@ main(int argc, char *argv[])
 	return 0;
 }
 
+// Function to convert an epoch time to date-time format
+//
+char *
+convepoch(time_t utime)
+{
+	struct tm       *tt;
+	static char	datetime[64];
+	
+
+	tt = localtime(&utime);
+
+	sprintf(datetime, "%04d/%02d/%02d %02d:%02d:%02d",
+                tt->tm_year+1900, tt->tm_mon+1, tt->tm_mday,
+		tt->tm_hour, tt->tm_min, tt->tm_sec);
+
+        return datetime;
+}
+
 // Function that shows the usage message
 //
 void
 prusage(char *name)
 {
-	fprintf(stderr, "Usage: %s rawfile [rawfile]...\n", name);
+	fprintf(stderr, "Usage: %s [-dv] rawfile [rawfile]...\n", name);
+	fprintf(stderr, "\t-d\tdry run (no raw output generated)\n");
+	fprintf(stderr, "\t-v\tbe verbose\n");
 	exit(1);
 }

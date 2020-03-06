@@ -1,10 +1,10 @@
-.TH ATOPCAT 1 "February 2020" "Linux"
+.TH ATOPCAT 1 "March 2020" "Linux"
 .SH NAME
 .B atopcat
 - concatenate raw log files to stdout
 .SH SYNOPSIS
 .P
-.B atopcat rawfile [rawfile]...
+.B atopcat [-dv] rawfile [rawfile]...
 .P
 .SH DESCRIPTION
 The program
@@ -17,6 +17,18 @@ can be transferred directly into
 or
 .I atopsar
 via a pipe.
+
+Options:
+.PP
+.TP 5
+.B -d
+dry-run: read logfile(s) but do not generate output on stdout
+.PP
+.TP 5
+.B -v
+verbose: print one line per sample containing date/time, interval length
+in seconds, compressed length of the system-level information and
+compressed length of the process-level information.
 .SH EXAMPLES
 Concatenate the raw log files of five contiguous working days,
 write it into a new raw log file for that week and
@@ -30,7 +42,7 @@ view that week interactively:
 Concatenate the raw log files of a week and view that week interactively
 (since
 .I atop
-reads from a pipe, previous intervals can not be retrieved): 
+reads from a pipe, previous intervals can not be retrieved while viewing): 
 .PP
 .TP 12
 .B \  atopcat /var/log/atop/atop_2020021[0-6] | atop -r -
@@ -49,6 +61,16 @@ till 11:00h on the second day:
 .B \  atopcat /var/log/atop/atop_2020020[34] |
 .B \  atopsar -m  -r -  -b 202002031400  -e 202002041100
 .PP
+Repair a raw log file from which the last interval has not been
+completely written (e.g. if you intend to expand the file with new samples):
+.PP
+.TP 12
+.B \  atopcat /var/log/atop/atop_20200303 > /tmp/repaired
+.PP
+In the latter case,
+.B atopcat
+reports that the input file is incomplete and stops after the last consistent
+sample.
 .SH SEE ALSO
 .B atop(1),
 .B atopsar(1),
