@@ -730,11 +730,13 @@ json_print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact, int conn_
 	buflen = snprintf(tmp, len, ", %s: {"
 		"\"pgscans\": %lld, "
 		"\"allocstall\": %lld, "
+		"\"compact_stall\": %lld, "
 		"\"swins\": %lld, "
 		"\"swouts\": %lld}",
 		hp,
 		ss->mem.pgscans,
 		ss->mem.allocstall,
+		ss->mem.compact_stall,
 		ss->mem.swins,
 		ss->mem.swouts);
 

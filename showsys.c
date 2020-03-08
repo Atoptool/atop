@@ -1507,7 +1507,19 @@ sysprt_PAGSTALL(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_PAGSTALL = {"PAGSTALL", sysprt_PAGSTALL};
 /*******************************************************************/
 char *
-sysprt_PAGSWIN(void *p, void *q, int badness, int *color) 
+sysprt_PAGCOMPACT(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="compact ";
+        val2valstr(sstat->mem.compact_stall, buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PAGCOMPACT = {"PAGCOMPACT", sysprt_PAGCOMPACT};
+/*******************************************************************/
+char *
+sysprt_PAGSWIN(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat=p;
         extraparam *as=q;

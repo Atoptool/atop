@@ -56,6 +56,7 @@ struct	memstat {
 	count_t	pgscans;	// number of page scans
 	count_t	pgsteal;	// number of page steals
 	count_t	allocstall;	// try to free pages forced
+	count_t	compact_stall;	// incremented every time a process stalls to run memory compaction so that a huge page is free for use
 	count_t	swouts;		// number of pages swapped out
 	count_t	swins;		// number of pages swapped in
 

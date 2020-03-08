@@ -629,6 +629,11 @@ photosyst(struct sstat *si)
 				si->mem.allocstall = cnts[0];
 				continue;
 			}
+
+			if ( strcmp("compact_stall", nam) == EQ) {
+				si->mem.compact_stall = cnts[0];
+				continue;
+			}
 		}
 
 		fclose(fp);
