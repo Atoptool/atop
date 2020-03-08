@@ -56,6 +56,7 @@ struct	memstat {
 	count_t	pgscans;	// number of page scans
 	count_t	pgsteal;	// number of page steals
 	count_t	allocstall;	// try to free pages forced
+	count_t	compact_stall;	// incremented every time a process stalls to run memory compaction so that a huge page is free for use
 	count_t	swouts;		// number of pages swapped out
 	count_t	swins;		// number of pages swapped in
 
@@ -80,7 +81,6 @@ struct	memstat {
 	count_t	zswstored;	// zswap stored pages (pages)
 	count_t	zswtotpool;	// total pool size (pages)
 	count_t	oomkills;	// number of oom killings
-	count_t	cfuture[1];	// reserved for future use
 };
 
 /************************************************************************/

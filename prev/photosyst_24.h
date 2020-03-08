@@ -23,6 +23,7 @@ struct	memstat_24 {
 	count_t	pgscans;	// number of page scans
 	count_t	pgsteal;	// number of page steals
 	count_t	allocstall;	// try to free pages forced
+	count_t compact_stall;	// number of process stalls to run memory compaction
 	count_t	swouts;		// number of pages swapped out
 	count_t	swins;		// number of pages swapped in
 
@@ -40,7 +41,7 @@ struct	memstat_24 {
 	count_t	hugepagesz;	// huge page size (bytes)
 
 	count_t	vmwballoon;	// vmware claimed balloon pages
-	count_t	cfuture[8];	// reserved for future use
+	count_t	cfuture[7];	// reserved for future use
 };
 
 /************************************************************************/

@@ -411,6 +411,7 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSCAN,
 	&syspdef_PAGSTEAL,
 	&syspdef_PAGSTALL,
+	&syspdef_PAGCOMPACT,
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
 	&syspdef_OOMKILLS,
@@ -1075,7 +1076,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "PAGSCAN:3 "
 	                "PAGSTEAL:2 "
 	                "PAGSTALL:1 "
-	                "BLANKBOX:0 "
+	                "PAGCOMPACT:4 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
@@ -1907,12 +1908,13 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         /*
         ** PAGING statistics
         */
-        if (fixedhead             ||
-            sstat->mem.pgscans    ||
-            sstat->mem.pgsteal    ||
-            sstat->mem.allocstall ||
-            sstat->mem.swins      ||
-            sstat->mem.swouts       )
+        if (fixedhead                ||
+            sstat->mem.pgscans       ||
+            sstat->mem.pgsteal       ||
+            sstat->mem.allocstall    ||
+            sstat->mem.compact_stall ||
+            sstat->mem.swins         ||
+            sstat->mem.swouts          )
         {
                 busy = sstat->mem.swouts / nsecs * pagbadness;
 
