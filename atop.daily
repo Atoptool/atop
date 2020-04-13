@@ -81,4 +81,5 @@ fi
 # replacing the current shell
 #
 echo $$ > $PIDFILE
+echo -1000 > /proc/self/oom_score_adj
 exec $BINPATH/atop $LOGOPTS -w "$LOGPATH"/atop_"$CURDAY" "$LOGINTERVAL" > "$LOGPATH/daily.log" 2>&1
