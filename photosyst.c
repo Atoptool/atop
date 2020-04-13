@@ -624,9 +624,9 @@ photosyst(struct sstat *si)
 				continue;
 			}
 
-			if ( strcmp("allocstall", nam) == EQ)
+			if ( strncmp("allocstall", nam, 10) == EQ)
 			{
-				si->mem.allocstall = cnts[0];
+				si->mem.allocstall += cnts[0];
 				continue;
 			}
 
