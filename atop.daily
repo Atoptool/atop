@@ -66,6 +66,17 @@ fi
 #
 ( (sleep 3; find "$LOGPATH" -name 'atop_*' -mtime +"$LOGGENERATIONS" -exec rm {} \;)& )
 
+# fix "failed to uncompress error" when `atop -r` a log file
+# in case messy data is written to the log:
+# backup the old log, and write into a new log file
+#
+ORIGLOG="$LOGPATH"/atop_"$CURDAY"
+if [ -e "$ORIGLOG" ]
+then
+    CURHMS=`date %T`
+    mv $ORIGLOG "$LOGPATH"/atop_"$CURDAY"_until"$CURHMS"
+fi
+
 # activate atop with an interval of S seconds (configurable),
 # replacing the current shell
 #
