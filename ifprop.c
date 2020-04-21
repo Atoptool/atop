@@ -45,6 +45,7 @@
 #include <linux/sockios.h>
 #include <linux/if.h>
 #include <linux/in.h>
+#include <dirent.h>
 
 typedef __u64	u64;
 typedef __u32	u32;
@@ -56,12 +57,14 @@ typedef __u8	u8;
 #ifndef	SPEED_UNKNOWN
 #define	SPEED_UNKNOWN	-1
 #endif
+#define	MAXVIRTIF	128
 
 #include "atop.h"
 #include "ifprop.h"
 #include "photosyst.h"
 
 static struct ifprop	ifprops[MAXINTF];
+char			*virt_if[MAXVIRTIF];
 
 /*
 ** function searches for the properties of a particular interface
@@ -102,7 +105,7 @@ initifprop(void)
 {
 	FILE 				*fp;
 	char 				*cp, linebuf[2048];
-	int				i=0, sockfd;
+	int				i=0, sockfd, j=0, virt_num=0;
 
 	struct ethtool_link_settings 	ethlink;	// preferred!
 	struct ethtool_cmd 		ethcmd;		// deprecated	
@@ -111,7 +114,26 @@ initifprop(void)
 	struct iwreq		 	iwreq;
 
 	unsigned long			speed;
-	unsigned char			duplex, phy_addr, ethernet;
+	unsigned char			duplex, ethernet;
+	DIR				*dirp;
+	struct dirent			*dentry;
+
+	/*
+	** read /sys/devices/virtual/net/xxx to obtain all
+	** virtual interfaces' name
+	*/
+	if ( (dirp = opendir("/sys/devices/virtual/net")) )
+	{
+		while ( (dentry = readdir(dirp)) )
+		{
+			if (dentry->d_name[0] == '.')
+				continue;
+			virt_if[j] = (char *)malloc(64);
+			strncpy(virt_if[j], dentry->d_name, 15);
+			j++;
+		}
+		virt_num = j;
+	}
 
 	/*
 	** open /proc/net/dev to obtain all interface names and open
@@ -158,10 +180,14 @@ initifprop(void)
 
 		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0)
 		{
+			if (ethlink.link_mode_masks_nwords <= 0) {
+				ethlink.link_mode_masks_nwords = - ethlink.link_mode_masks_nwords;
+				if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) != 0 )
+					continue;
+			}
 			ethernet = 1;
 			speed    = ethlink.speed;
 			duplex   = ethlink.duplex;
-			phy_addr = ethlink.phy_address;
 		}
 		else
 		{
@@ -173,7 +199,6 @@ initifprop(void)
 				ethernet = 1;
 				speed    = ethcmd.speed;
 				duplex   = ethcmd.duplex;
-				phy_addr = ethcmd.phy_address;
 			}
 			else
 			{
@@ -199,11 +224,13 @@ initifprop(void)
 				ifprops[i].fullduplex	= 0;
 			}
 
-			if (!phy_addr)	// virtual interface?
-			{
-				ifprops[i].type       = '?';	// set type unknown
-				ifprops[i].speed      = 0;
-				ifprops[i].fullduplex = 0;
+			for (j = 0; j < virt_num; j++) {
+				if ( strcmp(ifprops[i].name, virt_if[j]) == EQ ) { // virtual interface?
+					ifprops[i].type       = '?'; // set type unknown
+					ifprops[i].speed      = 0;
+					ifprops[i].fullduplex = 0;
+					break;
+				}
 			}
 
 			if (++i >= MAXINTF-1)
@@ -241,6 +268,9 @@ initifprop(void)
 		if (++i >= MAXINTF-1)
 			break;
 	}
+
+	for (j = virt_num; j >= 0; j--)
+		free(virt_if[j - 1]);
 
 	close(sockfd);
 	fclose(fp);
