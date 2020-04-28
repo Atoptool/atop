@@ -75,6 +75,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <sys/utsname.h>
 
 #include "atop.h"
@@ -668,7 +669,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			exitcode = (ps->gen.excode >>   8) & 0xff;
 
 		printf("%s %d (%s) %c %d %d %d %d %d %ld (%s) %d %d %d %d "
- 		       "%d %d %d %d %d %d %ld %c %d %d %s\n",
+ 		       "%d %d %d %d %d %d %ld %c %d %d %s %c\n",
 			hp,
 			ps->gen.pid,
 			ps->gen.name,
@@ -694,7 +695,8 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.isproc ? 'y':'n',
 			ps->gen.vpid,
 			ps->gen.ctid,
-			ps->gen.container[0] ? ps->gen.container:"-");
+			ps->gen.container[0] ? ps->gen.container:"-",
+        		ps->gen.excode & ~(INT_MAX) ? 'N' : '-');
 	}
 }
 
