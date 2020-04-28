@@ -2841,7 +2841,8 @@ generic_init(void)
 		/*
 		** initialize screen-handling via curses
 		*/
-		setlocale(LC_ALL, "C");
+		setlocale(LC_ALL, "");
+		setlocale(LC_NUMERIC, "C");
 
 		initscr();
 		cbreak();
