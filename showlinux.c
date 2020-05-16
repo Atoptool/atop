@@ -386,6 +386,8 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_VMWBAL,
 	&syspdef_BLANKBOX,
+	&syspdef_ZFSARC,
+	&syspdef_BLANKBOX,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
         0
@@ -1022,21 +1024,23 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (memline[0].f == 0)
                 {
                     make_sys_prints(memline, MAXITEMS,
-	                "MEMTOT:6 "
-	                "MEMFREE:7 "
-	                "MEMCACHE:5 "
-	                "MEMDIRTY:3 "
-	                "MEMBUFFER:5 "
-	                "MEMSLAB:5 "
-	                "RECSLAB:2 "
+	                "MEMTOT:8 "
+	                "MEMFREE:9 "
+	                "MEMCACHE:7 "
+	                "MEMDIRTY:5 "
+	                "MEMBUFFER:7 "
+	                "MEMSLAB:7 "
+	                "RECSLAB:4 "
 	                "BLANKBOX:0 "
 	                "SHMEM:4 "
-	                "SHMRSS:3 "
-	                "SHMSWP:1 "
+	                "SHMRSS:4 "
+	                "SHMSWP:3 "
 	                "BLANKBOX:0 "
-	                "VMWBAL:4 "
+	                "VMWBAL:5 "
 	                "BLANKBOX:0 "
-	                "HUPTOT:4 "
+	                "ZFSARC:6 "
+	                "BLANKBOX:0 "
+	                "HUPTOT:6 "
 	                "HUPUSE:3 ", memsyspdefs, "builtin memline");
                 }
                 if (swpline[0].f == 0)

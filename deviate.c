@@ -817,6 +817,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.hugepagesz	= cur->mem.hugepagesz;
 
 	dev->mem.vmwballoon	= cur->mem.vmwballoon;
+	dev->mem.zfsarcsize	= cur->mem.zfsarcsize;
 
 	dev->mem.swouts		= subcount(cur->mem.swouts,  pre->mem.swouts);
 	dev->mem.swins		= subcount(cur->mem.swins,   pre->mem.swins);

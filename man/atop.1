@@ -1176,6 +1176,8 @@ memory including tmpfs (`shmem`), the resident size of shared memory (`shrss`)
 the amount of shared memory that is currently swapped (`shswp`),
 the amount of memory that is currently claimed by vmware's
 balloon driver (`vmbal`),
+the amount of memory that is currently claimed by the ARC (cache)
+of ZFSonlinux (`zfarc`),
 the amount of memory that is claimed for huge pages (`hptot`),
 and the amount of huge page memory that is really in use (`hpuse`).
 
@@ -2059,8 +2061,9 @@ total size of shared memory (pages),
 size of resident shared memory (pages),
 size of swapped shared memory (pages),
 huge page size (in bytes),
-total size of huge pages (huge pages), and
-size of free huge pages (huge pages).
+total size of huge pages (huge pages),
+size of free huge pages (huge pages), and
+size of ARC (cache) of ZFSonlinux (pages).
 .TP 9
 .B SWP
 Subsequent fields:

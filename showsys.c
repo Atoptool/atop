@@ -1417,6 +1417,18 @@ sysprt_VMWBAL(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_VMWBAL = {"VMWBAL", sysprt_VMWBAL};
 /*******************************************************************/
 char *
+sysprt_ZFSARC(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="zfarc  ";
+	*color = -1;
+        val2memstr(sstat->mem.zfsarcsize * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_ZFSARC = {"ZFSARC", sysprt_ZFSARC};
+/*******************************************************************/
+char *
 sysprt_SWPTOT(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;

@@ -798,6 +798,33 @@ photosyst(struct sstat *si)
 	}
 
 	/*
+	** ZFSonlinux: gather size of ARC cache in memory
+	** searching for:
+	** 	size       4    519101312
+	*/ 
+	si->mem.zfsarcsize = (count_t) 0;
+
+	if ( (fp = fopen("spl/kstat/zfs/arcstats", "r")) != NULL)
+	{
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			nr = sscanf(linebuf,
+				"%s %lld %lld", nam, &cnts[0], &cnts[1]);
+
+			if (nr < 3)
+				continue;
+
+			if ( strcmp("size", nam) == EQ)
+			{
+				si->mem.zfsarcsize = cnts[1] / pagesize;
+				break;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	/*
 	** gather network-related statistics
  	** 	- interface stats from the file /proc/net/dev
  	** 	- IPv4      stats from the file /proc/net/snmp
