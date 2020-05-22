@@ -166,6 +166,7 @@ static int	procio(struct tstat *);
 static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
+static void	procschedstat(struct tstat *);
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -267,6 +268,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 			continue;
 		}
 
+		procschedstat(curtask);		/* from /proc/pid/schedstat */
 		proccmd(curtask);		/* from /proc/pid/cmdline */
 		dockstat += proccont(curtask);	/* from /proc/pid/cpuset  */
 
@@ -342,6 +344,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 						if ( chdir("..") == -1);
 						continue;
 					}
+
+					procschedstat(curthr);
 
 					strcpy(curthr->gen.container,
 						curtask->gen.container);
@@ -890,6 +894,51 @@ procsmaps(struct tstat *curtask)
 	else
 	{
 		curtask->mem.pmem = (unsigned long long)-1LL;
+	}
+
+	if (! droprootprivs())
+		mcleanstop(42, "failed to drop root privs\n");
+}
+
+/*
+** get run_delay from /proc/<pid>/schedstat
+** ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-stats.rst?h=v5.7-rc6
+*/
+static void
+procschedstat(struct tstat *curtask)
+{
+	FILE	*fp;
+	char	line[4096];
+	count_t	runtime, rundelay;
+	unsigned long pcount;
+	static char *schedstatfile = "schedstat";
+
+	/*
+ 	** open the file (always succeeds, even if no root privs)
+	*/
+	regainrootprivs();
+
+	if ( (fp = fopen(schedstatfile, "r")) )
+	{
+		curtask->cpu.rundelay = 0;
+
+		if (fgets(line, sizeof line, fp))
+		{
+			sscanf(line, "%llu %llu %lu\n", &runtime, &rundelay, &pcount);
+			curtask->cpu.rundelay = rundelay;
+		}
+
+		/*
+		** verify if fgets returned NULL due to error i.s.o. EOF
+		*/
+		if (ferror(fp))
+			curtask->cpu.rundelay = 0;
+
+		fclose(fp);
+	}
+	else
+	{
+		curtask->cpu.rundelay = 0;
 	}
 
 	if (! droprootprivs())
