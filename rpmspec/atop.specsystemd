@@ -79,6 +79,7 @@ then
 	/bin/systemctl disable --now atop
 	/bin/systemctl disable --now atopacct
 	/bin/systemctl disable --now atopgpu
+	/bin/systemctl disable --now atop-rotate.timer
 fi
 
 # atop-XVERSX and atopsar-XVERSX will remain for old logfiles
