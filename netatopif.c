@@ -344,6 +344,9 @@ netatop_exitstore(void)
 	nexitnet = nahp->curseq - lastseq;
 	lastseq  = nahp->curseq;
 
+	if (nexitnet == 0)
+		return 0;
+
 	/*
 	** allocate storage for all exited processes
 	*/
