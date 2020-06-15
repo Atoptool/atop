@@ -180,10 +180,13 @@ struct pacctadm {
 #define	ATOPACCTKEY	3121959
 #define	ATOPACCTTOT	100
 
-struct sembuf	semclaim = {0, -1, SEM_UNDO},
-		semrelse = {0, +1, SEM_UNDO},
-		semdecre = {1, -1, SEM_UNDO},
-		semincre = {1, +1, SEM_UNDO};
+struct sembuf	semclaim     =  {0, -1, SEM_UNDO},
+		semrelse     =  {0, +1, SEM_UNDO},
+		semdecre     =  {1, -1, SEM_UNDO},
+		semincre     =  {1, +1, SEM_UNDO};
+
+struct sembuf	semreglock[] = {{0, -1, SEM_UNDO}, {1, -1, SEM_UNDO}},
+		semunlock    =  {1, +1, SEM_UNDO};
 
 /*
 ** switch on the process-accounting mechanism
@@ -250,7 +253,7 @@ acctswon(void)
  	** when the atopacctd daemon is active on this system,
 	** it should be the preferred way to read the accounting records
 	*/
-	if ( (sempacctpubid = semget(PACCTPUBKEY, 0, 0)) != -1)
+	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
 	{
 		FILE 			*cfp;
 		char    		shadowpath[128];
@@ -259,14 +262,14 @@ acctswon(void)
 		if (! droprootprivs() )
 			mcleanstop(42, "failed to drop root privs\n");
 
-		(void) semop(sempacctpubid, &semclaim, 1);
+		(void) semop(sempacctpubid, semreglock, 2);
 
 		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
 					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
 
 		if ( (cfp = fopen(shadowpath, "r")) )
 		{
-			if (fscanf(cfp, "%ld/%lu",
+			if (fscanf(cfp, "%ld/%ld",
 					&curshadowseq, &maxshadowrec) == 2)
 			{
 				fclose(cfp);
@@ -297,6 +300,8 @@ acctswon(void)
 	
 							semop(sempacctpubid,
 								&semrelse, 1);
+							semop(sempacctpubid,
+								&semunlock, 1);
 
 							regainrootprivs();
 							return 1;
@@ -316,20 +321,30 @@ acctswon(void)
                 			{
 						supportflags |= ACCTACTIVE;
 						regainrootprivs();
+						semop(sempacctpubid,
+								&semunlock, 1);
 						return 0;
                 			}
 
                        			(void) close(acctfd);
 				}
+				else
+				{
+					perror("open shadowpath");
+					abort();
+				}
 			}
 			else
 			{
+				fprintf(stderr,
+					"fscanf failed on shadow currency\n");
 				fclose(cfp);
 				maxshadowrec = 0;
 			}
 		}
 
 		(void) semop(sempacctpubid, &semrelse, 1);
+		(void) semop(sempacctpubid, &semunlock, 1);
 	}
 
 	/*
@@ -868,7 +883,8 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec.ac_rw);
 
-			strcpy(api->gen.name, acctrec.ac_comm);
+			strncpy(api->gen.name, acctrec.ac_comm, PNAMLEN);
+			api->gen.name[PNAMLEN] = '\0';
 			break;
 
 		   case 3:
@@ -895,7 +911,8 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec_v3.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec_v3.ac_rw);
 
-			strcpy(api->gen.name, acctrec_v3.ac_comm);
+			strncpy(api->gen.name, acctrec_v3.ac_comm, PNAMLEN);
+			api->gen.name[PNAMLEN] = '\0';
 			break;
 		}
 	}

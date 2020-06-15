@@ -74,21 +74,32 @@
 /*
 ** Semaphore-handling
 **
-** Two semaphore groups are created with one semaphore each.
+** Two semaphore groups are created:
 **
 ** The private semaphore (group) specifies the number of atopacctd processes
 ** running (to be sure that only one daemon is active at the time).
 **
-** The public semaphore (group) reflects the number of processes using
-** the process accounting shadow files, i.e. the number of clients. This
-** semaphore starts at a high value and should be decremented whenever a
-** client starts using the shadow files and incremented again whenever that
-** client terminates.
+** The public semaphore group contains two semaphores:
+**
+**   0: the number of processes using the process accounting shadow files,
+**	i.e. the number of (atop) clients. This semaphore starts at a high
+**	value and should be decremented by every (atop) client that starts
+**	using the shadow files and incremented again whenever that (atop)
+**	client terminates.
+**
+**   1:	binary semphore that has to be claimed before using/modifying
+**	semaphore 0 in this group.
 */
 static int		semprv;
+
+
 static int		sempub;
 #define SEMTOTAL        100
 #define	NUMCLIENTS	(SEMTOTAL - semctl(sempub, 0, GETVAL, 0))
+
+struct sembuf   semlocknowait = {1, -1, SEM_UNDO|IPC_NOWAIT},
+                semunlock     = {1, +1, SEM_UNDO};
+
 
 static char		atopacctdversion[] = ATOPVERS;
 static char		atopacctddate[]    = ATOPDATE;
@@ -248,18 +259,20 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if ( (sempub = semget(PACCTPUBKEY, 0, 0)) == -1)	// not existing?
+	// create new semaphore group
+	//
+	if ( (sempub = semget(PACCTPUBKEY, 0, 0)) != -1)	// existing?
+		(void) semctl(sempub, 0, IPC_RMID, 0);
+
+	if ( (sempub = semget(PACCTPUBKEY, 2, 0666|IPC_CREAT|IPC_EXCL)) >= 0)
 	{
-		if ( (sempub = semget(PACCTPUBKEY, 1,
-						0666|IPC_CREAT|IPC_EXCL)) >= 0)
-		{
-			(void) semctl(sempub, 0, SETVAL, SEMTOTAL);
-		}
-		else
-		{
-			perror("cannot create public semaphore");
-			exit(3);
-		}
+		(void) semctl(sempub, 0, SETVAL, SEMTOTAL);
+		(void) semctl(sempub, 1, SETVAL, 1);
+	}
+	else
+	{
+		perror("cannot create public semaphore");
+		exit(3);
 	}
 
 	/*
@@ -676,33 +689,39 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	** have been using the shadow files till now and
 	** cleanup has to be performed
 	*/
-	if (NUMCLIENTS == 0)
+	if (semop(sempub, &semlocknowait, 1) == 0) 	// lock succeeded?
 	{
-		/*
-		** did last client just disappeared?
-		*/
-		if (*shadowbusyp)
+		if (NUMCLIENTS == 0)
 		{
 			/*
-			** remove all shadow files
+			** did last client just disappear?
 			*/
-			gcshadows(oldshadowp, (*curshadowp)+1);
-			*oldshadowp = 0;
-			*curshadowp = 0;
-			stotsize    = 0;
-
-			/*
- 			** create new file with sequence 0
-			*/
-			(void) close(sfd);
-
-			sfd = createshadow(*curshadowp);
-			setcurrent(*curshadowp);
-
-			*shadowbusyp = 0;
+			if (*shadowbusyp)
+			{
+				/*
+				** remove all shadow files
+				*/
+				gcshadows(oldshadowp, (*curshadowp)+1);
+				*oldshadowp = 0;
+				*curshadowp = 0;
+				stotsize    = 0;
+	
+				/*
+ 				** create new file with sequence 0
+				*/
+				(void) close(sfd);
+	
+				sfd = createshadow(*curshadowp);
+				setcurrent(*curshadowp);
+	
+				*shadowbusyp = 0;
+			}
+	
+			(void) semop(sempub, &semunlock, 1);
+			return 1;
 		}
 
-		return 1;
+		(void) semop(sempub, &semunlock, 1);
 	}
 
 	*shadowbusyp = 1;
