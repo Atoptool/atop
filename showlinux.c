@@ -1289,7 +1289,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 
                 make_proc_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:5 VPID:4 CTID:4 TRUN:7 TSLPI:7 "
-			"TSLPU:7 POLI:8 NICE:9 PRI:9 RTPR:9 CPUNR:8 ST:8 "
+			"TSLPU:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 ST:8 "
 			"EXC:8 S:8 RDELAY:8 SORTITEM:10 CMD:10",
                         "built-in schedprocs");
 
@@ -1424,10 +1424,11 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 #define	FORMTID	"TID:6 "
 #define	FORMCID	"CID:5 "
 #define	FORMCPU	"SYSCPU:9 USRCPU:9 "
+#define	FORMDEL	"RDELAY:4 "
 #define FORMMEM	"VGROW:8 RGROW:8 "
 #define FORMDSK	"RDDSK:7 CWRDSK:7 "
 #define FORMNET	"RNET:6 SNET:6 "
-#define FORMMSC	"RUID:3 EUID:2 ST:4 EXC:4 THR:4 S:4 CPUNR:4 "
+#define FORMMSC	"RUID:2 EUID:1 ST:3 EXC:3 THR:3 S:3 CPUNR:3 "
 #define FORMEND	"SORTITEM:10 CMD:10"
 
 static void
@@ -1452,6 +1453,9 @@ make_proc_dynamicgen()
 
 	memcpy(p, FORMCPU, sizeof FORMCPU -1);
 	p += sizeof FORMCPU -1;
+
+	memcpy(p, FORMDEL, sizeof FORMDEL -1);
+	p += sizeof FORMDEL -1;
 
 	memcpy(p, FORMMEM, sizeof FORMMEM -1);
 	p += sizeof FORMMEM -1;

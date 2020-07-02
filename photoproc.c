@@ -166,7 +166,7 @@ static int	procio(struct tstat *);
 static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
-static void	procschedstat(struct tstat *);
+static count_t	procschedstat(struct tstat *);
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -297,6 +297,13 @@ photoproc(struct tstat *tasklist, int maxtask)
 			curtask->gen.nthrrun  = 0;
 			curtask->gen.nthrslpi = 0;
 			curtask->gen.nthrslpu = 0;
+
+			/*
+ 			** rundelay on process level is equal to the rundelay
+			** of the main thread; totalize the rundelays of all
+			** threads
+			*/
+			curtask->cpu.rundelay = 0;
 			
 			/*
 			** open underlying task directory
@@ -345,7 +352,9 @@ photoproc(struct tstat *tasklist, int maxtask)
 						continue;
 					}
 
-					procschedstat(curthr);
+					/* totalize rundelays of all threads */
+					curtask->cpu.rundelay +=
+						procschedstat(curthr);
 
 					strcpy(curthr->gen.container,
 						curtask->gen.container);
@@ -904,27 +913,27 @@ procsmaps(struct tstat *curtask)
 ** get run_delay from /proc/<pid>/schedstat
 ** ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-stats.rst?h=v5.7-rc6
 */
-static void
+static count_t
 procschedstat(struct tstat *curtask)
 {
 	FILE	*fp;
 	char	line[4096];
-	count_t	runtime, rundelay;
+	count_t	runtime, rundelay = 0;
 	unsigned long pcount;
 	static char *schedstatfile = "schedstat";
 
 	/*
- 	** open the file (always succeeds, even if no root privs)
+ 	** open the schedstat file 
 	*/
-	regainrootprivs();
-
 	if ( (fp = fopen(schedstatfile, "r")) )
 	{
 		curtask->cpu.rundelay = 0;
 
 		if (fgets(line, sizeof line, fp))
 		{
-			sscanf(line, "%llu %llu %lu\n", &runtime, &rundelay, &pcount);
+			sscanf(line, "%llu %llu %lu\n",
+					&runtime, &rundelay, &pcount);
+
 			curtask->cpu.rundelay = rundelay;
 		}
 
@@ -941,6 +950,5 @@ procschedstat(struct tstat *curtask)
 		curtask->cpu.rundelay = 0;
 	}
 
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
+	return curtask->cpu.rundelay;
 }

@@ -462,10 +462,6 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			devstat->cpu.utime  = curstat->cpu.utime -
 			                      prestat.cpu.utime;
 
-		if (curstat->cpu.rundelay > prestat.cpu.rundelay)
-			devstat->cpu.rundelay  = curstat->cpu.rundelay -
-						 prestat.cpu.rundelay;
-
 		if (curstat->mem.minflt > prestat.mem.minflt)
 			devstat->mem.minflt = curstat->mem.minflt - 
 			                      prestat.mem.minflt;

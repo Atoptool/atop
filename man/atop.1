@@ -1667,6 +1667,10 @@ terminating, so you might see transfers for (parent) processes like
 cron, bash or init, that are not really issued by them.
 .PP
 .TP 9
+.B RDELAY
+Runqueue delay, i.e. time spent waiting on a runqueue.
+.PP
+.TP 9
 .B RGID
 The real group-id under which the process executes. 
 .PP
@@ -2196,7 +2200,8 @@ effective uid, effective gid,
 saved uid, saved gid,
 filesystem uid, filesystem gid, elapsed time (hertz),
 is_process (y/n), OpenVZ  virtual pid (VPID), OpenVZ container id (CTID),
-Docker container id (CID), and indication if the task is newly started this interval ('N').
+Docker container id (CID), and indication if the task is newly started
+during this interval ('N').
 .TP 9
 .B PRC
 For every process one line is shown.
@@ -2208,7 +2213,8 @@ CPU-consumption in user mode (clockticks),
 CPU-consumption in system mode (clockticks),
 nice value, priority, realtime priority,
 scheduling policy, current CPU, sleep average,
-TGID (group number of related tasks/threads) and is_process (y/n).
+TGID (group number of related tasks/threads), is_process (y/n)
+and runqueue delay for all threads (nanoseconds).
 .TP 9
 .B PRE
 For every process one line is shown.

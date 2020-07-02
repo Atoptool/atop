@@ -2047,7 +2047,7 @@ procprt_RUNDELAY_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2cpustr(curstat->cpu.rundelay/10000/hertz, buf);
+        val2cpustr(curstat->cpu.rundelay/1000000, buf);
         return buf;
 }
 
