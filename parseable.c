@@ -708,7 +708,8 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %u %lld %lld %d %d %d %d %d %d %d %c\n",
+		printf("%s %d (%s) %c %u %lld %lld %d %d %d %d %d %d %d %c "
+		       "%llu\n",
 				hp,
 				ps->gen.pid,
 				ps->gen.name,
@@ -723,7 +724,8 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 				ps->cpu.curcpu,
 				ps->cpu.sleepavg,
 				ps->gen.tgid,
-				ps->gen.isproc ? 'y':'n');
+				ps->gen.isproc ? 'y':'n',
+				ps->cpu.rundelay);
 	}
 }
 

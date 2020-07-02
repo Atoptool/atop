@@ -635,6 +635,8 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	if (devstat->cpu.utime > totusedcpu)
 		devstat->cpu.utime = 1;
 
+	devstat->cpu.rundelay  =
+		subcount(curstat->cpu.rundelay, prestat->cpu.rundelay);
 	/*
 	** do further calculations
 	*/
