@@ -2041,3 +2041,24 @@ procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_SORTITEM = 
    { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };
+/***************************************************************/
+char *
+procprt_RUNDELAY_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2cpustr(curstat->cpu.rundelay/10000/hertz, buf);
+        return buf;
+}
+
+char *
+procprt_RUNDELAY_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        snprintf(buf, sizeof buf, "     -");
+        return buf;
+}
+
+proc_printdef procprt_RUNDELAY =
+   { "RDELAY", "RDELAY", procprt_RUNDELAY_a, procprt_RUNDELAY_e, 6 };

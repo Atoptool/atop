@@ -75,7 +75,8 @@ struct tstat {
 		int	curcpu;		/* current processor            */
 		int	sleepavg;       /* sleep average percentage     */
 		int	ifuture[4];	/* reserved for future use	*/
-		count_t	cfuture[4];	/* reserved for future use	*/
+		count_t	rundelay;	/* sched stat run delay		*/
+		count_t	cfuture[3];	/* reserved for future use	*/
 	} cpu;
 
 	/* DISK STATISTICS						*/
