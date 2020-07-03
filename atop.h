@@ -80,6 +80,7 @@ extern char		deviatonly;
 extern char		usecolors;
 extern char		threadview;
 extern char		calcpss;
+extern char		getwchan;
 extern char		rawname[];
 extern char		rawreadflag;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day

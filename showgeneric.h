@@ -100,6 +100,7 @@ struct sselection {
 
 #define	MTHREAD		'y'
 #define	MCALCPSS	'R'
+#define	MGETWCHAN	'W'
 #define	MSUPEXITS	'G'
 #define	MCOLORS		'x'
 #define	MSYSFIXED	'f'

@@ -645,8 +645,15 @@ Request for version information (version number and date).
 .B R
 Gather and calculate the proportional set size of processes (toggle).
 Gathering of all values that are needed to calculate the PSIZE of a process
-is a relatively time-consuming task, so this key should only be active when
+is a very time-consuming task, so this key should only be active when
 analyzing the resident memory consumption of processes.
+.PP
+.TP 5
+.B W
+Get the WCHAN per thread (toggle).
+Gathering of the WCHAN string per thread
+is a relatively time-consuming task, so this key should only be made
+active when analyzing the reason for threads to be in sleep state.
 .PP
 .TP 5
 .B x
@@ -1646,7 +1653,7 @@ system gives a reliable impression of the total resident memory consumed
 by all processes.
 .br
 Since gathering of all values that are needed to calculate the PSIZE is a
-relatively time-consuming task, the 'R' key (or '-R' flag) should
+very time-consuming task, the 'R' key (or '-R' flag) should
 be active. Gathering these values also requires superuser privileges
 (otherwise '?K' is shown in the output).
 .br
@@ -1920,6 +1927,15 @@ The virtual memory size of the (private) stack used by this process
 .TP 9
 .B VSTEXT
 The virtual memory size of the (shared) text of the executable program.
+.PP
+.TP 9
+.B WCHAN
+Wait channel of thread in sleep state, i.e. the name of the kernel function
+in which the thread has been put asleep.
+.br
+Since determining the name string of the kernel function is a
+relatively time-consuming task, the 'W' key (or '-W' flag) should
+be active.
 .PP
 .TP 9
 .B WRDSK 

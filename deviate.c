@@ -582,6 +582,11 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->cpu.curcpu   = curstat->cpu.curcpu;
 	devstat->cpu.sleepavg = curstat->cpu.sleepavg;
 
+	if (curstat->cpu.wchan[0])
+		strcpy(devstat->cpu.wchan, curstat->cpu.wchan);
+	else
+		devstat->cpu.wchan[0] = 0;
+
 	devstat->mem.vexec    = curstat->mem.vexec;
 	devstat->mem.vmem     = curstat->mem.vmem;
 	devstat->mem.rmem     = curstat->mem.rmem;

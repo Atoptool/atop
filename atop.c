@@ -320,6 +320,7 @@ char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
 char		threadview = 0;	 /* boolean: show individual threads     */
 char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
+char      	getwchan   = 0;  /* boolean: obtain wchan string         */
 
 unsigned short	hertz;
 unsigned int	pagesize;
@@ -557,14 +558,6 @@ main(int argc, char *argv[])
 				midnightflag++;
 				break;
 
-                           case 'a':		/* all processes per sample ? */
-				deviatonly = 0;
-				break;
-
-                           case 'R':		/* all processes per sample ? */
-				calcpss = 1;
-				break;
-
                            case 'b':		/* begin time ?               */
 				if ( !getbranchtime(optarg, &begintime) )
 					prusage(argv[0]);
@@ -587,6 +580,18 @@ main(int argc, char *argv[])
 					prusage(argv[0]);
 
 				linelen = atoi(optarg);
+				break;
+
+                           case MALLPROC:	/* all processes per sample ? */
+				deviatonly = 0;
+				break;
+
+                           case MCALCPSS:	/* calculate PSS per sample ? */
+				calcpss = 1;
+				break;
+
+                           case MGETWCHAN:	/* obtain wchan string?       */
+				getwchan = 1;
 				break;
 
 			   default:		/* gather other flags */
@@ -1062,6 +1067,7 @@ prusage(char *myname)
 	                "only)\n", MALLPROC);
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
 	                MCALCPSS);
+	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");

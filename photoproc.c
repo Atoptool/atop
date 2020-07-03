@@ -166,6 +166,7 @@ static int	procio(struct tstat *);
 static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
+static void	procwchan(struct tstat *);
 static count_t	procschedstat(struct tstat *);
 
 unsigned long
@@ -280,6 +281,13 @@ photoproc(struct tstat *tasklist, int maxtask)
 		if (calcpss)
 			procsmaps(curtask);	/* from /proc/pid/smaps */
 
+		/*
+		** determine thread's wchan, if wanted ('expensive' from
+		** a CPU consumption point-of-view)
+		*/
+                if (getwchan)
+                	procwchan(curtask);
+
 		// read network stats from netatop
 		netatop_gettask(curtask->gen.tgid, 'g', curtask);
 
@@ -351,6 +359,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 						if ( chdir("..") == -1);
 						continue;
 					}
+
+					/*
+					** determine thread's wchan, if wanted
+ 					** ('expensive' from a CPU consumption
+					** point-of-view)
+					*/
+                			if (getwchan)
+                        			procwchan(curthr);
 
 					/* totalize rundelays of all threads */
 					curtask->cpu.rundelay +=
@@ -782,6 +798,31 @@ proccmd(struct tstat *curtask)
 
 
 /*
+** determine the wait channel of a sleeping thread
+** i.e. the name of the kernel function in which the thread
+** has been put in sleep state)
+*/
+static void
+procwchan(struct tstat *curtask)
+{
+        FILE            *fp;
+        register int    nr = 0;
+
+        if ( (fp = fopen("wchan", "r")) != NULL)
+        {
+
+                nr = fread(curtask->cpu.wchan, 1,
+			sizeof(curtask->cpu.wchan)-1, fp);
+                if (nr < 0)
+                        nr = 0;
+                fclose(fp);
+        }
+
+        curtask->cpu.wchan[nr] = 0;
+}
+
+
+/*
 ** store the Docker container ID, retrieved from the 'cpuset'
 ** that might look like this:
 **    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
@@ -873,6 +914,7 @@ procsmaps(struct tstat *curtask)
 
 		procsmaps_firstcall = 0;
 	}
+
 	/*
  	** open the file (always succeeds, even if no root privs)
 	*/
