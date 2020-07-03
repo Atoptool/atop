@@ -506,12 +506,12 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						49 - seclen - utsnodenamelen;
+						50 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s"
-		       " elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
+		       "*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -521,6 +521,7 @@ generic_samp(time_t curtime, int nsecs,
 			usecolors  		      ? '-'        : MCOLORS,
 			avgval     		      ? MAVGVAL    : '-',
 			calcpss     		      ? MCALCPSS   : '-',
+			getwchan     		      ? MGETWCHAN  : '-',
 			suppressexit 		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
@@ -1998,6 +1999,22 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** per-thread WCHAN definition 
+			   */
+			   case MGETWCHAN:
+				if (getwchan)
+				{
+					getwchan   = 0;
+					statmsg    = "WCHAN gathering disabled";
+				}
+				else
+				{
+					getwchan   = 1;
+					statmsg    = "WCHAN gathering enabled";
+				}
+				break;
+
+			   /*
 			   ** suppression of exited processes in output
 			   */
 			   case MSUPEXITS:
@@ -2784,6 +2801,13 @@ generic_init(void)
 				calcpss = 1;
 			break;
 
+		   case MGETWCHAN:
+			if (getwchan)
+				getwchan = 0;
+			else
+				getwchan = 1;
+			break;
+
 		   case MSUPEXITS:
 			if (suppressexit)
 				suppressexit = 0;
@@ -2955,6 +2979,8 @@ static struct helptext {
 								MAVGVAL},
 	{"\t'%c'  - calculate proportional set size (PSIZE)        (toggle)\n",
 								MCALCPSS},
+	{"\t'%c'  - determine WCHAN per thread                     (toggle)\n",
+								MGETWCHAN},
 	{"\n",							' '},
 	{"Raw file viewing:\n",					' '},
 	{"\t'%c'  - show next     sample in raw file\n",	MSAMPNEXT},
@@ -3433,6 +3459,10 @@ do_flags(char *name, char *val)
 
 		   case MCALCPSS:
 			calcpss = 1;
+			break;
+
+		   case MGETWCHAN:
+			getwchan = 1;
 			break;
 
 		   case MSUPEXITS:

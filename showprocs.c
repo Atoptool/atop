@@ -2034,13 +2034,29 @@ proc_printdef procprt_GPUMEMBUSY =
    { "MEMBUSY", "GPUMEMBUSY", procprt_GPUMEMBUSY_ae, procprt_GPUMEMBUSY_ae, 7};
 /***************************************************************/
 char *
-procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
+procprt_WCHAN_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        return "";   // dummy function
+        static char buf[32];
+
+        if (curstat->gen.state != 'R')
+		snprintf(buf, sizeof buf, "%-15.15s", curstat->cpu.wchan);
+	else
+		snprintf(buf, sizeof buf, "%-15.15s", " ");
+
+        return buf;
 }
 
-proc_printdef procprt_SORTITEM = 
-   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };
+char *
+procprt_WCHAN_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[32];
+
+	snprintf(buf, sizeof buf, "%-15.15s", " ");
+        return buf;
+}
+
+proc_printdef procprt_WCHAN =
+   { "WCHAN          ", "WCHAN", procprt_WCHAN_a, procprt_WCHAN_e, 15 };
 /***************************************************************/
 char *
 procprt_RUNDELAY_a(struct tstat *curstat, int avgval, int nsecs)
@@ -2062,3 +2078,12 @@ procprt_RUNDELAY_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_RUNDELAY =
    { "RDELAY", "RDELAY", procprt_RUNDELAY_a, procprt_RUNDELAY_e, 6 };
+/***************************************************************/
+char *
+procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "";   // dummy function
+}
+
+proc_printdef procprt_SORTITEM = 
+   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };
