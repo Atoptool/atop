@@ -2229,8 +2229,9 @@ CPU-consumption in user mode (clockticks),
 CPU-consumption in system mode (clockticks),
 nice value, priority, realtime priority,
 scheduling policy, current CPU, sleep average,
-TGID (group number of related tasks/threads), is_process (y/n)
-and runqueue delay for all threads (nanoseconds).
+TGID (group number of related tasks/threads), is_process (y/n),
+runqueue delay in nanoseconds for this thread or for all threads (in case of 
+process), and wait channel of this thread (between brackets).
 .TP 9
 .B PRE
 For every process one line is shown.
