@@ -115,6 +115,7 @@
 
 #include "atop.h"
 #include "acctproc.h"
+#include "photosyst.h"
 
 /*
 ** Function convtime() converts a value (number of seconds since
@@ -614,7 +615,6 @@ unsigned long long
 getboot(void)
 {
 	static unsigned long long	boottime;
-	unsigned long long		getbootlinux(long);
 
 	if (!boottime)		/* do this only once */
 		boottime = getbootlinux(hertz);
