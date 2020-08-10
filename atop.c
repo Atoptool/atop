@@ -1072,7 +1072,8 @@ prusage(char *myname)
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
 
-	(*vis.show_usage)();
+	if (vis.show_usage)
+		(*vis.show_usage)();
 
 	printf("\n");
 	printf("\tspecific flags for raw logfiles:\n");
