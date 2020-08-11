@@ -694,6 +694,8 @@ main(int argc, char *argv[])
 	if ( nice(-20) == -1)
 		;
 
+	set_oom_score_adj();
+
 	/*
 	** switch-on the process-accounting mechanism to register the
 	** (remaining) resource-usage by processes which have finished

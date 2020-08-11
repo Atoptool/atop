@@ -112,6 +112,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -709,4 +710,28 @@ regainrootprivs(void)
 	if (liResult != 0)
 	{
 	}
+}
+
+/*
+** try to set the highest OOM priority
+*/
+void
+set_oom_score_adj(void)
+{
+	int fd;
+	char val[] = "-1000";	/* suggested by Gerlof, always set -1000 */
+
+	/*
+	 ** set OOM score adj to avoid to lost necessary log of system.
+	 ** ignored if not running under superuser priviliges!
+	 */
+	fd = open("/proc/self/oom_score_adj", O_RDWR);
+	if ( fd < 0 ) {
+		return;
+	}
+
+	if ( write(fd, val, strlen(val)) < 0 )
+		;
+
+	close(fd);
 }
