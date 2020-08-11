@@ -165,7 +165,7 @@
 ** *** empty log message ***
 **
 ** Revision 1.34  2009/11/27 15:07:25  gerlof
-** Give up root-priviliges at a earlier stage.
+** Give up root-privileges at a earlier stage.
 **
 ** Revision 1.33  2009/11/27 14:01:01  gerlof
 ** Introduce system-wide configuration file /etc/atoprc
@@ -456,8 +456,8 @@ main(int argc, char *argv[])
 	struct rlimit	rlim;
 
 	/*
-	** since priviliged actions will be done later on, at this stage
-	** the root-priviliges are dropped by switching effective user-id
+	** since privileged actions will be done later on, at this stage
+	** the root-privileges are dropped by switching effective user-id
 	** to real user-id (security reasons)
 	*/
         if (! droprootprivs() )
@@ -670,15 +670,15 @@ main(int argc, char *argv[])
 	signal(SIGTERM, cleanstop);
 
 	/*
-	** regain the root-priviliges that we dropped at the beginning
-	** to do some priviliged work
+	** regain the root-privileges that we dropped at the beginning
+	** to do some privileged work
 	*/
 	regainrootprivs();
 
 	/*
 	** lock ATOP in memory to get reliable samples (also when
 	** memory is low and swapping is going on);
-	** ignored if not running under superuser priviliges!
+	** ignored if not running under superuser privileges!
 	*/
 	rlim.rlim_cur	= RLIM_INFINITY;
 	rlim.rlim_max	= RLIM_INFINITY;
@@ -689,7 +689,7 @@ main(int argc, char *argv[])
 	/*
 	** increment CPU scheduling-priority to get reliable samples (also
 	** during heavy CPU load);
-	** ignored if not running under superuser priviliges!
+	** ignored if not running under superuser privileges!
 	*/
 	if ( nice(-20) == -1)
 		;
@@ -714,7 +714,7 @@ main(int argc, char *argv[])
 
 	/*
 	** since privileged activities are finished now, there is no
-	** need to keep running under root-priviliges, so switch
+	** need to keep running under root-privileges, so switch
 	** effective user-id to real user-id
 	*/
         if (! droprootprivs() )
@@ -1174,7 +1174,10 @@ readrc(char *path, int syslevel)
 
 			i = strlen(linebuf);
 
-			if (i > 0 && linebuf[i-1] == '\n')
+			if (i <= 1)	// empty line?
+				continue;
+
+			if (linebuf[i-1] == '\n')
 				linebuf[i-1] = 0;
 
 			nr = sscanf(linebuf, "%19s %255[^#]",

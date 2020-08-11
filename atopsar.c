@@ -356,8 +356,8 @@ atopsar(int argc, char *argv[])
 	curtime = time(0);
 
         /*
-	** regain the root-priviliges that we dropped at the beginning
-	** to do some priviliged work now
+	** regain the root-privileges that we dropped at the beginning
+	** to do some privileged work now
 	*/
         regainrootprivs();
 

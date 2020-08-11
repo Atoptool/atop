@@ -723,7 +723,7 @@ set_oom_score_adj(void)
 
 	/*
 	 ** set OOM score adj to avoid to lost necessary log of system.
-	 ** ignored if not running under superuser priviliges!
+	 ** ignored if not running under superuser privileges!
 	 */
 	fd = open("/proc/self/oom_score_adj", O_RDWR);
 	if ( fd < 0 ) {
