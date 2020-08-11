@@ -193,3 +193,4 @@ unsigned int	netatop_exitstore(void);
 void		netatop_exiterase(void);
 void		netatop_exithash(char);
 void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);
+void		set_oom_score_adj(void);
