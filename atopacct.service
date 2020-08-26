@@ -5,6 +5,11 @@ Conflicts=psacct.service
 After=syslog.target
 Before=atop.service
 
+# Let's skip on containers here, at least for now.
+# Currently, Linux Containers don't support process accounting
+# (and failed services are painful for Debian-style packages).
+ConditionVirtualization=!container
+
 [Service]
 Type=forking
 PIDFile=/var/run/atopacctd.pid
