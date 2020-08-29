@@ -346,7 +346,7 @@ main(int argc, char *argv[])
 	*/
 	snprintf(accountpath, sizeof accountpath, "%s/%s", pacctdir, PACCTORIG);
 
-	(void) unlink(accountpath);
+	(void) unlink(accountpath);	// in case atopacctd previously killed
 
 	if ( (afd = creat(accountpath, 0600)) == -1)
        	{
@@ -369,8 +369,28 @@ main(int argc, char *argv[])
 
 	/*
  	** create directory to store the shadow files
+	** when atopacctd was previously killed, rename the
+	** old directory to a unique name
 	*/
 	snprintf(shadowdir, sizeof shadowdir, "%s/%s", pacctdir, PACCTSHADOWD);
+
+	if ( stat(shadowdir, &dirstat) == 0 )	// already exists?
+	{
+		if (S_ISDIR(dirstat.st_mode))	// and is directory?
+		{
+			// define new name to save directory
+			char newshadow[128];
+
+			snprintf(newshadow, sizeof newshadow, "%s-old-%d",
+							shadowdir, getpid());
+
+			if ( rename(shadowdir, newshadow) == -1)
+			{
+				perror("could not rename old shadow directory");
+				exit(5);
+			}
+		}
+	}
 
 	if ( mkdir(shadowdir, 0755) == -1)
        	{
