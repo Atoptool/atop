@@ -654,6 +654,7 @@ photosyst(struct sstat *si)
 	si->mem.shmem 		= (count_t) 0;
 	si->mem.totswap  	= (count_t)-1;
 	si->mem.freeswap 	= (count_t)-1;
+	si->mem.swapcached 	= (count_t) 0;
 	si->mem.committed 	= (count_t) 0;
 
 	if ( (fp = fopen("meminfo", "r")) != NULL)
@@ -738,6 +739,11 @@ photosyst(struct sstat *si)
 						si->mem.freeswap  =
 							cnts[0]*1024/pagesize;
 					}
+				}
+			else	if (strcmp("SwapCached:", nam) == EQ)
+				{
+					si->mem.swapcached  =
+							cnts[0]*1024/pagesize;
 				}
 			else	if (strcmp("Slab:", nam) == EQ)
 				{

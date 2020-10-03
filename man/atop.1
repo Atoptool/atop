@@ -1195,8 +1195,9 @@ only a relevant subset is shown.
 .B SWP
 Swap occupation and overcommit info.
 .br
-This line contains the total amount of swap space on disk (`tot') and
-the amount of free swap space (`free').
+This line contains the total amount of swap space on disk (`tot'),
+the amount of free swap space (`free') and the size of the swap cache
+(`swcac').
 .br
 Furthermore the committed virtual memory space (`vmcom') and the maximum 
 limit of the committed space (`vmlim', which is by default swap size
@@ -2090,7 +2091,7 @@ Subsequent fields:
 page size for this machine (in bytes),
 size of swap (pages),
 size of free swap (pages),
-0 (future use),
+size of swap cache (pages),
 size of committed space (pages), and
 limit for committed space (pages).
 .TP 9

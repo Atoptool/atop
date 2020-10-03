@@ -450,7 +450,7 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			pagesize,
 			ss->mem.totswap,
 			ss->mem.freeswap,
-			(long long)0,
+			ss->mem.swapcached,
 			ss->mem.committed,
 			ss->mem.commitlim);
 }

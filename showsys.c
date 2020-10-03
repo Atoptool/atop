@@ -1453,6 +1453,18 @@ sysprt_SWPFREE(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_SWPFREE = {"SWPFREE", sysprt_SWPFREE};
 /*******************************************************************/
 char *
+sysprt_SWPCACHE(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="swcac ";
+	*color = -1;
+        val2memstr(sstat->mem.swapcached * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_SWPCACHE = {"SWPCACHE", sysprt_SWPCACHE};
+/*******************************************************************/
+char *
 sysprt_SWPCOMMITTED(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;

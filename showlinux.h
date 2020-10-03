@@ -194,6 +194,7 @@ extern sys_printdef syspdef_HUPTOT;
 extern sys_printdef syspdef_HUPUSE;
 extern sys_printdef syspdef_SWPTOT;
 extern sys_printdef syspdef_SWPFREE;
+extern sys_printdef syspdef_SWPCACHE;
 extern sys_printdef syspdef_SWPCOMMITTED;
 extern sys_printdef syspdef_SWPCOMMITLIM;
 extern sys_printdef syspdef_PAGSCAN;

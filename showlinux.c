@@ -395,6 +395,9 @@ sys_printdef *memsyspdefs[] = {
 sys_printdef *swpsyspdefs[] = {
 	&syspdef_SWPTOT,
 	&syspdef_SWPFREE,
+	&syspdef_BLANKBOX,
+	&syspdef_SWPCACHE,
+	&syspdef_BLANKBOX,
 	&syspdef_SWPCOMMITTED,
 	&syspdef_SWPCOMMITLIM,
 	&syspdef_BLANKBOX,
@@ -1052,8 +1055,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "SWPFREE:4 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
+	                "SWPCACHE:2 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "SWPCOMMITTED:5 "

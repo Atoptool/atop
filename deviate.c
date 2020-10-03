@@ -814,6 +814,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.cachedrt	= cur->mem.cachedrt;
 	dev->mem.totswap	= cur->mem.totswap;
 	dev->mem.freeswap	= cur->mem.freeswap;
+	dev->mem.swapcached	= cur->mem.swapcached;
 
 	dev->mem.shmem		= cur->mem.shmem;
 	dev->mem.shmrss		= cur->mem.shmrss;
@@ -1535,6 +1536,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.cachedrt	 = new->mem.cachedrt;
 		tot->mem.totswap	 = new->mem.totswap;
 		tot->mem.freeswap	 = new->mem.freeswap;
+		tot->mem.swapcached	 = new->mem.swapcached;
 
 		tot->mem.shmem		 = new->mem.shmem;
 		tot->mem.shmrss		 = new->mem.shmrss;
