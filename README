@@ -1,14 +1,14 @@
 DEPENDENCIES
 
 Install the following packages to be able to build atop (package name
-can be different depending on the Linux distro):
+can be different depending on the Linux distro):-
 
 * zlib-devel    or libz-dev or zlib1g-dev
 * ncurses-devel or libncurses5-dev/libncursesw5-dev
 
 
 Install the following packages to be able to execute atop (package name
-can be different depending on the Linux distro):
+can be different depending on the Linux distro):-
 
 * zlib    or zlib1g
 * ncurses or libncurses5/libncursesw5
