@@ -510,7 +510,10 @@ procprt_PPID_e(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[64];
 
-	sprintf(buf, "%*s", procprt_PPID.width, "-");
+	if (curstat->gen.ppid)
+        	sprintf(buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
+	else
+		sprintf(buf, "%*s", procprt_PPID.width, "-");
         return buf;
 }
 
