@@ -28,12 +28,18 @@ OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
 OBJMOD4  = atopsar.o  netatopif.o gpucom.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
+ifneq ($(ATOP_BPF_SUPPORT),)
+	ALLMODS += photobpf.o
+	ATOP_BPF_LDFLAGS = -lbpf
+	CFLAGS += -DATOP_BPF_SUPPORT
+endif
+
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
 all: 		atop atopsar atopacctd atopconvert atopcat
 
 atop:		atop.o    $(ALLMODS) Makefile
-		$(CC) atop.o $(ALLMODS) -o atop -lncursesw -lz -lm -lrt $(LDFLAGS)
+		$(CC) atop.o $(ALLMODS) -o atop -lncursesw -lz -lm -lrt $(ATOP_BPF_LDFLAGS) $(LDFLAGS)
 
 atopsar:	atop
 		ln -sf atop atopsar
@@ -187,7 +193,7 @@ versdate.h:
 		./mkdate
 
 atop.o:		atop.h	photoproc.h photosyst.h  acctproc.h showgeneric.h
-atopsar.o:	atop.h	photoproc.h photosyst.h                           
+atopsar.o:	atop.h	photoproc.h photosyst.h
 rawlog.o:	atop.h	photoproc.h photosyst.h  rawlog.h   showgeneric.h
 various.o:	atop.h                           acctproc.h
 ifprop.o:	atop.h	            photosyst.h             ifprop.h
@@ -200,7 +206,7 @@ photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
-showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
+showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 version.o:	version.c version.h versdate.h
 gpucom.o:	atop.h	photoproc.h photosyst.h

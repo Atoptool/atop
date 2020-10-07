@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop'/'atopsar' offers the possibility to view the activity of 
+** The program 'atop'/'atopsar' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 **
 ** This source-file contains the 'atopsar'-functionality, that makes use
@@ -81,7 +81,7 @@ static char		*datemsg = "-------------------------- analysis "
 /*
 ** structure definition for print-functions
 */
-struct pridef { 
+struct pridef {
 	char    wanted;         /* selected option (boolean)              */
 	char    *cntcat;        /* used categories of counters            */
 	char    flag;           /* flag on command line                   */
@@ -108,7 +108,7 @@ static void	engine(void);
 static void	pratopsaruse(char *);
 static void	reportlive(time_t, int, struct sstat *);
 static char     reportraw (time_t, int,
-                            struct devtstat *, struct sstat *,
+			    struct devtstat *, struct sstat *, struct bstats *,
                             int, unsigned int, char);
 
 static void	reportheader(struct utsname *, time_t);
@@ -123,12 +123,12 @@ atopsar(int argc, char *argv[])
 
 	usecolors = 't';
 
-	/* 
-	** interpret command-line arguments & flags 
+	/*
+	** interpret command-line arguments & flags
 	*/
 	if (argc > 1)
 	{
-		/* 
+		/*
 		** gather all flags for the print-functions
 		*/
 		flaglist = malloc(pricnt+32);
@@ -226,7 +226,7 @@ atopsar(int argc, char *argv[])
 			   default:		/* gather report-flags    */
 				for (i=0; i < pricnt; i++)
 				{
-					if (pridef[i].flag   == c && 
+					if (pridef[i].flag   == c &&
 					    pridef[i].wanted == 0   )
 					{
 						pridef[i].wanted = 1;
@@ -244,7 +244,7 @@ atopsar(int argc, char *argv[])
 
 		/*
 		** get optional interval-value and
-		** optional number of samples	
+		** optional number of samples
 		*/
 		if (optind < argc && optind < MAXFL)
 		{
@@ -253,11 +253,11 @@ atopsar(int argc, char *argv[])
 
 			if (!numeric(argv[optind]))
 				pratopsaruse(argv[0]);
-	
+
 			interval = atoi(argv[optind]);
-	
+
 			optind++;
-	
+
 			if (optind < argc)
 			{
 				if (!numeric(argv[optind]) )
@@ -488,7 +488,7 @@ engine(void)
 			gpustats = gpud_statrequest();
 
 		/*
-		** take a snapshot of the current system-level statistics 
+		** take a snapshot of the current system-level statistics
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
 		*/
@@ -589,9 +589,9 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 				printf(COLSETHEAD);
 
 			printf("%s  ", convtime(curtime-numsecs, timebuf));
-	
+
 			(pridef[i].prihead)(osvers, osrel, ossub);
-	
+
 			if (usecolors)
 				printf(COLRESET);
 
@@ -601,7 +601,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 			** print line with statistical counters
 			*/
 			printf("%s  ", convtime(curtime, timebuf));
-	
+
 			if ( !(pridef[i].priline)(ss, (struct tstat *)0, 0, 0,
 				numsecs, numsecs*hertz, hertz,
 				osvers, osrel, ossub,
@@ -613,7 +613,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 				** do not call function again
 				*/
 				pridef[i].wanted = 0;
-	
+
 				if (--numreports == 0)
 					cleanstop(1);
 			}
@@ -654,7 +654,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 				printf(COLSETHEAD);
 
 			printf("%s  ", convtime(curtime, timebuf));
-	
+
 			(pridef[i].prihead)(osvers, osrel, ossub);
 
 			if (usecolors)
@@ -672,10 +672,10 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 		** print line with statistical counters
 		*/
 		printf("%s  ", convtime(curtime, timebuf));
-	
+
 		if ( !(rv = (pridef[i].priline)(ss, (struct tstat *)0, 0, 0,
 					numsecs, numsecs*hertz, hertz,
-					osvers, osrel, ossub, 
+					osvers, osrel, ossub,
 		                        stampalways ? timebuf : "        ",
 	                        	0, 0, 0, 0, 0, 0) ) )
 		{
@@ -701,7 +701,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 				printf(COLSETHEAD);
 
 			printf("%s  ", convtime(curtime, timebuf));
-	
+
 			(pridef[i].prihead)(osvers, osrel, ossub);
 
 			if (usecolors)
@@ -720,6 +720,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 static char
 reportraw(time_t curtime, int numsecs,
          	struct devtstat *devtstat, struct sstat *sstat,
+		struct bstats *bstats,
 		int nexit, unsigned int noverflow, char flags)
 {
 	static char		firstcall = 1;
@@ -1191,7 +1192,7 @@ do_atopsarflags(char *name, char *val)
 		   default:		/* gather report-flags    */
 			for (j=0; j < pricnt; j++)
 			{
-				if (pridef[j].flag   == val[i] && 
+				if (pridef[j].flag   == val[i] &&
 				    pridef[j].wanted == 0        )
 				{
 					pridef[j].wanted = 1;
@@ -1486,7 +1487,7 @@ memline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	if (membadness)
 		mbadness = ((ss->mem.physmem  - ss->mem.freemem -
 	                     ss->mem.cachemem - ss->mem.buffermem)
-	                               * 100.0 / ss->mem.physmem) 
+	                               * 100.0 / ss->mem.physmem)
 	                               * 100   / membadness;
 	else
 		mbadness = 0;
@@ -1818,7 +1819,7 @@ nfmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			else
 				state = ' ';
 
-			printf("%-38s %10.3lfK %10.3lfK    %c\n", 
+			printf("%-38s %10.3lfK %10.3lfK    %c\n",
 			    pn,
 			    (double)ss->nfs.nfsmounts.nfsmnt[i].bytestotread  /
 								1024 / deltasec,
@@ -1943,7 +1944,7 @@ ibline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 
 		preprint(badness);
 
-		printf("%-10s %4hd %4.0f%% %7.1lf %7.1lf %5lld %5lld %7lld %5d", 
+		printf("%-10s %4hd %4.0f%% %7.1lf %7.1lf %5lld %5lld %7lld %5d",
 			ss->ifb.ifb[i].ibname,
 			ss->ifb.ifb[i].portnr,
 			busy,
@@ -2080,7 +2081,7 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		preprint(badness);
 
 		printf("%-6s %4s %7.1lf %7.1lf %8.0lf %8.0lf "
-		       "%5lld %5lld %7ld %c", 
+		       "%5lld %5lld %7ld %c",
 			pn, busyval,
 			(double)ss->intf.intf[i].rpack / deltasec,
 			(double)ss->intf.intf[i].spack / deltasec,
@@ -2140,7 +2141,7 @@ IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			pn = ss->intf.intf[i].name;
 
 		printf("%-6s %6.2lf %6.2lf %6.2lf %7.2lf %7.2lf "
-		       "%8.2lf %10.2lf\n", 
+		       "%8.2lf %10.2lf\n",
 			pn,
 			(double)ss->intf.intf[i].rerrs    / deltasec,
 			(double)ss->intf.intf[i].serrs    / deltasec,
@@ -2177,7 +2178,7 @@ ipv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%8.1lf %8.1lf %11.1lf %9.1lf %9.1lf %11.1lf\n", 
+	printf("%8.1lf %8.1lf %11.1lf %9.1lf %9.1lf %11.1lf\n",
 		(double)ss->net.ipv4.InReceives  / deltasec,
 		(double)ss->net.ipv4.OutRequests / deltasec,
 		(double)ss->net.ipv4.InDelivers  / deltasec,
@@ -2201,7 +2202,7 @@ IPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
 	printf("    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
-	       "    %5.1lf %5.1lf\n", 
+	       "    %5.1lf %5.1lf\n",
 		(double)ss->net.ipv4.InDiscards      / deltasec,
 		(double)ss->net.ipv4.InHdrErrors     / deltasec,
 		(double)ss->net.ipv4.InAddrErrors    / deltasec,
@@ -2229,12 +2230,12 @@ icmpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.1lf %8.1lf  %8.2lf %8.2lf  %8.2lf %8.2lf\n", 
-		(double)ss->net.icmpv4.InMsgs      / deltasec, 
-		(double)ss->net.icmpv4.OutMsgs     / deltasec, 
-		(double)ss->net.icmpv4.InEchos     / deltasec, 
-		(double)ss->net.icmpv4.OutEchos    / deltasec, 
-		(double)ss->net.icmpv4.InEchoReps  / deltasec, 
+	printf("%7.1lf %8.1lf  %8.2lf %8.2lf  %8.2lf %8.2lf\n",
+		(double)ss->net.icmpv4.InMsgs      / deltasec,
+		(double)ss->net.icmpv4.OutMsgs     / deltasec,
+		(double)ss->net.icmpv4.InEchos     / deltasec,
+		(double)ss->net.icmpv4.OutEchos    / deltasec,
+		(double)ss->net.icmpv4.InEchoReps  / deltasec,
 		(double)ss->net.icmpv4.OutEchoReps / deltasec);
 	return 1;
 }
@@ -2253,7 +2254,7 @@ ICMPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
 	printf("%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf "
-	       "%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf\n", 
+	       "%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf\n",
 		(double)ss->net.icmpv4.InErrors        / deltasec,
 		(double)ss->net.icmpv4.InSrcQuenchs    / deltasec,
 		(double)ss->net.icmpv4.InRedirects     / deltasec,
@@ -2307,7 +2308,7 @@ ipv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%8.1lf %8.1lf %6.1lf %7.1lf %9.1lf %9.1lf %9.1lf\n", 
+	printf("%8.1lf %8.1lf %6.1lf %7.1lf %9.1lf %9.1lf %9.1lf\n",
 		(double)ss->net.ipv6.Ip6InReceives   / deltasec,
 		(double)ss->net.ipv6.Ip6OutRequests  / deltasec,
 		(double)ss->net.ipv6.Ip6InMcastPkts  / deltasec,
@@ -2332,7 +2333,7 @@ IPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
 	printf("    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
-	       "    %5.1lf %5.1lf\n", 
+	       "    %5.1lf %5.1lf\n",
 		(double)ss->net.ipv6.Ip6InDiscards      / deltasec,
 		(double)ss->net.ipv6.Ip6InHdrErrors     / deltasec,
 		(double)ss->net.ipv6.Ip6InAddrErrors    / deltasec,
@@ -2360,13 +2361,13 @@ icmpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.1lf %8.1lf %7.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n", 
-		(double)ss->net.icmpv6.Icmp6InMsgs                  / deltasec, 
-		(double)ss->net.icmpv6.Icmp6OutMsgs                 / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InErrors                / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InNeighborSolicits      / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InNeighborAdvertisements/ deltasec, 
-		(double)ss->net.icmpv6.Icmp6OutNeighborSolicits     / deltasec, 
+	printf("%7.1lf %8.1lf %7.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n",
+		(double)ss->net.icmpv6.Icmp6InMsgs                  / deltasec,
+		(double)ss->net.icmpv6.Icmp6OutMsgs                 / deltasec,
+		(double)ss->net.icmpv6.Icmp6InErrors                / deltasec,
+		(double)ss->net.icmpv6.Icmp6InNeighborSolicits      / deltasec,
+		(double)ss->net.icmpv6.Icmp6InNeighborAdvertisements/ deltasec,
+		(double)ss->net.icmpv6.Icmp6OutNeighborSolicits     / deltasec,
 		(double)ss->net.icmpv6.Icmp6OutNeighborAdvertisements
 								/deltasec);
 	return 1;
@@ -2386,7 +2387,7 @@ ICMPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
 	printf("%7.2lf %7.2lf %7.2lf %5.2lf %5.2lf "
-	       "%5.2lf %5.2lf %5.2lf %5.2lf\n", 
+	       "%5.2lf %5.2lf %5.2lf %5.2lf\n",
 		(double)ss->net.icmpv6.Icmp6InEchos         / deltasec,
 		(double)ss->net.icmpv6.Icmp6InEchoReplies   / deltasec,
 		(double)ss->net.icmpv6.Icmp6OutEchoReplies  / deltasec,
@@ -2487,7 +2488,7 @@ httpline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	printf("%10.2lf  %8.2lf  %9.2lf    %11d %11d\n",
 		(double)ss->www.accesses      / deltasec,
 		(double)ss->www.totkbytes     / deltasec,
-		ss->www.accesses ? 
+		ss->www.accesses ?
 		    (double)ss->www.totkbytes*1024/ss->www.accesses : 0,
 		        ss->www.iworkers,
 		        ss->www.bworkers);
