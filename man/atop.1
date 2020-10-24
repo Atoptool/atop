@@ -2168,7 +2168,7 @@ number of misses on reply cache, and
 number of uncached requests.
 .TP 9
 .B NET
-First one line is produced for the upper layers of the TCP/IP stack.
+First, one line is produced for the upper layers of the TCP/IP stack.
 .br
 Subsequent fields:
 the verb "upper",
@@ -2178,10 +2178,19 @@ number of packets received by UDP,
 number of packets transmitted by UDP,
 number of packets received by IP,
 number of packets transmitted by IP,
-number of packets delivered to higher layers by IP, and
-number of packets forwarded by IP.
+number of packets delivered to higher layers by IP,
+number of packets forwarded by IP,
+number of input errors (UDP),
+number of noport errors (UDP),
+number of active opens (TCP),
+number of passive opens (TCP),
+number of passive opens (TCP),
+number of established connections at this moment (TCP),
+number of retransmitted segments (TCP),
+number of input errors (TCP), and
+number of output resets (TCP).
 
-Next one line is shown for every interface.
+Next, one line is shown for every interface.
 .br
 Subsequent fields:
 name of the interface,

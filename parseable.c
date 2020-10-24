@@ -601,7 +601,7 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
 
-	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			"upper",
         		ss->net.tcp.InSegs,
@@ -617,7 +617,17 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
        		 	ss->net.ipv4.InDelivers +
        		 		ss->net.ipv6.Ip6InDelivers,
        		 	ss->net.ipv4.ForwDatagrams +
-       		 		ss->net.ipv6.Ip6OutForwDatagrams);
+       		 		ss->net.ipv6.Ip6OutForwDatagrams,
+       		 	ss->net.udpv4.InErrors +
+				ss->net.udpv6.Udp6InErrors,
+       		 	ss->net.udpv4.NoPorts +
+				ss->net.udpv6.Udp6NoPorts,
+			ss->net.tcp.ActiveOpens,
+			ss->net.tcp.PassiveOpens,
+			ss->net.tcp.CurrEstab,
+			ss->net.tcp.RetransSegs,
+			ss->net.tcp.InErrs,
+			ss->net.tcp.OutRsts);
 
 	for (i=0; ss->intf.intf[i].name[0]; i++)
 	{
