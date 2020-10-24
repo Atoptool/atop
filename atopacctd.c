@@ -467,6 +467,7 @@ main(int argc, char *argv[])
 	while (! cleanup_and_go)
 	{
 		int	state;
+		time_t	curtime;
 
 		/*
 		** await termination of (at least) one process and
@@ -479,10 +480,18 @@ main(int argc, char *argv[])
 			break;
 
 		/*
- 		** verify if garbage collection is needed
-		** i.e. removal of shadow files that are not in use any more
+ 		** garbage collection (i.e. removal of shadow files that
+		** are not in use any more) is needed in case:
+		**
+		** - shadow files are currently maintained because
+		**   at least one atop is running, and
+		** - shadow files have not been removed for GCINTERVAL
+		**   seconds, or
+		** - the system clock has been modified (lowered)
 		*/
-		if ( shadowbusy && time(0) > gclast + GCINTERVAL )
+		if ( shadowbusy &&
+			(time(&curtime) > gclast + GCINTERVAL ||
+		               curtime  < gclast                ) )
 		{
 			gcshadows(&oldshadow, curshadow);
 			gclast = time(0);
