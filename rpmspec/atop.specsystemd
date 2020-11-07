@@ -7,7 +7,7 @@ Packager:       Gerlof Langeveld <gerlof.langeveld@atoptool.nl>
 Summary:        Advanced System and Process Monitor
 License:        GPL
 Group: 	        System Environment
-Requires:       zlib, ncurses
+Requires:       zlib, ncurses, python3
 BuildRequires:  zlib-devel, ncurses-devel
 BuildRoot:      /var/tmp/rpm-buildroot-atop
 
