@@ -288,6 +288,7 @@ static void	showhelp(int);
 static int	paused;     	/* boolean: currently in pause-mode     */
 static int	fixedhead;	/* boolean: fixate header-lines         */
 static int	sysnosort;	/* boolean: suppress sort of resources  */
+static int	threadsort;	/* boolean: sort threads per process    */
 static int	avgval;		/* boolean: average values i.s.o. total */
 static int	suppressexit;	/* boolean: suppress exited processes   */
 
@@ -506,15 +507,16 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						50 - seclen - utsnodenamelen;
+						51 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
 		       "*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
+			threadsort                    ? MTHRSORT   : '-',
 			fixedhead  		      ? MSYSFIXED  : '-',
 			sysnosort  		      ? MSYSNOSORT : '-',
 			deviatonly 		      ? '-'        : MALLPROC,
@@ -935,16 +937,22 @@ generic_samp(time_t curtime, int nsecs,
 				else
 					j = ntotal;
 
+				/*
+ 				** zip process list with thread list
+				*/
 				if (zipagain)
 				{
 					struct tstat *tall = devtstat->taskall;
 					struct tstat *pcur;
+					long int     n;
 
 					for (i=j=0; i < ncurlist; i++)
 					{
 					    pcur = curlist[i];
 
-					    tsklist[j++] = pcur;
+					    tsklist[j++] = pcur; // take process
+
+					    n = j; // start index of threads
 
 					    for (t = pcur - tall + 1;
 					         t < devtstat->ntaskall &&
@@ -964,6 +972,14 @@ generic_samp(time_t curtime, int nsecs,
  						}
 						else
 							tsklist[j++] = tall+t;
+					    }
+
+				            if (threadsort && j-n > 0 &&
+							curorder != MSORTMEM)
+					    {
+						qsort(&tsklist[n], j-n,
+				                  sizeof(struct tstat *),
+				                  procsort[(int)curorder&0x1f]);
 					    }
 					}
 
@@ -1965,7 +1981,7 @@ generic_samp(time_t curtime, int nsecs,
 
 			   /*
 			   ** per-thread view wanted with sorting on
-			   ** process level or thread level
+			   ** process level
 			   */
 			   case MTHREAD:
 				if (threadview)
@@ -1978,6 +1994,24 @@ generic_samp(time_t curtime, int nsecs,
 				{
 					threadview = 1;
 					statmsg    = "Thread view enabled";
+					firstproc  = 0;
+				}
+				break;
+
+			   /*
+			   ** sorting on thread level as well (threadview)
+			   */
+			   case MTHRSORT:
+				if (threadsort)
+				{
+					threadsort = 0;
+					statmsg    = "Thread sorting disabled for thread view";
+					firstproc  = 0;
+				}
+				else
+				{
+					threadsort = 1;
+					statmsg    = "Thread sorting enabled for thread view";
 					firstproc  = 0;
 				}
 				break;
@@ -2794,6 +2828,13 @@ generic_init(void)
 				threadview = 1;
 			break;
 
+		   case MTHRSORT:
+			if (threadsort)
+				threadsort = 0;
+			else
+				threadsort = 1;
+			break;
+
 		   case MCALCPSS:
 			if (calcpss)
 				calcpss = 0;
@@ -2963,8 +3004,10 @@ static struct helptext {
 									' '},
 	{"\n",							' '},
 	{"Presentation (keys shown in header line):\n",  	' '},
-	{"\t'%c'  - show individual threads                        (toggle)\n",
+	{"\t'%c'  - show threads within process (thread view)      (toggle)\n",
 		 						MTHREAD},
+	{"\t'%c'  - sort threads (when combined with thread view)  (toggle)\n",
+		 						MTHRSORT},
 	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
 								MALLPROC},
 	{"\t'%c'  - show fixed number of header lines              (toggle)\n",
@@ -3100,7 +3143,8 @@ generic_usage(void)
 			MSUPEXITS);
 	printf("\t  -%c  show limited number of lines for certain resources\n",
 			MSYSLIMIT);
-	printf("\t  -%c  show individual threads\n", MTHREAD);
+	printf("\t  -%c  show threads within process\n", MTHREAD);
+	printf("\t  -%c  sort threads (when combined with '%c')\n", MTHRSORT, MTHREAD);
 	printf("\t  -%c  show average-per-second i.s.o. total values\n\n",
 			MAVGVAL);
 	printf("\t  -%c  no colors in case of high occupation\n",
@@ -3451,6 +3495,10 @@ do_flags(char *name, char *val)
 
 		   case MTHREAD:
 			threadview = 1;
+			break;
+
+		   case MTHRSORT:
+			threadsort = 1;
 			break;
 
 		   case MCOLORS:

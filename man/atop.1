@@ -6,7 +6,7 @@
 Interactive Usage:
 .P
 .B atop
-[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]...]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I [YYYYMMDD]hhmm
 ] [\-e
 .I [YYYYMMDD]hhmm
-] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
+] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -525,8 +525,14 @@ while additional lines show the activity
 per individual thread (in a different color). Depending on
 the option 'a' (all or active toggle), all threads are shown
 or only the threads that were active during the last interval.
+Depending on the option 'Y' (sort threads), the threads per
+process will be sorted on the chosen sort criterium or not.
 .br
 Whether this key is active or not can be seen in the header line.
+.PP
+.TP 5
+.B Y
+Sort the threads per process when combined with option 'y' (toggle).
 .PP
 .TP 5
 .B u

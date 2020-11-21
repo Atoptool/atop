@@ -99,6 +99,7 @@ struct sselection {
 #define	MSORTAUTO	'A'
 
 #define	MTHREAD		'y'
+#define	MTHRSORT	'Y'
 #define	MCALCPSS	'R'
 #define	MGETWCHAN	'W'
 #define	MSUPEXITS	'G'
