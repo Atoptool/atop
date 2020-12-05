@@ -59,7 +59,7 @@ case "$1" in
 
 		rm $PIDFILE
 	fi
-	rm /var/lock/subsys/atop
+	rm -f /var/lock/subsys/atop
 	;;
 
   status)
