@@ -4,6 +4,7 @@ LOGOPTS=""				# default options
 LOGINTERVAL=600				# default interval in seconds
 LOGGENERATIONS=28			# default number of days
 LOGPATH=/var/log/atop                   # default log location
+CURDAY=`date +%Y%m%d`			# default atop rawlog suffix
 
 # allow administrator to overrule the variables
 # defined above
@@ -24,7 +25,6 @@ then
 	esac
 fi
 
-CURDAY=`date +%Y%m%d`
 BINPATH=/usr/bin
 PIDFILE=/var/run/atop.pid
 
