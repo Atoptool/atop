@@ -94,7 +94,8 @@ ln -sf /usr/bin/atop-XVERSX     /usr/bin/atopsar-XVERSX
 /usr/bin/atopcat
 /usr/bin/atopsar
 /usr/sbin/atopacctd
-/usr/sbin/atopgpud /usr/share/man/man1/atop.1*
+/usr/sbin/atopgpud
+/usr/share/man/man1/atop.1*
 /usr/share/man/man1/atopsar.1*
 /usr/share/man/man1/atopconvert.1*
 /usr/share/man/man1/atopcat.1*
