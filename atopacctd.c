@@ -379,7 +379,7 @@ main(int argc, char *argv[])
 		if (S_ISDIR(dirstat.st_mode))	// and is directory?
 		{
 			// define new name to save directory
-			char newshadow[128];
+			char newshadow[256];
 
 			snprintf(newshadow, sizeof newshadow, "%s-old-%d",
 							shadowdir, getpid());

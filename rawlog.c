@@ -345,9 +345,9 @@ rawread(void)
 
 		if (lookslikedatetome(rawname))
 		{
-			char	savedname[RAWNAMESZ];
+			char	savedname[16];
 
-			strncpy(savedname, rawname, RAWNAMESZ-1);
+			strcpy(savedname, rawname); // no overflow (len=8)
 
 			snprintf(rawname, RAWNAMESZ, "%s/atop_%s",
 				BASEPATH, 
@@ -415,7 +415,7 @@ rawread(void)
 	*/
 	if ( (rawfd = open(rawname, O_RDONLY)) == -1)
 	{
-		char	command[512], tmpname1[RAWNAMESZ], tmpname2[RAWNAMESZ];
+		char	command[512], tmpname1[200], tmpname2[200];
 
 		/*
 		** check if a compressed raw file is present

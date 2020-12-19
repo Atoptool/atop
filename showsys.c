@@ -2559,7 +2559,7 @@ sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color)
 {
         struct sstat *sstat = p;
         extraparam *as = q;
-        static char buf[16];
+        static char buf[64];
         count_t rate = sstat->ifb.ifb[as->index].rate;
 
 	*color = -1;
