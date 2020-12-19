@@ -11,7 +11,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Initial:     July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2018-2019 Gerlof Langeveld
+** Copyright (C) 2018-2020 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -70,6 +70,9 @@
 
 #include "prev/photosyst_25.h"
 #include "prev/photoproc_25.h"
+
+#include "prev/photosyst_26.h"
+#include "prev/photoproc_26.h"
 
 
 ///////////////////////////////////////////////////////////////
@@ -239,6 +242,7 @@ struct sstat_22		sstat_22;
 struct sstat_23		sstat_23;
 struct sstat_24		sstat_24;
 struct sstat_25		sstat_25;
+struct sstat_26		sstat_26;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -247,6 +251,7 @@ struct tstat_22		tstat_22;
 struct tstat_23		tstat_23;
 struct tstat_24		tstat_24;
 struct tstat_25		tstat_25;
+struct tstat_26		tstat_26;
 struct tstat		tstat;
 
 struct convertall {
@@ -454,6 +459,36 @@ struct convertall {
 			STROFFSET(&tstat_25.net, &tstat_25),	justcopy},
 		{sizeof(struct gpu_25),
 			STROFFSET(&tstat_25.gpu, &tstat_25),	justcopy},
+	},
+
+	{SETVERSION(2,6), // 2.5 --> 2.6
+		 sizeof(struct sstat_26),	&sstat_26,
+		 sizeof(struct tstat_26), 	NULL,
+
+		{sizeof(struct cpustat_26),  	&sstat_26.cpu,	justcopy},
+		{sizeof(struct memstat_26),  	&sstat_26.mem,	justcopy},
+		{sizeof(struct netstat_26),  	&sstat_26.net,	justcopy},
+		{sizeof(struct intfstat_26), 	&sstat_26.intf,	justcopy},
+		{sizeof(struct dskstat_26),  	&sstat_26.dsk,	justcopy},
+		{sizeof(struct nfsstat_26),  	&sstat_26.nfs,	justcopy},
+		{sizeof(struct contstat_26), 	&sstat_26.cfs,	justcopy},
+		{sizeof(struct wwwstat_26),  	&sstat_26.www,	justcopy},
+		{sizeof(struct pressure_26),  	&sstat_26.psi,	justcopy},
+		{sizeof(struct gpustat_26),  	&sstat_26.gpu,	justcopy},
+		{sizeof(struct ifbstat_26),  	&sstat_26.ifb,	justcopy},
+
+		{sizeof(struct gen_26),
+			STROFFSET(&tstat_26.gen, &tstat_26),	justcopy},
+		{sizeof(struct cpu_26),
+			STROFFSET(&tstat_26.cpu, &tstat_26),	justcopy},
+		{sizeof(struct dsk_26),
+			STROFFSET(&tstat_26.dsk, &tstat_26),	justcopy},
+		{sizeof(struct mem_26),
+			STROFFSET(&tstat_26.mem, &tstat_26),	justcopy},
+		{sizeof(struct net_26),
+			STROFFSET(&tstat_26.net, &tstat_26),	justcopy},
+		{sizeof(struct gpu_26),
+			STROFFSET(&tstat_26.gpu, &tstat_26),	justcopy},
 	},
 };
 
