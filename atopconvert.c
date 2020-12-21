@@ -218,6 +218,33 @@ tgen_to_22(void *old, void *new, count_t oldsize, count_t newsize)
 	g22->vpid = 0;
 }
 
+void
+tcpu_to_26(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// unused values appear not to be zeroed in version 2.5
+	//
+	struct cpu_25	*c25 = old;
+	struct cpu_26	*c26 = new;
+
+	memcpy(c26, c25, sizeof *c26);		// copy entire struct
+
+        memset(&(c26->wchan), 0, sizeof c26->wchan);
+	c26->rundelay = 0;
+}
+
+void
+tmem_to_26(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// unused values appear not to be zeroed in version 2.5
+	//
+	struct mem_25	*m25 = old;
+	struct mem_26	*m26 = new;
+
+	memcpy(m26, m25, sizeof *m26);		// copy entire struct
+
+	m26->vlock = 0;
+}
+
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
 //
@@ -480,11 +507,11 @@ struct convertall {
 		{sizeof(struct gen_26),
 			STROFFSET(&tstat_26.gen, &tstat_26),	justcopy},
 		{sizeof(struct cpu_26),
-			STROFFSET(&tstat_26.cpu, &tstat_26),	justcopy},
+			STROFFSET(&tstat_26.cpu, &tstat_26),	tcpu_to_26},
 		{sizeof(struct dsk_26),
 			STROFFSET(&tstat_26.dsk, &tstat_26),	justcopy},
 		{sizeof(struct mem_26),
-			STROFFSET(&tstat_26.mem, &tstat_26),	justcopy},
+			STROFFSET(&tstat_26.mem, &tstat_26),	tmem_to_26},
 		{sizeof(struct net_26),
 			STROFFSET(&tstat_26.net, &tstat_26),	justcopy},
 		{sizeof(struct gpu_26),
