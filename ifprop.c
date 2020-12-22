@@ -104,7 +104,9 @@ initifprop(void)
 	char 				*cp, linebuf[2048];
 	int				i=0, sockfd;
 
+#ifdef ETHTOOL_GLINKSETTINGS
 	struct ethtool_link_settings 	ethlink;	// preferred!
+#endif
 	struct ethtool_cmd 		ethcmd;		// deprecated	
 
 	struct ifreq		 	ifreq;
@@ -153,6 +155,7 @@ initifprop(void)
 		strncpy((void *)&ifreq.ifr_ifrn.ifrn_name, ifprops[i].name,
 				sizeof ifreq.ifr_ifrn.ifrn_name-1);
 
+#ifdef ETHTOOL_GLINKSETTINGS
 		ethlink.cmd              = ETHTOOL_GLINKSETTINGS;
 		ifreq.ifr_ifru.ifru_data = (void *)&ethlink;
 
@@ -164,6 +167,7 @@ initifprop(void)
 			phy_addr = ethlink.phy_address;
 		}
 		else
+#endif
 		{
 			ethcmd.cmd               = ETHTOOL_GSET;
 			ifreq.ifr_ifru.ifru_data = (void *)&ethcmd;
