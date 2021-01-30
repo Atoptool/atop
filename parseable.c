@@ -422,7 +422,7 @@ print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -439,20 +439,25 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.hugepagesz,
         		ss->mem.tothugepage,
         		ss->mem.freehugepage,
-        		ss->mem.zfsarcsize);
+        		ss->mem.zfsarcsize,
+        		ss->mem.ksmsharing,
+        		ss->mem.ksmshared);
 }
 
 void
 print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.totswap,
 			ss->mem.freeswap,
 			ss->mem.swapcached,
 			ss->mem.committed,
-			ss->mem.commitlim);
+			ss->mem.commitlim,
+        		ss->mem.swapcached,
+        		ss->mem.zswstored,
+        		ss->mem.zswtotpool);
 }
 
 void
