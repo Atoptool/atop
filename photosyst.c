@@ -633,6 +633,12 @@ photosyst(struct sstat *si)
 				si->mem.allocstall = cnts[0];
 				continue;
 			}
+
+			if ( strcmp("oom_kill", nam) == EQ)
+			{
+				si->mem.oomkills = cnts[0];
+				continue;
+			}
 		}
 
 		fclose(fp);

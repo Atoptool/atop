@@ -1603,6 +1603,22 @@ sysprt_PAGSWOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT};
 /*******************************************************************/
+char *
+sysprt_OOMKILLS(void *p, void *q, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="oomkill  ";
+
+	if (sstat->mem.oomkills)
+		*color = COLORCRIT;
+
+        val2valstr(sstat->mem.oomkills, buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_OOMKILLS = {"OOMKILLS", sysprt_OOMKILLS};
+/*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)

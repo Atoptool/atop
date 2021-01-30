@@ -837,6 +837,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.pgsteal	= subcount(cur->mem.pgsteal, pre->mem.pgsteal);
 	dev->mem.allocstall	= subcount(cur->mem.allocstall,
 				                         pre->mem.allocstall);
+	dev->mem.oomkills	= subcount(cur->mem.oomkills, pre->mem.oomkills);
 
 	dev->psi          	= cur->psi;
 

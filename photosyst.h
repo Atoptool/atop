@@ -79,7 +79,8 @@ struct	memstat {
 	count_t	ksmshared;	// current size shared pages (pages)
 	count_t	zswstored;	// zswap stored pages (pages)
 	count_t	zswtotpool;	// total pool size (pages)
-	count_t	cfuture[2];	// reserved for future use
+	count_t	oomkills;	// number of oom killings
+	count_t	cfuture[1];	// reserved for future use
 };
 
 /************************************************************************/

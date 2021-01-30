@@ -413,6 +413,7 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSTALL,
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
+	&syspdef_OOMKILLS,
 	&syspdef_BLANKBOX,
         0
 };
@@ -1072,15 +1073,15 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 {
                     make_sys_prints(pagline, MAXITEMS,
 	                "PAGSCAN:3 "
-	                "PAGSTEAL:3 "
+	                "PAGSTEAL:2 "
 	                "PAGSTALL:1 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
-	                "PAGSWIN:3 "
-	                "PAGSWOUT:4", pagsyspdefs, "builtin pagline");
+	                "PAGSWIN:4 "
+	                "PAGSWOUT:5"
+			"OOMKILLS:6", pagsyspdefs, "builtin pagline");
                 }
                 if (psiline[0].f == 0)
                 {

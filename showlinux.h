@@ -206,6 +206,7 @@ extern sys_printdef syspdef_PAGSTEAL;
 extern sys_printdef syspdef_PAGSTALL;
 extern sys_printdef syspdef_PAGSWIN;
 extern sys_printdef syspdef_PAGSWOUT;
+extern sys_printdef syspdef_OOMKILLS;
 extern sys_printdef syspdef_PSICPUSTOT;
 extern sys_printdef syspdef_PSIMEMSTOT;
 extern sys_printdef syspdef_PSIMEMFTOT;

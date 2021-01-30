@@ -1225,9 +1225,9 @@ This line contains the number of scanned pages (`scan') due to the fact
 that free memory drops below a particular threshold and the number
 times that the kernel tries to reclaim pages due to an urgent need (`stall').
 .br
-Also the number of memory pages the system read from swap space (`swin')
-and the number of memory pages the system wrote to swap space (`swout')
-are shown.
+Also the number of memory pages the system read from swap space (`swin'),
+the number of memory pages the system wrote to swap space (`swout'), and
+the number of OOM (out-of-memory) kills (`oomkill') are shown.
 .PP
 .TP 5
 .B PSI
@@ -2116,8 +2116,9 @@ page size for this machine (in bytes),
 number of page scans,
 number of allocstalls,
 0 (future use),
-number of swapins, and 
-number of swapouts.
+number of swapins,
+number of swapouts, and
+number of oomkills.
 .TP 9
 .B PSI
 Subsequent fields:
