@@ -75,7 +75,11 @@ struct	memstat {
 	count_t	vmwballoon;	// vmware claimed balloon pages
 	count_t	zfsarcsize;	// zfsonlinux ARC size (pages)
 	count_t swapcached;	// swap cache (pages)
-	count_t	cfuture[6];	// reserved for future use
+	count_t	ksmsharing;	// saved i.e. deduped memory (pages)
+	count_t	ksmshared;	// current size shared pages (pages)
+	count_t	zswstored;	// zswap stored pages (pages)
+	count_t	zswtotpool;	// total pool size (pages)
+	count_t	cfuture[2];	// reserved for future use
 };
 
 /************************************************************************/

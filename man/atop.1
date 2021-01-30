@@ -1202,8 +1202,12 @@ only a relevant subset is shown.
 Swap occupation and overcommit info.
 .br
 This line contains the total amount of swap space on disk (`tot'),
-the amount of free swap space (`free') and the size of the swap cache
-(`swcac').
+the amount of free swap space (`free'),
+the size of the swap cache (`swcac'),
+the total size of compressed storage in zswap (`zpool`),
+the total size of the compressed pages stored in zswap (`zstor'),
+the total size of the memory used for KSM (`ksuse`, i.e. shared), and
+the total size of the memory saved (deduped) by KSM (`kssav`, i.e. sharing).
 .br
 Furthermore the committed virtual memory space (`vmcom') and the maximum 
 limit of the committed space (`vmlim', which is by default swap size
@@ -2089,8 +2093,10 @@ size of resident shared memory (pages),
 size of swapped shared memory (pages),
 huge page size (in bytes),
 total size of huge pages (huge pages),
-size of free huge pages (huge pages), and
-size of ARC (cache) of ZFSonlinux (pages).
+size of free huge pages (huge pages),
+size of ARC (cache) of ZFSonlinux (pages),
+size of sharing pages for KSM (pages), and
+size of shared pages for KSM (pages).
 .TP 9
 .B SWP
 Subsequent fields:
@@ -2098,8 +2104,11 @@ page size for this machine (in bytes),
 size of swap (pages),
 size of free swap (pages),
 size of swap cache (pages),
-size of committed space (pages), and
-limit for committed space (pages).
+size of committed space (pages), 
+limit for committed space (pages),
+size of the swap cache (pages),
+size of compressed pages stored in zswap (pages), and
+total size of compressed pool in zswap (pages).
 .TP 9
 .B PAG
 Subsequent fields:

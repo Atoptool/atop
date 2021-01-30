@@ -395,8 +395,12 @@ sys_printdef *memsyspdefs[] = {
 sys_printdef *swpsyspdefs[] = {
 	&syspdef_SWPTOT,
 	&syspdef_SWPFREE,
-	&syspdef_BLANKBOX,
 	&syspdef_SWPCACHE,
+	&syspdef_BLANKBOX,
+	&syspdef_ZSWTOTAL,
+	&syspdef_ZSWSTORED,
+	&syspdef_KSMSHARING,
+	&syspdef_KSMSHARED,
 	&syspdef_BLANKBOX,
 	&syspdef_SWPCOMMITTED,
 	&syspdef_SWPCOMMITLIM,
@@ -1051,15 +1055,18 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (swpline[0].f == 0)
                 {
                     make_sys_prints(swpline, MAXITEMS,
-	                "SWPTOT:3 "
-	                "SWPFREE:4 "
+	                "SWPTOT:5 "
+	                "SWPFREE:6 "
+	                "SWPCACHE:4 "
 	                "BLANKBOX:0 "
+	                "ZSWTOTAL:3 "
+	                "ZSWSTORED:3 "
 	                "BLANKBOX:0 "
-	                "SWPCACHE:2 "
+	                "KSMSHARED:2 "
+	                "KSMSHARING:2 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 "
-	                "SWPCOMMITTED:5 "
-	                "SWPCOMMITLIM:6", swpsyspdefs, "builtin swpline");
+	                "SWPCOMMITTED:7 "
+	                "SWPCOMMITLIM:8", swpsyspdefs, "builtin swpline");
                 }
                 if (pagline[0].f == 0)
                 {

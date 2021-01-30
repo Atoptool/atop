@@ -1465,6 +1465,54 @@ sysprt_SWPCACHE(void *p, void *notused, int badness, int *color)
 sys_printdef syspdef_SWPCACHE = {"SWPCACHE", sysprt_SWPCACHE};
 /*******************************************************************/
 char *
+sysprt_ZSWTOTAL(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="zpool ";
+	*color = -1;
+        val2memstr(sstat->mem.zswtotpool * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_ZSWTOTAL = {"ZSWTOTAL", sysprt_ZSWTOTAL};
+/*******************************************************************/
+char *
+sysprt_ZSWSTORED(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="zstor ";
+	*color = -1;
+        val2memstr(sstat->mem.zswstored * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED};
+/*******************************************************************/
+char *
+sysprt_KSMSHARING(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="kssav ";
+	*color = -1;
+        val2memstr(sstat->mem.ksmshared * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_KSMSHARING = {"KSMSHARING", sysprt_KSMSHARING};
+/*******************************************************************/
+char *
+sysprt_KSMSHARED(void *p, void *notused, int badness, int *color) 
+{
+        struct sstat *sstat=p;
+        static char buf[16]="ksuse ";
+	*color = -1;
+        val2memstr(sstat->mem.ksmsharing * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_KSMSHARED = {"KSMSHARED", sysprt_KSMSHARED};
+/*******************************************************************/
+char *
 sysprt_SWPCOMMITTED(void *p, void *notused, int badness, int *color) 
 {
         struct sstat *sstat=p;
