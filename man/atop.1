@@ -1227,7 +1227,7 @@ times that the kernel tries to reclaim pages due to an urgent need (`stall').
 .br
 Also the number of memory pages the system read from swap space (`swin'),
 the number of memory pages the system wrote to swap space (`swout'), and
-the number of OOM (out-of-memory) kills (`oomkill') are shown.
+the number of out-of-memory kills (`oomkill') are shown.
 .PP
 .TP 5
 .B PSI
@@ -2118,7 +2118,7 @@ number of allocstalls,
 0 (future use),
 number of swapins,
 number of swapouts, and
-number of oomkills.
+number of oomkills (-1 when counter not present).
 .TP 9
 .B PSI
 Subsequent fields:

@@ -1521,7 +1521,7 @@ memline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 swaphead(int osvers, int osrel, int ossub)
 {
-	printf("pagescan/s   swapin/s  swapout/s      "
+	printf("pagescan/s  swapin/s swapout/s oomkill"
 	       "  commitspc  commitlim   _swap_");
 }
 
@@ -1552,10 +1552,11 @@ swapline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 
 	preprint(badness);
 
-	printf("%10.2lf  %9.2lf  %9.2lf       %9lluM %9lluM",
+	printf("%10.2lf %9.2lf %9.2lf %7lld %9lluM %9lluM",
 		(double)ss->mem.pgscans / deltasec,
 		(double)ss->mem.swins   / deltasec,
 		(double)ss->mem.swouts  / deltasec,
+		        ss->mem.oomkills,
 		        ss->mem.committed * (pagesize / 1024) / 1024,
 		        ss->mem.commitlim * (pagesize / 1024) / 1024);
 

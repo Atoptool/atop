@@ -12,7 +12,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2021 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -28,144 +28,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: deviate.c,v $
-** Revision 1.45  2010/10/23 14:02:03  gerlof
-** Show counters for total number of running and sleep (S and D) threads.
-**
-** Revision 1.44  2010/05/18 19:19:43  gerlof
-** Introduce CPU frequency and scaling (JC van Winkel).
-**
-** Revision 1.43  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.42  2010/03/04 10:52:08  gerlof
-** Support I/O-statistics on logical volumes and MD devices.
-**
-** Revision 1.41  2009/12/31 11:34:21  gerlof
-** Sanity-check to bypass kernel-bug showing 497 days of CPU-consumption.
-**
-** Revision 1.40  2009/12/17 11:58:25  gerlof
-** Gather and display new counters: dirty cache and guest cpu usage.
-**
-** Revision 1.39  2008/02/25 14:51:18  gerlof
-** Experimental code for HTTP-statistics.
-**
-** Revision 1.38  2008/01/07 11:33:43  gerlof
-** Cosmetic changes.
-**
-** Revision 1.37  2008/01/07 10:17:24  gerlof
-** Implement possibility to make summaries.
-**
-** Revision 1.36  2007/11/05 12:13:16  gerlof
-** Match processes not only on pid, but also on start time.
-**
-** Revision 1.35  2007/11/05 11:42:47  gerlof
-** Bug-solution for new-process indicator on 64-bits machines.
-**
-** Revision 1.34  2007/08/17 09:44:59  gerlof
-** Experimental: gather info about HTTP statistics.
-**
-** Revision 1.33  2007/08/16 11:59:32  gerlof
-** Add support for atopsar reporting.
-** Concerns addition of lots of counters.
-**
-** Revision 1.32  2007/07/03 09:01:07  gerlof
-** Support Apache-statistics.
-**
-** Revision 1.31  2007/03/20 13:02:03  gerlof
-** Introduction of variable supportflags.
-**
-** Revision 1.30  2007/03/20 11:18:57  gerlof
-** Add counter for cancelled writes.
-**
-** Revision 1.29  2007/02/13 09:21:04  gerlof
-** Removed external declarations.
-**
-** Revision 1.28  2007/01/22 08:28:18  gerlof
-** Support steal-time from /proc/stat.
-**
-** Revision 1.27  2007/01/18 10:43:18  gerlof
-** Support for network-interface busy-percentage (speed and duplex).
-**
-** Revision 1.26  2006/11/13 13:47:26  gerlof
-** Implement load-average counters, context-switches and interrupts.
-**
-** Revision 1.25  2006/02/07 06:45:33  gerlof
-** Removed swap-counter.
-**
-** Revision 1.24  2006/01/30 09:13:33  gerlof
-** Extend memory counters (a.o. page scans).
-**
-** Revision 1.23  2005/10/31 12:45:29  gerlof
-** Support account-record version 3 (used by Mandriva).
-**
-** Revision 1.22  2005/10/21 09:49:38  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.21  2004/12/14 15:05:47  gerlof
-** Implementation of patch-recognition for disk and network-statistics.
-**
-** Revision 1.20  2004/10/28 08:30:51  gerlof
-** New counter: vm committed space
-**
-** Revision 1.19  2004/09/24 10:02:01  gerlof
-** Wrong cpu-numbers for system level statistics.
-**
-** Revision 1.18  2004/09/02 10:49:18  gerlof
-** Added sleep-average to process-info.
-**
-** Revision 1.17  2004/08/31 13:27:04  gerlof
-** Add new info for threading.
-**
-** Revision 1.16  2004/05/07 05:49:40  gerlof
-** *** empty log message ***
-**
-** Revision 1.15  2004/05/06 09:46:55  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.14  2003/07/07 09:26:33  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.13  2003/07/03 11:17:49  gerlof
-** Corrected calculations for exited processes.
-**
-** Revision 1.12  2003/06/30 11:30:57  gerlof
-** Enlarge counters to 'long long'.
-**
-** Revision 1.11  2003/06/24 06:21:12  gerlof
-** Limit number of system resource lines.
-**
-** Revision 1.10  2003/01/24 14:20:16  gerlof
-** If possible, also show commandline when process has exited.
-**
-** Revision 1.9  2002/09/16 08:58:08  gerlof
-** Add indicator for newly created processes.
-**
-** Revision 1.8  2002/08/27 04:47:46  gerlof
-** Minor comment updates.
-**
-** Revision 1.7  2002/07/24 11:12:20  gerlof
-** Redesigned to ease porting to other UNIX-platforms.
-**
-** Revision 1.6  2002/07/10 04:59:37  root
-** Counters pin/pout renamed to swin/swout (Linux conventions).
-**
-** Revision 1.5  2002/01/22 13:39:20  gerlof
-** Support for number of cpu's.
-**
-** Revision 1.4  2001/11/22 08:33:10  gerlof
-** Add priority per process.
-**
-** Revision 1.3  2001/11/07 09:18:22  gerlof
-** Use /proc instead of /dev/kmem for process-level statistics.
-**
-** Revision 1.2  2001/10/03 08:58:41  gerlof
-** Improved subtraction which is overflow-proof
-**
-** Revision 1.1  2001/10/02 10:43:23  gerlof
-** Initial revision
-**
 */
 
 #include <sys/types.h>
@@ -187,10 +49,9 @@
 #include "photoproc.h"
 #include "photosyst.h"
 
-#define	MAX32BITVAL	0x100000000LL
-
-static void calcdiff(struct tstat *, struct tstat *, struct tstat *,
+static 		void calcdiff(struct tstat *, struct tstat *, struct tstat *,
 							char, count_t);
+static inline	count_t subcount(count_t, count_t);
 
 /*
 ** calculate the process-activity during the last sample
@@ -1767,13 +1628,17 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 
 /*
 ** Generic function to subtract two counters taking into 
-** account the possibility of overflow of a 32-bit kernel-counter.
+** account the possibility that the counter is invalid
+** (i.e. non-existing).
 */
-count_t
+static inline count_t
 subcount(count_t newval, count_t oldval)
 {
-	if (newval >= oldval)
+	if (newval == -1)	// invalid counter?
+		return -1;
+
+	if (newval >= oldval)	// normal situation
 		return newval - oldval;
-	else
-		return MAX32BITVAL + newval - oldval;
+	else			// counter seems to be reset
+		return newval;
 }

@@ -763,39 +763,56 @@ makeargv(char *line, const char *linename, name_prio *vec)
  * make_sys_prints: make array of sys_printpairs
  * input: string, sys_printpair array, maxentries
  */
-void
+static void
 make_sys_prints(sys_printpair *ar, int maxn, const char *pairs, 
-                sys_printdef *permissables[], const char *linename)
+                sys_printdef *permissables[], const char *linename,
+		struct sstat *sstat, extraparam *extra)
 {
-        name_prio items[MAXITEMS];
-        int n=strlen(pairs);
+        name_prio	items[MAXITEMS];
+        int		i, a, n=strlen(pairs);
+        char		str[n+1];
 
-        char str[n+1];
         strcpy(str, pairs);
 
         makeargv(str, linename, items);
 
-        int i;
-        for(i=0; items[i].name && i<maxn-1; ++i) 
+        for(i=a=0; items[i].name && i<maxn-1; i++) 
         {
+		unsigned int	badness = 0;
+		int		color = 0;
+
                 const char *name=items[i].name;
                 int j;
+
                 for (j=0; permissables[j] != 0; ++j)
                 {
-                        if (strcmp(permissables[j]->configname, name)==0)
+                        if (strcmp(permissables[j]->configname, name) == 0)
                         {
-                                ar[i].f=permissables[j];
-                                ar[i].prio=items[i].prio;
+				// call convert function to see if it is
+				// relevant (i.e. valid counter)
+				//
+				if (sstat != NULL &&
+				    permissables[j]->doconvert(sstat,
+						extra, badness, &color)== NULL)
+					break;
+
+                               	ar[a].f    = permissables[j];
+                               	ar[a].prio = items[i].prio;
+				a++;
                                 break;
                         }
                 }
+
                 if (permissables[j]==0)
+		{
 			mcleanstop(1,
 			"atoprc - own system line: item %s invalid in %s line\n",
 			name, linename);
+		}
         }
-        ar[i].f=0;
-        ar[i].prio=0;
+
+        ar[a].f=0;
+        ar[a].prio=0;
 }
 
 
@@ -940,13 +957,33 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 
 /*
 ** calculate cumulative system- and user-time for all active processes
+** besides, initialize all counter lines on system level
 */
 void
 pricumproc(struct sstat *sstat, struct devtstat *devtstat,
            int nexit, unsigned int noverflow, int avgval, int nsecs)
 {
+        static int 	firsttime=1;
+        int     	i;
+        extraparam 	extra;
 
-        static int firsttime=1;
+        for (i=0, extra.totut=extra.totst=0; i < devtstat->nprocactive; i++)
+        {
+		struct tstat *curstat = *(devtstat->procactive+i);
+
+                extra.totut	+= curstat->cpu.utime;
+                extra.totst 	+= curstat->cpu.stime;
+        }
+
+        extra.nproc	= devtstat->nprocall;
+	extra.ntrun	= devtstat->totrun;
+	extra.ntslpi	= devtstat->totslpi;
+	extra.ntslpu	= devtstat->totslpu;
+        extra.nzomb	= devtstat->totzombie;
+        extra.nexit	= nexit;
+        extra.noverflow	= noverflow;
+        extra.avgval	= avgval;
+        extra.nsecs	= nsecs;
 
         if (firsttime)
         {
@@ -965,8 +1002,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "PRCNZOMBIE:5 "
                         "PRCCLONES:4 "
 	                "BLANKBOX:0 "
-                        "PRCNNEXIT:6", prcsyspdefs, "builtin sysprcline");
+                        "PRCNNEXIT:6",
+			prcsyspdefs, "builtin sysprcline",
+			sstat, &extra);
                 }
+
                 if (allcpuline[0].f == 0)
                 {
                     make_sys_prints(allcpuline, MAXITEMS,
@@ -982,7 +1022,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "CPUIPC:5 "
                         "CPUCYCLE:4 "
                         "CPUFREQ:4 "
-                        "CPUSCALE:4 ", cpusyspdefs, "builtin allcpuline");
+                        "CPUSCALE:4 ",
+			cpusyspdefs, "builtin allcpuline",
+			sstat, &extra);
                 }
 
                 if (indivcpuline[0].f == 0)
@@ -1000,7 +1042,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "CPUIIPC:5 "
                         "CPUICYCLE:4 "
                         "CPUIFREQ:4 "
-                        "CPUISCALE:4 ", cpisyspdefs, "builtin indivcpuline");
+                        "CPUISCALE:4 ",
+			cpisyspdefs, "builtin indivcpuline",
+			sstat, &extra);
                 }
 
                 if (cplline[0].f == 0)
@@ -1013,7 +1057,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "CPLCSW:6 "
 	                "CPLINTR:5 "
 	                "BLANKBOX:0 "
-	                "CPLNUMCPU:1", cplsyspdefs, "builtin cplline");
+	                "CPLNUMCPU:1",
+			cplsyspdefs, "builtin cplline",
+			sstat, &extra);
                 }
 
                 if (gpuline[0].f == 0)
@@ -1028,7 +1074,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "GPUMEMAVG:2 "
 	                "GPUNRPROC:2 "
 	                "BLANKBOX:0 "
-	                "GPUTYPE:1 ", gpusyspdefs, "builtin gpuline");
+	                "GPUTYPE:1 ",
+			gpusyspdefs, "builtin gpuline",
+			NULL, NULL);
                 }
 
                 if (memline[0].f == 0)
@@ -1051,8 +1099,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "ZFSARC:6 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:6 "
-	                "HUPUSE:3 ", memsyspdefs, "builtin memline");
+	                "HUPUSE:3 ",
+			memsyspdefs, "builtin memline",
+			sstat, &extra);
                 }
+
                 if (swpline[0].f == 0)
                 {
                     make_sys_prints(swpline, MAXITEMS,
@@ -1067,8 +1118,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "KSMSHARING:2 "
 	                "BLANKBOX:0 "
 	                "SWPCOMMITTED:7 "
-	                "SWPCOMMITLIM:8", swpsyspdefs, "builtin swpline");
+	                "SWPCOMMITLIM:8",
+ 			swpsyspdefs, "builtin swpline",
+			sstat, &extra);
                 }
+
                 if (pagline[0].f == 0)
                 {
                     make_sys_prints(pagline, MAXITEMS,
@@ -1081,8 +1135,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "PAGSWIN:4 "
 	                "PAGSWOUT:5"
-			"OOMKILLS:6", pagsyspdefs, "builtin pagline");
+			"OOMKILLS:6",
+			pagsyspdefs, "builtin pagline",
+			sstat, &extra);
                 }
+
                 if (psiline[0].f == 0)
                 {
                     make_sys_prints(psiline, MAXITEMS,
@@ -1096,8 +1153,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "PSIMEMF:3 "
 	                "PSIIOS:4 "
 	                "PSIIOF:2 "
-	                "BLANKBOX:0 ", psisyspdefs, "builtin psiline");
+	                "BLANKBOX:0 ",
+			psisyspdefs, "builtin psiline",
+			sstat, &extra);
                 }
+
                 if (contline[0].f == 0)
                 {
                     make_sys_prints(contline, MAXITEMS,
@@ -1106,8 +1166,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "CONTCPU:6 "
 	                "CONTMEM:6 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 ", contsyspdefs, "builtin contline");
+	                "BLANKBOX:0 ",
+			contsyspdefs, "builtin contline",
+			NULL, NULL);
                 }
+
                 if (dskline[0].f == 0)
                 {
                     make_sys_prints(dskline, MAXITEMS,
@@ -1120,8 +1183,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "DSKMBPERSECRD:5 "
                         "DSKMBPERSECWR:5 "
 	                "DSKAVQUEUE:1 "
-	                "DSKAVIO:5", dsksyspdefs, "builtin dskline");
+	                "DSKAVIO:5",
+			dsksyspdefs, "builtin dskline",
+			NULL, NULL);
                 }
+
                 if (nfsmountline[0].f == 0)
                 {
                     make_sys_prints(nfsmountline, MAXITEMS,
@@ -1139,8 +1205,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 			"NFMMREAD:3 "
 			"NFMMWRITE:2 "
 	                "BLANKBOX:0 "
-                        "BLANKBOX:0", nfsmntsyspdefs, "builtin nfsmountline");
+                        "BLANKBOX:0",
+			nfsmntsyspdefs, "builtin nfsmountline",
+			NULL, NULL);
                 }
+
                 if (nfcline[0].f == 0)
                 {
                     make_sys_prints(nfcline, MAXITEMS,
@@ -1153,8 +1222,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 ", nfcsyspdefs, "builtin nfcline");
+	                "BLANKBOX:0 ",
+			nfcsyspdefs, "builtin nfcline",
+			sstat, &extra);
 		}
+
                 if (nfsline[0].f == 0)
                 {
                     make_sys_prints(nfsline, MAXITEMS,
@@ -1174,8 +1246,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "NFSBADFMT:4 "
 	                "NFSBADAUT:4 "
-	                "NFSBADCLN:4 ", nfssyspdefs, "builtin nfsline");
+	                "NFSBADCLN:4 ",
+			nfssyspdefs, "builtin nfsline",
+			sstat, &extra);
 		}
+
                 if (nettransportline[0].f == 0)
                 {
                     make_sys_prints(nettransportline, MAXITEMS,
@@ -1190,8 +1265,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "NETTCPINERR:3 "
                         "NETTCPORESET:2 "
                         "NETUDPNOPORT:1 "
-                        "NETUDPINERR:3", nettranssyspdefs, "builtin nettransportline");
+                        "NETUDPINERR:3",
+			nettranssyspdefs, "builtin nettransportline",
+			sstat, &extra);
                 }
+
                 if (netnetline[0].f == 0)
                 {
                     make_sys_prints(netnetline, MAXITEMS,
@@ -1204,8 +1282,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
                         "NETICMPIN:1 "
-                        "NETICMPOUT:1 ", netnetsyspdefs, "builtin netnetline");
+                        "NETICMPOUT:1 ",
+			netnetsyspdefs, "builtin netnetline",
+			sstat, &extra);
                 }
+
                 if (netinterfaceline[0].f == 0)
                 {
                     make_sys_prints(netinterfaceline, MAXITEMS,
@@ -1223,8 +1304,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "NETRCVERR:4 "
                         "NETSNDERR:4 "
                         "NETRCVDROP:3 "
-                        "NETSNDDROP:3", netintfsyspdefs, "builtin netinterfaceline");
+                        "NETSNDDROP:3",
+			netintfsyspdefs, "builtin netinterfaceline",
+			NULL, NULL);
                 }
+
                 if (infinibandline[0].f == 0)
                 {
                     make_sys_prints(infinibandline, MAXITEMS,
@@ -1242,32 +1326,11 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "BLANKBOX:0 ", infinisyspdefs, "builtin infinibandline");
+	                "BLANKBOX:0 ",
+			infinisyspdefs, "builtin infinibandline",
+			NULL, NULL);
                 }
         }  // firsttime
-
-
-        int     i;
-        extraparam extra;
-
-
-        for (i=0, extra.totut=extra.totst=0; i < devtstat->nprocactive; i++)
-        {
-		struct tstat *curstat = *(devtstat->procactive+i);
-
-                extra.totut	+= curstat->cpu.utime;
-                extra.totst 	+= curstat->cpu.stime;
-        }
-
-        extra.nproc	= devtstat->nprocall;
-	extra.ntrun	= devtstat->totrun;
-	extra.ntslpi	= devtstat->totslpi;
-	extra.ntslpu	= devtstat->totslpu;
-        extra.nzomb	= devtstat->totzombie;
-        extra.nexit	= nexit;
-        extra.noverflow	= noverflow;
-        extra.avgval	= avgval;
-        extra.nsecs	= nsecs;
 
         move(1, 0);
         showsysline(sysprcline, sstat, &extra, "PRC", 0);
@@ -1912,7 +1975,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
             sstat->mem.pgsteal    ||
             sstat->mem.allocstall ||
             sstat->mem.swins      ||
-            sstat->mem.swouts       )
+            sstat->mem.swouts     ||
+            sstat->mem.oomkills     )
         {
                 busy = sstat->mem.swouts / nsecs * pagbadness;
 
@@ -1941,7 +2005,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 		if (screen)
                 	move(curline, 0);
 
-                showsysline(pagline, sstat, &extra,"PAG", badness);
+                showsysline(pagline, sstat, &extra, "PAG", badness);
                 curline++;
         }
 
@@ -2738,79 +2802,92 @@ do_almostcrit(char *name, char *val)
 void
 do_ownsysprcline(char *name, char *val)
 {
-        make_sys_prints(sysprcline, MAXITEMS, val, prcsyspdefs, name);
+        make_sys_prints(sysprcline, MAXITEMS, val, prcsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownallcpuline(char *name, char *val)
 {
-        make_sys_prints(allcpuline, MAXITEMS, val, cpusyspdefs, name);
+        make_sys_prints(allcpuline, MAXITEMS, val, cpusyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownindivcpuline(char *name, char *val)
 {
-        make_sys_prints(indivcpuline, MAXITEMS, val, cpisyspdefs, name);
+        make_sys_prints(indivcpuline, MAXITEMS, val, cpisyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_owncplline(char *name, char *val)
 {
-        make_sys_prints(cplline, MAXITEMS, val, cplsyspdefs, name);
+        make_sys_prints(cplline, MAXITEMS, val, cplsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_owngpuline(char *name, char *val)
 {
-        make_sys_prints(gpuline, MAXITEMS, val, gpusyspdefs, name);
+        make_sys_prints(gpuline, MAXITEMS, val, gpusyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownmemline(char *name, char *val)
 {
-        make_sys_prints(memline, MAXITEMS, val, memsyspdefs, name);
+        make_sys_prints(memline, MAXITEMS, val, memsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownswpline(char *name, char *val)
 {
-        make_sys_prints(swpline, MAXITEMS, val, swpsyspdefs, name);
+        make_sys_prints(swpline, MAXITEMS, val, swpsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownpagline(char *name, char *val)
 {
-        make_sys_prints(pagline, MAXITEMS, val, pagsyspdefs, name);
+        make_sys_prints(pagline, MAXITEMS, val, pagsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_owndskline(char *name, char *val)
 {
-        make_sys_prints(dskline, MAXITEMS, val, dsksyspdefs, name);
+        make_sys_prints(dskline, MAXITEMS, val, dsksyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownnettransportline(char *name, char *val)
 {
-        make_sys_prints(nettransportline, MAXITEMS, val, nettranssyspdefs, name);
+        make_sys_prints(nettransportline, MAXITEMS, val, nettranssyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownnetnetline(char *name, char *val)
 {
-        make_sys_prints(netnetline, MAXITEMS, val, netnetsyspdefs, name);
+        make_sys_prints(netnetline, MAXITEMS, val, netnetsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_ownnetinterfaceline(char *name, char *val)
 {
-        make_sys_prints(netinterfaceline, MAXITEMS, val, netintfsyspdefs, name);
+        make_sys_prints(netinterfaceline, MAXITEMS, val, netintfsyspdefs, name,
+					NULL, NULL);
 }
 
 void
 do_owninfinibandline(char *name, char *val)
 {
-        make_sys_prints(infinibandline, MAXITEMS, val, infinisyspdefs, name);
+        make_sys_prints(infinibandline, MAXITEMS, val, infinisyspdefs, name,
+					NULL, NULL);
 }
 
 void

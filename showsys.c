@@ -168,7 +168,10 @@ addblanks(double *charslackused, double *charslackover)
  * few character columns, lower priority items are removed
  *
  */
-void showsysline(sys_printpair* elemptr, 
+#define MAXELEMS 40
+
+void
+showsysline(sys_printpair* elemptr, 
                  struct sstat* sstat, extraparam *extra,
                  char *labeltext, unsigned int badness)
 {
@@ -185,7 +188,6 @@ void showsysline(sys_printpair* elemptr,
         syscolorlabel(labeltext, badness);
 
         /* count number of items */
-#define MAXELEMS 40
 	sys_printpair newelems[MAXELEMS];
 	int nitems;
 
@@ -200,6 +202,7 @@ void showsysline(sys_printpair* elemptr,
                 int lowestprio=999999;
                 int lowestprio_index=-1;
                 int i;
+
                 for (i=0; i<nitems; ++i) 
                 {
                         if (newelems[i].prio < lowestprio) 
@@ -234,7 +237,6 @@ void showsysline(sys_printpair* elemptr,
                 slackitemsover=(avail-nitems)/2;
         }
 
-
         // charslack: the slack in characters after using as many
         // items as possible
         double charslackover = screen ? ((COLS - 5) % 15) : ((linelen - 5) %15);
@@ -251,9 +253,6 @@ void showsysline(sys_printpair* elemptr,
 		char 	*itemp;
 		int	color;
 
-                printg(" | ");
-                addblanks(&charslackused, &charslackover);
-
 		/*
 		** by default no color is shown for this field (color = 0)
 		**
@@ -264,6 +263,14 @@ void showsysline(sys_printpair* elemptr,
 		*/
 		color = 0;
                 itemp = curelem->doconvert(sstat, extra, badness, &color);
+
+		if (!itemp)
+		{
+			itemp = "           ?";
+		}
+
+                printg(" | ");
+                addblanks(&charslackused, &charslackover);
 
 		if (screen)
 		{
@@ -318,6 +325,7 @@ void showsysline(sys_printpair* elemptr,
                 printg("\n");
         }
 }
+
 
 /*******************************************************************/
 /* SYSTEM PRINT FUNCTIONS */
@@ -623,7 +631,8 @@ sysprt_CPUIWAIT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIWAIT = {"CPUIWAIT", sysprt_CPUIWAIT};
 /*******************************************************************/
-void dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
+char *
+dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 {
         // if ticks != 0, do full output
         if (ticks) 
@@ -637,10 +646,12 @@ void dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
             strcpy(buf, "curf ");
             val2Hzstr(cnt, buf+5);
         }
-        else                // nothing is known: print ?????
+        else                // nothing is known: suppress
         {
-            strcpy(buf, "curf    ?MHz");
+            buf = NULL;
         }
+
+	return buf;
 }
 
 
@@ -670,7 +681,8 @@ void sumscaling(struct sstat *sstat, count_t *maxfreq,
 }
 
 
-void dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
+char *
+dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 {
 	if (ticks) 
 	{
@@ -685,10 +697,12 @@ void dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 		strcpy(buf, "curscal ");
 		sprintf(buf+7, "%4lld%%", 100 * cnt / maxfreq);
         }
-	else	// nothing is known: print ?????
+	else	// nothing is known: suppress
 	{
-		strcpy(buf, "curscal   ?%");
+		buf = NULL;
 	}
+
+	return buf;
 }
 
 /*******************************************************************/
@@ -704,8 +718,7 @@ sysprt_CPUIFREQ(void *p, void *q, int badness, int *color)
         count_t cnt	= sstat->cpu.cpu[as->index].freqcnt.cnt;
         count_t ticks	= sstat->cpu.cpu[as->index].freqcnt.ticks;
 
-        dofmt_cpufreq(buf, maxfreq, cnt, ticks);
-        return buf;
+        return dofmt_cpufreq(buf, maxfreq, cnt, ticks);
 }
 
 sys_printdef syspdef_CPUIFREQ = {"CPUIFREQ", sysprt_CPUIFREQ};
@@ -723,8 +736,7 @@ sysprt_CPUFREQ(void *p, void *q, int badness, int *color)
         int     n = sstat->cpu.nrcpu;
 
         sumscaling(sstat, &maxfreq, &cnt, &ticks);
-        dofmt_cpufreq(buf, maxfreq/n, cnt/n, ticks/n);
-        return buf;
+        return dofmt_cpufreq(buf, maxfreq/n, cnt/n, ticks/n);
 }
 
 sys_printdef syspdef_CPUFREQ = {"CPUFREQ", sysprt_CPUFREQ};
@@ -741,8 +753,7 @@ sysprt_CPUISCALE(void *p, void *q, int badness, int *color)
         count_t cnt     = sstat->cpu.cpu[as->index].freqcnt.cnt;
         count_t ticks   = sstat->cpu.cpu[as->index].freqcnt.ticks;
 
-        dofmt_cpuscale(buf, maxfreq, cnt, ticks);
-        return buf;
+        return dofmt_cpuscale(buf, maxfreq, cnt, ticks);
 }
 
 sys_printdef syspdef_CPUISCALE = {"CPUISCALE", sysprt_CPUISCALE};
@@ -760,8 +771,7 @@ sysprt_CPUSCALE(void *p, void *q, int badness, int *color)
         int     n = sstat->cpu.nrcpu;
 
         sumscaling(sstat, &maxfreq, &cnt, &ticks);
-        dofmt_cpuscale(buf, maxfreq/n, cnt/n, ticks/n);
-        return buf;
+        return dofmt_cpuscale(buf, maxfreq/n, cnt/n, ticks/n);
 }
 
 sys_printdef syspdef_CPUSCALE = {"CPUSCALE", sysprt_CPUSCALE};
@@ -845,9 +855,7 @@ sysprt_CPUIPC(void *p, void *q, int badness, int *color)
 	switch (sstat->cpu.all.cycle)
 	{
 	   case 0:
-		*color = COLORINFO;
-        	sprintf(buf, "ipc notavail");
-		break;
+		return NULL;
 
 	   case 1:
 		*color = COLORINFO;
@@ -875,9 +883,7 @@ sysprt_CPUIIPC(void *p, void *q, int badness, int *color)
 	switch (sstat->cpu.all.cycle)
 	{
 	   case 0:
-		*color = COLORINFO;
-        	sprintf(buf, "ipc notavail");
-		break;
+		return NULL;
 
 	   case 1:
 		*color = COLORINFO;
@@ -907,9 +913,7 @@ sysprt_CPUCYCLE(void *p, void *q, int badness, int *color)
 	switch (sstat->cpu.all.cycle)
 	{
 	   case 0:
-		*color = COLORINFO;
-        	sprintf(buf+5, "unknown");
-		break;
+		return NULL;
 
 	   case 1:
 		*color = COLORINFO;
@@ -936,9 +940,7 @@ sysprt_CPUICYCLE(void *p, void *q, int badness, int *color)
 	switch (sstat->cpu.all.cycle)
 	{
 	   case 0:
-		*color = COLORINFO;
-        	sprintf(buf+5, "unknown");
-		break;
+		return NULL;
 
 	   case 1:
 		*color = COLORINFO;
@@ -1383,6 +1385,10 @@ sysprt_HUPTOT(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="hptot  ";
+
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.tothugepage * sstat->mem.hugepagesz,
 						buf+6, MBFORMAT, 0, 0);
@@ -1396,6 +1402,10 @@ sysprt_HUPUSE(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="hpuse  ";
+
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
 	*color = -1;
         val2memstr( (sstat->mem.tothugepage - sstat->mem.freehugepage) *
 				sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
@@ -1409,6 +1419,10 @@ sysprt_VMWBAL(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="vmbal  ";
+
+	if (sstat->mem.vmwballoon == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.vmwballoon * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1421,6 +1435,10 @@ sysprt_ZFSARC(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="zfarc  ";
+
+	if (sstat->mem.zfsarcsize == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.zfsarcsize * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1469,6 +1487,10 @@ sysprt_ZSWTOTAL(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="zpool ";
+
+	if (sstat->mem.zswtotpool == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.zswtotpool * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1481,6 +1503,10 @@ sysprt_ZSWSTORED(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="zstor ";
+
+	if (sstat->mem.zswstored == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.zswstored * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1493,6 +1519,10 @@ sysprt_KSMSHARING(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="kssav ";
+
+	if (sstat->mem.ksmshared == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.ksmshared * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1505,6 +1535,10 @@ sysprt_KSMSHARED(void *p, void *notused, int badness, int *color)
 {
         struct sstat *sstat=p;
         static char buf[16]="ksuse ";
+
+	if (sstat->mem.ksmsharing == -1)
+		return NULL;
+
 	*color = -1;
         val2memstr(sstat->mem.ksmsharing * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
@@ -1609,6 +1643,9 @@ sysprt_OOMKILLS(void *p, void *q, int badness, int *color)
         struct sstat *sstat=p;
         extraparam *as=q;
         static char buf[16]="oomkill  ";
+
+	if (sstat->mem.oomkills == -1)	// non-existing?
+		return NULL;
 
 	if (sstat->mem.oomkills)
 		*color = COLORCRIT;
