@@ -475,6 +475,11 @@ The number of memory-pages the system read from the swap-device per second.
 .B  swapout/s
 The number of memory-pages the system wrote to the swap-device per second.
 .TP 12
+.B  oomkill
+The number of processes being killed during the last interval due to lack
+of memory/swap. The value -1 means that this counter is not supported by
+the current kernel version.
+.TP 12
 .B  commitspc
 The committed virtual memory space i.e.
 the reserved virtual space for all allocations of

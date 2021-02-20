@@ -28,125 +28,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: photosyst.c,v $
-** Revision 1.38  2010/11/19 07:40:40  gerlof
-** Support of virtual disk vd... (kvm).
-**
-** Revision 1.37  2010/11/14 06:42:18  gerlof
-** After opening /proc/cpuinfo, the file descriptor was not closed any more.
-**
-** Revision 1.36  2010/10/23 14:09:50  gerlof
-** Add support for mmcblk disks (MMC/SD cardreaders)
-** Credits: Anssi Hannula
-**
-** Revision 1.35  2010/05/18 19:20:30  gerlof
-** Introduce CPU frequency and scaling (JC van Winkel).
-**
-** Revision 1.34  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.33  2010/03/04 10:58:05  gerlof
-** Added recognition of device-type /dev/fio...
-**
-** Revision 1.32  2010/03/04 10:52:47  gerlof
-** Support I/O-statistics on logical volumes and MD devices.
-**
-** Revision 1.31  2009/12/17 11:59:16  gerlof
-** Gather and display new counters: dirty cache and guest cpu usage.
-**
-** Revision 1.30  2008/02/25 13:47:00  gerlof
-** Experimental code for HTTP statistics.
-**
-** Revision 1.29  2007/08/17 09:45:44  gerlof
-** Experimental: gather info about HTTP statistics.
-**
-** Revision 1.28  2007/08/16 12:00:49  gerlof
-** Add support for atopsar reporting.
-** Gather more counters, mainly related to networking.
-**
-** Revision 1.27  2007/07/03 09:01:56  gerlof
-** Support Apache-statistics.
-**
-** Revision 1.26  2007/02/13 10:32:28  gerlof
-** Removal of external declarations.
-**
-** Revision 1.25  2007/02/13 09:29:57  gerlof
-** Removal of external declarations.
-**
-** Revision 1.24  2007/01/22 14:57:12  gerlof
-** Support of special disks used by virtual machines.
-**
-** Revision 1.23  2007/01/22 08:28:50  gerlof
-** Support steal-time from /proc/stat.
-**
-** Revision 1.22  2006/11/13 13:48:20  gerlof
-** Implement load-average counters, context-switches and interrupts.
-**
-** Revision 1.21  2006/01/30 09:14:16  gerlof
-** Extend memory counters (a.o. page scans).
-**
-** Revision 1.20  2005/10/21 09:50:08  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.19  2004/10/28 08:31:23  gerlof
-** New counter: vm committed space
-**
-** Revision 1.18  2004/09/24 10:02:35  gerlof
-** Wrong cpu-numbers for system level statistics.
-**
-** Revision 1.17  2004/05/07 05:27:37  gerlof
-** Recognize new disk-names and support of diskname-modification.
-**
-** Revision 1.16  2004/05/06 09:53:31  gerlof
-** Skip statistics of ram-disks.
-**
-** Revision 1.15  2004/05/06 09:46:14  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.14  2003/07/08 13:53:21  gerlof
-** Cleanup code.
-**
-** Revision 1.13  2003/07/07 09:27:06  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.12  2003/06/30 11:30:37  gerlof
-** Enlarge counters to 'long long'.
-**
-** Revision 1.11  2003/06/24 06:21:40  gerlof
-** Limit number of system resource lines.
-**
-** Revision 1.10  2003/01/17 14:23:05  root
-** Change-directory to /proc to optimize opening /proc-files
-** via relative path-names i.s.o. absolute path-names.
-**
-** Revision 1.9  2003/01/14 07:50:26  gerlof
-** Consider IPv6 counters on IP and UDP level (add them to the IPv4 counters).
-**
-** Revision 1.8  2002/07/24 11:13:38  gerlof
-** Changed to ease porting to other UNIX-platforms.
-**
-** Revision 1.7  2002/07/11 09:12:41  root
-** Parsing of /proc/meminfo made 2.5 proof.
-**
-** Revision 1.6  2002/07/10 05:00:21  root
-** Counters pin/pout renamed to swin/swout (Linux conventions).
-**
-** Revision 1.5  2002/07/08 09:31:11  gerlof
-** *** empty log message ***
-**
-** Revision 1.4  2002/07/02 07:36:45  gerlof
-** *** empty log message ***
-**
-** Revision 1.3  2002/07/02 07:08:36  gerlof
-** Recognize more disk driver types via regular expressions
-**
-** Revision 1.2  2002/01/22 13:40:11  gerlof
-** Support for number of cpu's.
-**
-** Revision 1.1  2001/10/02 10:43:31  gerlof
-** Initial revision
-**
 */
 
 #include <sys/types.h>
@@ -595,6 +476,8 @@ photosyst(struct sstat *si)
 	** gather virtual memory statistics from the file /proc/vmstat and
 	** store them in binary form (>= kernel 2.6)
 	*/
+	si->mem.oomkills = -1;
+
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
@@ -795,7 +678,7 @@ photosyst(struct sstat *si)
 	** gather vmware-related statistics from /proc/vmmemctl
 	** (only present if balloon driver enabled)
 	*/ 
-	si->mem.vmwballoon = (count_t) 0;
+	si->mem.vmwballoon = (count_t) -1;
 
 	if ( (fp = fopen("vmmemctl", "r")) != NULL)
 	{
@@ -818,7 +701,7 @@ photosyst(struct sstat *si)
 	** searching for:
 	** 	size       4    519101312
 	*/ 
-	si->mem.zfsarcsize = (count_t) 0;
+	si->mem.zfsarcsize = (count_t) -1;
 
 	if ( (fp = fopen("spl/kstat/zfs/arcstats", "r")) != NULL)
 	{
@@ -2136,6 +2019,9 @@ get_ksm(struct sstat *si)
 	FILE *fp;
 	int  state;
 
+	si->mem.ksmsharing = -1;
+	si->mem.ksmshared  = -1;
+
 	if ((fp=fopen("/sys/kernel/mm/ksm/run", "r")) != 0)
 	{
 		if (fscanf(fp, "%d", &state) == 1)
@@ -2177,6 +2063,9 @@ get_zswap(struct sstat *si)
 {
 	FILE *fp;
 	char  state;
+
+	si->mem.zswtotpool = -1;
+	si->mem.zswstored  = -1;
 
 	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) != 0)
 	{

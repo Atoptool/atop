@@ -432,14 +432,14 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.slabmem,
 			ss->mem.cachedrt,
 			ss->mem.slabreclaim,
-        		ss->mem.vmwballoon,
+        		ss->mem.vmwballoon != -1 ? ss->mem.vmwballoon : 0,
         		ss->mem.shmem,
         		ss->mem.shmrss,
         		ss->mem.shmswp,
         		ss->mem.hugepagesz,
         		ss->mem.tothugepage,
         		ss->mem.freehugepage,
-        		ss->mem.zfsarcsize,
+        		ss->mem.zfsarcsize != -1 ? ss->mem.zfsarcsize : 0,
         		ss->mem.ksmsharing,
         		ss->mem.ksmshared);
 }
@@ -456,8 +456,8 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.committed,
 			ss->mem.commitlim,
         		ss->mem.swapcached,
-        		ss->mem.zswstored,
-        		ss->mem.zswtotpool);
+        		ss->mem.zswstored != -1 ? ss->mem.zswstored : 0,
+        		ss->mem.zswtotpool != -1 ? ss->mem.zswtotpool : 0);
 }
 
 void

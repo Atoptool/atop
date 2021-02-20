@@ -644,6 +644,25 @@ generic_samp(time_t curtime, int nsecs,
 		{
 			if (flag&RRBOOT)
 			{
+				char *initmsg = "*** System and Process Activity since Boot ***";
+				char *viewmsg;
+
+				if (rawreadflag)
+				{
+					viewmsg   = "Rawfile view";
+				}
+				else
+				{
+					if (geteuid() == 0)
+					{
+						viewmsg   = "Unrestricted view";
+					}
+					else
+					{
+						viewmsg   = "Restricted view (non-root)";
+					}
+				}
+
 				if (screen)
 				{
 					if (usecolors)
@@ -651,15 +670,15 @@ generic_samp(time_t curtime, int nsecs,
 
 					attron(A_BLINK);
 
-					printg("%*s", (COLS-45)/2, " ");
+					printg("%*s",
+						(COLS-strlen(initmsg)-strlen(viewmsg)-5)/2, " ");
 				}
 				else
 				{
-					printg("                   ");
+					printg("        ");
 				}
 
-       				printg("*** system and process activity "
-				       "since boot ***");
+       				printg(initmsg);
 
 				if (screen)
 				{
@@ -667,6 +686,26 @@ generic_samp(time_t curtime, int nsecs,
 						attroff(COLOR_PAIR(COLORINFO));
 					attroff(A_BLINK);
 				}
+
+				printg("     ");
+
+				if (screen)
+				{
+					if (usecolors)
+						attron(COLOR_PAIR(COLORALMOST));
+
+					attron(A_BLINK);
+				}
+
+       				printg(viewmsg);
+
+				if (screen)
+				{
+					if (usecolors)
+						attroff(COLOR_PAIR(COLORALMOST));
+					attroff(A_BLINK);
+				}
+
 			}
 		}
 
