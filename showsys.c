@@ -1741,7 +1741,7 @@ psiformattot(struct psi *p, char *head, void *q, int *color, char *buf, int bufs
 {
 	static char	formats[] = "%-7.7s %3lu%%";
         extraparam      *as=q;
-	unsigned long 	perc = p->total/(as->nsecs*10000);
+	unsigned long 	perc = p->total/((count_t)as->nsecs*10000);
 
 	if (perc > 100)
 		perc = 100;
