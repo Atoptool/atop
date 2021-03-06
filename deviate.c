@@ -699,6 +699,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.allocstall	= subcount(cur->mem.allocstall,
 				                         pre->mem.allocstall);
 	dev->mem.oomkills	= subcount(cur->mem.oomkills, pre->mem.oomkills);
+	dev->mem.compactstall	= subcount(cur->mem.compactstall,
+				                         pre->mem.compactstall);
 
 	dev->psi          	= cur->psi;
 
@@ -1412,6 +1414,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.swins		+= new->mem.swins;
 		tot->mem.pgscans	+= new->mem.pgscans;
 		tot->mem.allocstall	+= new->mem.allocstall;
+		tot->mem.compactstall	+= new->mem.compactstall;
 		break;
 
 	   case 'n':	/* accumulate network-related counters */

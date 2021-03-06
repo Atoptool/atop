@@ -80,7 +80,7 @@ struct	memstat {
 	count_t	zswstored;	// zswap stored pages (pages)
 	count_t	zswtotpool;	// total pool size (pages)
 	count_t	oomkills;	// number of oom killings
-	count_t	cfuture[1];	// reserved for future use
+	count_t	compactstall;	// counter for process stalls
 };
 
 /************************************************************************/

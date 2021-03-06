@@ -1222,8 +1222,10 @@ configured (vm.overcommit_memory is 2).
 Paging frequency.
 .br
 This line contains the number of scanned pages (`scan') due to the fact
-that free memory drops below a particular threshold and the number
-times that the kernel tries to reclaim pages due to an urgent need (`stall').
+that free memory drops below a particular threshold, the number
+times that the kernel tries to reclaim pages due to an urgent need (`stall'),
+and the number of process stalls to run memory compaction to allocate
+huge pages (`compact').
 .br
 Also the number of memory pages the system read from swap space (`swin'),
 the number of memory pages the system wrote to swap space (`swout'), and
@@ -2117,8 +2119,9 @@ number of page scans,
 number of allocstalls,
 0 (future use),
 number of swapins,
-number of swapouts, and
-number of oomkills (-1 when counter not present).
+number of swapouts,
+number of oomkills (-1 when counter not present), and
+number of process stalls to run memory compaction.
 .TP 9
 .B PSI
 Subsequent fields:
