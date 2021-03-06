@@ -476,7 +476,8 @@ photosyst(struct sstat *si)
 	** gather virtual memory statistics from the file /proc/vmstat and
 	** store them in binary form (>= kernel 2.6)
 	*/
-	si->mem.oomkills = -1;
+	si->mem.oomkills   = -1;
+	si->mem.allocstall = 0;
 
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
@@ -511,9 +512,10 @@ photosyst(struct sstat *si)
 				continue;
 			}
 
-			if ( strcmp("allocstall", nam) == EQ)
+			// more counters might start with "allocstall"
+			if ( memcmp("allocstall", nam, 10) == EQ)
 			{
-				si->mem.allocstall = cnts[0];
+				si->mem.allocstall += cnts[0];
 				continue;
 			}
 
