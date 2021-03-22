@@ -260,6 +260,7 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <signal.h>
+#include <ctype.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,7 +282,7 @@
 #include "showlinux.h"
 
 static struct pselection procsel = {"", {USERSTUB, }, {0,},
-                                    "", 0, { 0, },  "", 0, { 0, } };
+                                    "", 0, { 0, },  "", 0, { 0, }, "", "" };
 static struct sselection syssel;
 
 static void	showhelp(int);
@@ -507,11 +508,11 @@ generic_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						51 - seclen - utsnodenamelen;
+						52 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
 		       "*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
@@ -530,6 +531,7 @@ generic_samp(time_t curtime, int nsecs,
 			procsel.container[0]	      ? MSELCONT   : '-',
 			procsel.pid[0] != 0	      ? MSELPID    : '-',
 			procsel.argnamesz	      ? MSELARG    : '-',
+			procsel.states[0]	      ? MSELSTATE  : '-',
 			syssel.lvmnamesz +
 			syssel.dsknamesz +
 			syssel.itfnamesz	      ? MSELSYS    : '-',
@@ -866,6 +868,7 @@ generic_samp(time_t curtime, int nsecs,
 			if ( procsel.userid[0] == USERSTUB &&
 			    !procsel.prognamesz            &&
 			    !procsel.container[0]          &&
+			    !procsel.states[0]             &&
 			    !procsel.argnamesz             &&
 			    !procsel.pid[0]                &&
 			    !suppressexit                    )
@@ -1787,6 +1790,67 @@ generic_samp(time_t curtime, int nsecs,
 				firstproc = 0;
 				break;
 
+			   /*
+			   ** focus on specific process-state
+			   */
+			   case MSELSTATE:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				/* Linux fs/proc/array.c - task_state_array */
+				printw("Comma-separated process states "
+				       "(R|S|D|T|t|X|Z|P): ");
+
+				memset(procsel.states, 0, sizeof procsel.states);
+
+				scanw("%15s\n", genline);
+
+				char *sp = strtok(genline, ",");
+
+				while (sp && *sp)
+				{
+					if (isspace(*sp))
+					{
+						sp++;
+						continue;
+					}
+
+					int needed = 0;
+					switch (*sp)
+					{
+						case 'R': /* running */
+						case 'S': /* sleeping */
+						case 'D': /* disk sleep */
+						case 'T': /* stopped */
+						case 't': /* tracing stop */
+						case 'X': /* dead */
+						case 'Z': /* zombie */
+						case 'P': /* parked */
+							if (!strchr(procsel.states, *sp))
+								needed = 1;
+							break;
+						default:
+							statmsg = "Invalid state!";
+							beep();
+							break;
+					}
+					if (needed)
+					    procsel.states[strlen(procsel.states)] = *sp;
+
+					sp = strtok(NULL, ",");
+				}
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
 
 			   /*
 			   ** focus on specific command line arguments
@@ -2630,6 +2694,15 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 		}
 	}
 
+	/*
+	** check if only processes in specific states should be shown 
+	*/
+	if (sel->states[0])
+	{
+		if (strchr(sel->states, curstat->gen.state) == NULL)
+			return 1;
+	}
+
 	return 0;
 }
 
@@ -3022,10 +3095,11 @@ static struct helptext {
 	                              "(regular expression)\n", MSELUSER},
 	{"\t'%c'  - focus on specific program name        "
 	                              "(regular expression)\n", MSELPROC},
-	{"\t'%c'  - focus on specific contained id (CID)\n",    MSELCONT},
+	{"\t'%c'  - focus on specific container id (CID)\n",    MSELCONT},
 	{"\t'%c'  - focus on specific command line string "
 	                              "(regular expression)\n", MSELARG},
 	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID},
+	{"\t'%c'  - focus on specific process state(s)\n",      MSELSTATE},
 	{"\n",							' '},
 	{"System resource selections (keys shown in header line):\n",' '},
 	{"\t'%c'  - focus on specific system resources    "
