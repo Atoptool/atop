@@ -3,10 +3,10 @@ Description=Atop advanced performance monitor
 Documentation=man:atop(1)
 
 [Service]
-Environment=LOGOPTS=""
-Environment=LOGINTERVAL=600
-Environment=LOGGENERATIONS=28
-Environment=LOGPATH=/var/log/atop
+Environment="LOGOPTS="
+Environment="LOGINTERVAL=600"
+Environment="LOGGENERATIONS=28"
+Environment="LOGPATH=/var/log/atop"
 EnvironmentFile=/etc/default/atop
 ExecStartPre=/bin/sh -c 'test -n "$LOGINTERVAL" -a "$LOGINTERVAL" -eq "$LOGINTERVAL"'
 ExecStartPre=/bin/sh -c 'test -n "$LOGGENERATIONS" -a "$LOGGENERATIONS" -eq "$LOGGENERATIONS"'
