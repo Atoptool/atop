@@ -2044,36 +2044,41 @@ char *
 sysprt_DSKAVIO(void *p, void *q, int badness, int *color) 
 {
         extraparam	*as=q;
-        static char	buf[16]="avio  ";
-        double 		tim = as->iotot > 0 ? 
+        static char	buf[32]="avio  ";
+        double 		avioms = as->iotot > 0 ? 
                      	(double)(as->perdsk[as->index].io_ms)/as->iotot:0.0;
 
 	*color = -1;
 
-        if (tim >= 100.0)
-        {
-                sprintf(buf+5, "%4.0lf ms", tim);
-        }
-        else if (tim >= 10.0)
-        {
-                sprintf(buf+5, "%4.1lf ms", tim);
-        }
-        else if (tim >= 0.1)
-        {
-                sprintf(buf+5, "%4.2lf ms", tim);
-        }
-        else if (tim >= 0.01)
-        {
-                sprintf(buf+5, "%4.1lf µs", tim * 1000.0);
-        }
-        else if (tim >= 0.0001)
-        {
-                sprintf(buf+5, "%4.2lf µs", tim * 1000.0);
-        }
-        else
-        {
-                sprintf(buf+5, "%4.1lf ns", tim * 1000000.0);
-        }
+
+	if (avioms >= 9995.0)
+	{
+		sprintf(buf+5, "%5.0lf s", avioms / 1000.0);
+	}
+	else if (avioms >= 99.95)
+	{
+		sprintf(buf+5, "%4.0lf ms", avioms);
+	}
+	else if (avioms >= 9.995)
+	{
+		sprintf(buf+5, "%4.1lf ms", avioms);
+	}
+	else if (avioms >= 0.09995)
+	{
+		sprintf(buf+5, "%4.2lf ms", avioms);
+	}
+	else if (avioms >= 0.01)
+	{
+		sprintf(buf+5, "%4.1lf µs", avioms * 1000.0);
+	}
+	else if (avioms >= 0.0001)
+	{
+		sprintf(buf+5, "%4.2lf µs", avioms * 1000.0);
+	}
+	else
+	{
+		sprintf(buf+5, "%4.1lf ns", avioms * 1000000.0);
+	}
 
         return buf;
 }
