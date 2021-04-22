@@ -2050,14 +2050,13 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
 
 	*color = -1;
 
-
 	if (avioms >= 9995.0)
 	{
-		sprintf(buf+5, "%5.0lf s", avioms / 1000.0);
+		val2valstr((unsigned long long)avioms / 1000, buf+5, 5, 0, 0);
+		sprintf(buf+10, " s");
 	}
 	else if (avioms >= 99.95)
 	{
-		sprintf(buf+5, "%4.0lf ms", avioms);
 	}
 	else if (avioms >= 9.995)
 	{
