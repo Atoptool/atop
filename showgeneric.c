@@ -2721,7 +2721,7 @@ printg(const char *format, ...)
 	va_start(args, format);
 
 	if (screen)
-		vwprintw(stdscr, (char *) format, args);
+		vw_printw(stdscr, (char *) format, args);
 	else
 		vprintf(format, args);
 
