@@ -103,6 +103,9 @@ enum {
 
 static int	perfevents = PERF_EVENTS_AUTO;
 static void	getperfevents(struct cpustat *);
+
+static int	run_in_guest(void);
+static int	get_hypervisor(void);
 #endif
 
 static int	get_infiniband(struct ifbstat *);
@@ -111,8 +114,6 @@ static int	get_zswap(struct sstat *);
 
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
-
-static int run_in_guest(void);
 
 static struct ipv6_stats	ipv6_tmp;
 static struct icmpv6_stats	icmpv6_tmp;
@@ -2114,6 +2115,124 @@ get_zswap(struct sstat *si)
 }
 
 
+#if	HTTPSTATS
+/*
+** retrieve statistics from local HTTP daemons
+** via http://localhost/server-status?auto
+*/
+int
+getwwwstat(unsigned short port, struct wwwstat *wp)
+{
+	int 			sockfd, tobefound;
+	FILE			*sockfp;
+	struct sockaddr_in	sockname;
+	char			linebuf[4096];
+	char			label[512];
+	long long		value;
+
+	memset(wp, 0, sizeof *wp);
+
+	/*
+	** allocate a socket and connect to the local HTTP daemon
+	*/
+	if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+		return 0;
+
+	sockname.sin_family		= AF_INET;
+	sockname.sin_addr.s_addr	= htonl(INADDR_LOOPBACK);
+	sockname.sin_port		= htons(port);
+
+	if ( connect(sockfd, (struct sockaddr *) &sockname,
+						sizeof sockname) == -1)
+	{
+		close(sockfd);
+		return 0;
+	}
+
+	/*
+	** write a GET-request for /server-status
+	*/
+	if ( write(sockfd, HTTPREQ, sizeof HTTPREQ) < sizeof HTTPREQ)
+	{
+		close(sockfd);
+		return 0;
+	}
+
+	/*
+	** remap socket descriptor to a stream to allow stdio calls
+	*/
+	sockfp = fdopen(sockfd, "r+");
+
+	/*
+	** read response line by line
+	*/
+	tobefound = 5;		/* number of values to be searched */
+
+	while ( fgets(linebuf, sizeof linebuf, sockfp) && tobefound)
+	{
+		/*
+		** handle line containing status code
+		*/
+		if ( strncmp(linebuf, "HTTP/", 5) == 0)
+		{
+			sscanf(linebuf, "%511s %lld %*s\n", label, &value);
+
+			if (value != 200)	/* HTTP-request okay? */
+			{
+				fclose(sockfp);
+				close(sockfd);
+				return 0;
+			}
+
+			continue;
+		}
+
+		/*
+		** decode line and search for the required counters
+		*/
+		if (sscanf(linebuf, "%511[^:]: %lld\n", label, &value) == 2)
+		{
+			if ( strcmp(label, "Total Accesses") == 0)
+			{
+				wp->accesses = value;
+				tobefound--;
+			}
+
+			if ( strcmp(label, "Total kBytes") == 0)
+			{
+				wp->totkbytes = value;
+				tobefound--;
+			}
+
+			if ( strcmp(label, "Uptime") == 0)
+			{
+				wp->uptime = value;
+				tobefound--;
+			}
+
+			if ( strcmp(label, "BusyWorkers") == 0)
+			{
+				wp->bworkers = value;
+				tobefound--;
+			}
+
+			if ( strcmp(label, "IdleWorkers") == 0)
+			{
+				wp->iworkers = value;
+				tobefound--;
+			}
+		}
+	}
+
+	fclose(sockfp);
+	close(sockfd);
+
+	return 1;
+}
+#endif
+
+
+
 /*
 ** retrieve low-level CPU events:
 ** 	instructions and cycles per CPU
@@ -2270,130 +2389,12 @@ getperfevents(struct cpustat *cs)
 		}
         }
 }
-#else
-void
-do_perfevents(char *tagname, char *tagvalue)
+
+static int
+run_in_guest(void)
 {
-	wcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
+	return get_hypervisor() != HYPER_NONE;
 }
-#endif
-
-#if	HTTPSTATS
-/*
-** retrieve statistics from local HTTP daemons
-** via http://localhost/server-status?auto
-*/
-int
-getwwwstat(unsigned short port, struct wwwstat *wp)
-{
-	int 			sockfd, tobefound;
-	FILE			*sockfp;
-	struct sockaddr_in	sockname;
-	char			linebuf[4096];
-	char			label[512];
-	long long		value;
-
-	memset(wp, 0, sizeof *wp);
-
-	/*
-	** allocate a socket and connect to the local HTTP daemon
-	*/
-	if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		return 0;
-
-	sockname.sin_family		= AF_INET;
-	sockname.sin_addr.s_addr	= htonl(INADDR_LOOPBACK);
-	sockname.sin_port		= htons(port);
-
-	if ( connect(sockfd, (struct sockaddr *) &sockname,
-						sizeof sockname) == -1)
-	{
-		close(sockfd);
-		return 0;
-	}
-
-	/*
-	** write a GET-request for /server-status
-	*/
-	if ( write(sockfd, HTTPREQ, sizeof HTTPREQ) < sizeof HTTPREQ)
-	{
-		close(sockfd);
-		return 0;
-	}
-
-	/*
-	** remap socket descriptor to a stream to allow stdio calls
-	*/
-	sockfp = fdopen(sockfd, "r+");
-
-	/*
-	** read response line by line
-	*/
-	tobefound = 5;		/* number of values to be searched */
-
-	while ( fgets(linebuf, sizeof linebuf, sockfp) && tobefound)
-	{
-		/*
-		** handle line containing status code
-		*/
-		if ( strncmp(linebuf, "HTTP/", 5) == 0)
-		{
-			sscanf(linebuf, "%511s %lld %*s\n", label, &value);
-
-			if (value != 200)	/* HTTP-request okay? */
-			{
-				fclose(sockfp);
-				close(sockfd);
-				return 0;
-			}
-
-			continue;
-		}
-
-		/*
-		** decode line and search for the required counters
-		*/
-		if (sscanf(linebuf, "%511[^:]: %lld\n", label, &value) == 2)
-		{
-			if ( strcmp(label, "Total Accesses") == 0)
-			{
-				wp->accesses = value;
-				tobefound--;
-			}
-
-			if ( strcmp(label, "Total kBytes") == 0)
-			{
-				wp->totkbytes = value;
-				tobefound--;
-			}
-
-			if ( strcmp(label, "Uptime") == 0)
-			{
-				wp->uptime = value;
-				tobefound--;
-			}
-
-			if ( strcmp(label, "BusyWorkers") == 0)
-			{
-				wp->bworkers = value;
-				tobefound--;
-			}
-
-			if ( strcmp(label, "IdleWorkers") == 0)
-			{
-				wp->iworkers = value;
-				tobefound--;
-			}
-		}
-	}
-
-	fclose(sockfp);
-	close(sockfd);
-
-	return 1;
-}
-#endif
-
 
 #if defined(__x86_64__) || defined(__i386__)
 #define HYPERVISOR_INFO_LEAF   0x40000000
@@ -2456,8 +2457,10 @@ get_hypervisor(void)
 }
 #endif
 
-static int
-run_in_guest(void)
+#else /* ! NOPERFEVENT */
+void
+do_perfevents(char *tagname, char *tagvalue)
 {
-	return get_hypervisor() != HYPER_NONE;
+	mcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
 }
+#endif
