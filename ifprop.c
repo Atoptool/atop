@@ -128,12 +128,15 @@ initifprop(void)
 		{
 			if (dentry->d_name[0] == '.')
 				continue;
+
 			virt_if[j] = (char *)malloc(64);
 			strncpy(virt_if[j], dentry->d_name, 15);
 			j++;
 		}
 		virt_num = j;
 	}
+
+	closedir(dirp);
 
 	/*
 	** open /proc/net/dev to obtain all interface names and open
