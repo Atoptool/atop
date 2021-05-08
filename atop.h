@@ -28,18 +28,18 @@
 /*
 ** memory-size formatting possibilities
 */
-#define	BFORMAT			0
-#define	KBFORMAT		1
+#define	BFORMAT		0
+#define	KBFORMAT	1
 #define	KBFORMAT_INT	2
-#define	MBFORMAT		3
+#define	MBFORMAT	3
 #define	MBFORMAT_INT	4
-#define	GBFORMAT		5
+#define	GBFORMAT	5
 #define	GBFORMAT_INT	6
-#define	TBFORMAT		7
+#define	TBFORMAT	7
 #define	TBFORMAT_INT	8
-#define	PBFORMAT		9
+#define	PBFORMAT	9
 #define	PBFORMAT_INT	10
-#define	OVFORMAT		11
+#define	OVFORMAT	11
 
 typedef	long long	count_t;
 
