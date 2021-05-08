@@ -50,6 +50,8 @@ struct pselection {
 	regex_t	argregex;
 
 	char 	container[16];
+
+	char	states[16];
 };
 
 struct sselection {
@@ -113,6 +115,7 @@ struct sselection {
 #define	MSELCONT	'J'
 #define	MSELPID		'I'
 #define	MSELARG		'/'
+#define	MSELSTATE	'Q'
 #define	MSELSYS		'S'
 
 #define	MALLPROC	'a'
