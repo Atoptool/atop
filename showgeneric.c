@@ -1791,7 +1791,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** focus on specific process-state
+			   ** focus on specific process/thread state
 			   */
 			   case MSELSTATE:
 				alarm(0);	/* stop the clock */
@@ -1799,8 +1799,9 @@ generic_samp(time_t curtime, int nsecs,
 
 				move(statline, 0);
 				clrtoeol();
+
 				/* Linux fs/proc/array.c - task_state_array */
-				printw("Comma-separated process states "
+				printw("Comma-separated process/thread states "
 				       "(R|S|D|T|t|X|Z|P): ");
 
 				memset(procsel.states, 0, sizeof procsel.states);
@@ -1817,7 +1818,16 @@ generic_samp(time_t curtime, int nsecs,
 						continue;
 					}
 
+					if (strlen(sp) > 1)
+					{
+						statmsg = "Invalid state!";
+						memset(procsel.states, 0,
+							sizeof procsel.states);
+						break;
+					}
+
 					int needed = 0;
+
 					switch (*sp)
 					{
 						case 'R': /* running */
@@ -1833,9 +1843,12 @@ generic_samp(time_t curtime, int nsecs,
 							break;
 						default:
 							statmsg = "Invalid state!";
+							memset(procsel.states,
+								0, sizeof procsel.states);
 							beep();
 							break;
 					}
+
 					if (needed)
 					    procsel.states[strlen(procsel.states)] = *sp;
 
@@ -3099,7 +3112,7 @@ static struct helptext {
 	{"\t'%c'  - focus on specific command line string "
 	                              "(regular expression)\n", MSELARG},
 	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID},
-	{"\t'%c'  - focus on specific process state(s)\n",      MSELSTATE},
+	{"\t'%c'  - focus on specific process/thread state(s)\n", MSELSTATE},
 	{"\n",							' '},
 	{"System resource selections (keys shown in header line):\n",' '},
 	{"\t'%c'  - focus on specific system resources    "
