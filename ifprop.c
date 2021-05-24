@@ -25,15 +25,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Id: ifprop.c,v 1.5 2010/04/23 12:19:35 gerlof Exp $
-** $Log: ifprop.c,v $
-** Revision 1.5  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.4  2007/02/13 10:34:06  gerlof
-** Removal of external declarations.
-**
 */
 #include <sys/types.h>
 #include <stdio.h>
@@ -107,7 +98,9 @@ initifprop(void)
 	char 				*cp, linebuf[2048];
 	int				i=0, sockfd, j=0, virt_num=0;
 
+#ifdef ETHTOOL_GLINKSETTINGS
 	struct ethtool_link_settings 	ethlink;	// preferred!
+#endif
 	struct ethtool_cmd 		ethcmd;		// deprecated	
 
 	struct ifreq		 	ifreq;
@@ -173,27 +166,35 @@ initifprop(void)
 		** otherwise with deprecated struct ethtool_cmd
 		*/
 		memset(&ifreq,  0, sizeof ifreq);
-		memset(&ethcmd, 0, sizeof ethcmd);
 
 		strncpy((void *)&ifreq.ifr_ifrn.ifrn_name, ifprops[i].name,
 				sizeof ifreq.ifr_ifrn.ifrn_name-1);
 
+		ethernet = speed = duplex = 0;
+
+#ifdef ETHTOOL_GLINKSETTINGS
 		ethlink.cmd              = ETHTOOL_GLINKSETTINGS;
 		ifreq.ifr_ifru.ifru_data = (void *)&ethlink;
 
 		if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0)
 		{
-			if (ethlink.link_mode_masks_nwords <= 0) {
+			if (ethlink.link_mode_masks_nwords <= 0)
+			{
 				ethlink.link_mode_masks_nwords = - ethlink.link_mode_masks_nwords;
+
 				if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) != 0 )
 					continue;
 			}
+
 			ethernet = 1;
 			speed    = ethlink.speed;
 			duplex   = ethlink.duplex;
 		}
 		else
+#endif
 		{
+			memset(&ethcmd, 0, sizeof ethcmd);
+
 			ethcmd.cmd               = ETHTOOL_GSET;
 			ifreq.ifr_ifru.ifru_data = (void *)&ethcmd;
 
@@ -202,10 +203,6 @@ initifprop(void)
 				ethernet = 1;
 				speed    = ethcmd.speed;
 				duplex   = ethcmd.duplex;
-			}
-			else
-			{
-				ethernet = 0;
 			}
 		}
 
@@ -227,8 +224,10 @@ initifprop(void)
 				ifprops[i].fullduplex	= 0;
 			}
 
-			for (j = 0; j < virt_num; j++) {
-				if ( strcmp(ifprops[i].name, virt_if[j]) == EQ ) { // virtual interface?
+			for (j = 0; j < virt_num; j++)
+			{
+				if ( strcmp(ifprops[i].name, virt_if[j]) == EQ ) // virtual interface?
+				{
 					ifprops[i].type       = '?'; // set type unknown
 					ifprops[i].speed      = 0;
 					ifprops[i].fullduplex = 0;
