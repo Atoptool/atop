@@ -81,6 +81,7 @@ struct	memstat {
 	count_t	zswtotpool;	// total pool size (pages)
 	count_t	oomkills;	// number of oom killings
 	count_t	compactstall;	// counter for process stalls
+	count_t	pgmigrate;	// counter for migrated successfully (pages)
 };
 
 /************************************************************************/

@@ -479,6 +479,7 @@ photosyst(struct sstat *si)
 	*/
 	si->mem.oomkills   = -1;
 	si->mem.allocstall = 0;
+	si->mem.pgmigrate  = 0;
 
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
@@ -527,6 +528,11 @@ photosyst(struct sstat *si)
 			}
 			if ( strcmp("compact_stall", nam) == EQ) {
 				si->mem.compactstall = cnts[0];
+				continue;
+			}
+
+			if ( strcmp("pgmigrate_success", nam) == EQ) {
+				si->mem.pgmigrate = cnts[0];
 				continue;
 			}
 		}

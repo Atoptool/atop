@@ -415,6 +415,7 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
 	&syspdef_OOMKILLS,
+	&syspdef_PGMIGRATE,
 	&syspdef_BLANKBOX,
         0
 };
@@ -1136,7 +1137,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "PAGSWIN:4 "
 	                "PAGSWOUT:5"
-			"OOMKILLS:6",
+			"OOMKILLS:6"
+			"PGMIGRATE:6",
 			pagsyspdefs, "builtin pagline",
 			sstat, &extra);
                 }
@@ -1978,7 +1980,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
             sstat->mem.compactstall 	||
             sstat->mem.swins      	||
             sstat->mem.swouts     	||
-            sstat->mem.oomkills     	  )
+            sstat->mem.oomkills     	||
+            sstat->mem.pgmigrate     	  )
         {
                 busy = sstat->mem.swouts / nsecs * pagbadness;
 
