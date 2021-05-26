@@ -141,6 +141,8 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		if ( pdb_gettask(curstat->gen.pid, curstat->gen.isproc,
 		                 curstat->gen.btime, &pinfo))
 		{
+			prestat 	= pinfo->tstat;
+
 			/*
 			** task already present in the previous sample
 			**
@@ -163,7 +165,6 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 				** and overwrite the previous sample in
 				** the database with the current sample
 				*/
-				prestat 	= pinfo->tstat;
 				pinfo->tstat 	= *curstat;
 
 				curstat->gen.wasinactive = 0;
