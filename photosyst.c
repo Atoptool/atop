@@ -1629,6 +1629,7 @@ static struct {
 	{ "^md[0-9][0-9]*$",			{0},  nullmodname, MDDTYPE, },
 	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, DSKTYPE, },
 	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$", {0}, nullmodname, DSKTYPE, },
 	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, DSKTYPE, },
 	{ "^hd[a-z]$",				{0},  nullmodname, DSKTYPE, },
 	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
