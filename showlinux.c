@@ -985,6 +985,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
         extra.noverflow	= noverflow;
         extra.avgval	= avgval;
         extra.nsecs	= nsecs;
+        extra.index	= 0;
 
         if (firsttime)
         {
