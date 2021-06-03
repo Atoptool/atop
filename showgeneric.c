@@ -1802,7 +1802,7 @@ generic_samp(time_t curtime, int nsecs,
 
 				/* Linux fs/proc/array.c - task_state_array */
 				printw("Comma-separated process/thread states "
-				       "(R|S|D|T|t|X|Z|P): ");
+				       "(R|S|D|I|T|t|X|Z|P): ");
 
 				memset(procsel.states, 0, sizeof procsel.states);
 
@@ -1833,6 +1833,7 @@ generic_samp(time_t curtime, int nsecs,
 						case 'R': /* running */
 						case 'S': /* sleeping */
 						case 'D': /* disk sleep */
+						case 'I': /* idle */
 						case 'T': /* stopped */
 						case 't': /* tracing stop */
 						case 'X': /* dead */
