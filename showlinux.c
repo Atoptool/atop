@@ -822,8 +822,8 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
  * init_proc_prints: determine width of columns that are
  *                   dependent of dynamic values 
  */
-void 
-init_proc_prints()
+static void 
+init_proc_prints(count_t numcpu)
 {
 	int 	i, numdigits = 5;
 	char	linebuf[64];
@@ -860,6 +860,15 @@ init_proc_prints()
 			idprocpdefs[i]->head = p;
 		}
 	}
+
+	/*
+	** fill number of positions for the SORTITEM (percentage),
+	** depending on the number of CPUs (e.g. with 10+ CPUs a process
+	** can reach a CPU percentage of 1000% and with 100+ CPUs a
+	** CPU percentage of 10000%).
+	*/
+	procprt_SORTITEM.width =
+		snprintf(linebuf, sizeof linebuf, "%lld", numcpu*100) + 1;
 }
 
 /*
@@ -1343,7 +1352,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 */
 void
 priphead(int curlist, int totlist, char *showtype, char *showorder,
-							char autosort)
+					char autosort, count_t numcpu)
 {
         static int      firsttime=1;
         static int      prev_supportflags = -1, prev_threadview = -1;
@@ -1354,7 +1363,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 	*/
         if (firsttime) 
         {
-		init_proc_prints();
+		init_proc_prints(numcpu);
 
                 make_proc_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "

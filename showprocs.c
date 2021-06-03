@@ -294,10 +294,13 @@ showhdrline(proc_printpair* elemptr, int curlist, int totlist,
 
         while ((curelem=*elemptr).f!=0) 
         {
+		int widen = 0;
+
                 if (curelem.f->head==0)     // empty header==special: SORTITEM
                 {
-                        chead=columnhead[order];
-                        autoindic= autosort ? "A" : " ";
+                        chead     = columnhead[order];
+                        autoindic = autosort ? "A" : " ";
+			widen     = procprt_SORTITEM.width-3;
                 } 
                 else 
                 {
@@ -307,8 +310,8 @@ showhdrline(proc_printpair* elemptr, int curlist, int totlist,
 
                 if (screen)
                 {
-                        col += sprintf(buf+col, "%s%s%*s", autoindic, chead,
-                              colspacings[n], "");
+                        col += sprintf(buf+col, "%*s%s%*s",
+				widen, autoindic, chead, colspacings[n], "");
                 }
                 else
                 {
@@ -384,7 +387,7 @@ showprocline(proc_printpair* elemptr, struct tstat *curstat,
 
                 if (curelem.f->head==0)                // empty string=sortitem
                 {
-                        printg("%3.0lf%%", perc);    // cannot pass perc
+                        printg("%*.0lf%%", procprt_SORTITEM.width-1, perc);
                 }
                 else if (curstat->gen.state != 'E')  // active process
                 {
@@ -2059,7 +2062,7 @@ procprt_WCHAN_e(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_WCHAN =
-   { "WCHAN          ", "WCHAN", procprt_WCHAN_a, procprt_WCHAN_e, 15 };
+   { "WCHAN          ", "WCHAN", procprt_WCHAN_a, procprt_WCHAN_e, 15};
 /***************************************************************/
 char *
 procprt_RUNDELAY_a(struct tstat *curstat, int avgval, int nsecs)
@@ -2080,7 +2083,7 @@ procprt_RUNDELAY_e(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_RUNDELAY =
-   { "RDELAY", "RDELAY", procprt_RUNDELAY_a, procprt_RUNDELAY_e, 6 };
+   { "RDELAY", "RDELAY", procprt_RUNDELAY_a, procprt_RUNDELAY_e, 6};
 /***************************************************************/
 char *
 procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
@@ -2089,4 +2092,4 @@ procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
 }
 
 proc_printdef procprt_SORTITEM = 
-   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4 };
+   { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4};

@@ -1045,7 +1045,8 @@ generic_samp(time_t curtime, int nsecs,
 
 			priphead(firstproc/plistsz+1, (ncurlist-1)/plistsz+1,
 			       		&showtype, &curorder,
-					showorder == MSORTAUTO ? 1 : 0);
+					showorder == MSORTAUTO ? 1 : 0,
+					sstat->cpu.nrcpu);
 
 			if (screen)
 			{
