@@ -49,8 +49,9 @@
 #include "photoproc.h"
 #include "photosyst.h"
 
-static 		void calcdiff(struct tstat *, struct tstat *, struct tstat *,
-							char, count_t);
+static 		void calcdiff(struct tstat *, const struct tstat *,
+		                              const struct tstat *,
+		                              char, count_t);
 static inline	count_t subcount(count_t, count_t);
 
 /*
@@ -64,7 +65,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 {
 	register int		c, d, pall=0, pact=0;
 	register struct tstat	*curstat, *devstat, *thisproc;
-	struct tstat		prestat;
+	struct tstat		prestat, *pprestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
 	char			hashtype = 'p';
@@ -155,6 +156,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
  				** no activity for task
 				*/
 				curstat->gen.wasinactive = 1;
+				pprestat = curstat;
 			}
  			else
 			{
@@ -164,6 +166,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 				** the database with the current sample
 				*/
 				prestat 	= pinfo->tstat;
+				pprestat	= &prestat;
 				pinfo->tstat 	= *curstat;
 
 				curstat->gen.wasinactive = 0;
@@ -192,6 +195,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			** last interval
 			*/
 			memset(&prestat, 0, sizeof(prestat));
+			pprestat = &prestat;
 
 			curstat->gen.wasinactive = 0;
 			devtstat->ntaskactive++;
@@ -230,7 +234,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		/*
 		** do the difference calculations
 		*/
-		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
+		calcdiff(devstat, curstat, pprestat, newtask, totusedcpu);
 	}
 
 	/*
@@ -419,17 +423,21 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 ** the previous sample for a task
 */
 static void
-calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
-	                                      char newtask, count_t totusedcpu)
+calcdiff(struct tstat *devstat, const struct tstat *curstat,
+                                const struct tstat *prestat,
+	                        char newtask, count_t totusedcpu)
 {
 	/*
- 	** for inactive tasks, set all counters to zero
+ 	** for inactive tasks, set all counters to zero to avoid calculating
+	** the deviations (after all, there are no deviations)
 	*/
 	if (curstat->gen.wasinactive)
+	{
 		memset(devstat, 0, sizeof *devstat);
+	}
 
 	/*
-	** copy all static values from the current task settings
+	** copy all STATIC values from the current task settings
 	*/
 	devstat->gen          = curstat->gen;
 
@@ -479,11 +487,15 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 
 	/*
  	** for inactive tasks, only the static values had to be copied, while
-	** all use counters have been set to zero
+	** all use counters have already been set to zero
 	*/
 	if (curstat->gen.wasinactive)
 		return;
 
+	/*
+	** calculate deviations for tasks that were really active
+	** (i.e. modified) during the sample
+	*/
 	devstat->cpu.stime  = 
 		subcount(curstat->cpu.stime, prestat->cpu.stime);
 	devstat->cpu.utime  =
@@ -503,9 +515,7 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 
 	devstat->cpu.rundelay  =
 		subcount(curstat->cpu.rundelay, prestat->cpu.rundelay);
-	/*
-	** do further calculations
-	*/
+
 	devstat->dsk.rio    =
 		subcount(curstat->dsk.rio, prestat->dsk.rio);
 	devstat->dsk.rsz    =
