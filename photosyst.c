@@ -478,8 +478,8 @@ photosyst(struct sstat *si)
 	** store them in binary form (>= kernel 2.6)
 	*/
 	si->mem.oomkills   = -1;
+	si->mem.pgmigrate  = -1;
 	si->mem.allocstall = 0;
-	si->mem.pgmigrate  = 0;
 
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
