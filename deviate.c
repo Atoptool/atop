@@ -49,8 +49,9 @@
 #include "photoproc.h"
 #include "photosyst.h"
 
-static 		void calcdiff(struct tstat *, struct tstat *, struct tstat *,
-							char, count_t);
+static 		void calcdiff(struct tstat *, const struct tstat *,
+		                              const struct tstat *,
+		                              char, count_t);
 static inline	count_t subcount(count_t, count_t);
 
 /*
@@ -64,7 +65,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 {
 	register int		c, d, pall=0, pact=0;
 	register struct tstat	*curstat, *devstat, *thisproc;
-	struct tstat		prestat;
+	struct tstat		prestat, *pprestat;
 	struct pinfo		*pinfo;
 	count_t			totusedcpu;
 	char			hashtype = 'p';
@@ -141,7 +142,6 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		if ( pdb_gettask(curstat->gen.pid, curstat->gen.isproc,
 		                 curstat->gen.btime, &pinfo))
 		{
-			// prestat 	= pinfo->tstat;
 			/*
 			** task already present in the previous sample
 			**
@@ -156,6 +156,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
  				** no activity for task
 				*/
 				curstat->gen.wasinactive = 1;
+				pprestat = curstat;
 			}
  			else
 			{
@@ -165,6 +166,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 				** the database with the current sample
 				*/
 				prestat 	= pinfo->tstat;
+				pprestat	= &prestat;
 				pinfo->tstat 	= *curstat;
 
 				curstat->gen.wasinactive = 0;
@@ -193,6 +195,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			** last interval
 			*/
 			memset(&prestat, 0, sizeof(prestat));
+			pprestat = &prestat;
 
 			curstat->gen.wasinactive = 0;
 			devtstat->ntaskactive++;
@@ -231,7 +234,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		/*
 		** do the difference calculations
 		*/
-		calcdiff(devstat, curstat, &prestat, newtask, totusedcpu);
+		calcdiff(devstat, curstat, pprestat, newtask, totusedcpu);
 	}
 
 	/*
@@ -420,30 +423,21 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 ** the previous sample for a task
 */
 static void
-calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
-	                                      char newtask, count_t totusedcpu)
+calcdiff(struct tstat *devstat, const struct tstat *curstat,
+                                const struct tstat *prestat,
+	                        char newtask, count_t totusedcpu)
 {
-	char	gpustate = curstat->gpu.state;
-
 	/*
  	** for inactive tasks, set all counters to zero to avoid calculating
-	** the deviations (after all, there are no deviations); take care that
-	** only that the values referred to by prestat should not be used for
-	** inactive tasks!
+	** the deviations (after all, there are no deviations)
 	*/
 	if (curstat->gen.wasinactive)
 	{
 		memset(devstat, 0, sizeof *devstat);
 	}
-	else
-	{
-		if (!gpustate)
-			gpustate = prestat->gpu.state;
-	}
 
 	/*
-	** copy all static values from the current task settings
-	** WITHOUT USING PRESTAT!!
+	** copy all STATIC values from the current task settings
 	*/
 	devstat->gen          = curstat->gen;
 
@@ -472,16 +466,23 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->mem.vswap    = curstat->mem.vswap;
 	devstat->mem.vlock    = curstat->mem.vlock;
 
-	devstat->gpu.state    = gpustate;
-
-	if (gpustate)		// GPU in use?
+	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
 	{
+		if (curstat->gpu.state)
+			devstat->gpu.state = curstat->gpu.state;
+		else
+			devstat->gpu.state = prestat->gpu.state;
+
 		devstat->gpu.nrgpus  = curstat->gpu.nrgpus;
 		devstat->gpu.gpulist = curstat->gpu.gpulist;
 		devstat->gpu.gpubusy = curstat->gpu.gpubusy;
 		devstat->gpu.membusy = curstat->gpu.membusy;
 		devstat->gpu.memnow  = curstat->gpu.memnow;
 		devstat->gpu.timems  = curstat->gpu.timems;
+	}
+	else
+	{
+		devstat->gpu.state = '\0';
 	}
 
 	/*
@@ -492,7 +493,8 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 		return;
 
 	/*
-	** calculate deviations for active tasks
+	** calculate deviations for tasks that were really active
+	** (i.e. modified) during the sample
 	*/
 	devstat->cpu.stime  = 
 		subcount(curstat->cpu.stime, prestat->cpu.stime);
