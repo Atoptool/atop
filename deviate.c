@@ -141,6 +141,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		if ( pdb_gettask(curstat->gen.pid, curstat->gen.isproc,
 		                 curstat->gen.btime, &pinfo))
 		{
+			// prestat 	= pinfo->tstat;
 			/*
 			** task already present in the previous sample
 			**
@@ -422,14 +423,27 @@ static void
 calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	                                      char newtask, count_t totusedcpu)
 {
+	char	gpustate = curstat->gpu.state;
+
 	/*
- 	** for inactive tasks, set all counters to zero
+ 	** for inactive tasks, set all counters to zero to avoid calculating
+	** the deviations (after all, there are no deviations); take care that
+	** only that the values referred to by prestat should not be used for
+	** inactive tasks!
 	*/
 	if (curstat->gen.wasinactive)
+	{
 		memset(devstat, 0, sizeof *devstat);
+	}
+	else
+	{
+		if (!gpustate)
+			gpustate = prestat->gpu.state;
+	}
 
 	/*
 	** copy all static values from the current task settings
+	** WITHOUT USING PRESTAT!!
 	*/
 	devstat->gen          = curstat->gen;
 
@@ -458,13 +472,10 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 	devstat->mem.vswap    = curstat->mem.vswap;
 	devstat->mem.vlock    = curstat->mem.vlock;
 
-	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
-	{
-		if (curstat->gpu.state)
-			devstat->gpu.state = curstat->gpu.state;
-		else
-			devstat->gpu.state = prestat->gpu.state;
+	devstat->gpu.state    = gpustate;
 
+	if (gpustate)		// GPU in use?
+	{
 		devstat->gpu.nrgpus  = curstat->gpu.nrgpus;
 		devstat->gpu.gpulist = curstat->gpu.gpulist;
 		devstat->gpu.gpubusy = curstat->gpu.gpubusy;
@@ -472,18 +483,17 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 		devstat->gpu.memnow  = curstat->gpu.memnow;
 		devstat->gpu.timems  = curstat->gpu.timems;
 	}
-	else
-	{
-		devstat->gpu.state = '\0';
-	}
 
 	/*
  	** for inactive tasks, only the static values had to be copied, while
-	** all use counters have been set to zero
+	** all use counters have already been set to zero
 	*/
 	if (curstat->gen.wasinactive)
 		return;
 
+	/*
+	** calculate deviations for active tasks
+	*/
 	devstat->cpu.stime  = 
 		subcount(curstat->cpu.stime, prestat->cpu.stime);
 	devstat->cpu.utime  =
@@ -503,9 +513,7 @@ calcdiff(struct tstat *devstat, struct tstat *curstat, struct tstat *prestat,
 
 	devstat->cpu.rundelay  =
 		subcount(curstat->cpu.rundelay, prestat->cpu.rundelay);
-	/*
-	** do further calculations
-	*/
+
 	devstat->dsk.rio    =
 		subcount(curstat->dsk.rio, prestat->dsk.rio);
 	devstat->dsk.rsz    =
