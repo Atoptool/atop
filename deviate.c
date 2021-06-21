@@ -711,6 +711,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.oomkills	= subcount(cur->mem.oomkills, pre->mem.oomkills);
 	dev->mem.compactstall	= subcount(cur->mem.compactstall,
 				                         pre->mem.compactstall);
+	dev->mem.pgmigrate	= subcount(cur->mem.pgmigrate, pre->mem.pgmigrate);
 
 	dev->psi          	= cur->psi;
 

@@ -81,6 +81,8 @@ struct	memstat {
 	count_t	zswtotpool;	// total pool size (pages)
 	count_t	oomkills;	// number of oom killings
 	count_t	compactstall;	// counter for process stalls
+	count_t	pgmigrate;	// counter for migrated successfully (pages)
+	count_t	cfuture[10];	// reserved for future use
 };
 
 /************************************************************************/
@@ -120,7 +122,7 @@ struct percpu {
         struct freqcnt	freqcnt;/* frequency scaling info  		*/
 	count_t		instr;	/* CPU instructions 			*/
 	count_t		cycle;	/* CPU cycles 				*/
-	count_t		cfuture[2];	/* reserved for future use	*/
+	count_t		cfuture[6];	/* reserved for future use	*/
 };
 
 struct	cpustat {

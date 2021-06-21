@@ -1667,6 +1667,24 @@ sysprt_OOMKILLS(void *p, void *q, int badness, int *color)
 }
 
 sys_printdef syspdef_OOMKILLS = {"OOMKILLS", sysprt_OOMKILLS};
+
+/*******************************************************************/
+char *
+sysprt_PGMIGRATE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="migrate  ";
+
+	if (sstat->mem.pgmigrate == -1)	// non-existing?
+		return NULL;
+
+        val2valstr(sstat->mem.pgmigrate, buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PGMIGRATE = {"PGMIGRATE", sysprt_PGMIGRATE};
+
 /*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void

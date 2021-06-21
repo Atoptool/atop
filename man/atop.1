@@ -1241,8 +1241,10 @@ and the number of process stalls to run memory compaction to allocate
 huge pages (`compact').
 .br
 Also the number of memory pages the system read from swap space (`swin'),
-the number of memory pages the system wrote to swap space (`swout'), and
-the number of out-of-memory kills (`oomkill') are shown.
+the number of memory pages the system wrote to swap space (`swout'),
+the number of out-of-memory kills (`oomkill') and
+the number of memory pages migrated succesfully e.g. between
+NUMA nodes or for compaction (`migrate') are shown.
 .PP
 .TP 5
 .B PSI
