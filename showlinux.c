@@ -412,10 +412,10 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSTEAL,
 	&syspdef_PAGSTALL,
 	&syspdef_PAGCOMPACT,
+	&syspdef_PGMIGRATE,
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
 	&syspdef_OOMKILLS,
-	&syspdef_PGMIGRATE,
 	&syspdef_BLANKBOX,
         0
 };
@@ -1141,14 +1141,14 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "PAGSCAN:3 "
 	                "PAGSTEAL:2 "
 	                "PAGSTALL:1 "
-	                "PAGCOMPACT:4 "
+	                "PAGCOMPACT:5 "
+			"PGMIGRATE:6"
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
 	                "BLANKBOX:0 "
-	                "PAGSWIN:4 "
-	                "PAGSWOUT:5"
-			"OOMKILLS:6"
-			"PGMIGRATE:6",
+	                "PAGSWIN:5 "
+	                "PAGSWOUT:7 "
+			"OOMKILLS:8 ",
 			pagsyspdefs, "builtin pagline",
 			sstat, &extra);
                 }
