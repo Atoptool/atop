@@ -463,7 +463,7 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.pgscans,
@@ -473,7 +473,8 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.swouts,
 			ss->mem.oomkills,
 			ss->mem.compactstall,
-			ss->mem.pgmigrate);
+			ss->mem.pgmigrate,
+			ss->mem.numamigrate);
 }
 
 void

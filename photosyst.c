@@ -477,9 +477,11 @@ photosyst(struct sstat *si)
 	** gather virtual memory statistics from the file /proc/vmstat and
 	** store them in binary form (>= kernel 2.6)
 	*/
-	si->mem.oomkills   = -1;
-	si->mem.pgmigrate  = -1;
-	si->mem.allocstall = 0;
+	si->mem.oomkills     = -1;
+
+	si->mem.allocstall   = 0;
+	si->mem.numamigrate  = 0;
+	si->mem.pgmigrate    = 0;
 
 	if ( (fp = fopen("vmstat", "r")) != NULL)
 	{
@@ -528,6 +530,11 @@ photosyst(struct sstat *si)
 			}
 			if ( strcmp("compact_stall", nam) == EQ) {
 				si->mem.compactstall = cnts[0];
+				continue;
+			}
+
+			if ( strcmp("numa_pages_migrated", nam) == EQ) {
+				si->mem.numamigrate = cnts[0];
 				continue;
 			}
 

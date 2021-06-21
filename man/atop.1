@@ -1237,14 +1237,14 @@ Paging frequency.
 This line contains the number of scanned pages (`scan') due to the fact
 that free memory drops below a particular threshold, the number
 times that the kernel tries to reclaim pages due to an urgent need (`stall'),
-and the number of process stalls to run memory compaction to allocate
-huge pages (`compact').
+the number of process stalls to run memory compaction to allocate
+huge pages (`compact'), the number of NUMA pages migrated (`numamig'), and
+the total number of memory pages migrated succesfully e.g. between
+NUMA nodes or for compaction (`migrate') are shown.
 .br
 Also the number of memory pages the system read from swap space (`swin'),
-the number of memory pages the system wrote to swap space (`swout'),
-the number of out-of-memory kills (`oomkill') and
-the number of memory pages migrated succesfully e.g. between
-NUMA nodes or for compaction (`migrate') are shown.
+the number of memory pages the system wrote to swap space (`swout'), and
+the number of out-of-memory kills (`oomkill').
 .PP
 .TP 5
 .B PSI
@@ -2135,8 +2135,10 @@ number of allocstalls,
 0 (future use),
 number of swapins,
 number of swapouts,
-number of oomkills (-1 when counter not present), and
-number of process stalls to run memory compaction.
+number of oomkills (-1 when counter not present),
+number of process stalls to run memory compaction,
+number of pages sucessfully migrated in total, and
+number of NUMA pages migrated.
 .TP 9
 .B PSI
 Subsequent fields:

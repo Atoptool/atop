@@ -82,7 +82,8 @@ struct	memstat {
 	count_t	oomkills;	// number of oom killings
 	count_t	compactstall;	// counter for process stalls
 	count_t	pgmigrate;	// counter for migrated successfully (pages)
-	count_t	cfuture[10];	// reserved for future use
+	count_t	numamigrate;	// counter for numa migrated (pages)
+	count_t	cfuture[9];	// reserved for future use
 };
 
 /************************************************************************/
