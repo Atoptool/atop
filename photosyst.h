@@ -28,6 +28,7 @@
 
 #define	MAXCPU		2048
 #define	MAXDSK		1024
+#define	MAXNUMA		1024
 #define	MAXLVM		2048
 #define	MAXMDD		256
 #define	MAXINTF		128
@@ -84,6 +85,33 @@ struct	memstat {
 	count_t	pgmigrate;	// counter for migrated successfully (pages)
 	count_t	numamigrate;	// counter for numa migrated (pages)
 	count_t	cfuture[9];	// reserved for future use
+};
+
+/************************************************************************/
+
+struct	mempernuma {
+	int	numanr;
+	count_t	totmem;		// number of physical pages for this numa
+	count_t	freemem;	// number of free     pages for this numa
+	count_t	filepage;	// number of file     pages for this numa
+	count_t	slabmem;	// number of slab     pages for this numa
+	count_t	dirtymem;	// number of cache    pages (dirty) for this numa
+
+	count_t	active;		// number of pages used more recently for this numa
+	count_t	inactive;	// number of pages less recently used for this numa
+
+	count_t	shmem;		// tot shmem incl. tmpfs (pages) for this numa
+
+	count_t	slabreclaim;	// reclaimable slab (pages) for this numa
+
+	float	frag;		// fragmentation level for this numa
+
+	int	tothp;		// total huge pages (huge pages) for this numa
+};
+
+struct	memnuma {
+	count_t           nrnuma;		/* the counts of numa		*/
+	struct mempernuma numa[MAXNUMA];
 };
 
 /************************************************************************/
@@ -363,6 +391,7 @@ struct	sstat {
 	struct memstat	mem;
 	struct netstat	net;
 	struct intfstat	intf;
+	struct memnuma	memnuma;
 	struct dskstat  dsk;
 	struct nfsstat  nfs;
 	struct contstat cfs;

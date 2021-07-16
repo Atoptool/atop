@@ -714,6 +714,23 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.numamigrate	= subcount(cur->mem.numamigrate, pre->mem.numamigrate);
 	dev->mem.pgmigrate	= subcount(cur->mem.pgmigrate,   pre->mem.pgmigrate);
 
+	dev->memnuma.nrnuma     = cur->memnuma.nrnuma;
+	for (i=0; i < dev->memnuma.nrnuma; i++)
+	{
+		dev->memnuma.numa[i].totmem      = cur->memnuma.numa[i].totmem;
+		dev->memnuma.numa[i].freemem     = cur->memnuma.numa[i].freemem;
+		dev->memnuma.numa[i].filepage    = cur->memnuma.numa[i].filepage;
+		dev->memnuma.numa[i].active      = cur->memnuma.numa[i].active;
+		dev->memnuma.numa[i].inactive    = cur->memnuma.numa[i].inactive;
+		dev->memnuma.numa[i].dirtymem    = cur->memnuma.numa[i].dirtymem;
+		dev->memnuma.numa[i].shmem       = cur->memnuma.numa[i].shmem;
+		dev->memnuma.numa[i].slabmem     = cur->memnuma.numa[i].slabmem;
+		dev->memnuma.numa[i].slabreclaim = cur->memnuma.numa[i].slabreclaim;
+		dev->memnuma.numa[i].tothp       = cur->memnuma.numa[i].tothp;
+		dev->memnuma.numa[i].frag        = cur->memnuma.numa[i].frag;
+		dev->memnuma.numa[i].numanr      = cur->memnuma.numa[i].numanr;
+	}
+
 	dev->psi          	= cur->psi;
 
 	if (cur->psi.present)

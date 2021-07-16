@@ -75,6 +75,12 @@
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+/* recognize numa node */
+#define	NUMADIR	"/sys/devices/system/node"
+
+/* Refer to mmzone.h, the default is 11 */
+#define	MAX_ORDER	11
+
 /* hypervisor enum */
 enum {
 	HYPER_NONE	= 0,
@@ -201,10 +207,12 @@ photosyst(struct sstat *si)
 	static char	ksm_stats = 1; 	
 	static char	zswap_stats = 1;
 
-	register int	i, nr;
+	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
 	float		lavg1, lavg5, lavg15;
 	FILE 		*fp;
+	DIR		*dirp;
+	struct dirent	*dentry;
 	char		linebuf[1024], nam[64], origdir[1024];
 	unsigned int	major, minor;
 	struct shm_info	shminfo;
@@ -742,6 +750,130 @@ photosyst(struct sstat *si)
 		}
 
 		fclose(fp);
+	}
+
+	/*
+	** gather per numa memory-related statistics from the file
+	** /sys/devices/system/node/node0/meminfo, and store them in binary form.
+	*/
+	dirp = opendir(NUMADIR);
+	if (dirp)
+	{
+		/*
+		** read every directory-entry and search for all numa nodes
+		*/
+		while ( (dentry = readdir(dirp)) )
+		{
+			if (strncmp(dentry->d_name, "node", 4))
+				continue;
+			j = strtoul(dentry->d_name + 4, NULL, 0);
+			si->memnuma.nrnuma++;
+
+			sprintf(fn, "/sys/devices/system/node/node%d/meminfo", j);
+			if ( (fp = fopen(fn, "r")) != 0)
+			{
+				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					nr = sscanf(&linebuf[5],
+						"%lld %s %lld\n",
+						&cnts[0], nam, &cnts[1]);
+
+					if (cnts[0] != j)
+						continue;
+
+					if ( strcmp("MemTotal:", nam) == EQ)
+						si->memnuma.numa[j].totmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("MemFree:", nam) == EQ)
+						si->memnuma.numa[j].freemem = cnts[1]*1024/pagesize;
+					else if ( strcmp("FilePages:", nam) == EQ)
+						si->memnuma.numa[j].filepage = cnts[1]*1024/pagesize;
+					else if ( strcmp("Active:", nam) == EQ)
+						si->memnuma.numa[j].active = cnts[1]*1024/pagesize;
+					else if ( strcmp("Inactive:", nam) == EQ)
+						si->memnuma.numa[j].inactive = cnts[1]*1024/pagesize;
+					else if ( strcmp("Dirty:", nam) == EQ)
+						si->memnuma.numa[j].dirtymem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Shmem:", nam) == EQ)
+						si->memnuma.numa[j].shmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Slab:", nam) == EQ)
+						si->memnuma.numa[j].slabmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("SReclaimable:", nam) == EQ)
+						si->memnuma.numa[j].slabreclaim = cnts[1]*1024/pagesize;
+					else if ( strcmp("HugePages_Total:", nam) == EQ)
+						si->memnuma.numa[j].tothp = cnts[1];
+				}
+				si->memnuma.numa[j].numanr = j;
+				fclose(fp);
+			}
+		}
+		closedir(dirp);
+	}
+
+	/* gather fragmentation level for per numa, only for 'Normal' */
+	if (si->memnuma.nrnuma > 0)
+	{
+		char tmp[64];
+		float frag[MAX_ORDER];
+		/* If kernel CONFIG_COMPACTION is enabled, get the percentage directly */
+		if ( (fp = fopen("/sys/kernel/debug/extfrag/unusable_index", "r")) != NULL )
+		{
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(&linebuf[5],
+					"%lld, %s %s %f %f %f %f %f %f %f %f %f %f %f\n",
+					&cnts[0], tmp, nam, &frag[0], &frag[1], &frag[2],
+					&frag[3], &frag[4], &frag[5], &frag[6], &frag[7],
+					&frag[8], &frag[9], &frag[10]);
+
+				if ( nr < 3 || strcmp("Normal", nam) != 0 )
+					continue;
+
+				for (i = 0; i < MAX_ORDER; i++)
+					si->memnuma.numa[cnts[0]].frag += frag[i];
+
+				si->memnuma.numa[cnts[0]].frag /= MAX_ORDER;
+			}
+			fclose(fp);
+		}
+		/* If CONFIG_COMPACTION is not enabled, calculate from buddyinfo file */
+		else if ( (fp = fopen("/proc/buddyinfo", "r")) != NULL )
+		{
+			count_t free_page[MAX_ORDER];
+			count_t total_free, prev_free;
+			float total_frag;
+
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(&linebuf[5],
+					"%lld, %s %s %lld %lld %lld %lld %lld "
+					"%lld %lld %lld %lld %lld %lld\n",
+					&cnts[0], tmp, nam, &cnts[1], &cnts[2], &cnts[3],
+					&cnts[4], &cnts[5], &cnts[6], &cnts[7], &cnts[8],
+					&cnts[9], &cnts[10], &cnts[11]);
+
+				if (nr < 3 || strcmp("Normal", nam) != 0 )
+					continue;
+
+				/* get free pages numbers for each order, and total free pages */
+				total_free = 0;
+				total_frag = 0.00;
+				for (i = 0; i < MAX_ORDER; i++)
+				{
+					free_page[i] = cnts[i+1] << i;
+					total_free += free_page[i];
+				}
+				/* get fragmentation level for each order, then summarize */
+				for (i = 0; i < MAX_ORDER; i++)
+				{
+					prev_free = 0;
+					for (j = 0; j < i; j++)
+						prev_free += free_page[j];
+					total_frag += (float)prev_free/total_free;
+				}
+				si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
+			}
+			fclose(fp);
+		}
 	}
 
 	/*
