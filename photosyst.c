@@ -74,6 +74,9 @@
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+/* recognize numa node */
+#define	NUMADIR		"/sys/devices/system/node"
+
 /* hypervisor enum */
 enum {
 	HYPER_NONE	= 0,
@@ -200,10 +203,12 @@ photosyst(struct sstat *si)
 	static char	ksm_stats = 1; 	
 	static char	zswap_stats = 1;
 
-	register int	i, nr;
+	register int	i, nr, num;
 	count_t		cnts[MAXCNT];
 	float		lavg1, lavg5, lavg15;
 	FILE 		*fp;
+	DIR		*dirp;
+	struct dirent	*dentry;
 	char		linebuf[1024], nam[64], origdir[1024];
 	unsigned int	major, minor;
 	struct shm_info	shminfo;
@@ -741,6 +746,62 @@ photosyst(struct sstat *si)
 		}
 
 		fclose(fp);
+	}
+
+	/*
+	** gather per numa memory-related statistics from the file
+	** /sys/devices/system/node/node0/meminfo, and store them in binary form.
+	*/
+	dirp = opendir(NUMADIR);
+	if (dirp)
+	{
+		/*
+		** read every directory-entry and search for all numa nodes
+		*/
+		while ( (dentry = readdir(dirp)) )
+		{
+			if (strncmp(dentry->d_name, "node", 4))
+				continue;
+			num = strtoul(dentry->d_name+4, NULL, 0);
+			si->numa.nrnuma++;
+
+			sprintf(fn, "/sys/devices/system/node/node%d/meminfo", num);
+			if ( (fp = fopen(fn, "r")) != 0)
+			{
+				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					nr = sscanf(&linebuf[5],
+						"%lld %s %lld\n",
+						&cnts[0], nam, &cnts[1]);
+
+					if ( strcmp("MemTotal:", nam) == EQ)
+						si->numa.numa[num].totmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("MemFree:", nam) == EQ)
+						si->numa.numa[num].freemem = cnts[1]*1024/pagesize;
+					else if ( strcmp("FilePages:", nam) == EQ)
+						si->numa.numa[num].filepage = cnts[1]*1024/pagesize;
+					else if ( strcmp("Active:", nam) == EQ)
+						si->numa.numa[num].active = cnts[1]*1024/pagesize;
+					else if ( strcmp("Inactive:", nam) == EQ)
+						si->numa.numa[num].inactive = cnts[1]*1024/pagesize;
+					else if ( strcmp("Dirty:", nam) == EQ)
+						si->numa.numa[num].dirtymem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Shmem:", nam) == EQ)
+						si->numa.numa[num].shmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Slab:", nam) == EQ)
+						si->numa.numa[num].slabmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("SReclaimable:", nam) == EQ)
+						si->numa.numa[num].slabreclaim = cnts[1]*1024/pagesize;
+					else if ( strcmp("HugePages_Total:", nam) == EQ)
+						si->numa.numa[num].tothp = cnts[1];
+					else if ( strcmp("HugePages_Free:", nam) == EQ)
+						si->numa.numa[num].freehp = cnts[1];
+				}
+				si->numa.numa[num].numanr = num;
+				fclose(fp);
+			}
+		}
+		closedir(dirp);
 	}
 
 	/*

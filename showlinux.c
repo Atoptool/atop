@@ -420,6 +420,21 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *numasyspdefs[] = {
+	&syspdef_NUMATOT,
+	&syspdef_NUMAFREE,
+	&syspdef_NUMAFILEPAGE,
+	&syspdef_NUMANR,
+	&syspdef_NUMADIRTY,
+	&syspdef_NUMAACTIVE,
+	&syspdef_NUMAINACTIVE,
+	&syspdef_NUMASLAB,
+	&syspdef_NUMASLABRECLAIM,
+	&syspdef_NUMASHMEM,
+	&syspdef_NUMAHUPTOT,
+	&syspdef_NUMAHUPUSE,
+        0
+};
 sys_printdef *psisyspdefs[] = {
 	&syspdef_PSICPUSTOT,
 	&syspdef_PSIMEMSTOT,
@@ -677,6 +692,7 @@ sys_printpair cplline[MAXITEMS];
 sys_printpair gpuline[MAXITEMS];
 sys_printpair memline[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
+sys_printpair numaline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
 sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
@@ -962,6 +978,8 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 		psc->availgpumem += sstat->gpu.gpu[i].memtotnow;
 
 	psc->nrgpu = sstat->gpu.nrgpus;
+
+	psc->nrnuma = sstat->numa.nrnuma;
 }
 
 /*
@@ -1130,6 +1148,25 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "SWPCOMMITTED:7 "
 	                "SWPCOMMITLIM:8",
  			swpsyspdefs, "builtin swpline",
+			sstat, &extra);
+                }
+
+                if (numaline[0].f == 0)
+                {
+                    make_sys_prints(numaline, MAXITEMS,
+	                "NUMATOT:8 "
+	                "NUMAFREE:9 "
+	                "NUMAFILEPAGE:9 "
+	                "NUMANR:7 "
+	                "NUMADIRTY:5 "
+	                "NUMAACTIVE:5 "
+	                "NUMAINACTIVE:5 "
+	                "NUMASLAB:7 "
+	                "NUMASLABRECLAIM:4 "
+	                "NUMASHMEM:4 "
+	                "NUMAHUPTOT:6 "
+	                "NUMAHUPUSE:3 ",
+			numasyspdefs, "builtin numaline",
 			sstat, &extra);
                 }
 
@@ -1760,7 +1797,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines, int maxifblines,
-	int maxnfslines, int maxcontlines)
+	int maxnfslines, int maxcontlines, int maxnumalines)
 {
         extraparam      extra;
         int             lin;
@@ -1978,6 +2015,43 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
         showsysline(swpline, sstat, &extra, "SWP", badness);
         curline++;
+
+        /*
+        ** NUMA statistics
+        */
+        if (sstat->numa.nrnuma > 0)
+        {
+                for (extra.index=lin=0;
+		     extra.index < sstat->numa.nrnuma && lin < maxnumalines;
+		     extra.index++)
+		{
+			busy = (sstat->numa.numa[extra.index].totmem
+				- sstat->numa.numa[extra.index].freemem
+				- sstat->numa.numa[extra.index].filepage
+				- sstat->numa.numa[extra.index].slabreclaim
+				+ sstat->numa.numa[extra.index].shmem)
+					* 100.0 / sstat->numa.numa[extra.index].totmem;
+
+			if (membadness)
+				badness = busy * 100 / membadness;
+			else
+				badness = 0;
+
+			if (highbadness < badness)
+			{
+				highbadness = badness;
+				*highorderp = MSORTMEM;
+			}
+
+			if (screen)
+				move(curline, 0);
+
+			showsysline(numaline, sstat, &extra, "NUM",
+								badness);
+                        curline++;
+                        lin++;
+                }
+        }
 
         /*
         ** PAGING statistics
@@ -2725,6 +2799,23 @@ contcompar(const void *a, const void *b)
         return  0;
 }
 
+int
+numacompar(const void *a, const void *b)
+{
+        register count_t aused = ((struct pernuma *)a)->totmem -
+                                 ((struct pernuma *)a)->freemem;
+        register count_t bused = ((struct pernuma *)b)->totmem -
+                                 ((struct pernuma *)b)->freemem;
+
+        if (aused < bused)
+                return  1;
+
+        if (aused > bused)
+                return -1;
+
+        return  0;
+}
+
 /*
 ** handle modifications from the /etc/atoprc and ~/.atoprc file
 */
@@ -2867,6 +2958,13 @@ void
 do_ownpagline(char *name, char *val)
 {
         make_sys_prints(pagline, MAXITEMS, val, pagsyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_ownnumaline(char *name, char *val)
+{
+        make_sys_prints(numaline, MAXITEMS, val, numasyspdefs, name,
 					NULL, NULL);
 }
 
