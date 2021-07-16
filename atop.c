@@ -363,6 +363,7 @@ void do_maxintf(char *, char *);
 void do_maxifb(char *, char *);
 void do_maxnfsm(char *, char *);
 void do_maxcont(char *, char *);
+void do_maxnuma(char *, char *);
 void do_colinfo(char *, char *);
 void do_colalmost(char *, char *);
 void do_colcrit(char *, char *);
@@ -411,6 +412,7 @@ static struct {
 	{	"maxlineifb",		do_maxifb,		0, },
 	{	"maxlinenfsm",		do_maxnfsm,		0, },
 	{	"maxlinecont",		do_maxcont,		0, },
+	{	"maxlinenuma",		do_maxnuma,		0, },
 	{	"colorinfo",		do_colinfo,		0, },
 	{	"coloralmost",		do_colalmost,		0, },
 	{	"colorcritical",	do_colcrit,		0, },

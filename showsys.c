@@ -1695,7 +1695,170 @@ sysprt_OOMKILLS(void *p, void *q, int badness, int *color)
 }
 
 sys_printdef syspdef_OOMKILLS = {"OOMKILLS", sysprt_OOMKILLS};
+/*******************************************************************/
+char *
+sysprt_NUMATOT(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="tot   ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].totmem * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
 
+sys_printdef syspdef_NUMATOT = {"NUMATOT", sysprt_NUMATOT};
+/*******************************************************************/
+char *
+sysprt_NUMAFREE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="free  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].freemem * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAFREE = {"NUMAFREE", sysprt_NUMAFREE};
+/*******************************************************************/
+char *
+sysprt_NUMAFILE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="file  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].filepage * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAFILEPAGE = {"NUMAFILEPAGE", sysprt_NUMAFILE};
+/*******************************************************************/
+char *
+sysprt_NUMANR(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16];
+	*color = -1;
+        sprintf(buf, "     numa%03d", sstat->numa.numa[as->index].numanr);
+        return buf;
+}
+
+sys_printdef syspdef_NUMANR = {"NUMANR", sysprt_NUMANR};
+/*******************************************************************/
+char *
+sysprt_NUMADIRTY(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="dirty  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].dirtymem * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMADIRTY = {"NUMADIRTY", sysprt_NUMADIRTY};
+/*******************************************************************/
+char *
+sysprt_NUMAACTIVE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="activ  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].active * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAACTIVE = {"NUMAACTIVE", sysprt_NUMAACTIVE};
+/*******************************************************************/
+char *
+sysprt_NUMAINACTIVE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="inact   ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].inactive * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAINACTIVE = {"NUMAINACTIVE", sysprt_NUMAINACTIVE};
+/*******************************************************************/
+char *
+sysprt_NUMASLAB(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="slab  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].slabmem * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMASLAB = {"NUMASLAB", sysprt_NUMASLAB};
+/*******************************************************************/
+char *
+sysprt_NUMASLABRECLAIM(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="slrec ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].slabreclaim * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMASLABRECLAIM = {"NUMASLABRECLAIM", sysprt_NUMASLABRECLAIM};
+/*******************************************************************/
+char *
+sysprt_NUMASHMEM(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="shmem  ";
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].shmem * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMASHMEM = {"NUMASHMEM", sysprt_NUMASHMEM};
+/*******************************************************************/
+char *
+sysprt_NUMAHPTOT(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="hptot  ";
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
+	*color = -1;
+        val2memstr(sstat->numa.numa[as->index].tothp * sstat->mem.hugepagesz,
+						buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAHPTOT = {"NUMAHPTOT", sysprt_NUMAHPTOT};
+/*******************************************************************/
+char *
+sysprt_NUMAHPUSE(void *p, void *q, int badness, int *color)
+{
+        struct sstat *sstat=p;
+        extraparam *as=q;
+        static char buf[16]="hpuse ";
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
+	*color = -1;
+        val2memstr( (sstat->numa.numa[as->index].tothp - sstat->numa.numa[as->index].freehp)
+			 * sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMAHPUSE = {"NUMAHPUSE", sysprt_NUMAHPUSE};
 /*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
