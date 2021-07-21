@@ -998,6 +998,20 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
         extra.nsecs	= nsecs;
         extra.index	= 0;
 
+        /*
+        ** CPU statistics
+        */
+        extra.cputot = sstat->cpu.all.stime + sstat->cpu.all.utime +
+                       sstat->cpu.all.ntime + sstat->cpu.all.itime +
+                       sstat->cpu.all.wtime + sstat->cpu.all.Itime +
+                       sstat->cpu.all.Stime + sstat->cpu.all.steal;
+        if (extra.cputot == 0)
+                extra.cputot = 1;             /* avoid divide-by-zero */
+
+        extra.percputot = extra.cputot / sstat->cpu.nrcpu;
+        if (extra.percputot == 0)
+                extra.percputot = 1;          /* avoid divide-by-zero */
+
         if (firsttime)
         {
                 firsttime=0;
