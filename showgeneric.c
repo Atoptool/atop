@@ -305,6 +305,7 @@ static int	maxintlines = 999;  /* maximum interface lines          */
 static int	maxifblines = 999;  /* maximum infinibnd lines          */
 static int	maxnfslines = 999;  /* maximum nfs mount lines          */
 static int	maxcontlines = 999; /* maximum container lines          */
+static int	maxnumalines = 999; /* maximum numa      lines          */
 
 static short	colorinfo   = COLOR_GREEN;
 static short	coloralmost = COLOR_CYAN;
@@ -478,6 +479,10 @@ generic_samp(time_t curtime, int nsecs,
 		if (sstat->cfs.nrcontainer > 1 && maxcontlines > 0)
 			qsort(sstat->cfs.cont, sstat->cfs.nrcontainer,
 		  	       sizeof sstat->cfs.cont[0], contcompar);
+
+		if (sstat->numa.nrnuma > 1 && maxnumalines > 0)
+			qsort(sstat->numa.numa, sstat->numa.nrnuma,
+			       sizeof sstat->numa.numa[0], numacompar);
 	}
 
 	/*
@@ -571,7 +576,7 @@ generic_samp(time_t curtime, int nsecs,
 		                  maxcpulines, maxgpulines, maxdsklines,
 				  maxmddlines, maxlvmlines,
 		                  maxintlines, maxifblines, maxnfslines,
-		                  maxcontlines);
+		                  maxcontlines, maxnumalines);
 
 		/*
  		** if system-wide statistics do not fit,
@@ -594,7 +599,7 @@ generic_samp(time_t curtime, int nsecs,
 					maxdsklines, maxmddlines,
 		                        maxlvmlines, maxintlines,
 					maxifblines, maxnfslines,
-		                        maxcontlines);
+		                        maxcontlines, maxnumalines);
 
 			/*
  			** if system-wide statistics still do not fit,
@@ -2271,6 +2276,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 					    maxcontlines, statline);
 
+				maxnumalines =
+				  getnumval("Maximum lines for numa "
+				            "statistics (now %d): ",
+					    maxnumalines, statline);
+
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
@@ -2751,6 +2761,9 @@ limitedlines(void)
 
 	if (maxcontlines == 999)	// default?
 		maxcontlines = 1;
+
+	if (maxnumalines == 999)	// default?
+		maxnumalines = 0;
 }
 
 /*
@@ -3455,6 +3468,11 @@ do_maxcont(char *name, char *val)
 	maxcontlines = get_posval(name, val);
 }
 
+void
+do_maxnuma(char *name, char *val)
+{
+	maxnumalines = get_posval(name, val);
+}
 
 struct colmap {
 	char 	*colname;
