@@ -781,9 +781,6 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
 
         for(i=a=0; items[i].name && i<maxn-1; i++) 
         {
-		unsigned int	badness = 0;
-		int		color = 0;
-
                 const char *name=items[i].name;
                 int j;
 
@@ -791,12 +788,12 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
                 {
                         if (strcmp(permissables[j]->configname, name) == 0)
                         {
-				// call convert function to see if it is
-				// relevant (i.e. valid counter)
+				// call validate function to see if this 
+				// counter is relevant
 				//
-				if (sstat != NULL &&
-				    permissables[j]->doconvert(sstat,
-						extra, badness, &color)== NULL)
+				if (sstat != NULL && 
+				    permissables[j]->dovalidate != NULL &&
+				    permissables[j]->dovalidate(sstat) == 0)
 					break;
 
                                	ar[a].f    = permissables[j];
