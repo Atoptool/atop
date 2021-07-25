@@ -60,20 +60,29 @@ typedef struct {
         count_t		percputot;
 } extraparam;
 
-/***************************************************************/
-/*
+/***************************************************************
+ *
  * structure for system print-list
+ *
+ * configname	name as used to identify this field when configuring
+ * 		the print line
+ * doformat	pointer to function that formats this field into a
+ * 		string of 12 positions, to be returned as char pointer
+ * dovalidate	pointer to function that determines if this is a 
+ * 		valid (i.e. relevant) field on this system, returning
+ * 		0 (false) or non-zero (true)
+ * 		when this function pointer is NULL, true is considered
 */
 typedef struct {
-        char *configname;                          // name as used to 
-                                                   // config print line
-        char* (*doconvert)(void *, void *, int, int *); // ptr to convert func
+        char *configname;
+        char* (*doformat)(void *, void *, int, int *);
+        int   (*dovalidate)(struct sstat *);
 } sys_printdef;
 
 
 /*
  * structure for system print-list with priority
- * in case of leck of screen space, lowest priority items will be
+ * in case of lack of screen space, lowest priority items will be
  * removed first 
 */
 typedef struct
