@@ -75,7 +75,7 @@ typedef struct {
 */
 typedef struct {
         char *configname;
-        char* (*doformat)(void *, void *, int, int *);
+        char* (*doformat)(struct sstat *, extraparam *, int, int *);
         int   (*dovalidate)(struct sstat *);
 } sys_printdef;
 
