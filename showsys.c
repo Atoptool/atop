@@ -27,45 +27,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: showsys.c,v $
-** Revision 1.10  2010/11/12 06:06:43  gerlof
-** Sometimes segmentation-fault on particular CPU-types
-** due to memcpy i.s.o. memmove when moving memory in overlap.
-**
-** Revision 1.9  2010/10/23 14:04:20  gerlof
-** Counters for total number of running and sleep threads (JC van Winkel).
-**
-** Revision 1.8  2010/05/18 19:20:02  gerlof
-** Introduce CPU frequency and scaling (JC van Winkel).
-**
-** Revision 1.7  2010/04/23 08:16:58  gerlof
-** Field 'avque' modified to 'avq' to be able to show higher values
-** (especially on LVM-level).
-**
-** Revision 1.6  2010/03/04 10:53:37  gerlof
-** Support I/O-statistics on logical volumes and MD devices.
-**
-** Revision 1.5  2009/12/17 11:59:36  gerlof
-** Gather and display new counters: dirty cache and guest cpu usage.
-**
-** Revision 1.4  2009/12/17 08:53:03  gerlof
-** If no coclors wanted, use bold display for critical resources.
-**
-** Revision 1.3  2009/12/17 07:33:05  gerlof
-** Scale system-statistics properly when modifying window size (JC van Winkel).
-**
-** Revision 1.2  2009/12/10 11:56:08  gerlof
-** Various bug-solutions.
-**
-** Revision 1.1  2009/12/10 09:46:16  gerlof
-** Initial revision
-**
-** Initial revision
-**
-**
-** Initial
-**
 */
 
 #include <sys/types.h>
@@ -149,7 +110,7 @@ syscolorlabel(char *labeltext, unsigned int badness)
         return 0;
 }
 
-char *sysprt_BLANKBOX(void *p, void *notused, int, int *);
+static char *sysprt_BLANKBOX(struct sstat *sstat, extraparam *notused, int, int *);
 
 void
 addblanks(double *charslackused, double *charslackover)
@@ -164,7 +125,7 @@ addblanks(double *charslackused, double *charslackover)
 
 /*
  * showsysline
- * print an array of sys_printpair things.  If the screen contains to
+ * print an array of sys_printpair things.  If the screen contains too
  * few character columns, lower priority items are removed
  *
  */
@@ -328,12 +289,11 @@ showsysline(sys_printpair* elemptr,
 
 
 /*******************************************************************/
-/* SYSTEM PRINT FUNCTIONS */
+/* SYSTEM PRINT FUNCTIONS                                          */
 /*******************************************************************/
-char *
-sysprt_PRCSYS(void *notused, void *q, int badness, int *color)
+static char *
+sysprt_PRCSYS(struct sstat *notused, extraparam *as, int badness, int *color)
 {
-        extraparam *as=q;
         static char buf[15]="sys   ";
         val2cpustr(as->totst * 1000/hertz, buf+6);
         return buf;
@@ -341,10 +301,9 @@ sysprt_PRCSYS(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCSYS = {"PRCSYS", sysprt_PRCSYS, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCUSER(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCUSER(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="user  ";
         val2cpustr(as->totut * 1000/hertz, buf+6);
         return buf;
@@ -352,10 +311,9 @@ sysprt_PRCUSER(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCUSER = {"PRCUSER", sysprt_PRCUSER, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNPROC(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNPROC(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="#proc     ";
         val2valstr(as->nproc - as->nexit, buf+6, 6, 0, 0);
         return buf;
@@ -363,10 +321,9 @@ sysprt_PRCNPROC(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNPROC = {"PRCNPROC", sysprt_PRCNPROC, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNRUNNING(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNRUNNING(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="#trun     ";
         val2valstr(as->ntrun, buf+6, 6, 0, 0);
         return buf;
@@ -374,10 +331,9 @@ sysprt_PRCNRUNNING(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNRUNNING = {"PRCNRUNNING", sysprt_PRCNRUNNING, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNSLEEPING(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNSLEEPING(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="#tslpi    ";
         val2valstr(as->ntslpi, buf+8, 4, 0, 0);
         return buf;
@@ -385,10 +341,9 @@ sysprt_PRCNSLEEPING(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNSLEEPING = {"PRCNSLEEPING", sysprt_PRCNSLEEPING, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNDSLEEPING(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNDSLEEPING(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="#tslpu    ";
         val2valstr(as->ntslpu, buf+8, 4, 0, 0);
         return buf;
@@ -396,10 +351,9 @@ sysprt_PRCNDSLEEPING(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNDSLEEPING = {"PRCNDSLEEPING", sysprt_PRCNDSLEEPING, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNZOMBIE(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNZOMBIE(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
-        extraparam *as=q;
         static char buf[15]="#zombie   ";
 
 	if (as->nzomb > 30)
@@ -414,12 +368,10 @@ sysprt_PRCNZOMBIE(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNZOMBIE = {"PRCNZOMBIE", sysprt_PRCNZOMBIE, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color) 
+static char *
+sysprt_PRCNNEXIT(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
 	static char firstcall = 1;
-
-        extraparam *as=q;
         static char buf[15]="#exit     ";
 
         if (supportflags & ACCTACTIVE)
@@ -469,11 +421,9 @@ sysprt_PRCNNEXIT(void *notused, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCNNEXIT = {"PRCNNEXIT", sysprt_PRCNNEXIT, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUSYS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUSYS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= (sstat->cpu.all.stime * 100.0) / as->percputot;
 
@@ -486,11 +436,9 @@ sysprt_CPUSYS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUSYS = {"CPUSYS", sysprt_CPUSYS, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUUSER(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUUSER(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= (sstat->cpu.all.utime + sstat->cpu.all.ntime)
                                         * 100.0 / as->percputot;
@@ -504,11 +452,9 @@ sysprt_CPUUSER(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUUSER = {"CPUUSER", sysprt_CPUUSER, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIRQ(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIRQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         float perc = (sstat->cpu.all.Itime + sstat->cpu.all.Stime)
                                     * 100.0 / as->percputot;
@@ -522,11 +468,9 @@ sysprt_CPUIRQ(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIRQ = {"CPUIRQ", sysprt_CPUIRQ, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIDLE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIDLE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         sprintf(buf, "idle %6.0f%%", 
                 (sstat->cpu.all.itime * 100.0) / as->percputot);
@@ -535,11 +479,9 @@ sysprt_CPUIDLE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIDLE = {"CPUIDLE", sysprt_CPUIDLE, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUWAIT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUWAIT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         sprintf(buf, "wait %6.0f%%", 
                 (sstat->cpu.all.wtime * 100.0) / as->percputot);
@@ -548,11 +490,9 @@ sysprt_CPUWAIT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUWAIT = {"CPUWAIT", sysprt_CPUWAIT, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUISYS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUISYS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= sstat->cpu.cpu[as->index].stime * 100.0
 							/ as->percputot;
@@ -566,11 +506,9 @@ sysprt_CPUISYS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUISYS = {"CPUISYS", sysprt_CPUISYS, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIUSER(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIUSER(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= (sstat->cpu.cpu[as->index].utime +
                            sstat->cpu.cpu[as->index].ntime) 
@@ -585,11 +523,9 @@ sysprt_CPUIUSER(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIUSER = {"CPUIUSER", sysprt_CPUIUSER, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIIRQ(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIIRQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= (sstat->cpu.cpu[as->index].Itime +
 		  	   sstat->cpu.cpu[as->index].Stime)
@@ -604,11 +540,9 @@ sysprt_CPUIIRQ(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIIRQ = {"CPUIIRQ", sysprt_CPUIIRQ, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIIDLE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIIDLE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         sprintf(buf, "idle %6.0f%%", 
                 (sstat->cpu.cpu[as->index].itime * 100.0) / as->percputot);
@@ -617,11 +551,9 @@ sysprt_CPUIIDLE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIIDLE = {"CPUIIDLE", sysprt_CPUIIDLE, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIWAIT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIWAIT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         sprintf(buf, "cpu%03d w%3.0f%%", 
 		 sstat->cpu.cpu[as->index].cpunr,
@@ -631,7 +563,7 @@ sysprt_CPUIWAIT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIWAIT = {"CPUIWAIT", sysprt_CPUIWAIT, NULL};
 /*******************************************************************/
-char *
+static char *
 dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 {
         // if ticks != 0, do full output
@@ -682,7 +614,7 @@ void sumscaling(struct sstat *sstat, count_t *maxfreq,
 }
 
 
-char *
+static char *
 dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 {
 	if (ticks) 
@@ -707,12 +639,10 @@ dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 }
 
 /*******************************************************************/
-char *
-sysprt_CPUIFREQ(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIFREQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
 
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 
         count_t maxfreq	= sstat->cpu.cpu[as->index].freqcnt.maxfreq;
@@ -724,11 +654,10 @@ sysprt_CPUIFREQ(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIFREQ = {"CPUIFREQ", sysprt_CPUIFREQ, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUFREQ(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUFREQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
 
-        struct sstat *sstat=p;
         static char buf[15];
 
         count_t maxfreq;
@@ -742,11 +671,10 @@ sysprt_CPUFREQ(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUFREQ = {"CPUFREQ", sysprt_CPUFREQ, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUSCALE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUSCALE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
 
-        struct sstat *sstat=p;
         static char buf[32] = "scaling    ?";
 
         count_t maxfreq;
@@ -759,7 +687,7 @@ sysprt_CPUSCALE(void *p, void *q, int badness, int *color)
 	return buf;
 }
 
-int
+static int
 sysval_CPUSCALE(struct sstat *sstat)
 {
         char    buf[32];
@@ -778,12 +706,10 @@ sysval_CPUSCALE(struct sstat *sstat)
 
 sys_printdef syspdef_CPUSCALE = {"CPUSCALE", sysprt_CPUSCALE, sysval_CPUSCALE};
 /*******************************************************************/
-char *
-sysprt_CPUISCALE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUISCALE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
 
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[32] = "scaling    ?";
 
         count_t maxfreq = sstat->cpu.cpu[as->index].freqcnt.maxfreq;
@@ -796,11 +722,9 @@ sysprt_CPUISCALE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUISCALE = {"CPUISCALE", sysprt_CPUISCALE, sysval_CPUSCALE};
 /*******************************************************************/
-char *
-sysprt_CPUSTEAL(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUSTEAL(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= sstat->cpu.all.steal * 100.0 / as->percputot;
 
@@ -813,11 +737,9 @@ sysprt_CPUSTEAL(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUSTEAL = {"CPUSTEAL", sysprt_CPUSTEAL, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUISTEAL(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUISTEAL(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
 	float perc	= sstat->cpu.cpu[as->index].steal * 100.0
 							/ as->percputot;
@@ -831,11 +753,9 @@ sysprt_CPUISTEAL(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUISTEAL = {"CPUISTEAL", sysprt_CPUISTEAL, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUGUEST(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUGUEST(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         float perc = sstat->cpu.all.guest * 100.0 / as->percputot;
 
@@ -848,11 +768,9 @@ sysprt_CPUGUEST(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUGUEST = {"CPUGUEST", sysprt_CPUGUEST, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIGUEST(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIGUEST(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         float perc = sstat->cpu.cpu[as->index].guest * 100.0 / as->percputot;
 
@@ -865,10 +783,9 @@ sysprt_CPUIGUEST(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIGUEST = {"CPUIGUEST", sysprt_CPUIGUEST, NULL};
 /*******************************************************************/
-char *
-sysprt_CPUIPC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIPC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[15];
         float ipc = 0.0;
 
@@ -891,18 +808,17 @@ sysprt_CPUIPC(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-int sysval_IPCVALIDATE(struct sstat *sstat)
+static int
+sysval_IPCVALIDATE(struct sstat *sstat)
 {
 	return sstat->cpu.all.cycle;
 }
 
 sys_printdef syspdef_CPUIPC = {"CPUIPC", sysprt_CPUIPC, sysval_IPCVALIDATE};
 /*******************************************************************/
-char *
-sysprt_CPUIIPC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUIIPC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15];
         float ipc = 0.0;
 
@@ -930,11 +846,9 @@ sysprt_CPUIIPC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUIIPC = {"CPUIIPC", sysprt_CPUIIPC, sysval_IPCVALIDATE};
 /*******************************************************************/
-char *
-sysprt_CPUCYCLE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUCYCLE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15] = "cycl ";
 
 	switch (sstat->cpu.all.cycle)
@@ -958,11 +872,9 @@ sysprt_CPUCYCLE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUCYCLE = {"CPUCYCLE", sysprt_CPUCYCLE, sysval_IPCVALIDATE};
 /*******************************************************************/
-char *
-sysprt_CPUICYCLE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPUICYCLE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[15] = "cycl ";
 
 	switch (sstat->cpu.all.cycle)
@@ -986,10 +898,9 @@ sysprt_CPUICYCLE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPUICYCLE = {"CPUICYCLE", sysprt_CPUICYCLE, sysval_IPCVALIDATE};
 /*******************************************************************/
-char *
-sysprt_CPLAVG1(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_CPLAVG1(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[17]="avg1 ";
 
         if (sstat->cpu.lavg1 > 999999.0)
@@ -1009,10 +920,9 @@ sysprt_CPLAVG1(void *p, void *notused, int badness, int *color)
         
 sys_printdef syspdef_CPLAVG1 = {"CPLAVG1", sysprt_CPLAVG1, NULL};
 /*******************************************************************/
-char *
-sysprt_CPLAVG5(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_CPLAVG5(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[15]="avg5 ";
 
         if (sstat->cpu.lavg5 > 999999.0)
@@ -1032,10 +942,9 @@ sysprt_CPLAVG5(void *p, void *notused, int badness, int *color)
         
 sys_printdef syspdef_CPLAVG5 = {"CPLAVG5", sysprt_CPLAVG5, NULL};
 /*******************************************************************/
-char *
-sysprt_CPLAVG15(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_CPLAVG15(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[15]="avg15 ";
 
 	if (sstat->cpu.lavg15 > (2 * sstat->cpu.nrcpu) )
@@ -1058,11 +967,9 @@ sysprt_CPLAVG15(void *p, void *notused, int badness, int *color)
         
 sys_printdef syspdef_CPLAVG15 = {"CPLAVG15", sysprt_CPLAVG15, NULL};
 /*******************************************************************/
-char *
-sysprt_CPLCSW(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPLCSW(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="csw    ";
 
         val2valstr(sstat->cpu.csw, buf+4   , 8,as->avgval,as->nsecs);
@@ -1071,11 +978,9 @@ sysprt_CPLCSW(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPLCSW = {"CPLCSW", sysprt_CPLCSW, NULL};
 /*******************************************************************/
-char *
-sysprt_PRCCLONES(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PRCCLONES(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="clones ";
 
         val2valstr(sstat->cpu.nprocs, buf+7   , 5,as->avgval,as->nsecs);
@@ -1084,11 +989,9 @@ sysprt_PRCCLONES(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PRCCLONES = {"PRCCLONES", sysprt_PRCCLONES, NULL};
 /*******************************************************************/
-char *
-sysprt_CPLNUMCPU(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPLNUMCPU(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="numcpu ";
 
         val2valstr(sstat->cpu.nrcpu, buf+7   , 5,0,as->nsecs);
@@ -1097,11 +1000,9 @@ sysprt_CPLNUMCPU(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPLNUMCPU = {"CPLNUMCPU", sysprt_CPLNUMCPU, NULL};
 /*******************************************************************/
-char *
-sysprt_CPLINTR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CPLINTR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="intr   ";
 
         val2valstr(sstat->cpu.devint, buf+5   , 7,as->avgval,as->nsecs);
@@ -1110,11 +1011,9 @@ sysprt_CPLINTR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CPLINTR = {"CPLINTR", sysprt_CPLINTR, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUBUS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUBUS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat 	*sstat=p;
-        extraparam  	*as=q;
         static char 	buf[16];
 	char		*pn;
 	int		len;
@@ -1130,11 +1029,9 @@ sysprt_GPUBUS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUBUS = {"GPUBUS", sysprt_GPUBUS, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUTYPE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUTYPE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char 	buf[16];
 	char		*pn;
 	int		len;
@@ -1150,11 +1047,9 @@ sysprt_GPUTYPE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUTYPE = {"GPUTYPE", sysprt_GPUTYPE, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUNRPROC(void *p, void *q, int badness, int *color)
+static char *
+sysprt_GPUNRPROC(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-	struct sstat *sstat=p;
-	extraparam *as=q;
 	static char buf[16] = "#proc    ";
 
 	val2valstr(sstat->gpu.gpu[as->index].nrprocs, buf+6, 6, 0, 0);
@@ -1163,11 +1058,9 @@ sysprt_GPUNRPROC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUNRPROC = {"GPUNRPROC", sysprt_GPUNRPROC, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUMEMPERC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUMEMPERC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="membusy   ";
 	int perc = sstat->gpu.gpu[as->index].mempercnow;
 
@@ -1193,11 +1086,9 @@ sysprt_GPUMEMPERC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUMEMPERC = {"GPUMEMPERC", sysprt_GPUMEMPERC, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUGPUPERC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUGPUPERC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="gpubusy   ";
 	int perc = sstat->gpu.gpu[as->index].gpupercnow;
 
@@ -1223,11 +1114,9 @@ sysprt_GPUGPUPERC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUGPUPERC = {"GPUGPUPERC", sysprt_GPUGPUPERC, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUMEMOCC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUMEMOCC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="memocc   ";
 	int perc;
 
@@ -1242,11 +1131,9 @@ sysprt_GPUMEMOCC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUMEMOCC = {"GPUMEMOCC", sysprt_GPUMEMOCC, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUMEMTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUMEMTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16] = "total   ";
 
         val2memstr(sstat->gpu.gpu[as->index].memtotnow * 1024, buf+6,
@@ -1256,11 +1143,9 @@ sysprt_GPUMEMTOT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUMEMTOT = {"GPUMEMTOT", sysprt_GPUMEMTOT, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUMEMUSE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUMEMUSE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16] = "used    ";
 
         val2memstr(sstat->gpu.gpu[as->index].memusenow * 1024,
@@ -1270,11 +1155,9 @@ sysprt_GPUMEMUSE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUMEMUSE = {"GPUMEMUSE", sysprt_GPUMEMUSE, NULL};
 /*******************************************************************/
-char *
-sysprt_GPUMEMAVG(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_GPUMEMAVG(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16] = "usavg   ";
 
 	if (sstat->gpu.gpu[as->index].samples)
@@ -1289,10 +1172,9 @@ sysprt_GPUMEMAVG(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_GPUMEMAVG = {"GPUMEMAVG", sysprt_GPUMEMAVG, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMTOT(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMTOT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="tot   ";
 	*color = -1;
         val2memstr(sstat->mem.physmem * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1301,10 +1183,9 @@ sysprt_MEMTOT(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMTOT = {"MEMTOT", sysprt_MEMTOT, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMFREE(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMFREE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="free  ";
 	*color = -1;
         val2memstr(sstat->mem.freemem   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1313,10 +1194,9 @@ sysprt_MEMFREE(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMFREE = {"MEMFREE", sysprt_MEMFREE, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMCACHE(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMCACHE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="cache ";
 	*color = -1;
         val2memstr(sstat->mem.cachemem   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1325,10 +1205,9 @@ sysprt_MEMCACHE(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMCACHE = {"MEMCACHE", sysprt_MEMCACHE, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMDIRTY(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMDIRTY(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16] = "dirty ";
         val2memstr(sstat->mem.cachedrt   * pagesize, buf+6, MBFORMAT, 0, 0);
 
@@ -1337,10 +1216,9 @@ sysprt_MEMDIRTY(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMDIRTY = {"MEMDIRTY", sysprt_MEMDIRTY, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMBUFFER(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMBUFFER(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="buff  ";
 	*color = -1;
         val2memstr(sstat->mem.buffermem   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1349,10 +1227,9 @@ sysprt_MEMBUFFER(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMBUFFER = {"MEMBUFFER", sysprt_MEMBUFFER, NULL};
 /*******************************************************************/
-char *
-sysprt_MEMSLAB(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_MEMSLAB(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="slab  ";
 	*color = -1;
         val2memstr(sstat->mem.slabmem   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1361,10 +1238,9 @@ sysprt_MEMSLAB(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_MEMSLAB = {"MEMSLAB", sysprt_MEMSLAB, NULL};
 /*******************************************************************/
-char *
-sysprt_RECSLAB(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_RECSLAB(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="slrec ";
 	*color = -1;
         val2memstr(sstat->mem.slabreclaim * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1373,10 +1249,9 @@ sysprt_RECSLAB(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_RECSLAB = {"RECSLAB", sysprt_RECSLAB, NULL};
 /*******************************************************************/
-char *
-sysprt_SHMEM(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SHMEM(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="shmem  ";
 	*color = -1;
         val2memstr(sstat->mem.shmem * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1385,10 +1260,9 @@ sysprt_SHMEM(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SHMEM = {"SHMEM", sysprt_SHMEM, NULL};
 /*******************************************************************/
-char *
-sysprt_SHMRSS(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SHMRSS(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="shrss  ";
 	*color = -1;
         val2memstr(sstat->mem.shmrss * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1397,10 +1271,9 @@ sysprt_SHMRSS(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SHMRSS = {"SHMRSS", sysprt_SHMRSS, NULL};
 /*******************************************************************/
-char *
-sysprt_SHMSWP(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SHMSWP(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="shswp  ";
 	*color = -1;
         val2memstr(sstat->mem.shmswp * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1409,10 +1282,9 @@ sysprt_SHMSWP(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SHMSWP = {"SHMSWP", sysprt_SHMSWP, NULL};
 /*******************************************************************/
-char *
-sysprt_HUPTOT(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_HUPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="hptot  ";
 
 	*color = -1;
@@ -1421,7 +1293,7 @@ sysprt_HUPTOT(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_HUPTOT(struct sstat *sstat)
 {
 	return sstat->mem.tothugepage;
@@ -1429,10 +1301,9 @@ sysval_HUPTOT(struct sstat *sstat)
 
 sys_printdef syspdef_HUPTOT = {"HUPTOT", sysprt_HUPTOT, sysval_HUPTOT};
 /*******************************************************************/
-char *
-sysprt_HUPUSE(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_HUPUSE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="hpuse  ";
 
 	*color = -1;
@@ -1441,7 +1312,7 @@ sysprt_HUPUSE(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_HUPUSE(struct sstat *sstat)
 {
 	return sstat->mem.tothugepage;
@@ -1449,10 +1320,9 @@ sysval_HUPUSE(struct sstat *sstat)
 
 sys_printdef syspdef_HUPUSE = {"HUPUSE", sysprt_HUPUSE, sysval_HUPUSE};
 /*******************************************************************/
-char *
-sysprt_VMWBAL(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_VMWBAL(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="vmbal  ";
 
 	*color = -1;
@@ -1460,7 +1330,7 @@ sysprt_VMWBAL(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_VMWBAL(struct sstat *sstat)
 {
 	if (sstat->mem.vmwballoon == -1)
@@ -1471,10 +1341,9 @@ sysval_VMWBAL(struct sstat *sstat)
 
 sys_printdef syspdef_VMWBAL = {"VMWBAL", sysprt_VMWBAL, sysval_VMWBAL};
 /*******************************************************************/
-char *
-sysprt_ZFSARC(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_ZFSARC(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="zfarc  ";
 
 	if (sstat->mem.zfsarcsize == -1)
@@ -1491,7 +1360,7 @@ sysprt_ZFSARC(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_ZFSARC(struct sstat *sstat)
 {
 	if (sstat->mem.zfsarcsize == -1)
@@ -1502,10 +1371,9 @@ sysval_ZFSARC(struct sstat *sstat)
 
 sys_printdef syspdef_ZFSARC = {"ZFSARC", sysprt_ZFSARC, sysval_ZFSARC};
 /*******************************************************************/
-char *
-sysprt_SWPTOT(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SWPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="tot    ";
 	*color = -1;
         val2memstr(sstat->mem.totswap   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1514,10 +1382,9 @@ sysprt_SWPTOT(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SWPTOT = {"SWPTOT", sysprt_SWPTOT, NULL};
 /*******************************************************************/
-char *
-sysprt_SWPFREE(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SWPFREE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="free  ";
 	*color = -1;
         val2memstr(sstat->mem.freeswap   * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1526,10 +1393,9 @@ sysprt_SWPFREE(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SWPFREE = {"SWPFREE", sysprt_SWPFREE, NULL};
 /*******************************************************************/
-char *
-sysprt_SWPCACHE(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SWPCACHE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="swcac ";
 	*color = -1;
         val2memstr(sstat->mem.swapcached * pagesize, buf+6, MBFORMAT, 0, 0);
@@ -1538,10 +1404,9 @@ sysprt_SWPCACHE(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SWPCACHE = {"SWPCACHE", sysprt_SWPCACHE, NULL};
 /*******************************************************************/
-char *
-sysprt_ZSWTOTAL(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_ZSWTOTAL(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="zpool ";
 
 	*color = -1;
@@ -1549,7 +1414,7 @@ sysprt_ZSWTOTAL(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_ZSWTOTAL(struct sstat *sstat)
 {
 	if (sstat->mem.zswtotpool == -1)
@@ -1560,10 +1425,9 @@ sysval_ZSWTOTAL(struct sstat *sstat)
 
 sys_printdef syspdef_ZSWTOTAL = {"ZSWTOTAL", sysprt_ZSWTOTAL, sysval_ZSWTOTAL};
 /*******************************************************************/
-char *
-sysprt_ZSWSTORED(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_ZSWSTORED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="zstor ";
 
 	if (sstat->mem.zswstored == -1)
@@ -1579,7 +1443,7 @@ sysprt_ZSWSTORED(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_ZSWSTORED(struct sstat *sstat)
 {
 	if (sstat->mem.zswstored == -1)
@@ -1590,10 +1454,9 @@ sysval_ZSWSTORED(struct sstat *sstat)
 
 sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED, sysval_ZSWSTORED};
 /*******************************************************************/
-char *
-sysprt_KSMSHARING(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_KSMSHARING(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="kssav ";
 
 	if (sstat->mem.ksmsharing == -1)
@@ -1609,7 +1472,7 @@ sysprt_KSMSHARING(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_KSMSHARING(struct sstat *sstat)
 {
 	if (sstat->mem.ksmsharing == -1)
@@ -1620,10 +1483,9 @@ sysval_KSMSHARING(struct sstat *sstat)
 
 sys_printdef syspdef_KSMSHARING = {"KSMSHARING", sysprt_KSMSHARING, sysval_KSMSHARING};
 /*******************************************************************/
-char *
-sysprt_KSMSHARED(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_KSMSHARED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="ksuse ";
 
 	if (sstat->mem.ksmshared == -1)
@@ -1639,7 +1501,7 @@ sysprt_KSMSHARED(void *p, void *notused, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_KSMSHARED(struct sstat *sstat)
 {
 	if (sstat->mem.ksmshared == -1)
@@ -1650,10 +1512,9 @@ sysval_KSMSHARED(struct sstat *sstat)
 
 sys_printdef syspdef_KSMSHARED = {"KSMSHARED", sysprt_KSMSHARED, sysval_KSMSHARED};
 /*******************************************************************/
-char *
-sysprt_SWPCOMMITTED(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SWPCOMMITTED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="vmcom  ";
         val2memstr(sstat->mem.committed   * pagesize, buf+6, MBFORMAT, 0, 0);
 
@@ -1665,10 +1526,9 @@ sysprt_SWPCOMMITTED(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SWPCOMMITTED = {"SWPCOMMITTED", sysprt_SWPCOMMITTED, NULL};
 /*******************************************************************/
-char *
-sysprt_SWPCOMMITLIM(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_SWPCOMMITLIM(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16]="vmlim  ";
         val2memstr(sstat->mem.commitlim   * pagesize, buf+6, MBFORMAT, 0, 0);
 
@@ -1680,11 +1540,9 @@ sysprt_SWPCOMMITLIM(void *p, void *notused, int badness, int *color)
 
 sys_printdef syspdef_SWPCOMMITLIM = {"SWPCOMMITLIM", sysprt_SWPCOMMITLIM, NULL};
 /*******************************************************************/
-char *
-sysprt_PAGSCAN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PAGSCAN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="scan  ";
         val2valstr(sstat->mem.pgscans, buf+5, 7, as->avgval, as->nsecs);
         return buf;
@@ -1692,11 +1550,9 @@ sysprt_PAGSCAN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSCAN = {"PAGSCAN", sysprt_PAGSCAN, NULL};
 /*******************************************************************/
-char *
-sysprt_PAGSTEAL(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PAGSTEAL(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="steal  ";
         val2valstr(sstat->mem.pgsteal, buf+ 6, 6, as->avgval, as->nsecs);
         return buf;
@@ -1704,11 +1560,9 @@ sysprt_PAGSTEAL(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSTEAL = {"PAGSTEAL", sysprt_PAGSTEAL, NULL};
 /*******************************************************************/
-char *
-sysprt_PAGSTALL(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PAGSTALL(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="stall  ";
         val2valstr(sstat->mem.allocstall, buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -1716,11 +1570,9 @@ sysprt_PAGSTALL(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSTALL = {"PAGSTALL", sysprt_PAGSTALL, NULL};
 /*******************************************************************/
-char *
-sysprt_PAGCOMPACT(void *p, void *q, int badness, int *color)
+static char *
+sysprt_PAGCOMPACT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-	struct sstat *sstat=p;
-	extraparam *as=q;
 	static char buf[16]="compact ";
 	val2valstr(sstat->mem.compactstall, buf+8, 4, as->avgval, as->nsecs);
 	return buf;
@@ -1728,11 +1580,9 @@ sysprt_PAGCOMPACT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGCOMPACT = {"PAGCOMPACT", sysprt_PAGCOMPACT, NULL};
 /*******************************************************************/
-char *
-sysprt_NUMAMIGRATE(void *p, void *q, int badness, int *color)
+static char *
+sysprt_NUMAMIGRATE(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="numamig  ";
 
         val2valstr(sstat->mem.numamigrate, buf+8, 4, as->avgval, as->nsecs);
@@ -1742,11 +1592,9 @@ sysprt_NUMAMIGRATE(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_NUMAMIGRATE = {"NUMAMIGRATE", sysprt_NUMAMIGRATE, NULL};
 
 /*******************************************************************/
-char *
-sysprt_PGMIGRATE(void *p, void *q, int badness, int *color)
+static char *
+sysprt_PGMIGRATE(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="migrate  ";
 
         val2valstr(sstat->mem.pgmigrate, buf+8, 4, as->avgval, as->nsecs);
@@ -1756,11 +1604,9 @@ sysprt_PGMIGRATE(void *p, void *q, int badness, int *color)
 sys_printdef syspdef_PGMIGRATE = {"PGMIGRATE", sysprt_PGMIGRATE, NULL};
 
 /*******************************************************************/
-char *
-sysprt_PAGSWIN(void *p, void *q, int badness, int *color)
+static char *
+sysprt_PAGSWIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="swin   ";
         val2valstr(sstat->mem.swins, buf+5, 7, as->avgval, as->nsecs);
         return buf;
@@ -1768,11 +1614,9 @@ sysprt_PAGSWIN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSWIN = {"PAGSWIN", sysprt_PAGSWIN, NULL};
 /*******************************************************************/
-char *
-sysprt_PAGSWOUT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PAGSWOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="swout  ";
 	*color = -1;
         val2valstr(sstat->mem.swouts, buf+6, 6, as->avgval, as->nsecs);
@@ -1781,11 +1625,9 @@ sysprt_PAGSWOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT, NULL};
 /*******************************************************************/
-char *
-sysprt_OOMKILLS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_OOMKILLS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="oomkill  ";
 
 	if (sstat->mem.oomkills)
@@ -1795,7 +1637,7 @@ sysprt_OOMKILLS(void *p, void *q, int badness, int *color)
         return buf;
 }
 
-int
+static int
 sysval_OOMKILLS(struct sstat *sstat)
 {
 	if (sstat->mem.oomkills == -1)	// non-existing?
@@ -1835,50 +1677,45 @@ psiformatavg(struct psi *p, char *head, char *buf, int bufsize)
 	snprintf(buf, bufsize, "%s %9s", head, tmpbuf);
 }
 
-char *
-sysprt_PSICPUS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSICPUS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16];
 	psiformatavg(&(sstat->psi.cpusome), "cs", buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSICPUS = {"PSICPUS", sysprt_PSICPUS, NULL};
 
-char *
-sysprt_PSIMEMS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIMEMS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16];
 	psiformatavg(&(sstat->psi.memsome), "ms", buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIMEMS = {"PSIMEMS", sysprt_PSIMEMS, NULL};
 
-char *
-sysprt_PSIMEMF(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIMEMF(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16];
 	psiformatavg(&(sstat->psi.memfull), "mf", buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIMEMF = {"PSIMEMF", sysprt_PSIMEMF, NULL};
 
-char *
-sysprt_PSIIOS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIIOS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16];
 	psiformatavg(&(sstat->psi.iosome), "is", buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIIOS = {"PSIIOS", sysprt_PSIIOS, NULL};
 
-char *
-sysprt_PSIIOF(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIIOF(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[16];
 	psiformatavg(&(sstat->psi.iofull), "if", buf, sizeof buf);
         return buf;
@@ -1888,10 +1725,10 @@ sys_printdef syspdef_PSIIOF = {"PSIIOF", sysprt_PSIIOF, NULL};
 /*******************************************************************/
 // general formatting of PSI field in total percentage
 void
-psiformattot(struct psi *p, char *head, void *q, int *color, char *buf, int bufsize)
+psiformattot(struct psi *p, char *head, extraparam *as, int *color,
+						char *buf, int bufsize)
 {
 	static char	formats[] = "%-7.7s %3lu%%";
-        extraparam      *as=q;
 	unsigned long 	perc = p->total/((count_t)as->nsecs*10000);
 
 	if (perc > 100)
@@ -1903,68 +1740,61 @@ psiformattot(struct psi *p, char *head, void *q, int *color, char *buf, int bufs
 	snprintf(buf, bufsize, formats, head, perc);
 }
 
-char *
-sysprt_PSICPUSTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSICPUSTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[32];
 
-	psiformattot(&(sstat->psi.cpusome), "cpusome", q, color, buf, sizeof buf);
+	psiformattot(&(sstat->psi.cpusome), "cpusome", as, color, buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSICPUSTOT = {"PSICPUSTOT", sysprt_PSICPUSTOT, NULL};
 
-char *
-sysprt_PSIMEMSTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIMEMSTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[32];
 
-	psiformattot(&(sstat->psi.memsome), "memsome", q, color, buf, sizeof buf);
+	psiformattot(&(sstat->psi.memsome), "memsome", as, color, buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIMEMSTOT = {"PSIMEMSTOT", sysprt_PSIMEMSTOT, NULL};
 
-char *
-sysprt_PSIMEMFTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIMEMFTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[32];
 
-	psiformattot(&(sstat->psi.memfull), "memfull", q, color, buf, sizeof buf);
+	psiformattot(&(sstat->psi.memfull), "memfull", as, color, buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIMEMFTOT = {"PSIMEMFTOT", sysprt_PSIMEMFTOT, NULL};
 
-char *
-sysprt_PSIIOSTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIIOSTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[32];
 
-	psiformattot(&(sstat->psi.iosome), "iosome", q, color, buf, sizeof buf);
+	psiformattot(&(sstat->psi.iosome), "iosome", as, color, buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIIOSTOT = {"PSIIOSTOT", sysprt_PSIIOSTOT, NULL};
 
 
-char *
-sysprt_PSIIOFTOT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_PSIIOFTOT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
         static char buf[32];
 
-	psiformattot(&(sstat->psi.iofull), "iofull", q, color, buf, sizeof buf);
+	psiformattot(&(sstat->psi.iofull), "iofull", as, color, buf, sizeof buf);
         return buf;
 }
 sys_printdef syspdef_PSIIOFTOT = {"PSIIOFTOT", sysprt_PSIIOFTOT, NULL};
 
 /*******************************************************************/
-char *
-sysprt_CONTNAME(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CONTNAME(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam 	*as=q;
         static char 	buf[32] = "ctid ";
 
 	*color = -1;
@@ -1975,11 +1805,9 @@ sysprt_CONTNAME(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CONTNAME = {"CONTNAME", sysprt_CONTNAME, NULL};
 /*******************************************************************/
-char *
-sysprt_CONTNPROC(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CONTNPROC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam      *as=q;
         static char buf[16]="nproc  ";
 
 	*color = -1;
@@ -1991,11 +1819,9 @@ sysprt_CONTNPROC(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CONTNPROC = {"CONTNPROC", sysprt_CONTNPROC, NULL};
 /*******************************************************************/
-char *
-sysprt_CONTCPU(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CONTCPU(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam      *as=q;
         static char buf[16];
 	float  perc;
 
@@ -2018,11 +1844,9 @@ sysprt_CONTCPU(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CONTCPU = {"CONTCPU", sysprt_CONTCPU, NULL};
 /*******************************************************************/
-char *
-sysprt_CONTMEM(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_CONTMEM(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam      *as=q;
         static char buf[16]="mem   ";
 
 	*color = -1;
@@ -2034,10 +1858,9 @@ sysprt_CONTMEM(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_CONTMEM = {"CONTMEM", sysprt_CONTMEM, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKNAME(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKNAME(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam 	*as=q;
         static char 	buf[16];
 	char		*pn;
 	int		len;
@@ -2055,10 +1878,9 @@ sysprt_DSKNAME(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKNAME = {"DSKNAME", sysprt_DSKNAME, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKBUSY(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKBUSY(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
 	double		perc;
         static char 	buf[16]="busy  ";
 
@@ -2076,10 +1898,9 @@ sysprt_DSKBUSY(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKBUSY = {"DSKBUSY", sysprt_DSKBUSY, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKNREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKNREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="read  ";
 
 	*color = -1;
@@ -2092,10 +1913,9 @@ sysprt_DSKNREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKNREAD = {"DSKNREAD", sysprt_DSKNREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKNWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKNWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="write ";
 
 	*color = -1;
@@ -2108,10 +1928,9 @@ sysprt_DSKNWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKNWRITE = {"DSKNWRITE", sysprt_DSKNWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKKBPERWR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKKBPERWR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="KiB/w ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
@@ -2122,10 +1941,9 @@ sysprt_DSKKBPERWR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKKBPERWR = {"DSKKBPERWR", sysprt_DSKKBPERWR, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKKBPERRD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKKBPERRD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="KiB/r ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
@@ -2136,10 +1954,9 @@ sysprt_DSKKBPERRD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKKBPERRD = {"DSKKBPERRD", sysprt_DSKKBPERRD, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKMBPERSECWR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKMBPERSECWR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="MBw/s ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
@@ -2151,10 +1968,9 @@ sysprt_DSKMBPERSECWR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKMBPERSECWR = {"DSKMBPERSECWR", sysprt_DSKMBPERSECWR, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKMBPERSECRD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKMBPERSECRD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="MBr/s ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
@@ -2165,10 +1981,9 @@ sysprt_DSKMBPERSECRD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKMBPERSECRD = {"DSKMBPERSECRD", sysprt_DSKMBPERSECRD, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKAVQUEUE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKAVQUEUE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[16]="avq  ";
 	struct perdsk 	*dp = &(as->perdsk[as->index]);
 
@@ -2179,10 +1994,9 @@ sysprt_DSKAVQUEUE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKAVQUEUE = {"DSKAVQUEUE", sysprt_DSKAVQUEUE, NULL};
 /*******************************************************************/
-char *
-sysprt_DSKAVIO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_DSKAVIO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        extraparam	*as=q;
         static char	buf[32]="avio  ";
         double 		avioms = as->iotot > 0 ? 
                      	(double)(as->perdsk[as->index].io_ms)/as->iotot:0.0;
@@ -2223,19 +2037,17 @@ sysprt_DSKAVIO(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_DSKAVIO = {"DSKAVIO", sysprt_DSKAVIO, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTRANSPORT(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_NETTRANSPORT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         return "transport   ";
 }
 
 sys_printdef syspdef_NETTRANSPORT = {"NETTRANSPORT", sysprt_NETTRANSPORT, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPI(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcpi   ";
         val2valstr(sstat->net.tcp.InSegs,  buf+5, 7, as->avgval, as->nsecs);
         return buf;
@@ -2243,11 +2055,9 @@ sysprt_NETTCPI(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPI = {"NETTCPI", sysprt_NETTCPI, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcpo   ";
         val2valstr(sstat->net.tcp.OutSegs,  buf+5, 7, as->avgval, as->nsecs);
         return buf;
@@ -2255,11 +2065,9 @@ sysprt_NETTCPO(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPO = {"NETTCPO", sysprt_NETTCPO, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPACTOPEN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPACTOPEN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcpao  ";
         val2valstr(sstat->net.tcp.ActiveOpens,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2267,11 +2075,9 @@ sysprt_NETTCPACTOPEN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPACTOPEN = {"NETTCPACTOPEN", sysprt_NETTCPACTOPEN, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPPASVOPEN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPPASVOPEN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcppo  ";
         val2valstr(sstat->net.tcp.PassiveOpens, buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2279,11 +2085,9 @@ sysprt_NETTCPPASVOPEN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPPASVOPEN = {"NETTCPPASVOPEN", sysprt_NETTCPPASVOPEN, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPRETRANS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPRETRANS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcprs  ";
         val2valstr(sstat->net.tcp.RetransSegs,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2291,11 +2095,9 @@ sysprt_NETTCPRETRANS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPRETRANS = {"NETTCPRETRANS", sysprt_NETTCPRETRANS, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPINERR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPINERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcpie  ";
         val2valstr(sstat->net.tcp.InErrs,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2303,11 +2105,9 @@ sysprt_NETTCPINERR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPINERR = {"NETTCPINERR", sysprt_NETTCPINERR, NULL};
 /*******************************************************************/
-char *
-sysprt_NETTCPORESET(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETTCPORESET(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="tcpor  ";
         val2valstr(sstat->net.tcp.OutRsts,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2315,11 +2115,9 @@ sysprt_NETTCPORESET(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETTCPORESET = {"NETTCPORESET", sysprt_NETTCPORESET, NULL};
 /*******************************************************************/
-char *
-sysprt_NETUDPNOPORT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETUDPNOPORT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="udpnp  ";
         val2valstr(sstat->net.udpv4.NoPorts,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2327,11 +2125,9 @@ sysprt_NETUDPNOPORT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETUDPNOPORT = {"NETUDPNOPORT", sysprt_NETUDPNOPORT, NULL};
 /*******************************************************************/
-char *
-sysprt_NETUDPINERR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETUDPINERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="udpie  ";
         val2valstr(sstat->net.udpv4.InErrors,  buf+6, 6, as->avgval, as->nsecs);
         return buf;
@@ -2339,11 +2135,9 @@ sysprt_NETUDPINERR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETUDPINERR = {"NETUDPINERR", sysprt_NETUDPINERR, NULL};
 /*******************************************************************/
-char *
-sysprt_NETUDPI(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETUDPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="udpi   ";
         count_t udpin  = sstat->net.udpv4.InDatagrams  +
                         sstat->net.udpv6.Udp6InDatagrams;
@@ -2353,11 +2147,9 @@ sysprt_NETUDPI(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETUDPI = {"NETUDPI", sysprt_NETUDPI, NULL};
 /*******************************************************************/
-char *
-sysprt_NETUDPO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETUDPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="udpo   ";
         count_t udpout = sstat->net.udpv4.OutDatagrams +
                         sstat->net.udpv6.Udp6OutDatagrams;
@@ -2367,19 +2159,17 @@ sysprt_NETUDPO(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETUDPO = {"NETUDPO", sysprt_NETUDPO, NULL};
 /*******************************************************************/
-char *
-sysprt_NETNETWORK(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_NETNETWORK(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         return "network     ";
 }
 
 sys_printdef syspdef_NETNETWORK = {"NETNETWORK", sysprt_NETNETWORK, NULL};
 /*******************************************************************/
-char *
-sysprt_NETIPI(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETIPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="ipi    ";
         count_t ipin    = sstat->net.ipv4.InReceives  +
                         sstat->net.ipv6.Ip6InReceives;
@@ -2389,11 +2179,9 @@ sysprt_NETIPI(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETIPI = {"NETIPI", sysprt_NETIPI, NULL};
 /*******************************************************************/
-char *
-sysprt_NETIPO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETIPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="ipo    ";
         count_t ipout   = sstat->net.ipv4.OutRequests +
                         sstat->net.ipv6.Ip6OutRequests;
@@ -2403,11 +2191,9 @@ sysprt_NETIPO(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETIPO = {"NETIPO", sysprt_NETIPO, NULL};
 /*******************************************************************/
-char *
-sysprt_NETIPFRW(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETIPFRW(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="ipfrw  ";
         count_t ipfrw   = sstat->net.ipv4.ForwDatagrams +
                         sstat->net.ipv6.Ip6OutForwDatagrams;
@@ -2417,11 +2203,9 @@ sysprt_NETIPFRW(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETIPFRW = {"NETIPFRW", sysprt_NETIPFRW, NULL};
 /*******************************************************************/
-char *
-sysprt_NETIPDELIV(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETIPDELIV(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="deliv  ";
         count_t ipindel = sstat->net.ipv4.InDelivers +
                         sstat->net.ipv6.Ip6InDelivers;
@@ -2431,11 +2215,9 @@ sysprt_NETIPDELIV(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETIPDELIV = {"NETIPDELIV", sysprt_NETIPDELIV, NULL};
 /*******************************************************************/
-char *
-sysprt_NETICMPIN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETICMPIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="icmpi  ";
         count_t icmpin = sstat->net.icmpv4.InMsgs+
                         sstat->net.icmpv6.Icmp6InMsgs;
@@ -2445,11 +2227,9 @@ sysprt_NETICMPIN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETICMPIN = {"NETICMPIN", sysprt_NETICMPIN, NULL};
 /*******************************************************************/
-char *
-sysprt_NETICMPOUT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETICMPOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="icmpo  ";
         count_t icmpin = sstat->net.icmpv4.OutMsgs+
                         sstat->net.icmpv6.Icmp6OutMsgs;
@@ -2459,11 +2239,9 @@ sysprt_NETICMPOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETICMPOUT = {"NETICMPOUT", sysprt_NETICMPOUT, NULL};
 /*******************************************************************/
-char *
-sysprt_NETNAME(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETNAME(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         count_t busy;
         count_t ival = sstat->intf.intf[as->index].rbyte/125/as->nsecs;
         count_t oval = sstat->intf.intf[as->index].sbyte/125/as->nsecs;
@@ -2524,11 +2302,9 @@ sysprt_NETNAME(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETNAME = {"NETNAME", sysprt_NETNAME, NULL};
 /*******************************************************************/
-char *
-sysprt_NETPCKI(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETPCKI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="pcki  ";
 
 	*color = -1;
@@ -2540,11 +2316,9 @@ sysprt_NETPCKI(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETPCKI = {"NETPCKI", sysprt_NETPCKI, NULL};
 /*******************************************************************/
-char *
-sysprt_NETPCKO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETPCKO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="pcko  ";
 
 	*color = -1;
@@ -2561,7 +2335,7 @@ sys_printdef syspdef_NETPCKO = {"NETPCKO", sysprt_NETPCKO, NULL};
 ** convert bit-transfers  to kilobit-transfers (/ 1000)
 ** per second
 */
-char *makenetspeed(count_t val, int nsecs)
+static char *makenetspeed(count_t val, int nsecs)
 {
         char 		c;
         static char	buf[16]="si      ?bps";
@@ -2604,11 +2378,9 @@ char *makenetspeed(count_t val, int nsecs)
         return buf;
 }
 /*******************************************************************/
-char *
-sysprt_NETSPEEDMAX(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETSPEEDMAX(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat = p;
-        extraparam *as = q;
         static char buf[16];
         count_t speed = sstat->intf.intf[as->index].speed;
 
@@ -2637,11 +2409,9 @@ sysprt_NETSPEEDMAX(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETSPEEDMAX = {"NETSPEEDMAX", sysprt_NETSPEEDMAX, NULL};
 /*******************************************************************/
-char *
-sysprt_NETSPEEDIN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETSPEEDIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 
 	*color = -1;
 
@@ -2653,11 +2423,9 @@ sysprt_NETSPEEDIN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETSPEEDIN = {"NETSPEEDIN", sysprt_NETSPEEDIN, NULL};
 /*******************************************************************/
-char *
-sysprt_NETSPEEDOUT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETSPEEDOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 
 	*color = -1;
 
@@ -2669,11 +2437,9 @@ sysprt_NETSPEEDOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETSPEEDOUT = {"NETSPEEDOUT", sysprt_NETSPEEDOUT, NULL};
 /*******************************************************************/
-char *
-sysprt_NETCOLLIS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETCOLLIS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="coll  ";
         val2valstr(sstat->intf.intf[as->index].scollis, 
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2682,11 +2448,9 @@ sysprt_NETCOLLIS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETCOLLIS = {"NETCOLLIS", sysprt_NETCOLLIS, NULL};
 /*******************************************************************/
-char *
-sysprt_NETMULTICASTIN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETMULTICASTIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="mlti ";
         val2valstr(sstat->intf.intf[as->index].rmultic, 
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2695,11 +2459,9 @@ sysprt_NETMULTICASTIN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETMULTICASTIN = {"NETMULTICASTIN", sysprt_NETMULTICASTIN, NULL};
 /*******************************************************************/
-char *
-sysprt_NETRCVERR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETRCVERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="erri   ";
         val2valstr(sstat->intf.intf[as->index].rerrs, 
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2708,11 +2470,9 @@ sysprt_NETRCVERR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETRCVERR = {"NETRCVERR", sysprt_NETRCVERR, NULL};
 /*******************************************************************/
-char *
-sysprt_NETSNDERR(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETSNDERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="erro   ";
         val2valstr(sstat->intf.intf[as->index].serrs, 
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2721,11 +2481,9 @@ sysprt_NETSNDERR(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETSNDERR = {"NETSNDERR", sysprt_NETSNDERR, NULL};
 /*******************************************************************/
-char *
-sysprt_NETRCVDROP(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETRCVDROP(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="drpi   ";
         val2valstr(sstat->intf.intf[as->index].rdrop,
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2734,11 +2492,9 @@ sysprt_NETRCVDROP(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETRCVDROP = {"NETRCVDROP", sysprt_NETRCVDROP, NULL};
 /*******************************************************************/
-char *
-sysprt_NETSNDDROP(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NETSNDDROP(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="drpo   ";
         val2valstr(sstat->intf.intf[as->index].sdrop,
                    buf+5, 7, as->avgval, as->nsecs);
@@ -2747,11 +2503,9 @@ sysprt_NETSNDDROP(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NETSNDDROP = {"NETSNDDROP", sysprt_NETSNDDROP, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBNAME(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBNAME(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         count_t busy;
         count_t ival = sstat->ifb.ifb[as->index].rcvb/125/as->nsecs;
         count_t oval = sstat->ifb.ifb[as->index].sndb/125/as->nsecs;
@@ -2778,11 +2532,9 @@ sysprt_IFBNAME(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBNAME = {"IFBNAME", sysprt_IFBNAME, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBPCKI(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBPCKI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="pcki  ";
 
 	*color = -1;
@@ -2794,11 +2546,9 @@ sysprt_IFBPCKI(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBPCKI = {"IFBPCKI", sysprt_IFBPCKI, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBPCKO(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBPCKO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="pcko  ";
 
 	*color = -1;
@@ -2810,11 +2560,9 @@ sysprt_IFBPCKO(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBPCKO = {"IFBPCKO", sysprt_IFBPCKO, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBSPEEDMAX(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat = p;
-        extraparam *as = q;
         static char buf[64];
         count_t rate = sstat->ifb.ifb[as->index].rate;
 
@@ -2840,11 +2588,9 @@ sysprt_IFBSPEEDMAX(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBSPEEDMAX = {"IFBSPEEDMAX", sysprt_IFBSPEEDMAX, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBLANES(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBLANES(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat = p;
-        extraparam *as = q;
         static char buf[16]="lanes   ";
         val2valstr(sstat->ifb.ifb[as->index].lanes, buf+6, 6, 0, 0);
         return buf;
@@ -2852,11 +2598,9 @@ sysprt_IFBLANES(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBLANES = {"IFBLANES", sysprt_IFBLANES, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBSPEEDIN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBSPEEDIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 
 	*color = -1;
 
@@ -2869,11 +2613,9 @@ sysprt_IFBSPEEDIN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBSPEEDIN = {"IFBSPEEDIN", sysprt_IFBSPEEDIN, NULL};
 /*******************************************************************/
-char *
-sysprt_IFBSPEEDOUT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_IFBSPEEDOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 
 	*color = -1;
 
@@ -2886,11 +2628,9 @@ sysprt_IFBSPEEDOUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_IFBSPEEDOUT = {"IFBSPEEDOUT", sysprt_IFBSPEEDOUT, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMSERVER(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMSERVER(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 	static char buf[16] = "srv ";
         char mntdev[128], *ps;
 
@@ -2908,11 +2648,9 @@ sysprt_NFMSERVER(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMSERVER = {"NFMSERVER", sysprt_NFMSERVER, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMPATH(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMPATH(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
 	static char buf[16];
         char mntdev[128], *ps;
 	int len;
@@ -2935,11 +2673,9 @@ sysprt_NFMPATH(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMPATH = {"NFMPATH", sysprt_NFMPATH, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMTOTREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMTOTREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="read   ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotread,
@@ -2949,11 +2685,9 @@ sysprt_NFMTOTREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMTOTREAD = {"NFMTOTREAD", sysprt_NFMTOTREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMTOTWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMTOTWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="write   ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytestotwrite,
@@ -2963,11 +2697,9 @@ sysprt_NFMTOTWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMTOTWRITE = {"NFMTOTWRITE", sysprt_NFMTOTWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMNREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMNREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="nread    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesread,
@@ -2977,11 +2709,9 @@ sysprt_NFMNREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMNREAD = {"NFMNREAD", sysprt_NFMNREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMNWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMNWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="nwrit    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].byteswrite,
@@ -2991,11 +2721,9 @@ sysprt_NFMNWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMNWRITE = {"NFMNWRITE", sysprt_NFMNWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMDREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMDREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="dread    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdread,
@@ -3005,11 +2733,9 @@ sysprt_NFMDREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMDREAD = {"NFMDREAD", sysprt_NFMDREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMDWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMDWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="dwrit    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].bytesdwrite,
@@ -3019,11 +2745,9 @@ sysprt_NFMDWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMDWRITE = {"NFMDWRITE", sysprt_NFMDWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMMREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMMREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="mread    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmread *pagesize,
@@ -3033,11 +2757,9 @@ sysprt_NFMMREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMMREAD = {"NFMMREAD", sysprt_NFMMREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFMMWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFMMWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="mwrit    ";
 
         val2memstr(sstat->nfs.nfsmounts.nfsmnt[as->index].pagesmwrite *pagesize,
@@ -3047,11 +2769,9 @@ sysprt_NFMMWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFMMWRITE = {"NFMMWRITE", sysprt_NFMMWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFCRPCCNT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFCRPCCNT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="rpc   ";
         val2valstr(sstat->nfs.client.rpccnt,
                    buf+4, 8, as->avgval, as->nsecs);
@@ -3060,11 +2780,9 @@ sysprt_NFCRPCCNT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFCRPCCNT = {"NFCRPCCNT", sysprt_NFCRPCCNT, NULL};
 /*******************************************************************/
-char *
-sysprt_NFCRPCREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFCRPCREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="read   ";
         val2valstr(sstat->nfs.client.rpcread,
                    buf+5, 7, as->avgval, as->nsecs);
@@ -3073,11 +2791,9 @@ sysprt_NFCRPCREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFCRPCREAD = {"NFCRPCREAD", sysprt_NFCRPCREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFCRPCWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFCRPCWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="write   ";
         val2valstr(sstat->nfs.client.rpcwrite,
                    buf+6, 6, as->avgval, as->nsecs);
@@ -3086,11 +2802,9 @@ sysprt_NFCRPCWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFCRPCWRITE = {"NFCRPCWRITE", sysprt_NFCRPCWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFCRPCRET(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFCRPCRET(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="retxmit ";
         val2valstr(sstat->nfs.client.rpcretrans,
                    buf+8, 4, as->avgval, as->nsecs);
@@ -3099,11 +2813,9 @@ sysprt_NFCRPCRET(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFCRPCRET = {"NFCRPCRET", sysprt_NFCRPCRET, NULL};
 /*******************************************************************/
-char *
-sysprt_NFCRPCARF(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFCRPCARF(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="autref  ";
         val2valstr(sstat->nfs.client.rpcautrefresh,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3112,11 +2824,9 @@ sysprt_NFCRPCARF(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFCRPCARF = {"NFCRPCARF", sysprt_NFCRPCARF, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRPCCNT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRPCCNT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="rpc   ";
         val2valstr(sstat->nfs.server.rpccnt,
                    buf+4, 8, as->avgval, as->nsecs);
@@ -3125,11 +2835,9 @@ sysprt_NFSRPCCNT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRPCCNT = {"NFSRPCCNT", sysprt_NFSRPCCNT, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRPCREAD(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRPCREAD(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="cread   ";
         val2valstr(sstat->nfs.server.rpcread,
                    buf+6, 6, as->avgval, as->nsecs);
@@ -3138,11 +2846,9 @@ sysprt_NFSRPCREAD(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRPCREAD = {"NFSRPCREAD", sysprt_NFSRPCREAD, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRPCWRITE(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRPCWRITE(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="cwrit   ";
         val2valstr(sstat->nfs.server.rpcwrite,
                    buf+6, 6, as->avgval, as->nsecs);
@@ -3151,11 +2857,9 @@ sysprt_NFSRPCWRITE(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRPCWRITE = {"NFSRPCWRITE", sysprt_NFSRPCWRITE, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSBADFMT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSBADFMT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="badfmt   ";
         val2valstr(sstat->nfs.server.rpcbadfmt,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3164,11 +2868,9 @@ sysprt_NFSBADFMT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSBADFMT = {"NFSBADFMT", sysprt_NFSBADFMT, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSBADAUT(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSBADAUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="badaut   ";
         val2valstr(sstat->nfs.server.rpcbadaut,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3177,11 +2879,9 @@ sysprt_NFSBADAUT(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSBADAUT = {"NFSBADAUT", sysprt_NFSBADAUT, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSBADCLN(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSBADCLN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="badcln   ";
         val2valstr(sstat->nfs.server.rpcbadcln,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3190,11 +2890,9 @@ sysprt_NFSBADCLN(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSBADCLN = {"NFSBADCLN", sysprt_NFSBADCLN, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSNETTCP(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSNETTCP(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="nettcp   ";
         val2valstr(sstat->nfs.server.nettcpcnt,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3203,11 +2901,9 @@ sysprt_NFSNETTCP(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSNETTCP = {"NFSNETTCP", sysprt_NFSNETTCP, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSNETUDP(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSNETUDP(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="netudp   ";
         val2valstr(sstat->nfs.server.netudpcnt,
                    buf+7, 5, as->avgval, as->nsecs);
@@ -3216,11 +2912,9 @@ sysprt_NFSNETUDP(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSNETUDP = {"NFSNETUDP", sysprt_NFSNETUDP, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSNRBYTES(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSNRBYTES(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam	*as=q;
         static char	buf[32]="MBcr/s ";
 
         sprintf(buf+7, "%5.1lf",
@@ -3231,11 +2925,9 @@ sysprt_NFSNRBYTES(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSNRBYTES = {"NFSNRBYTES", sysprt_NFSNRBYTES, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSNWBYTES(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSNWBYTES(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam	*as=q;
         static char	buf[32]="MBcw/s ";
 
         sprintf(buf+7, "%5.1lf",
@@ -3246,11 +2938,9 @@ sysprt_NFSNWBYTES(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSNWBYTES = {"NFSNWBYTES", sysprt_NFSNWBYTES, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRCHITS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRCHITS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="rchits   ";
         val2valstr(sstat->nfs.server.rchits,
                    buf+8, 4, as->avgval, as->nsecs);
@@ -3259,11 +2949,9 @@ sysprt_NFSRCHITS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRCHITS = {"NFSRCHITS", sysprt_NFSRCHITS, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRCMISS(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRCMISS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="rcmiss   ";
         val2valstr(sstat->nfs.server.rcmiss,
                    buf+8, 4, as->avgval, as->nsecs);
@@ -3272,11 +2960,9 @@ sysprt_NFSRCMISS(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRCMISS = {"NFSRCMISS", sysprt_NFSRCMISS, NULL};
 /*******************************************************************/
-char *
-sysprt_NFSRCNOCA(void *p, void *q, int badness, int *color) 
+static char *
+sysprt_NFSRCNOCA(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        struct sstat *sstat=p;
-        extraparam *as=q;
         static char buf[16]="rcnoca   ";
         val2valstr(sstat->nfs.server.rcnoca,
                    buf+8, 4, as->avgval, as->nsecs);
@@ -3285,8 +2971,8 @@ sysprt_NFSRCNOCA(void *p, void *q, int badness, int *color)
 
 sys_printdef syspdef_NFSRCNOCA = {"NFSRCNOCA", sysprt_NFSRCNOCA, NULL};
 /*******************************************************************/
-char *
-sysprt_BLANKBOX(void *p, void *notused, int badness, int *color) 
+static char *
+sysprt_BLANKBOX(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         return "            ";
 }
