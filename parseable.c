@@ -600,7 +600,7 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
 
-	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			"upper",
         		ss->net.tcp.InSegs,
@@ -626,7 +626,8 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->net.tcp.CurrEstab,
 			ss->net.tcp.RetransSegs,
 			ss->net.tcp.InErrs,
-			ss->net.tcp.OutRsts);
+			ss->net.tcp.OutRsts,
+			ss->net.tcp.InCsumErrors);
 
 	for (i=0; ss->intf.intf[i].name[0]; i++)
 	{
