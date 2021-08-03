@@ -46,6 +46,7 @@
 #include <dirent.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
+#include <limits.h>
 
 #define SCALINGMAXCPU	8	// threshold for scaling info per CPU
 
