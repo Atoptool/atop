@@ -8,11 +8,19 @@
     postrotate
 	# check if process accounting is installed
 	#
-	if [ -e /etc/logrotate.d/psacct ]
+	if [ -e /etc/logrotate.d/psacct ] || grep -q 'savelog' /etc/cron.daily/acct 2> /dev/null
 	then
 	    # check if process accounting is actually in use
 	    #
-	    ACCTFILE=`awk '$2 == "{" {print $1}' /etc/logrotate.d/psacct`
+	    if [ -e /etc/logrotate.d/psacct ]
+            then
+	        ACCTFILE=`awk '$2 == "{" {print $1}' /etc/logrotate.d/psacct`
+            fi
+
+            if grep -q 'savelog' /etc/cron.daily/acct 2> /dev/null
+            then
+                ACCTFILE=`sed -n "/savelog[^\/]\+\(\/[[:alnum:]\/]\+\).*/{s//\1/;p;q;}" /etc/cron.daily/acct`
+            fi
 
 	    if [ -f "$ACCTFILE" ]
 	    then

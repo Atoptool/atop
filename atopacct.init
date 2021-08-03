@@ -25,9 +25,9 @@ RETVAL=0
 # See how we were called.
 case "$1" in
   start)
-	# Check if process accounting already in use via psacct
+	# Check if process accounting already in use via separate psacct package
 	#
-	for PACCTFILE in /var/account/pacct /var/log/pacct
+	for PACCTFILE in /var/account/pacct /var/log/pacct /var/log/account/pacct
 	do
 		if [ -f "$PACCTFILE" ]	# file exists?
 		then

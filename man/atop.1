@@ -162,8 +162,11 @@ daemon is not active,
 verifies if the process accounting mechanism has been switched on
 via the separate
 .B psacct
-package. In that case, the file
+package. In that case, one of the files
+.B /var/log/pacct,
 .B /var/account/pacct
+or
+.B /var/log/account/pacct
 is in use as process accounting file and 
 .I atop
 opens this file for reading.
