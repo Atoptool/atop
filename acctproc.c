@@ -21,96 +21,6 @@
 ** WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
-**
-** $Log: acctproc.c,v $
-** Revision 1.28  2010/04/23 12:20:19  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.27  2009/12/12 10:12:01  gerlof
-** Register and display end date and end time for process.
-**
-** Revision 1.26  2008/03/06 08:37:25  gerlof
-** Register/show ppid of a process.
-**
-** Revision 1.25  2008/01/14 09:22:23  gerlof
-** Support for environment variable ATOPACCT to specify the name of a
-** particular process accouting file.
-**
-** Revision 1.24  2007/08/17 08:50:26  gerlof
-** Verify if private accounting used before switching off accounting.
-**
-** Revision 1.23  2007/03/20 13:01:51  gerlof
-** Introduction of variable supportflags.
-**
-** Revision 1.22  2007/02/13 09:14:49  gerlof
-** New boolean introduced to indicate if accounting is active.
-**
-** Revision 1.21  2006/02/07 06:46:15  gerlof
-** Removed swap-counter.
-**
-** Revision 1.20  2005/11/04 14:17:10  gerlof
-** Improved recognition of certain version process accounting file.
-**
-** Revision 1.19  2005/10/31 12:44:58  gerlof
-** Support account-record version 3 (used by Mandriva).
-**
-** Revision 1.18  2005/10/31 08:55:05  root
-** *** empty log message ***
-**
-** Revision 1.17  2004/12/14 15:05:00  gerlof
-** Implementation of patch-recognition for disk and network-statistics.
-**
-** Revision 1.16  2004/06/01 11:57:22  gerlof
-** Consider other standard accounting-files, i.e. /var/account/pacct.
-**
-** Revision 1.15  2004/05/06 09:48:21  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.14  2003/07/07 09:26:15  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.13  2003/07/02 06:43:11  gerlof
-** Modified include-file sys/acct.h to linux/acct.h to make it
-** work on Alpha-based systems as well.
-**
-** Revision 1.12  2003/06/27 12:31:24  gerlof
-** Adapt long to long long.
-**
-** Revision 1.11  2003/04/03 08:32:58  gerlof
-** Cosmetic changes.
-**
-** Revision 1.10  2003/01/14 09:01:45  gerlof
-** Small cosmetic changes.
-**
-** Revision 1.9  2002/10/03 11:12:03  gerlof
-** Modify (effective) uid/gid to real uid/gid.
-**
-** Revision 1.8  2002/07/24 11:11:12  gerlof
-** Redesigned to ease porting to other UNIX-platforms.
-**
-** Revision 1.7  2002/07/11 07:28:29  root
-** Some additions related to secure accounting file handling
-**
-** Revision 1.6  2002/07/08 09:14:54  root
-** Modified secure handling of accounting file
-** (inspired by Tobias Rittweiler).
-**
-** Revision 1.5  2001/11/07 09:16:55  gerlof
-** Allow users to run atop without process-accounting switched on.
-**
-** Revision 1.4  2001/10/16 06:15:52  gerlof
-** Partly redesigned.
-**
-** Revision 1.3  2001/10/04 13:02:24  gerlof
-** Redesign of the way to determine how many atop's are using process-accounting
-** on basis of semaphores.
-**
-** Revision 1.2  2001/10/04 08:46:46  gerlof
-** Improved verification of kernel-symbol addresses
-**
-** Revision 1.1  2001/10/02 10:38:35  gerlof
-** Initial revision
-**
 */
 
 #define	_FILE_OFFSET_BITS	64
@@ -158,7 +68,8 @@ struct pacctadm {
 	struct stat	stat;
 } pacctadm[] = {
 	{ "/var/log/pacct",		{0, }, },
-	{ "/var/account/pacct",		{0, }, }
+	{ "/var/account/pacct",		{0, }, },
+	{ "/var/log/account/pacct",	{0, }, }
 };
 
 /*

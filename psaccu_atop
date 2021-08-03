@@ -6,7 +6,7 @@
     ifempty
     create 0600 root root
     postrotate
-	if [ -e /etc/logrotate.d/psacct ]
+	if [ -e /etc/logrotate.d/psacct ] || grep -q 'savelog' /etc/cron.daily/acct 2> /dev/null
 	then
 	    # if the atop daemon does not run, restart it after
 	    # accounting file is rotated
