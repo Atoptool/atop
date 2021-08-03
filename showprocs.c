@@ -27,59 +27,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: showprocs.c,v $
-** Revision 1.15  2011/09/05 11:44:16  gerlof
-** *** empty log message ***
-**
-** Revision 1.14  2010/12/01 09:05:38  gerlof
-** Added a dash in the column PPID for exited processes.
-**
-** Revision 1.13  2010/11/12 06:11:58  gerlof
-** Sometimes segmentation-fault on particular CPU-types
-** due to memcpy i.s.o. memmove when moving memory in overlap.
-**
-** Revision 1.12  2010/04/23 14:06:42  gerlof
-** Added special routined for uid/gid not available for exited processes.
-**
-** Revision 1.11  2010/01/16 12:54:08  gerlof
-** Minor change for CPUNR.
-**
-** Revision 1.10  2010/01/16 11:37:25  gerlof
-** Corrected counters for patched kernels (JC van Winkel).
-**
-** Revision 1.9  2010/01/08 13:44:47  gerlof
-** Added policies batch, iso and idle for scheduling class.
-**
-** Revision 1.8  2010/01/08 11:25:13  gerlof
-** Corrected column-width and priorities of network-stats.
-**
-** Revision 1.7  2010/01/03 18:26:53  gerlof
-** Consistent naming of columns for process-related info.
-**
-** Revision 1.6  2009/12/19 21:03:21  gerlof
-** Alignment of CMD column (JC van Winkel).
-**
-** Revision 1.5  2009/12/12 10:11:49  gerlof
-** Register and display end date and end time for process.
-**
-** Revision 1.4  2009/12/12 09:05:56  gerlof
-** Corrected cumulated disk I/O per user/program (JC van Winkel).
-**
-** Revision 1.3  2009/12/10 14:01:52  gerlof
-** Add EUID, SUID and FSUID (and similar for GID's).
-**
-** Revision 1.2  2009/12/10 11:56:22  gerlof
-** Various bug-solutions.
-**
-** Revision 1.1  2009/12/10 09:31:23  gerlof
-** Initial revision
-**
-** Initial revision
-**
-**
-** Initial
-**
 */
 
 #include <sys/types.h>
@@ -2091,5 +2038,5 @@ procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
         return "";   // dummy function
 }
 
-proc_printdef procprt_SORTITEM = 
+proc_printdef procprt_SORTITEM =   // width is dynamically defined!
    { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4};
