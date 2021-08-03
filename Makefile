@@ -156,22 +156,17 @@ genericinstall:	atop atopacctd atopconvert atopcat
 		chmod 644      		$(DESTDIR)$(DEFPATH)/atop
 		#
 		cp atop   		$(DESTDIR)$(BINPATH)/atop
-		chown root		$(DESTDIR)$(BINPATH)/atop
-		chmod 04711 		$(DESTDIR)$(BINPATH)/atop
+		chmod 0711 		$(DESTDIR)$(BINPATH)/atop
 		ln -sf atop             $(DESTDIR)$(BINPATH)/atopsar
 		cp atopacctd  		$(DESTDIR)$(SBINPATH)/atopacctd
-		chown root		$(DESTDIR)$(SBINPATH)/atopacctd
 		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopacctd
 		cp atopgpud  		$(DESTDIR)$(SBINPATH)/atopgpud
-		chown root		$(DESTDIR)$(SBINPATH)/atopgpud
 		chmod 0700 		$(DESTDIR)$(SBINPATH)/atopgpud
 		cp atop   		$(DESTDIR)$(BINPATH)/atop-$(VERS)
 		ln -sf atop-$(VERS)     $(DESTDIR)$(BINPATH)/atopsar-$(VERS)
 		cp atopconvert 		$(DESTDIR)$(BINPATH)/atopconvert
-		chown root		$(DESTDIR)$(BINPATH)/atopconvert
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
 		cp atopcat 		$(DESTDIR)$(BINPATH)/atopcat
-		chown root		$(DESTDIR)$(BINPATH)/atopcat
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopcat
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
