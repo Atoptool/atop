@@ -199,6 +199,90 @@ static struct v6tab 		v6tab[] = {
 
 static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 
+// The following are used to accumulate cpu statistics for per numa.
+// The bitmask realization is from numactl
+#define CPUMASK_SZ (64 * 8)
+
+#define bitsperlong (8 * sizeof(unsigned long))
+#define howmany(x,y) (((x)+((y)-1))/(y))
+#define longsperbits(n) howmany(n, bitsperlong)
+
+#define round_up(x,y) (((x) + (y) - 1) & ~((y)-1))
+#define BITS_PER_LONG (sizeof(unsigned long) * 8)
+#define CPU_BYTES(x) (round_up(x, BITS_PER_LONG)/8)
+#define CPU_LONGS(x) (CPU_BYTES(x) / sizeof(long))
+
+struct bitmask {
+	unsigned long size; /* number of bits in the map */
+	unsigned long long *maskp;
+};
+
+/*
+ * Allocate a bitmask for cpus, of a size large enough to
+ * match the kernel's cpumask_t.
+ */
+struct bitmask *
+numa_allocate_cpumask()
+{
+	int ncpus = CPUMASK_SZ;
+	struct bitmask *bmp;
+
+	bmp = malloc(sizeof(*bmp));
+	ptrverify(bmp, "Malloc failed for numa bitmask");
+
+	bmp->size = ncpus;
+	bmp->maskp = calloc(longsperbits(ncpus), sizeof(unsigned long));
+	ptrverify((bmp->maskp), "Malloc failed for numa maskp");
+
+	return bmp;
+}
+
+void
+numa_bitmask_free(struct bitmask *bmp)
+{
+	if (bmp == 0)
+		return;
+	free(bmp->maskp);
+	bmp->maskp = (unsigned long long *)0xdeadcdef;  /* double free tripwire */
+	free(bmp);
+	return;
+}
+
+int
+numa_parse_bitmap_v2(char *line, struct bitmask *mask)
+{
+	int i;
+	char *p = strchr(line, '\n');
+	if (!p)
+		return -1;
+	int ncpus = mask->size;
+
+	for (i = 0; p > line;i++) {
+		char *oldp, *endp;
+		oldp = p;
+		if (*p == ',')
+			--p;
+		while (p > line && *p != ',')
+			--p;
+		/* Eat two 32bit fields at a time to get longs */
+		if (p > line && sizeof(unsigned long) == 8) {
+			oldp--;
+			memmove(p, p+1, oldp-p+1);
+			while (p > line && *p != ',')
+				--p;
+		}
+		if (*p == ',')
+			p++;
+		if (i >= CPU_LONGS(ncpus))
+			return -1;
+		mask->maskp[i] = strtoul(p, &endp, 16);
+		if (endp != oldp)
+			return -1;
+		p--;
+	}
+	return 0;
+}
+
 void
 photosyst(struct sstat *si)
 {
@@ -873,6 +957,61 @@ photosyst(struct sstat *si)
 				si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
 			}
 			fclose(fp);
+		}
+	}
+
+	/*
+	** accumulate each cpu statistic for per NUMA, and identify numa/cpu
+	** relationship from /sys/devices/system/node/node0/cpumap.
+	*/
+	if (si->memnuma.nrnuma > 1)
+	{
+		char *line = NULL;
+		size_t len = 0;
+		struct bitmask *mask;
+
+		dirp = opendir(NUMADIR);
+		if (dirp)
+		{
+			mask = numa_allocate_cpumask();
+			while ( (dentry = readdir(dirp)) )
+			{
+				if (strncmp(dentry->d_name, "node", 4))
+					continue;
+				j = strtoul(dentry->d_name + 4, NULL, 0);
+				si->cpunuma.nrnuma++;
+
+				sprintf(fn, "%s/node%d/cpumap", NUMADIR, j);
+				if ( (fp = fopen(fn, "r")) != 0)
+				{
+					if ( getdelim(&line, &len, '\n', fp) > 0 )
+						if (numa_parse_bitmap_v2(line, mask) < 0)
+						{
+							mcleanstop(54, "failed to parse numa bitmap\n");
+						}
+					fclose(fp);
+				}
+
+				for (i = 0; i < mask->size; i++)
+				{
+					if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+					{
+						si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
+						si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
+						si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
+						si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
+						si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
+						si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
+						si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
+						si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
+						si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
+					}
+				}
+				si->cpunuma.numa[j].numanr = j;
+			}
+			free(line);
+			numa_bitmask_free(mask);
+			closedir(dirp);
 		}
 	}
 

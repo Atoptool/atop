@@ -731,6 +731,33 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		dev->memnuma.numa[i].numanr      = cur->memnuma.numa[i].numanr;
 	}
 
+	if (cur->cpunuma.nrnuma > 1)
+	{
+		dev->cpunuma.nrnuma     = cur->cpunuma.nrnuma;
+		for (i=0; i < dev->cpunuma.nrnuma; i++)
+		{
+			dev->cpunuma.numa[i].numanr = cur->cpunuma.numa[i].numanr;
+			dev->cpunuma.numa[i].utime  = subcount(cur->cpunuma.numa[i].utime,
+								pre->cpunuma.numa[i].utime);
+			dev->cpunuma.numa[i].ntime  = subcount(cur->cpunuma.numa[i].ntime,
+								pre->cpunuma.numa[i].ntime);
+			dev->cpunuma.numa[i].stime  = subcount(cur->cpunuma.numa[i].stime,
+								pre->cpunuma.numa[i].stime);
+			dev->cpunuma.numa[i].itime  = subcount(cur->cpunuma.numa[i].itime,
+								pre->cpunuma.numa[i].itime);
+			dev->cpunuma.numa[i].wtime  = subcount(cur->cpunuma.numa[i].wtime,
+								pre->cpunuma.numa[i].wtime);
+			dev->cpunuma.numa[i].Itime  = subcount(cur->cpunuma.numa[i].Itime,
+								pre->cpunuma.numa[i].Itime);
+			dev->cpunuma.numa[i].Stime  = subcount(cur->cpunuma.numa[i].Stime,
+								pre->cpunuma.numa[i].Stime);
+			dev->cpunuma.numa[i].steal  = subcount(cur->cpunuma.numa[i].steal,
+								pre->cpunuma.numa[i].steal);
+			dev->cpunuma.numa[i].guest  = subcount(cur->cpunuma.numa[i].guest,
+								pre->cpunuma.numa[i].guest);
+		}
+	}
+
 	dev->psi          	= cur->psi;
 
 	if (cur->psi.present)

@@ -114,6 +114,24 @@ struct	memnuma {
 	struct mempernuma numa[MAXNUMA];
 };
 
+struct	cpupernuma {
+	int	numanr;
+	count_t	stime;		// accumulate system  time in clock ticks for per numa
+	count_t	utime;		// accumulate user    time in clock ticks for per numa
+	count_t	ntime;		// accumulate nice    time in clock ticks for per numa
+	count_t	itime;		// accumulate idle    time in clock ticks for per numa
+	count_t	wtime;		// accumulate iowait  time in clock ticks for per numa
+	count_t	Itime;		// accumulate irq     time in clock ticks for per numa
+	count_t	Stime;		// accumulate softirq time in clock ticks for per numa
+	count_t	steal;		// accumulate steal   time in clock ticks for per numa
+	count_t	guest;		// accumulate guest   time in clock ticks for per numa
+};
+
+struct	cpunuma {
+	count_t           nrnuma;		/* the counts of numa		*/
+	struct cpupernuma numa[MAXNUMA];
+};
+
 /************************************************************************/
 
 struct	netstat {
@@ -392,6 +410,7 @@ struct	sstat {
 	struct netstat	net;
 	struct intfstat	intf;
 	struct memnuma	memnuma;
+	struct cpunuma	cpunuma;
 	struct dskstat  dsk;
 	struct nfsstat  nfs;
 	struct contstat cfs;

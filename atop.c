@@ -376,6 +376,7 @@ void do_ownmemline(char *, char *);
 void do_ownswpline(char *, char *);
 void do_ownpagline(char *, char *);
 void do_ownmemnumaline(char *, char *);
+void do_owncpunumaline(char *, char *);
 void do_owndskline(char *, char *);
 void do_ownnettransportline(char *, char *);
 void do_ownnetnetline(char *, char *);
@@ -425,6 +426,7 @@ static struct {
 	{	"ownswpline",		do_ownswpline,		0, },
 	{	"ownpagline",		do_ownpagline,		0, },
 	{	"ownmemnumaline",	do_ownmemnumaline,	0, },
+	{	"ownnumacpuline",	do_owncpunumaline,	0, },
 	{	"owndskline",		do_owndskline,		0, },
 	{	"ownnettrline",		do_ownnettransportline,	0, },
 	{	"ownnetnetline",	do_ownnetnetline,	0, },

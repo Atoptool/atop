@@ -1787,6 +1787,138 @@ sysprt_NUMAHUPTOT(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 sys_printdef syspdef_NUMAHUPTOT = {"NUMAHUPTOT", sysprt_NUMAHUPTOT, sysval_HUPTOT};
 /*******************************************************************/
+static char *
+sysprt_NUMACPUSYS(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].stime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "sys  %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSYS = {"NUMACPUSYS", sysprt_NUMACPUSYS, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUUSER(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].utime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "user %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUUSER = {"NUMACPUUSER", sysprt_NUMACPUUSER, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUNICE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].ntime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "nice %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUNICE = {"NUMACPUNICE", sysprt_NUMACPUNICE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUIRQ(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].Itime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "irq  %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUIRQ = {"NUMACPUIRQ", sysprt_NUMACPUIRQ, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUSOFTIRQ(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].Stime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "sirq %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSOFTIRQ = {"NUMACPUSOFTIRQ", sysprt_NUMACPUSOFTIRQ, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUIDLE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+
+	sprintf(buf, "idle %6.0f%%",
+		(sstat->cpunuma.numa[as->index].itime * 100.0) / as->percputot);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUIDLE = {"NUMACPUIDLE", sysprt_NUMACPUIDLE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+
+	sprintf(buf, "numa%02d w%3.0f%%",
+		sstat->cpunuma.numa[as->index].numanr,
+		(sstat->cpunuma.numa[as->index].wtime * 100.0) / as->percputot);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUWAIT = {"NUMACPUWAIT", sysprt_NUMACPUWAIT, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUSTEAL(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = (sstat->cpunuma.numa[as->index].steal * 100.0)
+							/ as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "steal %5.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSTEAL = {"NUMACPUSTEAL", sysprt_NUMACPUSTEAL, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUGUEST(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = (sstat->cpunuma.numa[as->index].guest * 100.0)
+							/ as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "guest %5.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUGUEST = {"NUMACPUGUEST", sysprt_NUMACPUGUEST, NULL};
+/*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)

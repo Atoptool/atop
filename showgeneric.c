@@ -483,6 +483,10 @@ generic_samp(time_t curtime, int nsecs,
 		if (sstat->memnuma.nrnuma > 1 && maxnumalines > 0)
 			qsort(sstat->memnuma.numa, sstat->memnuma.nrnuma,
 			       sizeof sstat->memnuma.numa[0], memnumacompar);
+
+		if (sstat->cpunuma.nrnuma > 1 && maxnumalines > 0)
+			qsort(sstat->cpunuma.numa, sstat->cpunuma.nrnuma,
+			       sizeof sstat->cpunuma.numa[0], cpunumacompar);
 	}
 
 	/*

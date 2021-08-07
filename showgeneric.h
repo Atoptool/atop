@@ -34,6 +34,7 @@ struct syscap {
 	int	nrgpu;
 	count_t	availgpumem; 	// GPU memory in Kb!
 	int	nrmemnuma;
+	int	nrcpunuma;
 };
 
 struct pselection {
