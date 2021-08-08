@@ -440,8 +440,8 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.tothugepage,
         		ss->mem.freehugepage,
         		ss->mem.zfsarcsize != -1 ? ss->mem.zfsarcsize : 0,
-        		ss->mem.ksmsharing,
-        		ss->mem.ksmshared);
+        		ss->mem.ksmsharing != -1 ? ss->mem.ksmsharing : 0,
+        		ss->mem.ksmshared  != -1 ? ss->mem.ksmshared  : 0);
 }
 
 void

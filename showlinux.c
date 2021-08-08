@@ -1989,7 +1989,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
             sstat->mem.compactstall 	||
             sstat->mem.swins      	||
             sstat->mem.swouts     	||
-            sstat->mem.oomkills     	||
+            sstat->mem.oomkills > 0   	||
             sstat->mem.pgmigrate     	||
             sstat->mem.numamigrate     	  )
         {

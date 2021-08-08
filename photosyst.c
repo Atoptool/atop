@@ -2054,8 +2054,8 @@ get_ksm(struct sstat *si)
 				return 0; // no more calling
 			}
 		}
-		else
-			fclose(fp);
+
+		fclose(fp);
 	}
 
 	if ((fp=fopen("/sys/kernel/mm/ksm/pages_sharing", "r")) != 0)
@@ -2099,8 +2099,8 @@ get_zswap(struct sstat *si)
 				return 0; // no more calling
 			}
 		}
-		else
-			fclose(fp);
+
+		fclose(fp);
 	}
 
 	regainrootprivs();
