@@ -825,17 +825,23 @@ procwchan(struct tstat *curtask)
 
 
 /*
-** store the Docker container ID, retrieved from the 'cpuset'
+** store the container ID, retrieved from the 'cpuset'
 ** that might look like this:
+**
+** In case of Docker:
 **    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
 **    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
 **
-** docker created by k8s might look like this:
+** In case of Docker created by K8s:
 **    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
+**
+** In case of podman:
+**    /machine.slice/libpod-0b5836e9ea98aefd89481123bi[SNAP].scope
 **
 ** In general:
 ** - search for last '/' (basename)
 ** - check if '/' followed by 'docker-': then skip 'docker-'
+** - check if '/' followed by 'libpod-': then skip 'libpod-'
 ** - take 12 positions for the container ID
 **
 ** Return value:
@@ -845,6 +851,7 @@ procwchan(struct tstat *curtask)
 #define	CIDSIZE		12
 #define	SHA256SIZE	64
 #define	DOCKPREFIX	"docker-"
+#define	PODMANPREFIX	"libpod-"
 
 static int
 proccont(struct tstat *curtask)
@@ -874,7 +881,17 @@ proccont(struct tstat *curtask)
 
 				if (memcmp(p, DOCKPREFIX,
 						sizeof(DOCKPREFIX)-1) == 0)
+				{
 					p += sizeof(DOCKPREFIX)-1;
+				}
+				else
+				{
+					if (memcmp(p, PODMANPREFIX,
+						sizeof(PODMANPREFIX)-1) == 0)
+					{
+						p += sizeof(PODMANPREFIX)-1;
+					}
+				}
 
 				memcpy(curtask->gen.container, p, CIDSIZE);
 				return 1;
