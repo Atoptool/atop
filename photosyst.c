@@ -29,7 +29,6 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
-
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
@@ -65,6 +64,7 @@
 #include <sys/shm.h>
 
 #include "atop.h"
+#include "ifprop.h"
 #include "photosyst.h"
 
 #define	MAXCNT	64
@@ -754,8 +754,11 @@ photosyst(struct sstat *si)
 	/*
 	** interface statistics
 	*/
+	initifprop();   // periodically refresh interface properties
+
 	if ( (fp = fopen("net/dev", "r")) != NULL)
 	{
+		struct ifprop ifprop;
 		char *cp;
 
 		i = 0;
@@ -787,11 +790,30 @@ photosyst(struct sstat *si)
 				&(si->intf.intf[i].scarrier),
 				&(si->intf.intf[i].scompr));
 
-			if (nr == 17)	/* skip header & lines without stats */
-			{
-				if (++i >= MAXINTF-1)
-					break;
-			}
+			/*
+			** skip header line and lines without stats
+			*/
+			if (nr != 17)
+				continue;
+
+			/*
+			** skip interfaces that are invalidated
+			** (mainly virtual interfaces)
+			** because the total number of interfaces
+			** exceeds the maximum supported by atop (MAXINTF)
+			*/
+			strcpy(ifprop.name, si->intf.intf[i].name);
+
+			if (!getifprop(&ifprop))
+				continue;
+
+			/*
+			** accept this interface but skip the remaining
+			** interfaces because we reached the total number
+			** of interfaces supported by atop (MAXINTF)
+			*/
+			if (++i >= MAXINTF-1)
+				break;
 		}
 
 		si->intf.intf[i].name[0] = '\0'; /* set terminator for table */

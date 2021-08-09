@@ -27,11 +27,14 @@
 */
 
 struct ifprop	{
-	char		type;		/* type: 'e' (ethernet)		*/
-					/*       'w' (wireless)  	*/
+	char		type;		/* type: 'e' - ethernet		*/
+					/*       'w' - wireless  	*/
+					/*       'v' - virtual  	*/
 	char		name[31];	/* name of interface  		*/
 	long int	speed;		/* in megabits per second	*/
 	char		fullduplex;	/* boolean			*/
+
+	struct ifprop	*next;		/* next in hash list		*/
 };
 
 int 	getifprop(struct ifprop *);

@@ -814,18 +814,10 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	/*
 	** calculate deviations for interfaces
-	**
-	** refresh all interface properties
 	*/
-        regainrootprivs();	/* get root privileges      */
-
-	initifprop();		/* refresh interface info   */
-
-	if (! droprootprivs())  /* drop setuid-root privs   */
-		mcleanstop(42, "failed to drop root privs\n");
-
 	for (i=0; cur->intf.intf[i].name[0]; i++)
 	{
+		// fill current properties for each valid interface
 		strcpy(ifprop.name, cur->intf.intf[i].name);
 
 		getifprop(&ifprop);
