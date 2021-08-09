@@ -187,7 +187,7 @@ struct	perintf {
 	count_t scompr; /* transmit compressed                  */
 	count_t	sfuture[4];	/* reserved for future use	*/
 
-	char 	type;	/* interface type ('e'/'w'/'?')  	*/
+	char 	type;	/* interface type ('e'/'w'/'v'/'?')  	*/
 	long 	speed;	/* interface speed in megabits/second	*/
 	long 	speedp;	/* previous interface speed 		*/
 	char	duplex;	/* full duplex (boolean) 		*/
