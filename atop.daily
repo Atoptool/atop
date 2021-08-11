@@ -60,11 +60,25 @@ if [ -f $ATOPRC ]; then
 	fi
 fi
 
+#e.g. logpath /data00/log/atop
+ATOPRC="/etc/atoprc"
+if [ -f $ATOPRC ]; then
+	RCLOGPATH=`cat $ATOPRC | grep -w '^logpath' -m 1 | awk '{print $2}'`
+	if [ -n "$RCLOGPATH" ]; then
+		LOGPATH=$RCLOGPATH
+		mkdir -p $LOGPATH
+	fi
+fi
+
 # delete logfiles older than N days (configurable)
 # start a child shell that activates another child shell in
 # the background to avoid a zombie
 #
 ( (sleep 3; find "$LOGPATH" -name 'atop_*' -mtime +"$LOGGENERATIONS" -exec rm {} \;)& )
+# In case we change the logpath, ensure consistent log storage status
+if [ "$LOGPATH" != "/var/log/atop" ];then
+    ( (sleep 3; find "/var/log/atop" -name 'atop_*' -mtime +"$LOGGENERATIONS" -exec rm {} \;)& )
+fi
 
 # activate atop with an interval of S seconds (configurable),
 # replacing the current shell

@@ -47,6 +47,10 @@ The length of a screen line when sending output to a file or pipe (default 80).
 The number of day logs need to keep, considering disk space usage and other needs.
 .PP
 .TP 4
+.B logpath
+The log path atop writes to. This is meaningful especially to avoid the root directory being fully occupied.
+.PP
+.TP 4
 .B username
 The default regular expression for the users for which active
 processes will be shown.
@@ -237,6 +241,8 @@ flags\ \ \ \ \ \ \ \ \ Aaf
 interval\ \ \ \ \ \ 5
 .br
 generations\ \ \ 3
+.br
+logpath\ \ \ \ \ \ \ /data00/log/atop
 .br
 username
 .br

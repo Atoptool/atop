@@ -53,7 +53,6 @@
 #include "photosyst.h"
 #include "rawlog.h"
 
-#define	BASEPATH	"/var/log/atop"  
 #define	BINPATH		"/usr/bin/atop"
 
 static int	getrawrec  (int, struct rawrecord *, int);
@@ -333,7 +332,7 @@ rawread(void)
 		tp	= localtime(&timenow);
 
 		snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-			BASEPATH, 
+			logpath,
 			tp->tm_year+1900,
 			tp->tm_mon+1,
 			tp->tm_mday);
@@ -355,7 +354,7 @@ rawread(void)
 			strcpy(savedname, rawname); // no overflow (len=8)
 
 			snprintf(rawname, RAWNAMESZ, "%s/atop_%s",
-				BASEPATH, 
+				logpath,
 				savedname);
 			break;
 		}
@@ -387,7 +386,7 @@ rawread(void)
 			tp	 = localtime(&timenow);
 
 			snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-				BASEPATH, 
+				logpath,
 				tp->tm_year+1900,
 				tp->tm_mon+1,
 				tp->tm_mday);
