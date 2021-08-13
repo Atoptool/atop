@@ -1024,9 +1024,9 @@ pratopsaruse(char *myname)
 	fprintf(stderr,
 		"\t  -R  summarize <cnt> samples into one sample\n");
 	fprintf(stderr,
-		"\t  -b  begin  showing data from  specified time as [YYYYMMDD]hhmm\n");
+		"\t  -b  begin  showing data from  specified time as [YYYYMMDD]hhmm[ss]\n");
 	fprintf(stderr,
-		"\t  -e  finish showing data after specified time as [YYYYMMDD]hhmm\n");
+		"\t  -e  finish showing data after specified time as [YYYYMMDD]hhmm[ss]\n");
 	fprintf(stderr,
 		"\t  -S  print timestamp on every line in case of more "
 		"resources\n");

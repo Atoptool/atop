@@ -29,9 +29,9 @@ Writing and reading raw logfiles:
 \-r [
 .I rawfile
 ] [\-b 
-.I [YYYYMMDD]hhmm
+.I [YYYYMMDD]hhmm[ss]
 ] [\-e
-.I [YYYYMMDD]hhmm
+.I [YYYYMMDD]hhmm[ss]
 ] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
 .SH DESCRIPTION
 The program
@@ -956,7 +956,7 @@ With the flag
 .B -b
 (begin time) and/or
 .B -e
-(end time) followed by a time argument of the form [YYYYMMDD]hhmm,
+(end time) followed by a time argument of the form [YYYYMMDD]hhmm[ss],
 a certain time period within the raw file can be selected.
 .PP
 Every day at midnight

@@ -1060,7 +1060,7 @@ prusage(char *myname)
 	printf("\t\tor\n");
 	printf("Usage: %s -w  file  [-S] [-%c] [interval [samples]]\n",
 					myname, MALLPROC);
-	printf("       %s -r [file] [-b [YYYYMMDD]hhmm] [-e [YYYYMMDD]hhmm] [-flags]\n",
+	printf("       %s -r [file] [-b [YYYYMMDD]hhmm[ss]] [-e [YYYYMMDD]hhmm[ss]] [-flags]\n",
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
