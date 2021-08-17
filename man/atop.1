@@ -1159,7 +1159,8 @@ or that are waiting for disk I/O. These figures are averaged over
 1 (`avg1'), 5 (`avg5') and 15 (`avg15') minutes.
 .br
 Furthermore the number of context switches (`csw'), the number
-of serviced interrupts (`intr') and the number of available CPUs are shown.
+of serviced interrupts (`intr') and the number of available CPUs(`numcpu') 
+are shown.
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -2074,7 +2075,7 @@ instructions executed by this CPU and cycles for this CPU.
 .TP 9
 .B CPL
 Subsequent fields:
-number of processors,
+number of available processors,
 load average for last minute,
 load average for last five minutes,
 load average for last fifteen minutes,
