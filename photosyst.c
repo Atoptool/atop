@@ -475,6 +475,23 @@ photosyst(struct sstat *si)
         }
 
 	/*
+	** gather offline CPU list from the file /sys/devices/system/cpu/offline
+	*/
+	if ( (fp = fopen("/sys/devices/system/cpu/offline", "r")) != NULL)
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			int offcpu = cpulistnr(linebuf);
+			if (offcpu > 0)
+			{
+				si->cpu.offcpu = offcpu;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	/*
 	** gather virtual memory statistics from the file /proc/vmstat and
 	** store them in binary form (>= kernel 2.6)
 	*/

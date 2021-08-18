@@ -1001,6 +1001,22 @@ sysprt_CPLNUMCPU(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_CPLNUMCPU = {"CPLNUMCPU", sysprt_CPLNUMCPU, NULL};
 /*******************************************************************/
 static char *
+sysprt_CPLOFFCPU(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="offcpu ";
+
+        val2valstr(sstat->cpu.offcpu, buf+7   , 5,0,as->nsecs);
+	/* any offlined CPU is always not expected */
+	if (sstat->cpu.offcpu)
+		*color = COLORCRIT;
+
+        return buf;
+}
+
+sys_printdef syspdef_CPLOFFCPU = {"CPLOFFCPU", sysprt_CPLOFFCPU, NULL};
+
+/*******************************************************************/
+static char *
 sysprt_CPLINTR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
         static char buf[16]="intr   ";

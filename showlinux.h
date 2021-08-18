@@ -177,6 +177,7 @@ extern sys_printdef syspdef_CPLAVG5;
 extern sys_printdef syspdef_CPLAVG15;
 extern sys_printdef syspdef_CPLCSW;
 extern sys_printdef syspdef_CPLNUMCPU;
+extern sys_printdef syspdef_CPLOFFCPU;
 extern sys_printdef syspdef_CPLINTR;
 extern sys_printdef syspdef_GPUBUS;
 extern sys_printdef syspdef_GPUTYPE;

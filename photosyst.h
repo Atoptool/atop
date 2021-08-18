@@ -134,7 +134,8 @@ struct	cpustat {
 	float	lavg1;	/* load average last    minute          */
 	float	lavg5;	/* load average last  5 minutes         */
 	float	lavg15;	/* load average last 15 minutes         */
-	count_t	cfuture[4];	/* reserved for future use	*/
+	count_t	offcpu;	/* number of offlined cpu's 			*/
+	count_t	cfuture[3];	/* reserved for future use	*/
 
 	struct percpu   all;
 	struct percpu   cpu[MAXCPU];

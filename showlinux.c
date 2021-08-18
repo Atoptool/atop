@@ -354,6 +354,7 @@ sys_printdef *cplsyspdefs[] = {
 	&syspdef_CPLAVG15,
 	&syspdef_CPLCSW,
 	&syspdef_CPLNUMCPU,
+	&syspdef_CPLOFFCPU,
 	&syspdef_CPLINTR,
 	&syspdef_BLANKBOX,
         0
@@ -1067,7 +1068,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "CPLCSW:6 "
 	                "CPLINTR:5 "
 	                "BLANKBOX:0 "
-	                "CPLNUMCPU:1",
+	                "CPLNUMCPU:1"
+	                "CPLOFFCPU:7",
 			cplsyspdefs, "builtin cplline",
 			sstat, &extra);
                 }

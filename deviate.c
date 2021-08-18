@@ -607,6 +607,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	struct ifprop	ifprop;
 
 	dev->cpu.nrcpu     = cur->cpu.nrcpu;
+	dev->cpu.offcpu     = cur->cpu.offcpu;
 	dev->cpu.devint    = subcount(cur->cpu.devint, pre->cpu.devint);
 	dev->cpu.csw       = subcount(cur->cpu.csw,    pre->cpu.csw);
 	dev->cpu.nprocs    = subcount(cur->cpu.nprocs, pre->cpu.nprocs);
