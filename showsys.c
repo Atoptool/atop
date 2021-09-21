@@ -1513,6 +1513,16 @@ sysval_KSMSHARED(struct sstat *sstat)
 sys_printdef syspdef_KSMSHARED = {"KSMSHARED", sysprt_KSMSHARED, sysval_KSMSHARED};
 /*******************************************************************/
 static char *
+sysprt_NUMNUMA(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+{
+        static char buf[16]="numnode  ";
+        val2valstr(sstat->memnuma.nrnuma, buf+8, 4, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMNUMA = {"NUMNUMA", sysprt_NUMNUMA, NULL};
+/*******************************************************************/
+static char *
 sysprt_SWPCOMMITTED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="vmcom  ";
@@ -1686,7 +1696,7 @@ sysprt_NUMANR(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16];
 	*color = -1;
-	sprintf(buf, "     numa%03d", sstat->memnuma.numa[as->index].numanr);
+	sprintf(buf, "numanode%04d", as->index);
 	return buf;
 }
 
@@ -1879,8 +1889,8 @@ sysprt_NUMACPUWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[15];
 
-	sprintf(buf, "numa%02d w%3.0f%%",
-		sstat->cpunuma.numa[as->index].numanr,
+	sprintf(buf, "nod%03d w%3.0f%%",
+		as->index,
 		(sstat->cpunuma.numa[as->index].wtime * 100.0) / as->percputot);
 	return buf;
 }

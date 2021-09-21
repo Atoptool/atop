@@ -199,7 +199,7 @@ static struct v6tab 		v6tab[] = {
 
 static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 
-// The following are used to accumulate cpu statistics for per numa.
+// The following values are used to accumulate cpu statistics per numa.
 // The bitmask realization is from numactl
 #define CPUMASK_SZ (64 * 8)
 
@@ -460,7 +460,7 @@ photosyst(struct sstat *si)
             {
                 long long f=0;
 
-                sprintf(fn,
+                snprintf(fn, sizeof fn,
                    "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
                    i);
 
@@ -490,7 +490,7 @@ photosyst(struct sstat *si)
                 }
 		else
 		{    // governor statistics not available
-                     sprintf(fn,  
+                     snprintf(fn, sizeof fn, 
                       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
 		      i);
 
@@ -509,7 +509,7 @@ photosyst(struct sstat *si)
 	                        si->cpu.cpu[i].freqcnt.maxfreq=0;
                         }
 
-                       sprintf(fn,  
+                       snprintf(fn, sizeof fn,
                        "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
 		       i);
         
@@ -841,6 +841,7 @@ photosyst(struct sstat *si)
 	** /sys/devices/system/node/node0/meminfo, and store them in binary form.
 	*/
 	dirp = opendir(NUMADIR);
+
 	if (dirp)
 	{
 		/*
@@ -850,11 +851,17 @@ photosyst(struct sstat *si)
 		{
 			if (strncmp(dentry->d_name, "node", 4))
 				continue;
+
 			j = strtoul(dentry->d_name + 4, NULL, 0);
+
+			if (j >= MAXNUMA)	// too many NUMA nodes?
+				continue;	// skip (no break, because order unknown)
+
 			si->memnuma.nrnuma++;
 
-			sprintf(fn, "/sys/devices/system/node/node%d/meminfo", j);
-			if ( (fp = fopen(fn, "r")) != 0)
+			snprintf(fn, sizeof fn, NUMADIR "/%s/meminfo", dentry->d_name);
+
+			if ( (fp = fopen(fn, "r")) != NULL)
 			{
 				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 				{
@@ -886,7 +893,6 @@ photosyst(struct sstat *si)
 					else if ( strcmp("HugePages_Total:", nam) == EQ)
 						si->memnuma.numa[j].tothp = cnts[1];
 				}
-				si->memnuma.numa[j].numanr = j;
 				fclose(fp);
 			}
 		}
@@ -898,6 +904,7 @@ photosyst(struct sstat *si)
 	{
 		char tmp[64];
 		float frag[MAX_ORDER];
+
 		/* If kernel CONFIG_COMPACTION is enabled, get the percentage directly */
 		if ( (fp = fopen("/sys/kernel/debug/extfrag/unusable_index", "r")) != NULL )
 		{
@@ -954,7 +961,9 @@ photosyst(struct sstat *si)
 						prev_free += free_page[j];
 					total_frag += (float)prev_free/total_free;
 				}
-				si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
+
+				if (cnts[0] < MAXNUMA)
+					si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
 			}
 			fclose(fp);
 		}
@@ -970,49 +979,49 @@ photosyst(struct sstat *si)
 		size_t len = 0;
 		struct bitmask *mask;
 
-		dirp = opendir(NUMADIR);
-		if (dirp)
+		mask = numa_allocate_cpumask();
+
+		si->cpunuma.nrnuma = si->memnuma.nrnuma;
+
+		for (j=0; j < si->cpunuma.nrnuma; j++)
 		{
-			mask = numa_allocate_cpumask();
-			while ( (dentry = readdir(dirp)) )
+			snprintf(fn, sizeof fn, NUMADIR "/node%d/cpumap", j);
+
+			if ( (fp = fopen(fn, "r")) != 0)
 			{
-				if (strncmp(dentry->d_name, "node", 4))
-					continue;
-				j = strtoul(dentry->d_name + 4, NULL, 0);
-				si->cpunuma.nrnuma++;
-
-				sprintf(fn, "%s/node%d/cpumap", NUMADIR, j);
-				if ( (fp = fopen(fn, "r")) != 0)
+				if ( getdelim(&line, &len, '\n', fp) > 0 )
 				{
-					if ( getdelim(&line, &len, '\n', fp) > 0 )
-						if (numa_parse_bitmap_v2(line, mask) < 0)
-						{
-							mcleanstop(54, "failed to parse numa bitmap\n");
-						}
-					fclose(fp);
-				}
-
-				for (i = 0; i < mask->size; i++)
-				{
-					if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+					if (numa_parse_bitmap_v2(line, mask) < 0)
 					{
-						si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
-						si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
-						si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
-						si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
-						si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
-						si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
-						si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
-						si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
-						si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
+						mcleanstop(54, "failed to parse numa bitmap\n");
 					}
 				}
-				si->cpunuma.numa[j].numanr = j;
+				fclose(fp);
 			}
-			free(line);
-			numa_bitmask_free(mask);
-			closedir(dirp);
+
+			for (i=0; i < mask->size; i++)
+			{
+				if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+				{
+					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
+					si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
+					si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
+					si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
+					si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
+					si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
+					si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
+					si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
+					si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
+				}
+			}
 		}
+
+		free(line);
+		numa_bitmask_free(mask);
+	}
+	else
+	{
+		si->cpunuma.nrnuma = 0;
 	}
 
 	/*

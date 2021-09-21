@@ -715,6 +715,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.pgmigrate	= subcount(cur->mem.pgmigrate,   pre->mem.pgmigrate);
 
 	dev->memnuma.nrnuma     = cur->memnuma.nrnuma;
+
 	for (i=0; i < dev->memnuma.nrnuma; i++)
 	{
 		dev->memnuma.numa[i].totmem      = cur->memnuma.numa[i].totmem;
@@ -728,15 +729,14 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		dev->memnuma.numa[i].slabreclaim = cur->memnuma.numa[i].slabreclaim;
 		dev->memnuma.numa[i].tothp       = cur->memnuma.numa[i].tothp;
 		dev->memnuma.numa[i].frag        = cur->memnuma.numa[i].frag;
-		dev->memnuma.numa[i].numanr      = cur->memnuma.numa[i].numanr;
 	}
 
-	if (cur->cpunuma.nrnuma > 1)
+	dev->cpunuma.nrnuma = cur->cpunuma.nrnuma;
+
+	if (dev->cpunuma.nrnuma > 1)
 	{
-		dev->cpunuma.nrnuma     = cur->cpunuma.nrnuma;
 		for (i=0; i < dev->cpunuma.nrnuma; i++)
 		{
-			dev->cpunuma.numa[i].numanr = cur->cpunuma.numa[i].numanr;
 			dev->cpunuma.numa[i].utime  = subcount(cur->cpunuma.numa[i].utime,
 								pre->cpunuma.numa[i].utime);
 			dev->cpunuma.numa[i].ntime  = subcount(cur->cpunuma.numa[i].ntime,
@@ -758,7 +758,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		}
 	}
 
-	dev->psi          	= cur->psi;
+	dev->psi = cur->psi;
 
 	if (cur->psi.present)
 	{

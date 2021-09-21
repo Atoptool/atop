@@ -213,6 +213,7 @@ extern sys_printdef syspdef_KSMSHARING;
 extern sys_printdef syspdef_KSMSHARED;
 extern sys_printdef syspdef_SWPCOMMITTED;
 extern sys_printdef syspdef_SWPCOMMITLIM;
+extern sys_printdef syspdef_NUMNUMA;
 extern sys_printdef syspdef_NUMANR;
 extern sys_printdef syspdef_NUMATOT;
 extern sys_printdef syspdef_NUMAFREE;

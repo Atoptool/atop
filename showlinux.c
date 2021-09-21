@@ -390,6 +390,7 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
+	&syspdef_NUMNUMA,
         0
 };
 sys_printdef *swpsyspdefs[] = {
@@ -1141,7 +1142,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "ZFSARC:6 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:6 "
-	                "HUPUSE:3 ",
+	                "HUPUSE:3 "
+	                "NUMNUMA:7 ",
 			memsyspdefs, "builtin memline",
 			sstat, &extra);
                 }
@@ -2076,8 +2078,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 			if (screen)
 				move(curline, 0);
 
-			showsysline(memnumaline, sstat, &extra, "MPN",
-								badness);
+			showsysline(memnumaline, sstat, &extra, "NUM", badness);
 			curline++;
 			lin++;
 		}
@@ -2092,7 +2093,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 		     extra.index < sstat->cpunuma.nrnuma && lin < maxnumalines;
 		     extra.index++)
 		{
-			extra.pernumacputot = sstat->cpunuma.numa[extra.index].utime +
+			extra.pernumacputot = sstat->cpunuma.numa[extra.index].stime +
+					      sstat->cpunuma.numa[extra.index].utime +
 					      sstat->cpunuma.numa[extra.index].ntime +
 					      sstat->cpunuma.numa[extra.index].itime +
 					      sstat->cpunuma.numa[extra.index].wtime +
@@ -2133,8 +2135,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 			if (screen)
 				move(curline, 0);
 
-			showsysline(cpunumaline, sstat, &extra, "CPN",
-								badness);
+			showsysline(cpunumaline, sstat, &extra, "NUC", badness);
 			curline++;
 			lin++;
 		}
