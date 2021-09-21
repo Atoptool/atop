@@ -714,7 +714,51 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.numamigrate	= subcount(cur->mem.numamigrate, pre->mem.numamigrate);
 	dev->mem.pgmigrate	= subcount(cur->mem.pgmigrate,   pre->mem.pgmigrate);
 
-	dev->psi          	= cur->psi;
+	dev->memnuma.nrnuma     = cur->memnuma.nrnuma;
+
+	for (i=0; i < dev->memnuma.nrnuma; i++)
+	{
+		dev->memnuma.numa[i].totmem      = cur->memnuma.numa[i].totmem;
+		dev->memnuma.numa[i].freemem     = cur->memnuma.numa[i].freemem;
+		dev->memnuma.numa[i].filepage    = cur->memnuma.numa[i].filepage;
+		dev->memnuma.numa[i].active      = cur->memnuma.numa[i].active;
+		dev->memnuma.numa[i].inactive    = cur->memnuma.numa[i].inactive;
+		dev->memnuma.numa[i].dirtymem    = cur->memnuma.numa[i].dirtymem;
+		dev->memnuma.numa[i].shmem       = cur->memnuma.numa[i].shmem;
+		dev->memnuma.numa[i].slabmem     = cur->memnuma.numa[i].slabmem;
+		dev->memnuma.numa[i].slabreclaim = cur->memnuma.numa[i].slabreclaim;
+		dev->memnuma.numa[i].tothp       = cur->memnuma.numa[i].tothp;
+		dev->memnuma.numa[i].frag        = cur->memnuma.numa[i].frag;
+	}
+
+	dev->cpunuma.nrnuma = cur->cpunuma.nrnuma;
+
+	if (dev->cpunuma.nrnuma > 1)
+	{
+		for (i=0; i < dev->cpunuma.nrnuma; i++)
+		{
+			dev->cpunuma.numa[i].utime  = subcount(cur->cpunuma.numa[i].utime,
+								pre->cpunuma.numa[i].utime);
+			dev->cpunuma.numa[i].ntime  = subcount(cur->cpunuma.numa[i].ntime,
+								pre->cpunuma.numa[i].ntime);
+			dev->cpunuma.numa[i].stime  = subcount(cur->cpunuma.numa[i].stime,
+								pre->cpunuma.numa[i].stime);
+			dev->cpunuma.numa[i].itime  = subcount(cur->cpunuma.numa[i].itime,
+								pre->cpunuma.numa[i].itime);
+			dev->cpunuma.numa[i].wtime  = subcount(cur->cpunuma.numa[i].wtime,
+								pre->cpunuma.numa[i].wtime);
+			dev->cpunuma.numa[i].Itime  = subcount(cur->cpunuma.numa[i].Itime,
+								pre->cpunuma.numa[i].Itime);
+			dev->cpunuma.numa[i].Stime  = subcount(cur->cpunuma.numa[i].Stime,
+								pre->cpunuma.numa[i].Stime);
+			dev->cpunuma.numa[i].steal  = subcount(cur->cpunuma.numa[i].steal,
+								pre->cpunuma.numa[i].steal);
+			dev->cpunuma.numa[i].guest  = subcount(cur->cpunuma.numa[i].guest,
+								pre->cpunuma.numa[i].guest);
+		}
+	}
+
+	dev->psi = cur->psi;
 
 	if (cur->psi.present)
 	{

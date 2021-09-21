@@ -75,6 +75,12 @@
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+/* recognize numa node */
+#define	NUMADIR	"/sys/devices/system/node"
+
+/* Refer to mmzone.h, the default is 11 */
+#define	MAX_ORDER	11
+
 /* hypervisor enum */
 enum {
 	HYPER_NONE	= 0,
@@ -193,6 +199,90 @@ static struct v6tab 		v6tab[] = {
 
 static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 
+// The following values are used to accumulate cpu statistics per numa.
+// The bitmask realization is from numactl
+#define CPUMASK_SZ (64 * 8)
+
+#define bitsperlong (8 * sizeof(unsigned long))
+#define howmany(x,y) (((x)+((y)-1))/(y))
+#define longsperbits(n) howmany(n, bitsperlong)
+
+#define round_up(x,y) (((x) + (y) - 1) & ~((y)-1))
+#define BITS_PER_LONG (sizeof(unsigned long) * 8)
+#define CPU_BYTES(x) (round_up(x, BITS_PER_LONG)/8)
+#define CPU_LONGS(x) (CPU_BYTES(x) / sizeof(long))
+
+struct bitmask {
+	unsigned long size; /* number of bits in the map */
+	unsigned long long *maskp;
+};
+
+/*
+ * Allocate a bitmask for cpus, of a size large enough to
+ * match the kernel's cpumask_t.
+ */
+struct bitmask *
+numa_allocate_cpumask()
+{
+	int ncpus = CPUMASK_SZ;
+	struct bitmask *bmp;
+
+	bmp = malloc(sizeof(*bmp));
+	ptrverify(bmp, "Malloc failed for numa bitmask");
+
+	bmp->size = ncpus;
+	bmp->maskp = calloc(longsperbits(ncpus), sizeof(unsigned long));
+	ptrverify((bmp->maskp), "Malloc failed for numa maskp");
+
+	return bmp;
+}
+
+void
+numa_bitmask_free(struct bitmask *bmp)
+{
+	if (bmp == 0)
+		return;
+	free(bmp->maskp);
+	bmp->maskp = (unsigned long long *)0xdeadcdef;  /* double free tripwire */
+	free(bmp);
+	return;
+}
+
+int
+numa_parse_bitmap_v2(char *line, struct bitmask *mask)
+{
+	int i;
+	char *p = strchr(line, '\n');
+	if (!p)
+		return -1;
+	int ncpus = mask->size;
+
+	for (i = 0; p > line;i++) {
+		char *oldp, *endp;
+		oldp = p;
+		if (*p == ',')
+			--p;
+		while (p > line && *p != ',')
+			--p;
+		/* Eat two 32bit fields at a time to get longs */
+		if (p > line && sizeof(unsigned long) == 8) {
+			oldp--;
+			memmove(p, p+1, oldp-p+1);
+			while (p > line && *p != ',')
+				--p;
+		}
+		if (*p == ',')
+			p++;
+		if (i >= CPU_LONGS(ncpus))
+			return -1;
+		mask->maskp[i] = strtoul(p, &endp, 16);
+		if (endp != oldp)
+			return -1;
+		p--;
+	}
+	return 0;
+}
+
 void
 photosyst(struct sstat *si)
 {
@@ -201,10 +291,12 @@ photosyst(struct sstat *si)
 	static char	ksm_stats = 1; 	
 	static char	zswap_stats = 1;
 
-	register int	i, nr;
+	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
 	float		lavg1, lavg5, lavg15;
 	FILE 		*fp;
+	DIR		*dirp;
+	struct dirent	*dentry;
 	char		linebuf[1024], nam[64], origdir[1024];
 	unsigned int	major, minor;
 	struct shm_info	shminfo;
@@ -368,7 +460,7 @@ photosyst(struct sstat *si)
             {
                 long long f=0;
 
-                sprintf(fn,
+                snprintf(fn, sizeof fn,
                    "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
                    i);
 
@@ -398,7 +490,7 @@ photosyst(struct sstat *si)
                 }
 		else
 		{    // governor statistics not available
-                     sprintf(fn,  
+                     snprintf(fn, sizeof fn, 
                       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
 		      i);
 
@@ -417,7 +509,7 @@ photosyst(struct sstat *si)
 	                        si->cpu.cpu[i].freqcnt.maxfreq=0;
                         }
 
-                       sprintf(fn,  
+                       snprintf(fn, sizeof fn,
                        "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
 		       i);
         
@@ -742,6 +834,194 @@ photosyst(struct sstat *si)
 		}
 
 		fclose(fp);
+	}
+
+	/*
+	** gather per numa memory-related statistics from the file
+	** /sys/devices/system/node/node0/meminfo, and store them in binary form.
+	*/
+	dirp = opendir(NUMADIR);
+
+	if (dirp)
+	{
+		/*
+		** read every directory-entry and search for all numa nodes
+		*/
+		while ( (dentry = readdir(dirp)) )
+		{
+			if (strncmp(dentry->d_name, "node", 4))
+				continue;
+
+			j = strtoul(dentry->d_name + 4, NULL, 0);
+
+			if (j >= MAXNUMA)	// too many NUMA nodes?
+				continue;	// skip (no break, because order unknown)
+
+			si->memnuma.nrnuma++;
+
+			snprintf(fn, sizeof fn, NUMADIR "/%s/meminfo", dentry->d_name);
+
+			if ( (fp = fopen(fn, "r")) != NULL)
+			{
+				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					nr = sscanf(&linebuf[5],
+						"%lld %s %lld\n",
+						&cnts[0], nam, &cnts[1]);
+
+					if (cnts[0] != j)
+						continue;
+
+					if ( strcmp("MemTotal:", nam) == EQ)
+						si->memnuma.numa[j].totmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("MemFree:", nam) == EQ)
+						si->memnuma.numa[j].freemem = cnts[1]*1024/pagesize;
+					else if ( strcmp("FilePages:", nam) == EQ)
+						si->memnuma.numa[j].filepage = cnts[1]*1024/pagesize;
+					else if ( strcmp("Active:", nam) == EQ)
+						si->memnuma.numa[j].active = cnts[1]*1024/pagesize;
+					else if ( strcmp("Inactive:", nam) == EQ)
+						si->memnuma.numa[j].inactive = cnts[1]*1024/pagesize;
+					else if ( strcmp("Dirty:", nam) == EQ)
+						si->memnuma.numa[j].dirtymem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Shmem:", nam) == EQ)
+						si->memnuma.numa[j].shmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("Slab:", nam) == EQ)
+						si->memnuma.numa[j].slabmem = cnts[1]*1024/pagesize;
+					else if ( strcmp("SReclaimable:", nam) == EQ)
+						si->memnuma.numa[j].slabreclaim = cnts[1]*1024/pagesize;
+					else if ( strcmp("HugePages_Total:", nam) == EQ)
+						si->memnuma.numa[j].tothp = cnts[1];
+				}
+				fclose(fp);
+			}
+		}
+		closedir(dirp);
+	}
+
+	/* gather fragmentation level for per numa, only for 'Normal' */
+	if (si->memnuma.nrnuma > 0)
+	{
+		char tmp[64];
+		float frag[MAX_ORDER];
+
+		/* If kernel CONFIG_COMPACTION is enabled, get the percentage directly */
+		if ( (fp = fopen("/sys/kernel/debug/extfrag/unusable_index", "r")) != NULL )
+		{
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(&linebuf[5],
+					"%lld, %s %s %f %f %f %f %f %f %f %f %f %f %f\n",
+					&cnts[0], tmp, nam, &frag[0], &frag[1], &frag[2],
+					&frag[3], &frag[4], &frag[5], &frag[6], &frag[7],
+					&frag[8], &frag[9], &frag[10]);
+
+				if ( nr < 3 || strcmp("Normal", nam) != 0 )
+					continue;
+
+				for (i = 0; i < MAX_ORDER; i++)
+					si->memnuma.numa[cnts[0]].frag += frag[i];
+
+				si->memnuma.numa[cnts[0]].frag /= MAX_ORDER;
+			}
+			fclose(fp);
+		}
+		/* If CONFIG_COMPACTION is not enabled, calculate from buddyinfo file */
+		else if ( (fp = fopen("/proc/buddyinfo", "r")) != NULL )
+		{
+			count_t free_page[MAX_ORDER];
+			count_t total_free, prev_free;
+			float total_frag;
+
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(&linebuf[5],
+					"%lld, %s %s %lld %lld %lld %lld %lld "
+					"%lld %lld %lld %lld %lld %lld\n",
+					&cnts[0], tmp, nam, &cnts[1], &cnts[2], &cnts[3],
+					&cnts[4], &cnts[5], &cnts[6], &cnts[7], &cnts[8],
+					&cnts[9], &cnts[10], &cnts[11]);
+
+				if (nr < 3 || strcmp("Normal", nam) != 0 )
+					continue;
+
+				/* get free pages numbers for each order, and total free pages */
+				total_free = 0;
+				total_frag = 0.00;
+				for (i = 0; i < MAX_ORDER; i++)
+				{
+					free_page[i] = cnts[i+1] << i;
+					total_free += free_page[i];
+				}
+				/* get fragmentation level for each order, then summarize */
+				for (i = 0; i < MAX_ORDER; i++)
+				{
+					prev_free = 0;
+					for (j = 0; j < i; j++)
+						prev_free += free_page[j];
+					total_frag += (float)prev_free/total_free;
+				}
+
+				if (cnts[0] < MAXNUMA)
+					si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
+			}
+			fclose(fp);
+		}
+	}
+
+	/*
+	** accumulate each cpu statistic for per NUMA, and identify numa/cpu
+	** relationship from /sys/devices/system/node/node0/cpumap.
+	*/
+	if (si->memnuma.nrnuma > 1)
+	{
+		char *line = NULL;
+		size_t len = 0;
+		struct bitmask *mask;
+
+		mask = numa_allocate_cpumask();
+
+		si->cpunuma.nrnuma = si->memnuma.nrnuma;
+
+		for (j=0; j < si->cpunuma.nrnuma; j++)
+		{
+			snprintf(fn, sizeof fn, NUMADIR "/node%d/cpumap", j);
+
+			if ( (fp = fopen(fn, "r")) != 0)
+			{
+				if ( getdelim(&line, &len, '\n', fp) > 0 )
+				{
+					if (numa_parse_bitmap_v2(line, mask) < 0)
+					{
+						mcleanstop(54, "failed to parse numa bitmap\n");
+					}
+				}
+				fclose(fp);
+			}
+
+			for (i=0; i < mask->size; i++)
+			{
+				if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+				{
+					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
+					si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
+					si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
+					si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
+					si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
+					si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
+					si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
+					si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
+					si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
+				}
+			}
+		}
+
+		free(line);
+		numa_bitmask_free(mask);
+	}
+	else
+	{
+		si->cpunuma.nrnuma = 0;
 	}
 
 	/*

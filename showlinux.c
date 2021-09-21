@@ -390,6 +390,7 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
+	&syspdef_NUMNUMA,
         0
 };
 sys_printdef *swpsyspdefs[] = {
@@ -418,6 +419,33 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_PAGSWOUT,
 	&syspdef_OOMKILLS,
 	&syspdef_BLANKBOX,
+        0
+};
+sys_printdef *memnumasyspdefs[] = {
+	&syspdef_NUMATOT,
+	&syspdef_NUMAFREE,
+	&syspdef_NUMAFILEPAGE,
+	&syspdef_NUMANR,
+	&syspdef_NUMADIRTY,
+	&syspdef_NUMAACTIVE,
+	&syspdef_NUMAINACTIVE,
+	&syspdef_NUMASLAB,
+	&syspdef_NUMASLABRECLAIM,
+	&syspdef_NUMASHMEM,
+	&syspdef_NUMAFRAG,
+	&syspdef_NUMAHUPTOT,
+        0
+};
+sys_printdef *cpunumasyspdefs[] = {
+	&syspdef_NUMACPUSYS,
+	&syspdef_NUMACPUUSER,
+	&syspdef_NUMACPUNICE,
+	&syspdef_NUMACPUIRQ,
+	&syspdef_NUMACPUSOFTIRQ,
+	&syspdef_NUMACPUIDLE,
+	&syspdef_NUMACPUWAIT,
+	&syspdef_NUMACPUSTEAL,
+	&syspdef_NUMACPUGUEST,
         0
 };
 sys_printdef *psisyspdefs[] = {
@@ -677,6 +705,8 @@ sys_printpair cplline[MAXITEMS];
 sys_printpair gpuline[MAXITEMS];
 sys_printpair memline[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
+sys_printpair memnumaline[MAXITEMS];
+sys_printpair cpunumaline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
 sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
@@ -962,6 +992,9 @@ totalcap(struct syscap *psc, struct sstat *sstat,
 		psc->availgpumem += sstat->gpu.gpu[i].memtotnow;
 
 	psc->nrgpu = sstat->gpu.nrgpus;
+
+	psc->nrmemnuma = sstat->memnuma.nrnuma;
+	psc->nrcpunuma = sstat->cpunuma.nrnuma;
 }
 
 /*
@@ -1109,7 +1142,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "ZFSARC:6 "
 	                "BLANKBOX:0 "
 	                "HUPTOT:6 "
-	                "HUPUSE:3 ",
+	                "HUPUSE:3 "
+	                "NUMNUMA:7 ",
 			memsyspdefs, "builtin memline",
 			sstat, &extra);
                 }
@@ -1131,6 +1165,41 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "SWPCOMMITLIM:8",
  			swpsyspdefs, "builtin swpline",
 			sstat, &extra);
+                }
+
+                if (memnumaline[0].f == 0)
+                {
+                    make_sys_prints(memnumaline, MAXITEMS,
+	                "NUMATOT:8 "
+	                "NUMAFREE:9 "
+	                "NUMAFILEPAGE:9 "
+	                "NUMANR:7 "
+	                "NUMADIRTY:5 "
+	                "NUMAACTIVE:5 "
+	                "NUMAINACTIVE:5 "
+	                "NUMASLAB:7 "
+	                "NUMASLABRECLAIM:4 "
+	                "NUMASHMEM:4 "
+	                "NUMAFRAG:6 "
+	                "NUMAHUPTOT:3 ",
+			memnumasyspdefs, "builtin memnumaline",
+			sstat, &extra);
+                }
+
+                if (cpunumaline[0].f == 0)
+                {
+                    make_sys_prints(cpunumaline, MAXITEMS,
+	                "NUMACPUSYS:9 "
+	                "NUMACPUUSER:8 "
+	                "NUMACPUNICE:8 "
+	                "NUMACPUIRQ:6 "
+	                "NUMACPUSOFTIRQ:6 "
+	                "NUMACPUIDLE:7 "
+	                "NUMACPUWAIT:7 "
+	                "NUMACPUSTEAL:2 "
+	                "NUMACPUGUEST:3 ",
+			cpunumasyspdefs, "builtin cpunumaline",
+			NULL, NULL);
                 }
 
                 if (pagline[0].f == 0)
@@ -1760,7 +1829,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines, int maxifblines,
-	int maxnfslines, int maxcontlines)
+	int maxnfslines, int maxcontlines, int maxnumalines)
 {
         extraparam      extra;
         int             lin;
@@ -1978,6 +2047,99 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
         showsysline(swpline, sstat, &extra, "SWP", badness);
         curline++;
+
+	/*
+	** memory info related for per NUMA
+	*/
+	if (sstat->memnuma.nrnuma > 0)
+	{
+		for (extra.index=lin=0;
+		     extra.index < sstat->memnuma.nrnuma && lin < maxnumalines;
+		     extra.index++)
+		{
+			busy = (sstat->memnuma.numa[extra.index].totmem
+				- sstat->memnuma.numa[extra.index].freemem
+				- sstat->memnuma.numa[extra.index].filepage
+				- sstat->memnuma.numa[extra.index].slabreclaim
+				+ sstat->memnuma.numa[extra.index].shmem)
+					* 100.0 / sstat->memnuma.numa[extra.index].totmem;
+
+			if (membadness)
+				badness = busy * 100 / membadness;
+			else
+				badness = 0;
+
+			if (highbadness < badness)
+			{
+				highbadness = badness;
+				*highorderp = MSORTMEM;
+			}
+
+			if (screen)
+				move(curline, 0);
+
+			showsysline(memnumaline, sstat, &extra, "NUM", badness);
+			curline++;
+			lin++;
+		}
+	}
+
+	/*
+	** Accumulate each cpu statistic for per NUMA
+	*/
+	if (sstat->cpunuma.nrnuma > 1)
+	{
+		for (extra.index=lin=0;
+		     extra.index < sstat->cpunuma.nrnuma && lin < maxnumalines;
+		     extra.index++)
+		{
+			extra.pernumacputot = sstat->cpunuma.numa[extra.index].stime +
+					      sstat->cpunuma.numa[extra.index].utime +
+					      sstat->cpunuma.numa[extra.index].ntime +
+					      sstat->cpunuma.numa[extra.index].itime +
+					      sstat->cpunuma.numa[extra.index].wtime +
+					      sstat->cpunuma.numa[extra.index].Itime +
+					      sstat->cpunuma.numa[extra.index].Stime +
+					      sstat->cpunuma.numa[extra.index].steal;
+
+			if (extra.pernumacputot ==
+				(sstat->cpunuma.numa[extra.index].itime +
+				 sstat->cpunuma.numa[extra.index].wtime  ) &&
+				 !fixedhead                             )
+				continue;       /* inactive cpu */
+
+			if (extra.pernumacputot == 0)
+				extra.pernumacputot = 1; /* avoid divide-by-zero */
+
+			busy = (extra.pernumacputot -
+					sstat->cpunuma.numa[extra.index].itime -
+					sstat->cpunuma.numa[extra.index].wtime)
+					* 100.0 / extra.pernumacputot;
+
+			if (cpubadness)
+				badness = busy * 100 / cpubadness;
+			else
+				badness = 0;
+
+			if (highbadness < badness)
+			{
+				highbadness = badness;
+				*highorderp = MSORTCPU;
+			}
+
+			extra.percputot = extra.pernumacputot /
+						(sstat->cpu.nrcpu/sstat->cpunuma.nrnuma);
+			if (extra.percputot == 0)
+				extra.percputot = 1; /* avoid divide-by-zero */
+
+			if (screen)
+				move(curline, 0);
+
+			showsysline(cpunumaline, sstat, &extra, "NUC", badness);
+			curline++;
+			lin++;
+		}
+	}
 
         /*
         ** PAGING statistics
@@ -2725,6 +2887,40 @@ contcompar(const void *a, const void *b)
         return  0;
 }
 
+int
+memnumacompar(const void *a, const void *b)
+{
+        register count_t aused = ((struct mempernuma *)a)->totmem -
+                                 ((struct mempernuma *)a)->freemem;
+        register count_t bused = ((struct mempernuma *)b)->totmem -
+                                 ((struct mempernuma *)b)->freemem;
+
+        if (aused < bused)
+                return  1;
+
+        if (aused > bused)
+                return -1;
+
+        return  0;
+}
+
+int
+cpunumacompar(const void *a, const void *b)
+{
+        register count_t aidle = ((struct cpupernuma *)a)->itime +
+                                 ((struct cpupernuma *)a)->wtime;
+        register count_t bidle = ((struct cpupernuma *)b)->itime +
+                                 ((struct cpupernuma *)b)->wtime;
+
+        if (aidle < bidle)
+                return -1;
+
+        if (aidle > bidle)
+                return  1;
+
+	return  0;
+}
+
 /*
 ** handle modifications from the /etc/atoprc and ~/.atoprc file
 */
@@ -2867,6 +3063,20 @@ void
 do_ownpagline(char *name, char *val)
 {
         make_sys_prints(pagline, MAXITEMS, val, pagsyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_ownmemnumaline(char *name, char *val)
+{
+        make_sys_prints(memnumaline, MAXITEMS, val, memnumasyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_owncpunumaline(char *name, char *val)
+{
+        make_sys_prints(cpunumaline, MAXITEMS, val, cpunumasyspdefs, name,
 					NULL, NULL);
 }
 

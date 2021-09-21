@@ -1208,7 +1208,8 @@ balloon driver (`vmbal`),
 the amount of memory that is currently claimed by the ARC (cache)
 of ZFSonlinux (`zfarc`),
 the amount of memory that is claimed for huge pages (`hptot`),
-and the amount of huge page memory that is really in use (`hpuse`).
+the amount of huge page memory that is really in use (`hpuse`),
+and the number of NUMA nodes in this system (`numnode').
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -1232,6 +1233,29 @@ The committed space is the reserved virtual space for all allocations of
 private memory space for processes. The kernel only verifies whether the
 committed space exceeds the limit if strict overcommit handling is
 configured (vm.overcommit_memory is 2).
+.PP
+.TP 5
+.B NUM
+Memory utilization per NUMA node.
+.br
+This line shows the total amount of physical memory of this node (`tot'),
+the amount of free memory (`free'), the amount of memory for cached file data
+(`file'), modified cached file data (`dirty'), recently used memory (`activ'),
+less recently used memory (`inact'), memory being used for kernel mallocs
+(`slab'), the amount of slab memory that is reclaimable (`slrec'),
+shared memory including tmpfs (`shmem'), total huge pages (`hptot') and
+the fragmentation percentage (`frag').
+.PP
+.TP 5
+.B NUC
+CPU utilization per NUMA node (not shown in case of a single NUMA node).
+.br
+This line shows the utilization percentages of all CPUs related to this
+NUMA node, categorized for  system mode (`sys'), user mode (`user'),
+user mode for niced processes (`niced'), idle mode (`idle'),
+wait mode (`w' preceded by the node number), irq mode (`irq'),
+softirq mode (`sirq'), steal mode (`steal'), and guest mode (`guest')
+overlapping user mode.
 .PP
 .TP 5
 .B PAG

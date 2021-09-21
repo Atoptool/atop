@@ -1513,6 +1513,16 @@ sysval_KSMSHARED(struct sstat *sstat)
 sys_printdef syspdef_KSMSHARED = {"KSMSHARED", sysprt_KSMSHARED, sysval_KSMSHARED};
 /*******************************************************************/
 static char *
+sysprt_NUMNUMA(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+{
+        static char buf[16]="numnode  ";
+        val2valstr(sstat->memnuma.nrnuma, buf+8, 4, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_NUMNUMA = {"NUMNUMA", sysprt_NUMNUMA, NULL};
+/*******************************************************************/
+static char *
 sysprt_SWPCOMMITTED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="vmcom  ";
@@ -1647,7 +1657,277 @@ sysval_OOMKILLS(struct sstat *sstat)
 }
 
 sys_printdef syspdef_OOMKILLS = {"OOMKILLS", sysprt_OOMKILLS, sysval_OOMKILLS};
+/*******************************************************************/
+static char *
+sysprt_NUMATOT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="tot   ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].totmem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
 
+sys_printdef syspdef_NUMATOT = {"NUMATOT", sysprt_NUMATOT, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAFREE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="free  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].freemem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAFREE = {"NUMAFREE", sysprt_NUMAFREE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAFILE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="file  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].filepage * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAFILEPAGE = {"NUMAFILEPAGE", sysprt_NUMAFILE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMANR(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16];
+	*color = -1;
+	sprintf(buf, "numanode%04d", as->index);
+	return buf;
+}
+
+sys_printdef syspdef_NUMANR = {"NUMANR", sysprt_NUMANR, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMADIRTY(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="dirty  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].dirtymem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMADIRTY = {"NUMADIRTY", sysprt_NUMADIRTY, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAACTIVE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="activ  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].active * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAACTIVE = {"NUMAACTIVE", sysprt_NUMAACTIVE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAINACTIVE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="inact   ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].inactive * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAINACTIVE = {"NUMAINACTIVE", sysprt_NUMAINACTIVE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMASLAB(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="slab  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].slabmem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMASLAB = {"NUMASLAB", sysprt_NUMASLAB, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMASLABRECLAIM(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="slrec ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].slabreclaim * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMASLABRECLAIM = {"NUMASLABRECLAIM", sysprt_NUMASLABRECLAIM, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMASHMEM(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="shmem  ";
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].shmem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMASHMEM = {"NUMASHMEM", sysprt_NUMASHMEM, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAFRAG(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->memnuma.numa[as->index].frag * 100.0;
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "frag %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAFRAG = {"NUMAFRAG", sysprt_NUMAFRAG, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMAHUPTOT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="hptot  ";
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
+	*color = -1;
+	val2memstr(sstat->memnuma.numa[as->index].tothp * sstat->mem.hugepagesz,
+						buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAHUPTOT = {"NUMAHUPTOT", sysprt_NUMAHUPTOT, sysval_HUPTOT};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUSYS(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].stime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "sys  %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSYS = {"NUMACPUSYS", sysprt_NUMACPUSYS, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUUSER(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].utime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "user %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUUSER = {"NUMACPUUSER", sysprt_NUMACPUUSER, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUNICE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].ntime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "nice %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUNICE = {"NUMACPUNICE", sysprt_NUMACPUNICE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUIRQ(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].Itime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "irq  %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUIRQ = {"NUMACPUIRQ", sysprt_NUMACPUIRQ, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUSOFTIRQ(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = sstat->cpunuma.numa[as->index].Stime * 100.0 / as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "sirq %6.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSOFTIRQ = {"NUMACPUSOFTIRQ", sysprt_NUMACPUSOFTIRQ, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUIDLE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+
+	sprintf(buf, "idle %6.0f%%",
+		(sstat->cpunuma.numa[as->index].itime * 100.0) / as->percputot);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUIDLE = {"NUMACPUIDLE", sysprt_NUMACPUIDLE, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+
+	sprintf(buf, "nod%03d w%3.0f%%",
+		as->index,
+		(sstat->cpunuma.numa[as->index].wtime * 100.0) / as->percputot);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUWAIT = {"NUMACPUWAIT", sysprt_NUMACPUWAIT, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUSTEAL(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = (sstat->cpunuma.numa[as->index].steal * 100.0)
+							/ as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "steal %5.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUSTEAL = {"NUMACPUSTEAL", sysprt_NUMACPUSTEAL, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMACPUGUEST(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[15];
+	float perc = (sstat->cpunuma.numa[as->index].guest * 100.0)
+							/ as->percputot;
+
+	if (perc > 1.0)
+		*color = -1;
+
+	sprintf(buf, "guest %5.0f%%", perc);
+	return buf;
+}
+
+sys_printdef syspdef_NUMACPUGUEST = {"NUMACPUGUEST", sysprt_NUMACPUGUEST, NULL};
 /*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
