@@ -226,6 +226,7 @@ extern sys_printdef syspdef_NUMASHMEM;
 extern sys_printdef syspdef_NUMASLABRECLAIM;
 extern sys_printdef syspdef_NUMAFRAG;
 extern sys_printdef syspdef_NUMAHUPTOT;
+extern sys_printdef syspdef_NUMANUMCPU;
 extern sys_printdef syspdef_NUMACPUSYS;
 extern sys_printdef syspdef_NUMACPUUSER;
 extern sys_printdef syspdef_NUMACPUNICE;

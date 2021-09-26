@@ -446,6 +446,7 @@ sys_printdef *cpunumasyspdefs[] = {
 	&syspdef_NUMACPUWAIT,
 	&syspdef_NUMACPUSTEAL,
 	&syspdef_NUMACPUGUEST,
+	&syspdef_NUMANUMCPU,
         0
 };
 sys_printdef *psisyspdefs[] = {
@@ -1197,7 +1198,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "NUMACPUIDLE:7 "
 	                "NUMACPUWAIT:7 "
 	                "NUMACPUSTEAL:2 "
-	                "NUMACPUGUEST:3 ",
+	                "NUMACPUGUEST:3 "
+	                "NUMANUMCPU:5",
 			cpunumasyspdefs, "builtin cpunumaline",
 			NULL, NULL);
                 }

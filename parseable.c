@@ -99,6 +99,8 @@ void 	print_NFC();
 void 	print_NFS();
 void 	print_NET();
 void 	print_IFB();
+void 	print_NUM();
+void 	print_NUC();
 
 void 	print_PRG();
 void 	print_PRC();
@@ -134,6 +136,8 @@ static struct labeldef	labeldef[] = {
 	{ "NFS",	0,	print_NFS },
 	{ "NET",	0,	print_NET },
 	{ "IFB",	0,	print_IFB },
+	{ "NUM",	0,	print_NUM },
+	{ "NUC",	0,	print_NUC },
 
 	{ "PRG",	0,	print_PRG },
 	{ "PRC",	0,	print_PRC },
@@ -669,6 +673,52 @@ print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->ifb.ifb[i].sndb,
 			ss->ifb.ifb[i].rcvp,
 			ss->ifb.ifb[i].sndp);
+	}
+}
+
+void
+print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int 	i;
+
+	for (i=0; i < ss->memnuma.nrnuma; i++)
+	{
+		printf(	"%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+			hp, i,
+			pagesize,
+			ss->memnuma.numa[i].frag * 100.0,
+			ss->memnuma.numa[i].totmem,
+			ss->memnuma.numa[i].freemem,
+			ss->memnuma.numa[i].active,
+			ss->memnuma.numa[i].inactive,
+			ss->memnuma.numa[i].filepage,
+			ss->memnuma.numa[i].dirtymem,
+			ss->memnuma.numa[i].slabmem,
+			ss->memnuma.numa[i].slabreclaim,
+			ss->memnuma.numa[i].shmem,
+			ss->memnuma.numa[i].tothp);
+	}
+}
+
+void
+print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int 	i;
+
+	for (i=0; i < ss->cpunuma.nrnuma; i++)
+	{
+		printf(	"%s %d %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+			hp, i,
+	        	ss->cpunuma.numa[i].nrcpu,
+	        	ss->cpunuma.numa[i].stime,
+        		ss->cpunuma.numa[i].utime,
+        		ss->cpunuma.numa[i].ntime,
+        		ss->cpunuma.numa[i].itime,
+        		ss->cpunuma.numa[i].wtime,
+        		ss->cpunuma.numa[i].Itime,
+        		ss->cpunuma.numa[i].Stime,
+        		ss->cpunuma.numa[i].steal,
+        		ss->cpunuma.numa[i].guest);
 	}
 }
 

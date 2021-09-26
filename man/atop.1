@@ -2028,9 +2028,9 @@ The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
 "CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
-"DSK", "NFM", "NFC", "NFS", "NET" and "IFB".
+"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "NUM" and "NUC".
 .br
-For process-level statistics special labels are introduced:
+For process-level statistics special labels are available:
 "PRG" (general), "PRC" (cpu), "PRE" (GPU), "PRM" (memory), "PRD"
 (disk, only if "storage accounting" is active) and "PRN" (network, only if
 the kernel module 'netatop' has been installed). 
@@ -2272,6 +2272,35 @@ number of bytes received,
 number of bytes transmitted,
 number of packets received, and
 number of packets transmitted.
+.TP 9
+.B NUM
+Subsequent fields:
+NUMA node number,
+page size for this machine (in bytes),
+the fragmentation percentage of this node,
+size of physical memory (pages),
+size of free memory (pages),
+recently (active) used memory (pages),
+less recently (inactive) used memory (pages),
+size of cached file data (pages),
+dirty pages in cache (pages),
+slab memory being used for kernel mallocs (pages),
+slab memory that is reclaimable (pages),
+shared memory including tmpfs (pages), and
+total huge pages (pages).
+.TP 9
+.B NUC
+Subsequent fields:
+NUMA node number, number of processors for this node,
+consumption for node CPUs in system mode (clock-ticks),
+consumption for node CPUs in user mode (clock-ticks),
+consumption for node CPUs in user mode for niced processes (clock-ticks),
+consumption for node CPUs in idle mode (clock-ticks),
+consumption for node CPUs in wait mode (clock-ticks),
+consumption for node CPUs in irq mode (clock-ticks),
+consumption for node CPUs in softirq mode (clock-ticks),
+consumption for node CPUs in steal mode (clock-ticks), and
+consumption for node CPUs in guest mode (clock-ticks) overlapping user mode.
 .TP 9
 .B PRG
 For every process one line is shown.

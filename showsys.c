@@ -1798,6 +1798,17 @@ sysprt_NUMAHUPTOT(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_NUMAHUPTOT = {"NUMAHUPTOT", sysprt_NUMAHUPTOT, sysval_HUPTOT};
 /*******************************************************************/
 static char *
+sysprt_NUMANUMCPU(struct sstat *sstat, extraparam *as, int badness, int *color) 
+{
+        static char buf[16]="numcpu ";
+
+        val2valstr(sstat->cpunuma.numa[as->index].nrcpu, buf+7, 5,0,as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_NUMANUMCPU = {"NUMANUMCPU", sysprt_NUMANUMCPU, NULL};
+/*******************************************************************/
+static char *
 sysprt_NUMACPUSYS(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[15];

@@ -1003,6 +1003,7 @@ photosyst(struct sstat *si)
 			{
 				if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
 				{
+					si->cpunuma.numa[j].nrcpu++;
 					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
 					si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
 					si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;

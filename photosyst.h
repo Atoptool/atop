@@ -90,22 +90,19 @@ struct	memstat {
 /************************************************************************/
 
 struct	mempernuma {
+	float	frag;		// fragmentation level for this numa
 	count_t	totmem;		// number of physical pages for this numa
 	count_t	freemem;	// number of free     pages for this numa
 	count_t	filepage;	// number of file     pages for this numa
-	count_t	slabmem;	// number of slab     pages for this numa
 	count_t	dirtymem;	// number of cache    pages (dirty) for this numa
+	count_t	slabmem;	// number of slab     pages for this numa
+	count_t	slabreclaim;	// reclaimable slab (pages) for this numa
 
 	count_t	active;		// number of pages used more recently for this numa
 	count_t	inactive;	// number of pages less recently used for this numa
 
 	count_t	shmem;		// tot shmem incl. tmpfs (pages) for this numa
-
-	count_t	slabreclaim;	// reclaimable slab (pages) for this numa
-
-	float	frag;		// fragmentation level for this numa
-
-	int	tothp;		// total huge pages (huge pages) for this numa
+	count_t	tothp;		// total huge pages (huge pages) for this numa
 };
 
 struct	memnuma {
@@ -114,6 +111,7 @@ struct	memnuma {
 };
 
 struct	cpupernuma {
+	count_t	nrcpu;		// number of cpu's
 	count_t	stime;		// accumulate system  time in clock ticks for per numa
 	count_t	utime;		// accumulate user    time in clock ticks for per numa
 	count_t	ntime;		// accumulate nice    time in clock ticks for per numa
