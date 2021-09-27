@@ -23,7 +23,7 @@ PMPATHD  = /usr/lib/systemd/system-sleep
 CFLAGS  += -O2 -I. -Wall -Wno-stringop-truncation # -DNOPERFEVENT   # -DHTTPSTATS
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
-OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
+OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o intuitive.o
 OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
 OBJMOD4  = atopsar.o  netatopif.o gpucom.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
@@ -187,6 +187,7 @@ rawlog.o:	atop.h	photoproc.h photosyst.h  rawlog.h   showgeneric.h
 various.o:	atop.h                           acctproc.h
 ifprop.o:	atop.h	            photosyst.h             ifprop.h
 parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
+intuitive.o:	atop.h	photosyst.h showgeneric.h intuitive.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h atopacctd.h  acctproc.h netatop.h
