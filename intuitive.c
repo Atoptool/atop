@@ -64,6 +64,11 @@ enum COLORIndicator
 	COLORWAITCPU,
 	COLORCPUMAX,
 
+	COLORUSEDMEM,
+	COLORCACHEDMEM,
+	COLORKERNELSPACEMEM,
+	COLORUSERSPACEMEM,
+
 	COLORNUMA
 };
 
@@ -130,9 +135,11 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 	register int i, r = 0, c = 0;
 	count_t percputot;
 	float percpusys, percpuuser, percpuirq, percpuiowait = 0.0;
+	float usedmem, filepages, kernelspacemem, userspacemem;
 	int curnuma, cpunuma, curcpu, curpanel = 0;
 	int nextcol = 0, eachcol = 0, eachblank;
 	int eachcpucol = 7; //3 cpus + 2 [ + 2 ]
+	int memallcols;
 	int maxcpurows, currow;
 	char buf[10], secbuf[33];
 	int pernumablank;
@@ -166,6 +173,10 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 			init_pair(COLORUSERCPU, COLOR_GREEN, COLOR_BLACK);
 			init_pair(COLORIRQCPU, COLOR_YELLOW, COLOR_BLACK);
 			init_pair(COLORWAITCPU, COLOR_MAGENTA, COLOR_BLACK);
+			init_pair(COLORUSEDMEM, COLOR_YELLOW, COLOR_BLACK);
+			init_pair(COLORCACHEDMEM, COLOR_MAGENTA, COLOR_BLACK);
+			init_pair(COLORKERNELSPACEMEM, COLOR_RED, COLOR_BLACK);
+			init_pair(COLORUSERSPACEMEM, COLOR_GREEN, COLOR_BLACK);
 			init_pair(COLORNUMA, COLOR_WHITE, COLOR_BLACK);
 		} else {
 			waddstr(stdscr,"can not init color!");
@@ -319,6 +330,137 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 					r++;
 				}
 			}
+		}
+
+		memallcols = panels / sstat->memnuma.nrnuma * eachblank + (panels / sstat->memnuma.nrnuma - 1) * eachcpucol;
+		c = 0;
+		r = maxcpurows + 3;
+		if (maxcpurows < 2)
+			r += 2;
+
+		if (lastch == SHOWPERC || showtype == SHOWPERC)
+			mvprintw(r, c, " Total %lld kB mem, [", sstat->mem.physmem * pagesize / 1024);
+		else
+			mvprintw(r, c, " Total %lld kB mem, [", sstat->mem.physmem * pagesize / 1024);
+
+		attron(COLOR_PAIR(COLORUSEDMEM));
+		mvprintw(r, getcurx(stdscr), "used");
+		attroff(COLOR_PAIR(COLORUSEDMEM));
+		mvprintw(r, getcurx(stdscr), "|");
+		attron(COLOR_PAIR(COLORCACHEDMEM));
+		mvprintw(r, getcurx(stdscr), "filepages");
+		attroff(COLOR_PAIR(COLORCACHEDMEM));
+
+		if (lastch == SHOWPERC || showtype == SHOWPERC)
+			mvprintw(r, getcurx(stdscr), "] and [");
+		else
+			mvprintw(r, getcurx(stdscr), "] and [", sstat->memnuma.nrnuma);
+
+		attron(COLOR_PAIR(COLORKERNELSPACEMEM));
+		mvprintw(r, getcurx(stdscr), "kernel");
+		attroff(COLOR_PAIR(COLORKERNELSPACEMEM));
+		mvprintw(r, getcurx(stdscr), "|");
+		attron(COLOR_PAIR(COLORUSERSPACEMEM));
+		mvprintw(r, getcurx(stdscr), "user");
+		attroff(COLOR_PAIR(COLORUSERSPACEMEM));
+
+		if (lastch == SHOWPERC || showtype == SHOWPERC)
+			mvprintw(r, getcurx(stdscr), "] per-numa mem usage.\n");
+		else
+			mvprintw(r, getcurx(stdscr), "] per-numa mem indicators.\n");
+
+		r++;
+		for (i = 0; i < sstat->memnuma.nrnuma; i++) {
+			c = i * pernumablank;
+
+			attron(COLOR_PAIR(COLORNUMA));
+			attron(A_BOLD);
+			mvprintw(r, i * pernumablank, "Mem frag =%3.0f%%", sstat->memnuma.numa[i].frag * 100.0);
+			attroff(A_BOLD);
+			attroff(COLOR_PAIR(COLORNUMA));
+			r++;
+
+			attron(COLOR_PAIR(COLORMeter));
+			c += 4;
+			attron(A_BOLD);
+			mvprintw(r, c, "[");
+			attroff(A_BOLD);
+			attroff(COLOR_PAIR(COLORMeter));
+			c++;
+
+			nextcol = c + memallcols;
+
+			//used mem
+			usedmem = (sstat->memnuma.numa[i].totmem - sstat->memnuma.numa[i].freemem - sstat->memnuma.numa[i].filepage) * 100 / sstat->memnuma.numa[i].totmem;
+			attron(COLOR_PAIR(COLORUSEDMEM));
+			if (lastch == SHOWPERC || showtype == SHOWPERC)
+				mvprintw(r, c + (memallcols / 2) - 4, "%2d%%|", (int)usedmem);
+			else {
+				eachcol = printperline(usedmem, memallcols, r, c);
+				c += eachcol;
+			}
+			attroff(COLOR_PAIR(COLORUSEDMEM));
+
+			//filepages mem
+			filepages = sstat->memnuma.numa[i].filepage * 100 / sstat->memnuma.numa[i].totmem;
+			attron(COLOR_PAIR(COLORCACHEDMEM));
+			if (lastch == SHOWPERC || showtype == SHOWPERC)
+				mvprintw(r, c + memallcols - 3, "%2d%%", (int)filepages);
+			else {
+				eachcol = printperline(filepages, memallcols, r, c);
+				c += eachcol;
+			}
+			attroff(COLOR_PAIR(COLORCACHEDMEM));
+
+			attron(COLOR_PAIR(COLORMeter));
+			attron(A_BOLD);
+			mvprintw(r, nextcol, "]");
+			attroff(A_BOLD);
+			attroff(COLOR_PAIR(COLORMeter));
+			r--;
+		}
+
+		r+=2;
+		for (i = 0; i < sstat->memnuma.nrnuma; i++) {
+			c = i * pernumablank;
+
+			attron(COLOR_PAIR(COLORMeter));
+			c += 4;
+			attron(A_BOLD);
+			mvprintw(r, c, "[");
+			attroff(A_BOLD);
+			attroff(COLOR_PAIR(COLORMeter));
+			c++;
+
+			nextcol = c + memallcols;
+
+			//kernelspace mem
+			kernelspacemem = (sstat->memnuma.numa[i].totmem - sstat->memnuma.numa[i].freemem - sstat->memnuma.numa[i].active - sstat->memnuma.numa[i].inactive) * 100 / sstat->memnuma.numa[i].totmem;
+			attron(COLOR_PAIR(COLORKERNELSPACEMEM));
+			if (lastch == SHOWPERC || showtype == SHOWPERC)
+				mvprintw(r, c + (memallcols / 2) - 4, "%2d%%|", (int)kernelspacemem);
+			else {
+				eachcol = printperline(kernelspacemem, memallcols, r, c);
+				c += eachcol;
+			}
+			attroff(COLOR_PAIR(COLORKERNELSPACEMEM));
+
+			//userspace mem
+			userspacemem = (sstat->memnuma.numa[i].active + sstat->memnuma.numa[i].inactive) * 100 / sstat->memnuma.numa[i].totmem;
+			attron(COLOR_PAIR(COLORUSERSPACEMEM));
+			if (lastch == SHOWPERC || showtype == SHOWPERC)
+				mvprintw(r, c + memallcols - 3, "%2d%%", (int)userspacemem);
+			else {
+				eachcol = printperline(userspacemem, memallcols, r, c);
+				c += eachcol;
+			}
+			attroff(COLOR_PAIR(COLORUSERSPACEMEM));
+
+			attron(COLOR_PAIR(COLORMeter));
+			attron(A_BOLD);
+			mvprintw(r, nextcol, "]");
+			attroff(A_BOLD);
+			attroff(COLOR_PAIR(COLORMeter));
 		}
 
 		switch(key = mvgetch(r, 0)) {
