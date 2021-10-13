@@ -42,6 +42,7 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 #include "atop.h"
 #include "photosyst.h"
@@ -133,10 +134,11 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 	int nextcol = 0, eachcol = 0, eachblank;
 	int eachcpucol = 7; //3 cpus + 2 [ + 2 ]
 	int maxcpurows, currow;
-	char buf[10];
+	char buf[10], secbuf[33];
 	int pernumablank;
 	int key;
 	char showtype = SHOWBAR;
+	char format1[16], format2[16];
 
 	if (sstat->cpu.nrcpu < 1) {
 		mcleanstop(1, "Warning: intuitive mode is not supported if cpu number is less than 1.\n");
@@ -151,7 +153,7 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 	if (sstat->cpu.nrcpu <= 128) {
 		panels = DefaultPanels / 2;
 	}
-	maxcpurows = sstat->cpu.nrcpu / panels;
+	maxcpurows = sstat->cpu.nrcpu / panels + 1;
 
 	initscr();
 	eachblank = (COLS - eachcpucol * panels) / panels;
@@ -176,6 +178,22 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 	while (1) {
 		r = 0;
 		c = 0;
+
+		convdate(curtime, format1);       /* date to ascii string   */
+		convtime(curtime, format2);       /* time to ascii string   */
+
+		int seclen = val2elapstr(numsecs, secbuf);
+		int lenavail = COLS - 38 - seclen - utsnodenamelen;
+		int len1 = lenavail / 3;
+		int len2 = lenavail - len1 - len1;
+		attron(A_REVERSE);
+		mvprintw(r, c, "ATOP - %s%*s%s   %s%*s  %*s%s elapsed",
+			utsname.nodename, len1, "",
+			format1, format2, len1, "",
+			len2, "", secbuf);
+		attroff(A_REVERSE);
+
+		r++;
 		startcol = 0;
 		curpanel = 0;
 		// 1.1 Yes, the following lines are to show the header..
@@ -204,24 +222,25 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 		else
 			mvprintw(r, getcurx(stdscr), "] %d cpu indicators.\n", (COLORCPUMAX - 2));
 
+		r++;
 		// 1.2 To print numa lines
 		pernumablank = COLS / sstat->memnuma.nrnuma;
 		for (i = 0; i < sstat->memnuma.nrnuma; i++) {
 			attron(COLOR_PAIR(COLORNUMA));
 			attron(A_BOLD);
-			mvprintw(startrow, startcol + i * pernumablank, "[numa%d]", i);
+			mvprintw(r, startcol + i * pernumablank, "[numa%d]", i);
 			attroff(A_BOLD);
 			attroff(COLOR_PAIR(COLORNUMA));
 		}
 
-		r = 1;
+		r = 2;
 		c = 0;
 		// 1.3 To print each cpu
 		for (curnuma = 0; curnuma < sstat->memnuma.nrnuma; curnuma++) {
 			for (curcpu = 0; curcpu < sstat->cpu.nrcpu; curcpu++) {
 				cpunuma = sstat->cpu.cpu[curcpu].numanr;
 				if (maxcpurows >= 2 && r > maxcpurows) {
-					r = 1;
+					r = 2;
 					curpanel++;
 				}
 				if (curnuma != cpunuma) {
@@ -316,6 +335,19 @@ intuitiveout(time_t curtime, int numsecs, struct devtstat *devtstat,
 			case QUITINT:
 				endwin();
 				exit(0);
+			/*
+			 ** manual trigger for previous or next sample
+			 */
+			case MSAMPNEXT:
+			case MSAMPPREV:
+				if (!rawreadflag)
+				{
+					//printg("Only allowed when viewing raw file!");
+					beep();
+					break;
+				}
+				clear();
+				return key;
 			default:
 				showtype = SHOWBAR;
 				clear();
