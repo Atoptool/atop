@@ -2065,6 +2065,34 @@ again before the cache buffers have been flushed to disk.
 Then the original process shows the written data as WRDSK, while
 the process that removes/truncates the file shows
 the unflushed removed data as WCANCL.
+.SH INTUITIVE OUTPUT
+With the flag
+.B -I,
+cpu and memory statistics on system level will be
+.B intuitively
+displayed. In this way, users can watch all cpus (especially more than 256 cpus)
+at a glance, like htop. Besides, cpu and memory are displayed at the
+granularity of numa, users can quickly determine if cpu or mem is numa balanced.
+.br
+Two interactive methods are supported for 'cpunr[sys|user|irq|iowait]', 'mem
+fragmentation ratio', 'mem[used|filepages]' and 'mem[kernel|user]':
+.TP 9
+.B p
+show each cpu indicators' percentage
+.TP 9
+.B i
+show bars with different color for each cpu indicator
+.PP
+.br
+The following example will show intuitive indicators each two seconds:
+.PP
+.B \ atop -I 2
+.PP
+.br
+For viewing logfile, run
+.PP
+.B \  atop -r /var/log/atop_20211014.log -I -b 16:18:57 -e 16:19:04
+.PP
 .SH PARSEABLE OUTPUT
 With the flag
 .B -P
