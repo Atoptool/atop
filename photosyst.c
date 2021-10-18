@@ -75,6 +75,9 @@
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+/* block sys dir */
+#define BLOCKDIR "/sys/block"
+
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
 
@@ -121,6 +124,7 @@ static int	get_zswap(struct sstat *);
 
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
+static unsigned long disksize(char *name);
 
 static struct ipv6_stats	ipv6_tmp;
 static struct icmpv6_stats	icmpv6_tmp;
@@ -1281,6 +1285,9 @@ photosyst(struct sstat *si)
 				&tmpdsk.nwrite, &tmpdsk.nwsect,
 				&tmpdsk.io_ms,  &tmpdsk.avque );
 
+			/* ignore zero size disk */
+			if (!disksize(diskname))
+				continue;
 			/*
 			** check if this line concerns the entire disk
 			** or just one of the partitions of a disk (to be
@@ -1993,6 +2000,27 @@ isdisk(unsigned int major, unsigned int minor,
 	}
 
 	return NONTYPE;
+}
+
+static unsigned long
+disksize(char *name)
+{
+	char path[PATH_MAX];
+	FILE *fp;
+	unsigned long size = 0;
+
+	snprintf(path, sizeof(path), "%s/%s/size", BLOCKDIR, name);
+	if ( (fp = fopen(path, "r")) != NULL)
+	{
+		if (fscanf(fp, "%lu", &size) != 1)
+		{
+			size = 0;
+		}
+
+		fclose(fp);
+	}
+
+	return size;
 }
 
 /*
