@@ -2007,11 +2007,11 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 
 		/*
 		** convert byte-transfers to bit-transfers     (*       8)
-		** convert bit-transfers  to megabit-transfers (/ 1000000)
+		** convert bit-transfers  to gigabit-transfers (/ 1000000000)
 		** per second
 		*/
-		ival = ss->intf.intf[i].rbyte/125000/deltasec;
-		oval = ss->intf.intf[i].sbyte/125000/deltasec;
+		ival = ss->intf.intf[i].rbyte/125000000/deltasec;
+		oval = ss->intf.intf[i].sbyte/125000000/deltasec;
 
 		/*
 		** calculate busy-percentage for interface
