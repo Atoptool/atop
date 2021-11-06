@@ -1922,12 +1922,12 @@ ibline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			continue;
 
 		/*
-		** convert byte-transfers to bit-transfers     (*       8)
-		** convert bit-transfers  to megabit-transfers (/ 1000000)
+		** convert byte-transfers to bit-transfers     (*          8)
+		** convert bit-transfers  to gigabit-transfers (/ 1000000000)
 		** per second
 		*/
-		ival = ss->ifb.ifb[i].rcvb*ss->ifb.ifb[i].lanes/125000/deltasec;
-		oval = ss->ifb.ifb[i].sndb*ss->ifb.ifb[i].lanes/125000/deltasec;
+		ival = ss->ifb.ifb[i].rcvb*ss->ifb.ifb[i].lanes/125000000/deltasec;
+		oval = ss->ifb.ifb[i].sndb*ss->ifb.ifb[i].lanes/125000000/deltasec;
 
 		/*
 		** calculate busy-percentage for port
