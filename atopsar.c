@@ -1484,9 +1484,9 @@ memline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	unsigned int	mbadness, sbadness;
 
 	if (membadness)
-		mbadness = ((ss->mem.physmem  - ss->mem.freemem -
-	                     ss->mem.cachemem - ss->mem.buffermem)
-	                               * 100.0 / ss->mem.physmem) 
+		mbadness = ((ss->mem.physmem  - ss->mem.freemem 
+	                     - ss->mem.cachemem - ss->mem.buffermem
+	                     + ss->mem.shmem) * 100.0 / ss->mem.physmem) 
 	                               * 100   / membadness;
 	else
 		mbadness = 0;
