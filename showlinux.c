@@ -476,10 +476,12 @@ sys_printdef *dsksyspdefs[] = {
 	&syspdef_DSKBUSY,
 	&syspdef_DSKNREAD,
 	&syspdef_DSKNWRITE,
+	&syspdef_DSKNDISC,
 	&syspdef_DSKMBPERSECWR,
 	&syspdef_DSKMBPERSECRD,
-	&syspdef_DSKKBPERWR,
 	&syspdef_DSKKBPERRD,
+	&syspdef_DSKKBPERWR,
+	&syspdef_DSKKBPERDS,
 	&syspdef_DSKAVQUEUE,
 	&syspdef_DSKAVIO,
 	&syspdef_BLANKBOX,
@@ -1257,18 +1259,20 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (dskline[0].f == 0)
                 {
                     make_sys_prints(dskline, MAXITEMS,
-	                "DSKNAME:8 "
-	                "DSKBUSY:7 "
-	                "DSKNREAD:6 "
-	                "DSKNWRITE:6 "
-	                "DSKKBPERRD:4 "
-	                "DSKKBPERWR:4 "
-                        "DSKMBPERSECRD:5 "
-                        "DSKMBPERSECWR:5 "
+	                "DSKNAME:9 "
+	                "DSKBUSY:8 "
+	                "DSKNREAD:7 "
+	                "DSKNWRITE:7 "
+	                "DSKNDISC:6 "
+	                "DSKKBPERRD:5 "
+	                "DSKKBPERWR:5 "
+	                "DSKKBPERDS:4 "
+                        "DSKMBPERSECRD:6 "
+                        "DSKMBPERSECWR:6 "
 	                "DSKAVQUEUE:1 "
-	                "DSKAVIO:5",
+	                "DSKAVIO:6",
 			dsksyspdefs, "builtin dskline",
-			NULL, NULL);
+			sstat, &extra);
                 }
 
                 if (nfsmountline[0].f == 0)

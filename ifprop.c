@@ -344,11 +344,25 @@ getphysprop(struct ifprop *p)
 		{
 			ethlink.link_mode_masks_nwords = - ethlink.link_mode_masks_nwords;
 
+			struct ethtool_link_settings *ethlink_handshaked;
+			/* layout of link_mode_masks fields:
+			 * __u32 map_supported[link_mode_masks_nwords];
+			 * __u32 map_advertising[link_mode_masks_nwords];
+			 * __u32 map_lp_advertising[link_mode_masks_nwords];
+			 */
+			ethlink_handshaked = malloc(sizeof(ethlink) +
+			              3 * sizeof(__u32) * ethlink.link_mode_masks_nwords);
+			memcpy(ethlink_handshaked, &ethlink, sizeof(ethlink));
+
+			ifreq.ifr_ifru.ifru_data = (void *)ethlink_handshaked;
+
 			if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) != 0 )
 			{
 				close(sockfd);
+				free(ethlink_handshaked);
 				return 0;
 			}
+			free(ethlink_handshaked);
 		}
 
 		ethernet = 1;

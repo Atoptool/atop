@@ -999,16 +999,29 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 		dev->dsk.dsk[i].nread  = subcount(cur->dsk.dsk[i].nread,
 		                                  pre->dsk.dsk[j].nread);
-		dev->dsk.dsk[i].nwrite = subcount(cur->dsk.dsk[i].nwrite,
-		                                  pre->dsk.dsk[j].nwrite);
 		dev->dsk.dsk[i].nrsect = subcount(cur->dsk.dsk[i].nrsect,
 		                                  pre->dsk.dsk[j].nrsect);
+		dev->dsk.dsk[i].nwrite = subcount(cur->dsk.dsk[i].nwrite,
+		                                  pre->dsk.dsk[j].nwrite);
 		dev->dsk.dsk[i].nwsect = subcount(cur->dsk.dsk[i].nwsect,
 		                                  pre->dsk.dsk[j].nwsect);
 		dev->dsk.dsk[i].io_ms  = subcount(cur->dsk.dsk[i].io_ms,
 		                                  pre->dsk.dsk[j].io_ms);
 		dev->dsk.dsk[i].avque  = subcount(cur->dsk.dsk[i].avque,
 		                                  pre->dsk.dsk[j].avque);
+
+		if (cur->dsk.dsk[i].ndisc != -1)	// discards supported?
+		{
+			dev->dsk.dsk[i].ndisc  = subcount(cur->dsk.dsk[i].ndisc,
+		                                          pre->dsk.dsk[j].ndisc);
+			dev->dsk.dsk[i].ndsect = subcount(cur->dsk.dsk[i].ndsect,
+		                                          pre->dsk.dsk[j].ndsect);
+		}
+		else
+		{
+			dev->dsk.dsk[i].ndisc  = -1;
+			dev->dsk.dsk[i].ndsect = 0;
+		}
 
 		/*
 		** determine new j
@@ -1055,16 +1068,29 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 		dev->dsk.mdd[i].nread  = subcount(cur->dsk.mdd[i].nread,
 		                                  pre->dsk.mdd[j].nread);
-		dev->dsk.mdd[i].nwrite = subcount(cur->dsk.mdd[i].nwrite,
-		                                  pre->dsk.mdd[j].nwrite);
 		dev->dsk.mdd[i].nrsect = subcount(cur->dsk.mdd[i].nrsect,
 		                                  pre->dsk.mdd[j].nrsect);
+		dev->dsk.mdd[i].nwrite = subcount(cur->dsk.mdd[i].nwrite,
+		                                  pre->dsk.mdd[j].nwrite);
 		dev->dsk.mdd[i].nwsect = subcount(cur->dsk.mdd[i].nwsect,
 		                                  pre->dsk.mdd[j].nwsect);
 		dev->dsk.mdd[i].io_ms  = subcount(cur->dsk.mdd[i].io_ms,
 		                                  pre->dsk.mdd[j].io_ms);
 		dev->dsk.mdd[i].avque  = subcount(cur->dsk.mdd[i].avque,
 		                                  pre->dsk.mdd[j].avque);
+
+		if (cur->dsk.mdd[i].ndisc != -1)	// discards supported?
+		{
+			dev->dsk.mdd[i].ndisc  = subcount(cur->dsk.mdd[i].ndisc,
+		                                          pre->dsk.mdd[j].ndisc);
+			dev->dsk.mdd[i].ndsect = subcount(cur->dsk.mdd[i].ndsect,
+		                                          pre->dsk.mdd[j].ndsect);
+		}
+		else
+		{
+			dev->dsk.mdd[i].ndisc  = -1;
+			dev->dsk.mdd[i].ndsect = 0;
+		}
 
 		/*
 		** determine new j
@@ -1111,16 +1137,29 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 		dev->dsk.lvm[i].nread  = subcount(cur->dsk.lvm[i].nread,
 		                                  pre->dsk.lvm[j].nread);
-		dev->dsk.lvm[i].nwrite = subcount(cur->dsk.lvm[i].nwrite,
-		                                  pre->dsk.lvm[j].nwrite);
 		dev->dsk.lvm[i].nrsect = subcount(cur->dsk.lvm[i].nrsect,
 		                                  pre->dsk.lvm[j].nrsect);
+		dev->dsk.lvm[i].nwrite = subcount(cur->dsk.lvm[i].nwrite,
+		                                  pre->dsk.lvm[j].nwrite);
 		dev->dsk.lvm[i].nwsect = subcount(cur->dsk.lvm[i].nwsect,
 		                                  pre->dsk.lvm[j].nwsect);
 		dev->dsk.lvm[i].io_ms  = subcount(cur->dsk.lvm[i].io_ms,
 		                                  pre->dsk.lvm[j].io_ms);
 		dev->dsk.lvm[i].avque  = subcount(cur->dsk.lvm[i].avque,
 		                                  pre->dsk.lvm[j].avque);
+
+		if (cur->dsk.lvm[i].ndisc != -1)	// discards supported?
+		{
+			dev->dsk.lvm[i].ndisc  = subcount(cur->dsk.lvm[i].ndisc,
+		                                          pre->dsk.lvm[j].ndisc);
+			dev->dsk.lvm[i].ndsect = subcount(cur->dsk.lvm[i].ndsect,
+		                                          pre->dsk.lvm[j].ndsect);
+		}
+		else
+		{
+			dev->dsk.lvm[i].ndisc  = -1;
+			dev->dsk.lvm[i].ndsect = 0;
+		}
 
 		/*
 		** determine new j
@@ -1635,11 +1674,18 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			strcpy(tot->dsk.dsk[i].name, new->dsk.dsk[i].name);
 	
 			tot->dsk.dsk[i].nread  += new->dsk.dsk[i].nread;
-			tot->dsk.dsk[i].nwrite += new->dsk.dsk[i].nwrite;
 			tot->dsk.dsk[i].nrsect += new->dsk.dsk[i].nrsect;
+			tot->dsk.dsk[i].nwrite += new->dsk.dsk[i].nwrite;
 			tot->dsk.dsk[i].nwsect += new->dsk.dsk[i].nwsect;
 			tot->dsk.dsk[i].io_ms  += new->dsk.dsk[i].io_ms;
 			tot->dsk.dsk[i].avque  += new->dsk.dsk[i].avque;
+
+			if (new->dsk.dsk[i].ndisc != -1) // discards?
+			{
+			    tot->dsk.dsk[i].ndisc  += new->dsk.dsk[i].ndisc;
+			    tot->dsk.dsk[i].ndsect += new->dsk.dsk[i].ndsect;
+			}
+			
 		}
 	
 		tot->dsk.dsk[i].name[0] = '\0';
@@ -1650,11 +1696,17 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			strcpy(tot->dsk.lvm[i].name, new->dsk.lvm[i].name);
 	
 			tot->dsk.lvm[i].nread  += new->dsk.lvm[i].nread;
-			tot->dsk.lvm[i].nwrite += new->dsk.lvm[i].nwrite;
 			tot->dsk.lvm[i].nrsect += new->dsk.lvm[i].nrsect;
+			tot->dsk.lvm[i].nwrite += new->dsk.lvm[i].nwrite;
 			tot->dsk.lvm[i].nwsect += new->dsk.lvm[i].nwsect;
 			tot->dsk.lvm[i].io_ms  += new->dsk.lvm[i].io_ms;
 			tot->dsk.lvm[i].avque  += new->dsk.lvm[i].avque;
+
+			if (new->dsk.lvm[i].ndisc != -1) // discards?
+			{
+			    tot->dsk.lvm[i].ndisc  += new->dsk.lvm[i].ndisc;
+			    tot->dsk.lvm[i].ndsect += new->dsk.lvm[i].ndsect;
+			}
 		}
 	
 		tot->dsk.lvm[i].name[0] = '\0';
@@ -1665,11 +1717,17 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			strcpy(tot->dsk.mdd[i].name, new->dsk.mdd[i].name);
 	
 			tot->dsk.mdd[i].nread  += new->dsk.mdd[i].nread;
-			tot->dsk.mdd[i].nwrite += new->dsk.mdd[i].nwrite;
 			tot->dsk.mdd[i].nrsect += new->dsk.mdd[i].nrsect;
+			tot->dsk.mdd[i].nwrite += new->dsk.mdd[i].nwrite;
 			tot->dsk.mdd[i].nwsect += new->dsk.mdd[i].nwsect;
 			tot->dsk.mdd[i].io_ms  += new->dsk.mdd[i].io_ms;
 			tot->dsk.mdd[i].avque  += new->dsk.mdd[i].avque;
+
+			if (new->dsk.mdd[i].ndisc != -1) // discards?
+			{
+			    tot->dsk.mdd[i].ndisc  += new->dsk.lvm[i].ndisc;
+			    tot->dsk.mdd[i].ndsect += new->dsk.lvm[i].ndsect;
+			}
 		}
 	
 		tot->dsk.mdd[i].name[0] = '\0';

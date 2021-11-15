@@ -1300,8 +1300,10 @@ Such line shows the name (e.g. VolGroup00-lvtmp for a logical volume or
 sda for a hard disk), the busy percentage i.e. the portion of time that the
 unit was busy handling requests (`busy'), the number of read requests issued
 (`read'), the number of write requests issued (`write'),
+the number of discard requests issued (`discrd') if supported by kernel version,
 the number of KiBytes per read (`KiB/r'), 
 the number of KiBytes per write (`KiB/w'), 
+the number of KiBytes per discard (`KiB/d') if supported by kernel version,
 the number of MiBytes per second throughput for reads (`MBr/s'), 
 the number of MiBytes per second throughput for writes (`MBw/s'), 
 the average queue depth (`avq')
@@ -2190,7 +2192,9 @@ number of milliseconds spent for I/O,
 number of reads issued,
 number of sectors transferred for reads,
 number of writes issued,
-and number of sectors transferred for write.
+number of sectors transferred for write,
+number of discards issued (-1 if not supported),
+and number of sectors transferred for discards.
 .TP 9
 .B NFM
 Subsequent fields:

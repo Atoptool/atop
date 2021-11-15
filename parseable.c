@@ -506,14 +506,16 @@ print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
         for (i=0; ss->dsk.lvm[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld\n",
+		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.lvm[i].name,
 			ss->dsk.lvm[i].io_ms,
 			ss->dsk.lvm[i].nread,
 			ss->dsk.lvm[i].nrsect,
 			ss->dsk.lvm[i].nwrite,
-			ss->dsk.lvm[i].nwsect);
+			ss->dsk.lvm[i].nwsect,
+			ss->dsk.lvm[i].ndisc,
+			ss->dsk.lvm[i].ndsect);
 	}
 }
 
@@ -524,14 +526,16 @@ print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
         for (i=0; ss->dsk.mdd[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld\n",
+		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.mdd[i].name,
 			ss->dsk.mdd[i].io_ms,
 			ss->dsk.mdd[i].nread,
 			ss->dsk.mdd[i].nrsect,
 			ss->dsk.mdd[i].nwrite,
-			ss->dsk.mdd[i].nwsect);
+			ss->dsk.mdd[i].nwsect,
+			ss->dsk.mdd[i].ndisc,
+			ss->dsk.mdd[i].ndsect);
 	}
 }
 
@@ -542,14 +546,16 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
         for (i=0; ss->dsk.dsk[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld\n",
+		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.dsk[i].name,
 			ss->dsk.dsk[i].io_ms,
 			ss->dsk.dsk[i].nread,
 			ss->dsk.dsk[i].nrsect,
 			ss->dsk.dsk[i].nwrite,
-			ss->dsk.dsk[i].nwsect);
+			ss->dsk.dsk[i].nwsect,
+			ss->dsk.dsk[i].ndisc,
+			ss->dsk.dsk[i].ndsect);
 	}
 }
 

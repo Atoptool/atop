@@ -192,7 +192,9 @@ struct	perdsk {
         count_t	nwsect;	/* number of sectors written            */
         count_t	io_ms;	/* number of millisecs spent for I/O    */
         count_t	avque;	/* average queue length                 */
-	count_t	cfuture[4];	/* reserved for future use	*/
+        count_t	ndisc;	/* number of discards (-1 = unavailable)*/
+        count_t	ndsect;	/* number of sectors discarded          */
+	count_t	cfuture[2];	/* reserved for future use	*/
 };
 
 struct dskstat {

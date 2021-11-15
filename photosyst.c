@@ -1273,21 +1273,35 @@ photosyst(struct sstat *si)
 
 		while ( fgets(linebuf, sizeof(linebuf), fp) )
 		{
+			/* discards are not supported in older kernels */
+ 			tmpdsk.ndisc = -1;
+
 			nr = sscanf(linebuf,
-			      "%d %d %255s %lld %*d %lld %*d "
-			      "%lld %*d %lld %*d %*d %lld %lld",
+			      "%d %d %255s "		// ident
+                              "%lld %*d %lld %*d "	// reads
+			      "%lld %*d %lld %*d "	// writes
+			      "%*d %lld %lld "		// misc
+			      "%lld %*d %lld %*d",	// discards
 				&major, &minor, diskname,
 				&tmpdsk.nread,  &tmpdsk.nrsect,
 				&tmpdsk.nwrite, &tmpdsk.nwsect,
-				&tmpdsk.io_ms,  &tmpdsk.avque );
+				&tmpdsk.io_ms,  &tmpdsk.avque,
+				&tmpdsk.ndisc,  &tmpdsk.ndsect);
 
-			/*
-			** check if this line concerns the entire disk
-			** or just one of the partitions of a disk (to be
-			** skipped)
-			*/
-			if (nr == 9)	/* full stats-line ? */
+			if (nr >= 9)	/* full stats-line ? */
 			{
+				/*
+  				** when no transfers issued, skip disk (partition)
+				*/
+				if (tmpdsk.nread + tmpdsk.nwrite +
+				     (tmpdsk.ndisc == -1 ? 0 : tmpdsk.ndisc) > 0)
+					continue;
+
+				/*
+				** check if this line concerns the entire disk
+				** or just one of the partitions of a disk (to be
+				** skipped)
+				*/
 				switch ( isdisk(major, minor, diskname,
 							 &tmpdsk, MAXDKNAM) )
 				{
