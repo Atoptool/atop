@@ -1294,7 +1294,7 @@ photosyst(struct sstat *si)
   				** when no transfers issued, skip disk (partition)
 				*/
 				if (tmpdsk.nread + tmpdsk.nwrite +
-				     (tmpdsk.ndisc == -1 ? 0 : tmpdsk.ndisc) > 0)
+				     (tmpdsk.ndisc == -1 ? 0 : tmpdsk.ndisc) == 0)
 					continue;
 
 				/*
