@@ -2220,17 +2220,28 @@ sysprt_DSKNWRITE(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_DSKNWRITE = {"DSKNWRITE", sysprt_DSKNWRITE, NULL};
 /*******************************************************************/
 static char *
-sysprt_DSKKBPERWR(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_DSKNDISC(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char	buf[16]="KiB/w ";
-	struct perdsk 	*dp = &(as->perdsk[as->index]);
+        static char	buf[16]="discrd ";
 
-        val2valstr(dp->nwrite > 0 ?  dp->nwsect / dp->nwrite / 2 : 0,
-                   buf+6, 6, 0, as->nsecs);
+	*color = -1;
+
+	// value might be -1 in case not supported --> "?"
+       	val2valstr(as->perdsk[as->index].ndisc,
+                   	buf+7, 5, as->avgval, as->nsecs);
         return buf;
 }
 
-sys_printdef syspdef_DSKKBPERWR = {"DSKKBPERWR", sysprt_DSKKBPERWR, NULL};
+static int
+sysval_DSKNDISK(struct sstat *sstat)
+{
+	if (sstat->dsk.ndsk > 0 && sstat->dsk.dsk[0].ndisc != -1)
+		return 1;
+	else
+		return 0;
+}
+
+sys_printdef syspdef_DSKNDISC = {"DSKNDISC", sysprt_DSKNDISC, sysval_DSKNDISK};
 /*******************************************************************/
 static char *
 sysprt_DSKKBPERRD(struct sstat *sstat, extraparam *as, int badness, int *color) 
@@ -2244,6 +2255,34 @@ sysprt_DSKKBPERRD(struct sstat *sstat, extraparam *as, int badness, int *color)
 }
 
 sys_printdef syspdef_DSKKBPERRD = {"DSKKBPERRD", sysprt_DSKKBPERRD, NULL};
+/*******************************************************************/
+static char *
+sysprt_DSKKBPERWR(struct sstat *sstat, extraparam *as, int badness, int *color) 
+{
+        static char	buf[16]="KiB/w ";
+	struct perdsk 	*dp = &(as->perdsk[as->index]);
+
+        val2valstr(dp->nwrite > 0 ?  dp->nwsect / dp->nwrite / 2 : 0,
+                   buf+6, 6, 0, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_DSKKBPERWR = {"DSKKBPERWR", sysprt_DSKKBPERWR, NULL};
+/*******************************************************************/
+static char *
+sysprt_DSKKBPERDS(struct sstat *sstat, extraparam *as, int badness, int *color) 
+{
+        static char	buf[16]="KiB/d      ?";
+	struct perdsk 	*dp = &(as->perdsk[as->index]);
+
+	if (dp->ndisc != -1)
+        	val2valstr(dp->ndisc > 0 ? dp->ndsect/dp->ndisc/2 : 0,
+                   buf+6, 6, 0, as->nsecs);
+
+        return buf;
+}
+
+sys_printdef syspdef_DSKKBPERDS = {"DSKKBPERDS", sysprt_DSKKBPERDS, sysval_DSKNDISK};
 /*******************************************************************/
 static char *
 sysprt_DSKMBPERSECWR(struct sstat *sstat, extraparam *as, int badness, int *color) 

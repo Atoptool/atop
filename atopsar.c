@@ -1696,8 +1696,10 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 		char	*pn;
 		int	len;
 
-		if ( (iotot = dp->nread + dp->nwrite) == 0 &&
- 		     !firstcall && !allresources             )
+		iotot = dp->nread + dp->nwrite +
+		             dp->ndisc != -1 ? dp->ndisc : 0;
+
+		if (iotot == 0 && !firstcall && !allresources)
 			continue;	/* no activity on this disk */
 
 		/*
