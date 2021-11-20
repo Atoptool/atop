@@ -310,7 +310,7 @@ getphysprop(struct ifprop *p)
 	int sockfd;
 
 #ifdef ETHTOOL_GLINKSETTINGS
-	struct ethtool_link_settings 	ethlink;	// preferred!
+	struct ethtool_link_settings 	*ethlink;	// preferred!
 #endif
 	struct ethtool_cmd 		ethcmd;		// deprecated	
 
@@ -335,39 +335,48 @@ getphysprop(struct ifprop *p)
 			sizeof ifreq.ifr_ifrn.ifrn_name-1);
 
 #ifdef ETHTOOL_GLINKSETTINGS
-	ethlink.cmd              = ETHTOOL_GLINKSETTINGS;
-	ifreq.ifr_ifru.ifru_data = (void *)&ethlink;
+	ethlink = calloc(1, sizeof *ethlink);
+
+	ptrverify(ethlink, "Calloc failed for ethtool_link_settings\n");
+
+	ethlink->cmd = ETHTOOL_GLINKSETTINGS;
+
+	ifreq.ifr_ifru.ifru_data = (void *)ethlink;
 
 	if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0)
 	{
-		if (ethlink.link_mode_masks_nwords <= 0)
+		if (ethlink->link_mode_masks_nwords <= 0)
 		{
-			ethlink.link_mode_masks_nwords = - ethlink.link_mode_masks_nwords;
+			/*
+			** hand shaked ethlink required with added maps
+			**
+			** layout of link_mode_masks fields:
+			** __u32 map_supported[link_mode_masks_nwords];
+			** __u32 map_advertising[link_mode_masks_nwords];
+			** __u32 map_lp_advertising[link_mode_masks_nwords];
+			*/
+			ethlink->link_mode_masks_nwords = -ethlink->link_mode_masks_nwords;
 
-			struct ethtool_link_settings *ethlink_handshaked;
-			/* layout of link_mode_masks fields:
-			 * __u32 map_supported[link_mode_masks_nwords];
-			 * __u32 map_advertising[link_mode_masks_nwords];
-			 * __u32 map_lp_advertising[link_mode_masks_nwords];
-			 */
-			ethlink_handshaked = malloc(sizeof(ethlink) +
-			              3 * sizeof(__u32) * ethlink.link_mode_masks_nwords);
-			memcpy(ethlink_handshaked, &ethlink, sizeof(ethlink));
+			ethlink = realloc(ethlink, sizeof *ethlink +
+			              3 * sizeof(__u32) * ethlink->link_mode_masks_nwords);
 
-			ifreq.ifr_ifru.ifru_data = (void *)ethlink_handshaked;
+			ptrverify(ethlink, "Realloc failed for ethtool_link_settings\n");
+
+			ifreq.ifr_ifru.ifru_data = (void *)ethlink; // might have changed
 
 			if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) != 0 )
 			{
 				close(sockfd);
-				free(ethlink_handshaked);
+				free(ethlink);
 				return 0;
 			}
-			free(ethlink_handshaked);
 		}
 
 		ethernet = 1;
-		speed    = ethlink.speed;
-		duplex   = ethlink.duplex;
+		speed    = ethlink->speed;
+		duplex   = ethlink->duplex;
+
+		free(ethlink);
 	}
 	else
 #endif
