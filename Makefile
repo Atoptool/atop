@@ -103,8 +103,6 @@ sysvinstall:	genericinstall
 		cp atop.cronsysv  $(DESTDIR)$(CRNPATH)/atop
 		cp atop.daily     $(DESTDIR)$(SCRPATH)
 		chmod 0711        $(DESTDIR)$(SCRPATH)/atop.daily
-		cp psaccs_atop    $(DESTDIR)$(ROTPATH)/psaccs_atop
-		cp psaccu_atop    $(DESTDIR)$(ROTPATH)/psaccu_atop
 		touch             $(DESTDIR)$(LOGPATH)/dummy_before
 		touch             $(DESTDIR)$(LOGPATH)/dummy_after
 		#
