@@ -63,6 +63,9 @@ static int	acctvers(int);
 static void	acctrestarttrial();
 static void	switchshadow(void);
 
+/*
+** possible process accounting files used by (ps)acct package
+*/
 struct pacctadm {
 	char		*name;
 	struct stat	stat;
@@ -71,6 +74,8 @@ struct pacctadm {
 	{ "/var/account/pacct",		{0, }, },
 	{ "/var/log/account/pacct",	{0, }, }
 };
+
+struct pacctadm *pacctcur;	// pointer to entry in use
 
 /*
 ** Semaphore-handling
@@ -305,6 +310,9 @@ acctswon(void)
 					}
 
 					supportflags |= ACCTACTIVE;
+
+					pacctcur = &pacctadm[i];  // register current
+
 					return 0;
 				}
 			}
@@ -665,13 +673,38 @@ acctprocnt(void)
 	** process accounting file
 	*/
 	{
-		if (acctsize > statacc.st_size)	/* accounting reset? */
+		/*
+ 		** accounting reset?
+		*/
+		if (acctsize > statacc.st_size)
 		{
 			/*
 			** reposition to start of file
 			*/
 			(void) lseek(acctfd, 0, SEEK_SET);
 			acctsize = 0;
+		}
+
+		/*
+ 		** using account file managed by (ps)acct package?
+		*/
+		if (pacctcur)	
+		{
+			/*
+			** check inode of the current file and compare this
+			** with the inode of the opened file; if not equal,
+			** a file rotation has taken place and the size of
+			** the new file has to be added
+			*/
+			if ( stat(pacctcur->name, &(pacctcur->stat)) == 0)
+			{
+				if (statacc.st_ino != pacctcur->stat.st_ino)
+				{
+					return (statacc.st_size - acctsize +
+						pacctcur->stat.st_size) /
+						acctrecsz;
+				}
+			}
 		}
 
 		return (statacc.st_size - acctsize) / acctrecsz;
@@ -710,7 +743,49 @@ acctrepos(unsigned int noverflow)
 		** just reposition to skip superfluous records
 		*/
 		(void) lseek(acctfd, noverflow * acctrecsz, SEEK_CUR);
-		acctsize   += noverflow * acctrecsz;
+		acctsize += noverflow * acctrecsz;
+
+		/*
+		** when the new seek pointer is beyond the current file size
+		** and reading from a process accounting file written by
+		** the (ps)acct package, a logrotation might have taken place
+		*/
+		if (pacctcur)
+		{
+			struct stat	statacc;
+
+			/*
+			** determine the size of the current accounting file
+			*/
+			if (fstat(acctfd, &statacc) == -1)
+				return;
+
+			/*
+			** seek pointer beyond file size and rotated to
+			** new account file?
+			*/
+			if (acctsize > statacc.st_size &&
+			    statacc.st_ino != pacctcur->stat.st_ino)
+			{
+				/*
+ 				** - close old file
+ 				** - open new file
+ 				** - adapt acctsize to actual offset in new file
+ 				**   and seek to that offset
+				*/
+				(void) close(acctfd);
+
+				if ( (acctfd = open(pacctcur->name,
+						    O_RDONLY) ) == -1)
+					return;   // open failed
+
+				acctsize = acctsize - statacc.st_size;
+				(void) lseek(acctfd, acctsize, SEEK_SET);
+
+				if (fstat(acctfd, &statacc) == -1)
+					return;   // no new inode info
+			}
+		}
 	}
 }
 
@@ -736,7 +811,6 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 	/*
 	** determine the size of the (current) account file
-	** and the current offset within that file
 	*/
 	if (fstat(acctfd, &statacc) == -1)
 		return 0;
@@ -763,6 +837,37 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 				return 0;
 
 			acctsize  = 0;
+		}
+
+		/*
+ 		** in case of account file managed by (ps)acct package,
+		** be aware that a switch to a newer logfile might have
+		** to be done
+		*/
+		if (pacctcur && acctsize >= statacc.st_size)
+		{
+			/*
+			** check inode of the current file and compare this
+			** with the inode of the opened file; if not equal,
+			** a file rotation has taken place and the file
+			** has to be reopened
+			*/
+			if ( stat(pacctcur->name, &(pacctcur->stat)) == 0)
+			{
+				if (statacc.st_ino != pacctcur->stat.st_ino)
+				{
+					(void) close(acctfd);
+
+					if ( (acctfd = open(pacctcur->name,
+							    O_RDONLY) ) == -1)
+						return 0; // open failed
+
+					if (fstat(acctfd, &statacc) == -1)
+						return 0; // no new inode info
+
+					acctsize  = 0;    // reset size new file
+				}
+			}
 		}
 
 		/*
