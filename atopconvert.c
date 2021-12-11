@@ -11,7 +11,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Initial:     July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2018-2020 Gerlof Langeveld
+** Copyright (C) 2018-2021 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -73,6 +73,9 @@
 
 #include "prev/photosyst_26.h"
 #include "prev/photoproc_26.h"
+
+#include "prev/photosyst_27.h"
+#include "prev/photoproc_27.h"
 
 
 ///////////////////////////////////////////////////////////////
@@ -168,6 +171,23 @@ sint_to_22(void *old, void *new, count_t oldsize, count_t newsize)
 	}
 }
 
+void
+scpu_to_27(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// cfuture[2] --> cfuture[4] in struct percpu
+	//
+	struct cpustat_26	*c26 = old;
+	struct cpustat_27	*c27 = new;
+	int			i;
+
+	memcpy(c27, c26, (char *)&c26->all - (char *)c26);	// base values
+	memcpy(&c27->all, &c26->all, sizeof(struct percpu_26));
+
+	for (i=0; i < MAXCPU_26; i++)
+	    memcpy( &(c27->cpu[i]), &(c26->cpu[i]), sizeof(struct percpu_26));
+}
+
+
 // Specific functions that convert an old tstat sub-structure to
 // a new sub-structure (process level)
 //
@@ -245,6 +265,7 @@ tmem_to_26(void *old, void *new, count_t oldsize, count_t newsize)
 	m26->vlock = 0;
 }
 
+
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
 //
@@ -270,6 +291,7 @@ struct sstat_23		sstat_23;
 struct sstat_24		sstat_24;
 struct sstat_25		sstat_25;
 struct sstat_26		sstat_26;
+struct sstat_27		sstat_27;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -279,6 +301,7 @@ struct tstat_23		tstat_23;
 struct tstat_24		tstat_24;
 struct tstat_25		tstat_25;
 struct tstat_26		tstat_26;
+struct tstat_27		tstat_27;
 struct tstat		tstat;
 
 struct convertall {
@@ -302,6 +325,8 @@ struct convertall {
 	struct sconvstruct 	spsi;
 	struct sconvstruct 	sgpu;
 	struct sconvstruct 	sifb;
+        struct sconvstruct	smnum;
+        struct sconvstruct	scnum;
 
 	// conversion definition for subparts within tstat
 	struct tconvstruct 	tgen;
@@ -324,6 +349,8 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{sizeof(struct wwwstat_20),  	&sstat_20.www,	NULL},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
@@ -356,6 +383,8 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_21),
 			STROFFSET(&tstat_21.gen, &tstat_21),	tgen_to_21},
@@ -382,6 +411,8 @@ struct convertall {
 		{sizeof(struct nfsstat_22),  	&sstat_22.nfs,	NULL},
 		{sizeof(struct contstat_22), 	&sstat_22.cfs,	NULL},
 		{sizeof(struct wwwstat_22),  	&sstat_22.www,	justcopy},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
@@ -414,6 +445,8 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_23),
 			STROFFSET(&tstat_23.gen, &tstat_23),	justcopy},
@@ -443,6 +476,8 @@ struct convertall {
 		{0,  				&sstat_24.psi,	NULL},
 		{0,  				&sstat_24.gpu,	NULL},
 		{0,  				&sstat_24.ifb,	NULL},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_24),
 			STROFFSET(&tstat_24.gen, &tstat_24),	justcopy},
@@ -473,6 +508,8 @@ struct convertall {
 		{sizeof(struct pressure_25),  	&sstat_25.psi,	justcopy},
 		{sizeof(struct gpustat_25),  	&sstat_25.gpu,	justcopy},
 		{sizeof(struct ifbstat_25),  	&sstat_25.ifb,	justcopy},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_25),
 			STROFFSET(&tstat_25.gen, &tstat_25),	justcopy},
@@ -503,6 +540,8 @@ struct convertall {
 		{sizeof(struct pressure_26),  	&sstat_26.psi,	justcopy},
 		{sizeof(struct gpustat_26),  	&sstat_26.gpu,	justcopy},
 		{sizeof(struct ifbstat_26),  	&sstat_26.ifb,	justcopy},
+		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_26),
 			STROFFSET(&tstat_26.gen, &tstat_26),	justcopy},
@@ -516,6 +555,38 @@ struct convertall {
 			STROFFSET(&tstat_26.net, &tstat_26),	justcopy},
 		{sizeof(struct gpu_26),
 			STROFFSET(&tstat_26.gpu, &tstat_26),	justcopy},
+	},
+
+	{SETVERSION(2,7), // 2.6 --> 2.7
+		 sizeof(struct sstat_27),	&sstat_27,
+		 sizeof(struct tstat_27), 	NULL,
+
+		{sizeof(struct cpustat_27),  	&sstat_27.cpu,	scpu_to_27},
+		{sizeof(struct memstat_27),  	&sstat_27.mem,	justcopy},
+		{sizeof(struct netstat_27),  	&sstat_27.net,	justcopy},
+		{sizeof(struct intfstat_27), 	&sstat_27.intf,	justcopy},
+		{sizeof(struct dskstat_27),  	&sstat_27.dsk,	justcopy},
+		{sizeof(struct nfsstat_27),  	&sstat_27.nfs,	justcopy},
+		{sizeof(struct contstat_27), 	&sstat_27.cfs,	justcopy},
+		{sizeof(struct wwwstat_27),  	&sstat_27.www,	justcopy},
+		{sizeof(struct pressure_27),  	&sstat_27.psi,	justcopy},
+		{sizeof(struct gpustat_27),  	&sstat_27.gpu,	justcopy},
+		{sizeof(struct ifbstat_27),  	&sstat_27.ifb,	justcopy},
+		{0,  				&sstat_27.memnuma,	NULL},
+		{0,  				&sstat_27.cpunuma,	NULL},
+
+		{sizeof(struct gen_27),
+			STROFFSET(&tstat_27.gen, &tstat_27),	justcopy},
+		{sizeof(struct cpu_27),
+			STROFFSET(&tstat_27.cpu, &tstat_27),	justcopy},
+		{sizeof(struct dsk_27),
+			STROFFSET(&tstat_27.dsk, &tstat_27),	justcopy},
+		{sizeof(struct mem_27),
+			STROFFSET(&tstat_27.mem, &tstat_27),	justcopy},
+		{sizeof(struct net_27),
+			STROFFSET(&tstat_27.net, &tstat_27),	justcopy},
+		{sizeof(struct gpu_27),
+			STROFFSET(&tstat_27.gpu, &tstat_27),	justcopy},
 	},
 };
 
@@ -768,17 +839,19 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 			//
 			memset(convs[i+1].sstat, 0, convs[i+1].sstatlen);
 
-			do_sconvert(&(convs[i].scpu),  &(convs[i+1].scpu));
-			do_sconvert(&(convs[i].smem),  &(convs[i+1].smem));
-			do_sconvert(&(convs[i].snet),  &(convs[i+1].snet));
-			do_sconvert(&(convs[i].sintf), &(convs[i+1].sintf));
-			do_sconvert(&(convs[i].sdsk),  &(convs[i+1].sdsk));
-			do_sconvert(&(convs[i].snfs),  &(convs[i+1].snfs));
-			do_sconvert(&(convs[i].scfs),  &(convs[i+1].scfs));
-			do_sconvert(&(convs[i].spsi),  &(convs[i+1].spsi));
-			do_sconvert(&(convs[i].sgpu),  &(convs[i+1].sgpu));
-			do_sconvert(&(convs[i].sifb),  &(convs[i+1].sifb));
-			do_sconvert(&(convs[i].swww),  &(convs[i+1].swww));
+			do_sconvert(&(convs[i].scpu),   &(convs[i+1].scpu));
+			do_sconvert(&(convs[i].smem),   &(convs[i+1].smem));
+			do_sconvert(&(convs[i].snet),   &(convs[i+1].snet));
+			do_sconvert(&(convs[i].sintf),  &(convs[i+1].sintf));
+			do_sconvert(&(convs[i].sdsk),   &(convs[i+1].sdsk));
+			do_sconvert(&(convs[i].snfs),   &(convs[i+1].snfs));
+			do_sconvert(&(convs[i].scfs),   &(convs[i+1].scfs));
+			do_sconvert(&(convs[i].spsi),   &(convs[i+1].spsi));
+			do_sconvert(&(convs[i].sgpu),   &(convs[i+1].sgpu));
+			do_sconvert(&(convs[i].sifb),   &(convs[i+1].sifb));
+			do_sconvert(&(convs[i].smnum),  &(convs[i+1].smnum));
+			do_sconvert(&(convs[i].scnum),  &(convs[i+1].scnum));
+			do_sconvert(&(convs[i].swww),   &(convs[i+1].swww));
 
 			// convert process-level statistics to newer version
 			//
