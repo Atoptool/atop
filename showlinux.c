@@ -2057,7 +2057,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	/*
 	** memory info related for per NUMA
 	*/
-	if (sstat->memnuma.nrnuma > 0)
+	if (sstat->memnuma.nrnuma > 1)
 	{
 		for (extra.index=lin=0;
 		     extra.index < sstat->memnuma.nrnuma && lin < maxnumalines;
