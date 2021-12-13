@@ -108,9 +108,10 @@ justcopy(void *old, void *new, count_t oldsize, count_t newsize)
 		memcpy(new, old, newsize > oldsize ? oldsize : newsize);
 }
 
+// /////////////////////////////////////////////////////////////////
 // Specific functions that convert an old sstat sub-structure to
 // a new sub-structure (system level)
-//
+// /////////////////////////////////////////////////////////////////
 void
 scpu_to_21(void *old, void *new, count_t oldsize, count_t newsize)
 {
@@ -187,10 +188,40 @@ scpu_to_27(void *old, void *new, count_t oldsize, count_t newsize)
 	    memcpy( &(c27->cpu[i]), &(c26->cpu[i]), sizeof(struct percpu_26));
 }
 
+void
+smem_to_27(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct memstat_26	*m26 = old;
+	struct memstat_27	*m27 = new;
 
+	memcpy(m27, m26, sizeof *m26);
+
+	m27->oomkills = -1;	// explicitly define 'unused'
+}
+
+void
+sdsk_to_27(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct dskstat_26	*d26 = old;
+	struct dskstat_27	*d27 = new;
+	int			i;
+
+	memcpy(d27, d26, oldsize);
+
+	for (i=0; i < d27->ndsk; i++)
+	    d27->dsk[i].ndisc = -1;	// explicitly define 'unused'
+
+	for (i=0; i < d27->nmdd; i++)
+	    d27->mdd[i].ndisc = -1;	// explicitly define 'unused'
+
+	for (i=0; i < d27->nlvm; i++)
+	    d27->lvm[i].ndisc = -1;	// explicitly define 'unused'
+}
+
+// /////////////////////////////////////////////////////////////////
 // Specific functions that convert an old tstat sub-structure to
 // a new sub-structure (process level)
-//
+// /////////////////////////////////////////////////////////////////
 void
 tgen_to_21(void *old, void *new, count_t oldsize, count_t newsize)
 {
@@ -562,10 +593,10 @@ struct convertall {
 		 sizeof(struct tstat_27), 	NULL,
 
 		{sizeof(struct cpustat_27),  	&sstat_27.cpu,	scpu_to_27},
-		{sizeof(struct memstat_27),  	&sstat_27.mem,	justcopy},
+		{sizeof(struct memstat_27),  	&sstat_27.mem,	smem_to_27},
 		{sizeof(struct netstat_27),  	&sstat_27.net,	justcopy},
 		{sizeof(struct intfstat_27), 	&sstat_27.intf,	justcopy},
-		{sizeof(struct dskstat_27),  	&sstat_27.dsk,	justcopy},
+		{sizeof(struct dskstat_27),  	&sstat_27.dsk,	sdsk_to_27},
 		{sizeof(struct nfsstat_27),  	&sstat_27.nfs,	justcopy},
 		{sizeof(struct contstat_27), 	&sstat_27.cfs,	justcopy},
 		{sizeof(struct wwwstat_27),  	&sstat_27.www,	justcopy},

@@ -621,6 +621,7 @@ photosyst(struct sstat *si)
 				si->mem.oomkills = cnts[0];
 				continue;
 			}
+
 			if ( strcmp("compact_stall", nam) == EQ) {
 				si->mem.compactstall = cnts[0];
 				continue;
