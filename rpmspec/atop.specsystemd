@@ -34,7 +34,7 @@ make
 rm    -rf 			  $RPM_BUILD_ROOT
 
 # generic build
-install -Dp -m 04711 atop 	  $RPM_BUILD_ROOT/usr/bin/atop
+install -Dp -m 0711 atop 	  $RPM_BUILD_ROOT/usr/bin/atop
 ln -s atop                        $RPM_BUILD_ROOT/usr/bin/atopsar
 install -Dp -m 0711 atopconvert	  $RPM_BUILD_ROOT/usr/bin/atopconvert
 install -Dp -m 0711 atopcat	  $RPM_BUILD_ROOT/usr/bin/atopcat
