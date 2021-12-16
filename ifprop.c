@@ -424,15 +424,15 @@ getphysprop(struct ifprop *p)
 
 		if ( ioctl(sockfd, SIOCGIWRATE, &iwreq) == 0) 
 		{
-			p->type       = 'w';	// type wireless
-			p->fullduplex = 0;
-
-			p->speed = (iwreq.u.bitrate.value + 500000) / 1000000;
+			p->type       	= 'w';	// type wireless
+			p->fullduplex	= 0;
+			p->speed	= (iwreq.u.bitrate.value + 500000) / 1000000;
 		}
 		else
 		{
-			close(sockfd);
-			return 0;
+			p->type       	= '?';	// type unknown
+			p->fullduplex	= 0;
+			p->speed 	= 0;
 		}
 	}
 
