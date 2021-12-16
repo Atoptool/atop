@@ -88,6 +88,7 @@ extern char		calcpss;
 extern char		getwchan;
 extern char		rawname[];
 extern char		rawreadflag;
+extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];
 extern struct visualize vis;

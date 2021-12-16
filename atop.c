@@ -321,6 +321,8 @@ char      	usecolors  = 1;  /* boolean: colors for high occupation  */
 char		threadview = 0;	 /* boolean: show individual threads     */
 char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
 char      	getwchan   = 0;  /* boolean: obtain wchan string         */
+char      	rmspaces   = 0;  /* boolean: remove spaces from command  */
+		                 /* name in case of parseable output     */
 
 unsigned short	hertz;
 unsigned int	pagesize;
@@ -598,6 +600,10 @@ main(int argc, char *argv[])
 
                            case MGETWCHAN:	/* obtain wchan string?       */
 				getwchan = 1;
+				break;
+
+                           case MRMSPACES:	/* remove spaces from command */
+				rmspaces = 1;
 				break;
 
 			   default:		/* gather other flags */
@@ -1077,6 +1083,8 @@ prusage(char *myname)
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
+	printf("\t  -%c  no spaces in parseable output for command (line)\n",
+			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
 

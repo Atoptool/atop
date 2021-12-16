@@ -6,7 +6,7 @@
 Interactive Usage:
 .P
 .B atop
-[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]...]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I [YYYYMMDD]hhmm
 ] [\-e
 .I [YYYYMMDD]hhmm
-] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]...]
+] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
 .SH DESCRIPTION
 The program
 .I atop
@@ -2042,6 +2042,14 @@ the kernel module 'netatop' has been installed).
 .br
 With the label "ALL", all system and process level statistics are shown.
 .PP
+The command and command line in the parseable output might contain spaces
+and are therefore by default surrounded by parenthesis. However, since
+a space is often used as separator between the fields by parsing tools,
+with the additional flag
+.B -Z
+it is possible to exchange the spaces in the command (line) by
+underscores and omit the parenthesis.
+.PP
 For every interval all requested lines are shown whereafter
 .B atop
 shows a line just containing the label "SEP" as a separator before the
@@ -2313,11 +2321,11 @@ consumption for node CPUs in guest mode (clock-ticks) overlapping user mode.
 For every process one line is shown.
 .br
 Subsequent fields:
-PID (unique ID of task), name (between brackets), state,
-real uid, real gid, TGID (group number of related tasks/threads),
+PID (unique ID of task), name (between parenthesis or underscores for spaces),
+state, real uid, real gid, TGID (group number of related tasks/threads),
 total number of threads,
 exit code (in case of fatal signal: signal number + 256), start time (epoch),
-full command line (between brackets), PPID,
+full command line (between parenthesis or underscores for spaces), PPID,
 number of threads in state 'running' (R),
 number of threads in state 'interruptible sleeping' (S),
 number of threads in state 'uninterruptible sleeping' (D),
@@ -2332,7 +2340,7 @@ during this interval ('N').
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), state,
+PID, name (between parenthesis or underscores for spaces), state,
 total number of clock-ticks per second for this machine,
 CPU-consumption in user mode (clockticks),
 CPU-consumption in system mode (clockticks),
@@ -2340,13 +2348,13 @@ nice value, priority, realtime priority,
 scheduling policy, current CPU, sleep average,
 TGID (group number of related tasks/threads), is_process (y/n),
 runqueue delay in nanoseconds for this thread or for all threads (in case of 
-process), and wait channel of this thread (between brackets).
+process), and wait channel of this thread (between parenthesis or underscores for spaces).
 .TP 9
 .B PRE
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), process state,
+PID, name (between parenthesis or underscores for spaces), process state,
 GPU state (A for active, E for exited, N for no GPU user),
 number of GPUs used by this process,
 bitlist reflecting used GPUs,
@@ -2360,7 +2368,7 @@ number of samples taken during interval.
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), state,
+PID, name (between parenthesis or underscores for spaces), state,
 page size for this machine (in bytes),
 virtual memory size (Kbytes),
 resident memory size (Kbytes),
@@ -2381,7 +2389,7 @@ virtually locked memory space (Kbytes).
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), state,
+PID, name (between parenthesis or underscores for spaces), state,
 obsoleted kernel patch installed ('n'),
 standard io statistics used ('y' or 'n'),
 number of reads on disk,
@@ -2401,7 +2409,7 @@ obsoleted anyhow.
 For every process one line is shown.
 .br
 Subsequent fields:
-PID, name (between brackets), state,
+PID, name (between parenthesis or underscores for spaces), state,
 kernel module 'netatop' loaded ('y' or 'n'),
 number of TCP-packets transmitted,
 cumulative size of TCP-packets transmitted,

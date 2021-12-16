@@ -9,7 +9,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Date:        February 2007
 ** --------------------------------------------------------------------------
-** Copyright (C) 2007-2010 Gerlof Langeveld
+** Copyright (C) 2007-2021 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -25,50 +25,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Id: parseable.c,v 1.13 2010/10/23 14:02:19 gerlof Exp $
-** $Log: parseable.c,v $
-** Revision 1.13  2010/10/23 14:02:19  gerlof
-** Show counters for total number of running and sleep (S and D) threads.
-**
-** Revision 1.12  2010/05/18 19:20:55  gerlof
-** Introduce CPU frequency and scaling (JC van Winkel).
-**
-** Revision 1.11  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.10  2010/03/04 10:52:21  gerlof
-** Support I/O-statistics on logical volumes and MD devices.
-**
-** Revision 1.9  2010/01/08 14:46:42  gerlof
-** Added label RESET in case of a sample with values since boot.
-**
-** Revision 1.8  2009/12/19 22:32:14  gerlof
-** Add new counters to parseable output.
-**
-** Revision 1.7  2008/03/06 09:08:29  gerlof
-** Bug-solution regarding parseable output of PPID.
-**
-** Revision 1.6  2008/03/06 08:38:03  gerlof
-** Register/show ppid of a process.
-**
-** Revision 1.5  2008/01/18 08:03:40  gerlof
-** Show information about the number of threads in state 'running',
-** 'interruptible sleeping' and 'non-interruptible sleeping'.
-**
-** Revision 1.4  2007/12/11 13:33:12  gerlof
-** Cosmetic change.
-**
-** Revision 1.3  2007/08/16 12:00:11  gerlof
-** Add support for atopsar reporting.
-** Concerns networking-counters that have been changed.
-**
-** Revision 1.2  2007/03/20 13:01:12  gerlof
-** Introduction of variable supportflags.
-**
-** Revision 1.1  2007/02/19 11:55:43  gerlof
-** Initial revision
-**
 */
 #include <sys/types.h>
 #include <stdio.h>
@@ -108,6 +64,8 @@ void 	print_PRM();
 void 	print_PRD();
 void 	print_PRN();
 void 	print_PRE();
+
+static char *spaceformat(char *, char *);
 
 /*
 ** table with possible labels and the corresponding
@@ -735,7 +693,8 @@ print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i, exitcode;
+	register int	i, exitcode;
+	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
@@ -744,11 +703,11 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 		else
 			exitcode = (ps->gen.excode >>   8) & 0xff;
 
-		printf("%s %d (%s) %c %d %d %d %d %d %ld (%s) %d %d %d %d "
+		printf("%s %d %s %c %d %d %d %d %d %ld %s %d %d %d %d "
  		       "%d %d %d %d %d %d %ld %c %d %d %s %c\n",
 			hp,
 			ps->gen.pid,
-			ps->gen.name,
+			spaceformat(ps->gen.name, namout),
 			ps->gen.state,
 			ps->gen.ruid,
 			ps->gen.rgid,
@@ -756,7 +715,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.nthr,
 			exitcode,
 			ps->gen.btime,
-			ps->gen.cmdline,
+			spaceformat(ps->gen.cmdline, cmdout),
 			ps->gen.ppid,
 			ps->gen.nthrrun,
 			ps->gen.nthrslpi,
@@ -779,128 +738,185 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int	i;
+	char		namout[PNAMLEN+1+2], wchanout[20];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %u %lld %lld %d %d %d %d %d %d %d %c "
-		       "%llu (%s)\n",
-				hp,
-				ps->gen.pid,
-				ps->gen.name,
-				ps->gen.state,
-				hertz,
-				ps->cpu.utime,
-				ps->cpu.stime,
-				ps->cpu.nice,
-				ps->cpu.prio,
-				ps->cpu.rtprio,
-				ps->cpu.policy,
-				ps->cpu.curcpu,
-				ps->cpu.sleepavg,
-				ps->gen.tgid,
-				ps->gen.isproc ? 'y':'n',
-				ps->cpu.rundelay,
-				ps->cpu.wchan);
+		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
+		       "%llu %s\n",
+			hp,
+			ps->gen.pid,
+			spaceformat(ps->gen.name, namout),
+			ps->gen.state,
+			hertz,
+			ps->cpu.utime,
+			ps->cpu.stime,
+			ps->cpu.nice,
+			ps->cpu.prio,
+			ps->cpu.rtprio,
+			ps->cpu.policy,
+			ps->cpu.curcpu,
+			ps->cpu.sleepavg,
+			ps->gen.tgid,
+			ps->gen.isproc ? 'y':'n',
+			ps->cpu.rundelay,
+			spaceformat(ps->cpu.wchan, wchanout));
 	}
 }
 
 void
 print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int 	i;
+	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %u %lld %lld %lld %lld %lld %lld "
+		printf("%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
 		       "%lld %lld %lld %lld %lld %d %c %lld %lld\n",
-				hp,
-				ps->gen.pid,
-				ps->gen.name,
-				ps->gen.state,
-				pagesize,
-				ps->mem.vmem,
-				ps->mem.rmem,
-				ps->mem.vexec,
-				ps->mem.vgrow,
-				ps->mem.rgrow,
-				ps->mem.minflt,
-				ps->mem.majflt,
-				ps->mem.vlibs,
-				ps->mem.vdata,
-				ps->mem.vstack,
-				ps->mem.vswap,
-				ps->gen.tgid,
-				ps->gen.isproc ? 'y':'n',
-				ps->mem.pmem == (unsigned long long)-1LL ?
-								0:ps->mem.pmem,
-				ps->mem.vlock);
+			hp,
+			ps->gen.pid,
+			spaceformat(ps->gen.name, namout),
+			ps->gen.state,
+			pagesize,
+			ps->mem.vmem,
+			ps->mem.rmem,
+			ps->mem.vexec,
+			ps->mem.vgrow,
+			ps->mem.rgrow,
+			ps->mem.minflt,
+			ps->mem.majflt,
+			ps->mem.vlibs,
+			ps->mem.vdata,
+			ps->mem.vstack,
+			ps->mem.vswap,
+			ps->gen.tgid,
+			ps->gen.isproc ? 'y':'n',
+			ps->mem.pmem == (unsigned long long)-1LL ?
+							0:ps->mem.pmem,
+			ps->mem.vlock);
 	}
 }
 
 void
 print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int	i;
+	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
-				hp,
-				ps->gen.pid,
-				ps->gen.name,
-				ps->gen.state,
-				'n',
-				supportflags & IOSTAT ? 'y' : 'n',
-				ps->dsk.rio, ps->dsk.rsz,
-				ps->dsk.wio, ps->dsk.wsz, ps->dsk.cwsz,
-				ps->gen.tgid,
-				ps->gen.isproc ? 'y':'n');
+		printf("%s %d %s %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
+			hp,
+			ps->gen.pid,
+			spaceformat(ps->gen.name, namout),
+			ps->gen.state,
+			'n',
+			supportflags & IOSTAT ? 'y' : 'n',
+			ps->dsk.rio, ps->dsk.rsz,
+			ps->dsk.wio, ps->dsk.wsz, ps->dsk.cwsz,
+			ps->gen.tgid,
+			ps->gen.isproc ? 'y':'n');
 	}
 }
 
 void
 print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int	i;
+	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %c %lld %lld %lld %lld %lld %lld "
+		printf("%s %d %s %c %c %lld %lld %lld %lld %lld %lld "
 		       "%lld %lld %d %d %d %c\n",
-				hp,
-				ps->gen.pid,
-				ps->gen.name,
-				ps->gen.state,
-				supportflags & NETATOP ? 'y' : 'n',
-				ps->net.tcpsnd, ps->net.tcpssz,
-				ps->net.tcprcv, ps->net.tcprsz,
-				ps->net.udpsnd, ps->net.udpssz,
-				ps->net.udprcv, ps->net.udprsz,
-				0,              0,
-				ps->gen.tgid,   ps->gen.isproc ? 'y':'n');
+			hp,
+			ps->gen.pid,
+			spaceformat(ps->gen.name, namout),
+			ps->gen.state,
+			supportflags & NETATOP ? 'y' : 'n',
+			ps->net.tcpsnd, ps->net.tcpssz,
+			ps->net.tcprcv, ps->net.tcprsz,
+			ps->net.udpsnd, ps->net.udpssz,
+			ps->net.udprcv, ps->net.udprsz,
+			0,              0,
+			ps->gen.tgid,   ps->gen.isproc ? 'y':'n');
 	}
 }
 
 void
 print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int	i;
+	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d (%s) %c %c %d %x %d %d %lld %lld %lld\n",
-				hp,
-				ps->gen.pid,
-				ps->gen.name,
-				ps->gen.state,
-				ps->gpu.state == '\0' ? 'N':ps->gpu.state,
-				ps->gpu.nrgpus,
-				ps->gpu.gpulist,
-				ps->gpu.gpubusy,
-				ps->gpu.membusy,
-				ps->gpu.memnow,
-				ps->gpu.memcum,
-				ps->gpu.sample);
+		printf("%s %d %s %c %c %d %x %d %d %lld %lld %lld\n",
+			hp,
+			ps->gen.pid,
+			spaceformat(ps->gen.name, namout),
+			ps->gen.state,
+			ps->gpu.state == '\0' ? 'N':ps->gpu.state,
+			ps->gpu.nrgpus,
+			ps->gpu.gpulist,
+			ps->gpu.gpubusy,
+			ps->gpu.membusy,
+			ps->gpu.memnow,
+			ps->gpu.memcum,
+			ps->gpu.sample);
 	}
+}
+
+
+/*
+** Strings, like command name, might contain spaces
+** and will be represented for that reason surrounded
+** by parenthesis. However, this is difficult to parse
+** by other tools, so the option -Z might have been
+** specified to exchange all spaces by underscores while
+** omitting the parenthesis in that case.
+**
+** This function formats the input string (istr) in the
+** required format to the output string (ostr).
+** Take care that the buffer pointed to by ostr is at least
+** two bytes larger than the input string (for the parenthesis).
+** The pointer ostr is also returned.
+*/
+static char *
+spaceformat(char *istr, char *ostr)
+{
+	// formatting with spaces and parenthesis required?
+	if (!rmspaces)
+	{
+		*ostr = '(';
+		strcpy(ostr+1, istr);
+		strcat(ostr, ")");
+	}
+	// formatting with underscores without parenthesis required
+	else
+	{
+		register char *pi = istr, *po = ostr;
+
+		while (*pi)
+		{
+			if (*pi == ' ')
+			{
+				*po++ = '_';
+				pi++;
+			}
+			else
+			{
+				*po++ = *pi++;
+			}
+		}
+
+		if (po == ostr)		// empty string: still return underscore
+			*po++ = '_';
+
+		*po = '\0';		// terminate output string
+	}
+
+	return ostr;
 }
