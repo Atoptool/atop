@@ -447,11 +447,11 @@ generic_samp(time_t curtime, int nsecs,
 
 					if (suid == 0)
 					{
-						viewmsg   = "Unrestricted view";
+						viewmsg   = "Unrestricted view (privileged)";
 					}
 					else
 					{
-						viewmsg   = "Restricted view (non-root)";
+						viewmsg   = "Restricted view (unprivileged)";
 					}
 				}
 

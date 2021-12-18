@@ -47,6 +47,14 @@ Disk load is shown per process if "storage accounting" is active in the kernel.
 Network load is shown per process if the kernel module `netatop'
 has been installed.
 .PP
+The initial screen shows if
+.I atop
+runs with restricted view (unprivileged) or unrestricted view (privileged).
+In case of restricted view
+.I atop
+does not have the privileges (root identity or necessary capabilities) to
+retrieve all counter values on system level and on process level.
+.PP
 Every
 .I interval
 (default: 10 seconds) information is shown about the resource occupation
