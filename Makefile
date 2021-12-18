@@ -54,11 +54,9 @@ distr:
 		rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
 
-
-install:
-		@echo Choose either \'make systemdinstall\' or \'make sysvinstall\'
-
-systemdinstall:	genericinstall
+# default install is based on systemd
+#
+install:	genericinstall
 		if [ ! -d $(DESTDIR)$(SYSDPATH) ]; 			\
 		then	mkdir -p $(DESTDIR)$(SYSDPATH); fi
 		if [ ! -d $(DESTDIR)$(PMPATHD) ]; 			\
@@ -88,6 +86,9 @@ systemdinstall:	genericinstall
 			/bin/systemctl enable  --now atop-rotate.timer;	\
 		fi
 
+
+# explicitly use sysvinstall for System V init based systems
+#
 sysvinstall:	genericinstall
 		if [ ! -d $(DESTDIR)$(INIPATH) ]; 			\
 		then	mkdir -p  $(DESTDIR)$(INIPATH);	fi
@@ -133,6 +134,7 @@ sysvinstall:	genericinstall
 			sleep 2;					\
 			/sbin/service atop     start;			\
 		fi
+
 
 genericinstall:	atop atopacctd atopconvert atopcat
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\

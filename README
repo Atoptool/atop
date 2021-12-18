@@ -19,11 +19,11 @@ INSTALLING AND USING ATOP
 For interactive use, it is sufficient to install ATOP with the command
 (as root):
 
-	make systemdinstall
+	make install		(systemd based)
 
 		or
 
-	make sysvinstall
+	make sysvinstall	(System V init based)
 
 For automatic logging in compressed binary format, see the
 description in the manual-page.
