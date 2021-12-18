@@ -280,7 +280,7 @@ initifprop(void)
 				continue;
 			}
 
-			// virtual interface, invalidate anyhow
+			// virtual or unknown interface, invalidate anyhow
 			ifp->type = 'i';
 			nrinterfaces--;
 		}
