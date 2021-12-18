@@ -1,1 +1,1 @@
-#define	ATOPVERS	"2.6.0"
+#define	ATOPVERS	"2.7.0"
