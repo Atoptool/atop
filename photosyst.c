@@ -78,6 +78,10 @@
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
 
+/* recognize LLC monitor data */
+#define LLCDIR	"/sys/fs/resctrl/mon_data"
+#define L3SIZE  "/sys/devices/system/cpu/cpu0/cache/index3/size"
+
 /* Refer to mmzone.h, the default is 11 */
 #define	MAX_ORDER	11
 
@@ -1765,6 +1769,80 @@ photosyst(struct sstat *si)
 
 			fclose(fp);
 		}
+	}
+
+	/*
+	** gather per LLC related statistics from the file
+	** /sys/fs/resctrl/mon_data/mon_L3_XX
+	*/
+	dirp = opendir(LLCDIR);
+
+	if (dirp)
+	{
+		static int l3_cache_size;
+
+		if (!l3_cache_size)
+		{
+
+			if ( (fp = fopen(L3SIZE, "r")) != NULL)
+			{
+				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					sscanf(linebuf, "%uK\n", &l3_cache_size);
+					l3_cache_size *= 1024;
+				}
+				fclose(fp);
+			}
+		}
+		/*
+		** walk the LLC directory, gather eah LLC
+		*/
+		while ( (dentry = readdir(dirp)) )
+		{
+			struct perllc *llc = &si->llc.perllc[si->llc.nrllcs];
+			unsigned long llc_occupancy;
+
+			if (strncmp(dentry->d_name, "mon_L3_", 7))
+				continue;
+
+			/* get cache id from directory name like mon_L3_00 */
+			sscanf(dentry->d_name + 7, "%hhd\n", &llc->id);
+
+			snprintf(fn, sizeof fn, LLCDIR "/%s/llc_occupancy", dentry->d_name);
+			if ( (fp = fopen(fn, "r")) != NULL)
+			{
+				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					sscanf(linebuf, "%lu\n", &llc_occupancy);
+					llc->occupancy = (float)llc_occupancy / l3_cache_size;
+				}
+				fclose(fp);
+			}
+
+			snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_local_bytes", dentry->d_name);
+			if ( (fp = fopen(fn, "r")) != NULL)
+			{
+				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					sscanf(linebuf, "%llu\n", &llc->mbm_local);
+				}
+				fclose(fp);
+			}
+
+			snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_total_bytes", dentry->d_name);
+			if ( (fp = fopen(fn, "r")) != NULL)
+			{
+				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+				{
+					sscanf(linebuf, "%llu\n", &llc->mbm_total);
+				}
+				fclose(fp);
+			}
+
+			if (++si->llc.nrllcs >= MAXLLC) /* too many LLC ? */
+				break;
+		}
+		closedir(dirp);
 	}
 
 	/*

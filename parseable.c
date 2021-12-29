@@ -57,6 +57,7 @@ void 	print_NET();
 void 	print_IFB();
 void 	print_NUM();
 void 	print_NUC();
+void 	print_LLC();
 
 void 	print_PRG();
 void 	print_PRC();
@@ -96,6 +97,7 @@ static struct labeldef	labeldef[] = {
 	{ "IFB",	0,	print_IFB },
 	{ "NUM",	0,	print_NUM },
 	{ "NUC",	0,	print_NUC },
+	{ "LLC",	0,	print_LLC },
 
 	{ "PRG",	0,	print_PRG },
 	{ "PRC",	0,	print_PRC },
@@ -686,6 +688,21 @@ print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	}
 }
 
+void
+print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int 	i;
+
+	for (i=0; i < ss->llc.nrllcs; i++)
+	{
+		printf(	"%s LLC%03d %3.1f%% %lld %lld\n",
+			hp,
+			ss->llc.perllc[i].id,
+			ss->llc.perllc[i].occupancy * 100,
+			ss->llc.perllc[i].mbm_total,
+			ss->llc.perllc[i].mbm_local);
+	}
+}
 
 /*
 ** print functions for process-level statistics

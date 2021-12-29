@@ -38,6 +38,7 @@
 #define	MAXGPU		32
 #define	MAXGPUBUS	12
 #define	MAXGPUTYPE	12
+#define	MAXLLC		256
 
 #define	MAXDKNAM	32
 #define	MAXIBNAME	12
@@ -400,6 +401,20 @@ struct ifbstat {
 	int		nrports;	// total number of IB ports
 	struct perifb   ifb[MAXIBPORT];
 };
+
+/************************************************************************/
+struct perllc {
+	unsigned char	id;
+	float		occupancy;
+	count_t		mbm_local;
+	count_t		mbm_total;
+};
+
+struct llcstat {
+	unsigned char	nrllcs;	        // total number of LLC
+	struct perllc   perllc[MAXLLC];
+};
+
 /************************************************************************/
 
 struct	sstat {
@@ -415,6 +430,7 @@ struct	sstat {
 	struct pressure	psi;
 	struct gpustat 	gpu;
 	struct ifbstat 	ifb;
+	struct llcstat  llc;
 
 	struct wwwstat	www;
 };
