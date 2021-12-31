@@ -1,4 +1,12 @@
+COPYRIGHT NOTICE
+----------------
+For all files that are not marked differently:
+
+Copyright Gerlof Langeveld 2007-2021 and licensed under the GPL v2 (or any later version).
+
+
 DEPENDENCIES
+------------
 
 Install the following packages to be able to build atop (package name
 can be different depending on the Linux distro):
@@ -15,6 +23,7 @@ can be different depending on the Linux distro):
 
 
 INSTALLING AND USING ATOP
+-------------------------
 
 For interactive use, it is sufficient to install ATOP with the command
 (as root):
