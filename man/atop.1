@@ -154,10 +154,25 @@ drops its root privileges and opens the current shadow file for reading.
 .br
 This way is preferred, because the
 .I atopacctd
-daemon maintains full control of the sizes of the original process
-accounting file (written by the kernel) and the shadow files (read by the
+daemon maintains full control of the size of the original process
+accounting file written by the kernel and the shadow files read by the
 .I atop
-processes). For further information, refer to the
+process(es).
+
+The
+.I atopacct
+service will be activated before the
+.I atop
+service to enable
+.I atop
+to detect that process accounting is managed by the
+.I atopacctd
+daemon. As a forking service, 
+.I atopacctd
+takes care that all directories and files are initialized before the
+parent process dies. The child process continues as the daemon process.
+
+For further information, refer to the
 .B atopacctd
 man page.
 .PP
