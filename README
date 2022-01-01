@@ -99,5 +99,29 @@ working correctly
 https://lkml.org/lkml/2016/12/19/182
 
 
+SERVICE ACTIVATION AFTER INSTALLATION
+-------------------------------------
+
+After the package has been installed, be sure that the related services
+are activated.
+To support handling of terminated processes using process accounting,
+enable the atopacct service:
+
+	systemctl enable --now atopacct
+
+Notice that this service should not be enabled when the package
+psacct or acct (depends on the Linux distribution) has been installed
+and enabled. In that case atop uses the daily process accounting file
+created via that package.
+
+To support maintaining daily log files to keep track of long-term analysis
+information, enable the atop service and the related timer:
+
+	systemctl enable --now atop
+	systemctl enable --now atop-rotate.timer
+
+
+
+
 Gerlof Langeveld
 gerlof.langeveld@atoptool.nl
