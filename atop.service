@@ -3,6 +3,7 @@ Description=Atop advanced performance monitor
 Documentation=man:atop(1)
 
 [Service]
+Type=simple
 Environment="LOGOPTS="
 Environment="LOGINTERVAL=600"
 Environment="LOGGENERATIONS=28"
