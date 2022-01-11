@@ -449,6 +449,13 @@ sys_printdef *cpunumasyspdefs[] = {
 	&syspdef_NUMANUMCPU,
         0
 };
+sys_printdef *llcsyspdefs[] = {
+	&syspdef_LLCMBMTOTAL,
+	&syspdef_LLCMBMLOCAL,
+	&syspdef_NUMLLC,
+	&syspdef_BLANKBOX,
+        0
+};
 sys_printdef *psisyspdefs[] = {
 	&syspdef_PSICPUSTOT,
 	&syspdef_PSIMEMSTOT,
@@ -710,6 +717,7 @@ sys_printpair memline[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
 sys_printpair memnumaline[MAXITEMS];
 sys_printpair cpunumaline[MAXITEMS];
+sys_printpair llcline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
 sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
@@ -1204,6 +1212,17 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "NUMANUMCPU:5",
 			cpunumasyspdefs, "builtin cpunumaline",
 			NULL, NULL);
+                }
+
+                if (llcline[0].f == 0)
+                {
+                    make_sys_prints(llcline, MAXITEMS,
+	                "LLCMBMTOTAL:9 "
+	                "LLCMBMLOCAL:8 "
+	                "NUMLLC:7 "
+	                "BLANKBOX:0 ",
+			llcsyspdefs, "builtin llcline",
+			sstat, &extra);
                 }
 
                 if (pagline[0].f == 0)
@@ -1835,7 +1854,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines, int maxifblines,
-	int maxnfslines, int maxcontlines, int maxnumalines)
+	int maxnfslines, int maxcontlines, int maxnumalines, int maxllclines)
 {
         extraparam      extra;
         int             lin;
@@ -2142,6 +2161,24 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				move(curline, 0);
 
 			showsysline(cpunumaline, sstat, &extra, "NUC", badness);
+			curline++;
+			lin++;
+		}
+	}
+
+	/* LLC statistics (if supported by kernel) */
+	for (extra.index=0, lin=0;
+			extra.index < sstat->llc.nrllcs && lin < maxllclines;
+			extra.index++)
+	{
+		if (fixedhead     	        	  	||
+		    sstat->llc.perllc[extra.index].mbm_local	||
+		    sstat->llc.perllc[extra.index].mbm_total	  )
+		{
+			if (screen)
+				move(curline, 0);
+
+			showsysline(llcline, sstat, &extra, "LLC", 0);
 			curline++;
 			lin++;
 		}
@@ -2927,6 +2964,24 @@ cpunumacompar(const void *a, const void *b)
 	return  0;
 }
 
+int
+llccompar(const void *a, const void *b)
+{
+        const struct perllc *ca = a;
+        const struct perllc *cb = b;
+
+        register count_t aused = ca->mbm_local + ca->mbm_total;
+        register count_t bused = cb->mbm_local + cb->mbm_total;
+
+        if (aused < bused)
+                return  1;
+
+        if (aused > bused)
+                return -1;
+
+        return  0;
+}
+
 /*
 ** handle modifications from the /etc/atoprc and ~/.atoprc file
 */
@@ -3083,6 +3138,13 @@ void
 do_owncpunumaline(char *name, char *val)
 {
         make_sys_prints(cpunumaline, MAXITEMS, val, cpunumasyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_ownllcline(char *name, char *val)
+{
+        make_sys_prints(llcline, MAXITEMS, val, llcsyspdefs, name,
 					NULL, NULL);
 }
 

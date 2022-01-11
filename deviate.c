@@ -1407,8 +1407,17 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	dev->ifb.nrports = cur->ifb.nrports;
 
+	for (i = 0; i < cur->llc.nrllcs; i++)
+	{
+		dev->llc.perllc[i].id = cur->llc.perllc[i].id;
+		dev->llc.perllc[i].occupancy = cur->llc.perllc[i].occupancy;
+		dev->llc.perllc[i].mbm_local = cur->llc.perllc[i].mbm_local -
+					       pre->llc.perllc[i].mbm_local;
+		dev->llc.perllc[i].mbm_total = cur->llc.perllc[i].mbm_total -
+					       pre->llc.perllc[i].mbm_total;
+	}
 	
-
+	dev->llc.nrllcs = cur->llc.nrllcs;
 
 #if	HTTPSTATS
 	/*

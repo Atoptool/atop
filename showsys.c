@@ -1940,6 +1940,40 @@ sysprt_NUMACPUGUEST(struct sstat *sstat, extraparam *as, int badness, int *color
 
 sys_printdef syspdef_NUMACPUGUEST = {"NUMACPUGUEST", sysprt_NUMACPUGUEST, NULL};
 /*******************************************************************/
+static char *
+sysprt_LLCMBMTOTAL(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="tot   ";
+	*color = -1;
+	val2memstr(sstat->llc.perllc[as->index].mbm_total, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_LLCMBMTOTAL = {"LLCMBMTOTAL", sysprt_LLCMBMTOTAL, NULL};
+/*******************************************************************/
+static char *
+sysprt_LLCMBMLOCAL(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="loc   ";
+	*color = -1;
+	val2memstr(sstat->llc.perllc[as->index].mbm_local, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_LLCMBMLOCAL = {"LLCMBMLOCAL", sysprt_LLCMBMLOCAL, NULL};
+/*******************************************************************/
+static char *
+sysprt_NUMLLC(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16];
+
+	*color = -1;
+	sprintf(buf, "LLC%02d %5.0f%%", sstat->llc.perllc[as->index].id, sstat->llc.perllc[as->index].occupancy * 100);
+	return buf;
+}
+
+sys_printdef syspdef_NUMLLC = {"NUMLLC", sysprt_NUMLLC, NULL};
+/*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)
