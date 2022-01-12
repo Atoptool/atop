@@ -1261,6 +1261,19 @@ committed space exceeds the limit if strict overcommit handling is
 configured (vm.overcommit_memory is 2).
 .PP
 .TP 5
+.B LLC
+Last level cache of CPU info.
+.br
+This line contains the total memory bandwidth of LLC (`tot'),
+the bandwidth of local NUMA node (`loc'),
+the percentage of LLC in used (`LLCXX YY%'),
+.br
+Note that this feature depends on `resctrl` pseudo file-system, be sure that
+the kernel is built with the relevant config and mount the file-system. Ex,
+`mount -t resctrl resctrl -o mba_MBps /sys/fs/resctrl` on an Intel platform,
+and `mount -t resctrl resctrl -o cdp /sys/fs/resctrl` on an AMD platform.
+.PP
+.TP 5
 .B NUM
 Memory utilization per NUMA node.
 .br
@@ -2056,7 +2069,7 @@ The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
 "CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
-"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "NUM" and "NUC".
+"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "LLC", "NUM" and "NUC".
 .br
 For process-level statistics special labels are available:
 "PRG" (general), "PRC" (cpu), "PRE" (GPU), "PRM" (memory), "PRD"
@@ -2189,6 +2202,12 @@ limit for committed space (pages),
 size of the swap cache (pages),
 size of compressed pages stored in zswap (pages), and
 total size of compressed pool in zswap (pages).
+.TP 9
+.B LLC
+Subsequent fields:
+percentage of LLC in use.
+total memory bandwidth of this LLC (in bytes),
+memory bandwidth on local NUMA node of this LLC (in bytes),
 .TP 9
 .B PAG
 Subsequent fields:
