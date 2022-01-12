@@ -1261,8 +1261,26 @@ committed space exceeds the limit if strict overcommit handling is
 configured (vm.overcommit_memory is 2).
 .PP
 .TP 5
+.B LLC
+Last-Level Cache of CPU info.
+.br
+This line contains the total memory bandwidth of LLC (`tot'),
+the bandwidth of the local NUMA node (`loc'), and
+the percentage of LLC in use (`LLCXX YY%').
+
+Note that this feature depends on the `resctrl` pseudo filesystem.
+Be sure that the kernel is built with the relevant config and
+take care that the pseudo-filesystem is mounted:
+
+.B \  mount -t resctrl resctrl -o mba_MBps /sys/fs/resctrl
+(on Intel)
+.br
+.B \  mount -t resctrl resctrl -o cdp \ \ \ \ \ /sys/fs/resctrl
+(on AMD)
+.PP
+.TP 5
 .B NUM
-Memory utilization per NUMA node.
+Memory utilization per NUMA node (not shown for single NUMA node).
 .br
 This line shows the total amount of physical memory of this node (`tot'),
 the amount of free memory (`free'), the amount of memory for cached file data
@@ -1274,7 +1292,7 @@ the fragmentation percentage (`frag').
 .PP
 .TP 5
 .B NUC
-CPU utilization per NUMA node (not shown in case of a single NUMA node).
+CPU utilization per NUMA node (not shown for single NUMA node).
 .br
 This line shows the utilization percentages of all CPUs related to this
 NUMA node, categorized for  system mode (`sys'), user mode (`user'),
@@ -2056,7 +2074,7 @@ The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
 "CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
-"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "NUM" and "NUC".
+"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "LLC", "NUM" and "NUC".
 .br
 For process-level statistics special labels are available:
 "PRG" (general), "PRC" (cpu), "PRE" (GPU), "PRM" (memory), "PRD"
@@ -2189,6 +2207,12 @@ limit for committed space (pages),
 size of the swap cache (pages),
 size of compressed pages stored in zswap (pages), and
 total size of compressed pool in zswap (pages).
+.TP 9
+.B LLC
+Subsequent fields:
+LLC id, percentage of LLC in use,
+total memory bandwidth of this LLC (in bytes), and
+memory bandwidth on local NUMA node of this LLC (in bytes).
 .TP 9
 .B PAG
 Subsequent fields:

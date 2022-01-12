@@ -83,6 +83,7 @@ static int	maxifblines = 999;  /* maximum infinibnd lines          */
 static int	maxnfslines = 999;  /* maximum nfs mount lines          */
 static int	maxcontlines = 999; /* maximum container lines          */
 static int	maxnumalines = 999; /* maximum numa      lines          */
+static int	maxllclines = 999;  /* maximum llc       lines          */
 
 static short	colorinfo   = COLOR_GREEN;
 static short	coloralmost = COLOR_CYAN;
@@ -264,6 +265,10 @@ generic_samp(time_t curtime, int nsecs,
 		if (sstat->cpunuma.nrnuma > 1 && maxnumalines > 0)
 			qsort(sstat->cpunuma.numa, sstat->cpunuma.nrnuma,
 			       sizeof sstat->cpunuma.numa[0], cpunumacompar);
+
+		if (sstat->llc.nrllcs > 1 && maxllclines > 0)
+			qsort(sstat->llc.perllc, sstat->llc.nrllcs,
+				sizeof sstat->llc.perllc[0], llccompar);
 	}
 
 	/*
@@ -357,7 +362,7 @@ generic_samp(time_t curtime, int nsecs,
 		                  maxcpulines, maxgpulines, maxdsklines,
 				  maxmddlines, maxlvmlines,
 		                  maxintlines, maxifblines, maxnfslines,
-		                  maxcontlines, maxnumalines);
+		                  maxcontlines, maxnumalines, maxllclines);
 
 		/*
  		** if system-wide statistics do not fit,
@@ -380,7 +385,8 @@ generic_samp(time_t curtime, int nsecs,
 					maxdsklines, maxmddlines,
 		                        maxlvmlines, maxintlines,
 					maxifblines, maxnfslines,
-		                        maxcontlines, maxnumalines);
+		                        maxcontlines, maxnumalines,
+					maxllclines);
 
 			/*
  			** if system-wide statistics still do not fit,
@@ -2066,6 +2072,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 					    maxnumalines, statline);
 
+				maxllclines =
+				  getnumval("Maximum lines for LLC "
+				            "statistics (now %d): ",
+					    maxllclines, statline);
+
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
@@ -2549,6 +2560,9 @@ limitedlines(void)
 
 	if (maxnumalines == 999)	// default?
 		maxnumalines = 0;
+
+	if (maxllclines  == 999)	// default?
+		maxllclines = 0;
 }
 
 /*
@@ -3257,6 +3271,12 @@ void
 do_maxnuma(char *name, char *val)
 {
 	maxnumalines = get_posval(name, val);
+}
+
+void
+do_maxllc(char *name, char *val)
+{
+	maxllclines = get_posval(name, val);
 }
 
 struct colmap {
