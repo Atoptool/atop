@@ -467,13 +467,6 @@ generic_samp(time_t curtime, int nsecs,
 						attron(COLOR_PAIR(COLORINFO));
 
 					attron(A_BLINK);
-
-					printg("%*s",
-						(COLS-strlen(initmsg)-strlen(viewmsg)-5)/2, " ");
-				}
-				else
-				{
-					printg("        ");
 				}
 
        				printg(initmsg);
@@ -483,9 +476,17 @@ generic_samp(time_t curtime, int nsecs,
 					if (usecolors)
 						attroff(COLOR_PAIR(COLORINFO));
 					attroff(A_BLINK);
-				}
 
-				printg("     ");
+					printg("%*s", COLS - strlen(initmsg)
+					                   - strlen(viewmsg),
+					                     " ");
+				}
+				else
+				{
+					printg("%*s", 80 - strlen(initmsg)
+					                 - strlen(viewmsg),
+					                   " ");
+				}
 
 				if (screen)
 				{
