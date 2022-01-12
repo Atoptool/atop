@@ -1407,7 +1407,6 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	dev->ifb.nrports = cur->ifb.nrports;
 
-
 	/*
 	** calculate deviations for Last Level Cache
 	*/
