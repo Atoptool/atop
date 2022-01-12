@@ -80,7 +80,7 @@
 
 /* recognize LLC monitor data */
 #define LLCDIR	"/sys/fs/resctrl/mon_data"
-#define L3SIZE  "/sys/devices/system/cpu/cpu0/cache/index3/size"
+#define L3SIZE	"/sys/devices/system/cpu/cpu0/cache/index3/size"
 
 /* Refer to mmzone.h, the default is 11 */
 #define	MAX_ORDER	11
@@ -1783,7 +1783,6 @@ photosyst(struct sstat *si)
 
 		if (!l3_cache_size)
 		{
-
 			if ( (fp = fopen(L3SIZE, "r")) != NULL)
 			{
 				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
@@ -1791,11 +1790,13 @@ photosyst(struct sstat *si)
 					sscanf(linebuf, "%uK\n", &l3_cache_size);
 					l3_cache_size *= 1024;
 				}
+
 				fclose(fp);
 			}
 		}
+
 		/*
-		** walk the LLC directory, gather eah LLC
+		** walk the LLC directory, gather each LLC
 		*/
 		while ( (dentry = readdir(dirp)) )
 		{
@@ -1805,11 +1806,8 @@ photosyst(struct sstat *si)
 			if (strncmp(dentry->d_name, "mon_L3_", 7))
 				continue;
 
-
 			/* get cache id from directory name like mon_L3_00 */
 			sscanf(dentry->d_name + 7, "%hhd\n", &llc->id);
-			if (llc->id >= MAXLLC)	// too many LLC?
-				continue;
 
 			snprintf(fn, sizeof fn, LLCDIR "/%s/llc_occupancy", dentry->d_name);
 			if ( (fp = fopen(fn, "r")) != NULL)
@@ -1819,6 +1817,7 @@ photosyst(struct sstat *si)
 					sscanf(linebuf, "%lu\n", &llc_occupancy);
 					llc->occupancy = (float)llc_occupancy / l3_cache_size;
 				}
+
 				fclose(fp);
 			}
 
@@ -1829,6 +1828,7 @@ photosyst(struct sstat *si)
 				{
 					sscanf(linebuf, "%llu\n", &llc->mbm_local);
 				}
+
 				fclose(fp);
 			}
 
@@ -1842,8 +1842,10 @@ photosyst(struct sstat *si)
 				fclose(fp);
 			}
 
-			si->llc.nrllcs++;
+			if (++si->llc.nrllcs >= MAXLLC) /* too many LLC ? */
+				break;
 		}
+
 		closedir(dirp);
 	}
 

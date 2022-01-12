@@ -2561,7 +2561,7 @@ limitedlines(void)
 	if (maxnumalines == 999)	// default?
 		maxnumalines = 0;
 
-	if (maxllclines == 999)	// default?
+	if (maxllclines  == 999)	// default?
 		maxllclines = 0;
 }
 
