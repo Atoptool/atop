@@ -1142,19 +1142,19 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "MEMDIRTY:5 "
 	                "MEMBUFFER:7 "
 	                "MEMSLAB:7 "
-	                "RECSLAB:4 "
+	                "RECSLAB:3 "
 	                "BLANKBOX:0 "
-	                "SHMEM:4 "
-	                "SHMRSS:4 "
-	                "SHMSWP:3 "
+	                "SHMEM:3 "
+	                "SHMRSS:3 "
+	                "SHMSWP:2 "
 	                "BLANKBOX:0 "
-	                "VMWBAL:5 "
+	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
-	                "ZFSARC:6 "
+	                "ZFSARC:5 "
 	                "BLANKBOX:0 "
-	                "HUPTOT:6 "
-	                "HUPUSE:3 "
-	                "NUMNUMA:7 ",
+	                "HUPTOT:5 "
+	                "HUPUSE:2 "
+	                "NUMNUMA:6 ",
 			memsyspdefs, "builtin memline",
 			sstat, &extra);
                 }
@@ -2166,7 +2166,10 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 		}
 	}
 
-	/* LLC statistics (if supported by kernel) */
+	/*
+ 	** LLC statistics (if supported by kernel and
+	** pseudo filesystem mounted)
+	*/
 	for (extra.index=0, lin=0;
 			extra.index < sstat->llc.nrllcs && lin < maxllclines;
 			extra.index++)
