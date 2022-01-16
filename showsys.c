@@ -1945,7 +1945,7 @@ sysprt_LLCMBMTOTAL(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16]="tot   ";
 	*color = -1;
-	val2memstr(sstat->llc.perllc[as->index].mbm_total, buf+6, MBFORMAT, 0, 0);
+	val2memstr(sstat->llc.perllc[as->index].mbm_total, buf+6, MBFORMAT, as->avgval, as->nsecs);
 	return buf;
 }
 
@@ -1956,7 +1956,7 @@ sysprt_LLCMBMLOCAL(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16]="loc   ";
 	*color = -1;
-	val2memstr(sstat->llc.perllc[as->index].mbm_local, buf+6, MBFORMAT, 0, 0);
+	val2memstr(sstat->llc.perllc[as->index].mbm_local, buf+6, MBFORMAT, as->avgval, as->nsecs);
 	return buf;
 }
 
