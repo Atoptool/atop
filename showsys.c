@@ -640,6 +640,41 @@ dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 
 /*******************************************************************/
 static char *
+sysprt_CPUFREQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
+{
+
+        static char buf[15];
+
+        count_t maxfreq;
+        count_t cnt;
+        count_t ticks;
+        int     n = sstat->cpu.nrcpu;
+
+        sumscaling(sstat, &maxfreq, &cnt, &ticks);
+
+        return dofmt_cpufreq(buf, maxfreq/n, cnt/n, ticks/n);
+}
+
+static int
+sysval_CPUFREQ(struct sstat *sstat)
+{
+        char    buf[15];
+        count_t maxfreq;
+        count_t cnt;
+        count_t ticks;
+        int     n = sstat->cpu.nrcpu;
+
+        sumscaling(sstat, &maxfreq, &cnt, &ticks);
+
+        if (dofmt_cpufreq(buf, maxfreq/n, cnt/n, ticks/n))
+                return 1;
+        else
+                return 0;
+}
+
+sys_printdef syspdef_CPUFREQ = {"CPUFREQ", sysprt_CPUFREQ, sysval_CPUFREQ};
+/*******************************************************************/
+static char *
 sysprt_CPUIFREQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
 
@@ -652,24 +687,7 @@ sysprt_CPUIFREQ(struct sstat *sstat, extraparam *as, int badness, int *color)
         return dofmt_cpufreq(buf, maxfreq, cnt, ticks);
 }
 
-sys_printdef syspdef_CPUIFREQ = {"CPUIFREQ", sysprt_CPUIFREQ, NULL};
-/*******************************************************************/
-static char *
-sysprt_CPUFREQ(struct sstat *sstat, extraparam *as, int badness, int *color) 
-{
-
-        static char buf[15];
-
-        count_t maxfreq;
-        count_t cnt;
-        count_t ticks;
-        int     n = sstat->cpu.nrcpu;
-
-        sumscaling(sstat, &maxfreq, &cnt, &ticks);
-        return dofmt_cpufreq(buf, maxfreq/n, cnt/n, ticks/n);
-}
-
-sys_printdef syspdef_CPUFREQ = {"CPUFREQ", sysprt_CPUFREQ, NULL};
+sys_printdef syspdef_CPUIFREQ = {"CPUIFREQ", sysprt_CPUIFREQ, sysval_CPUFREQ};
 /*******************************************************************/
 static char *
 sysprt_CPUSCALE(struct sstat *sstat, extraparam *as, int badness, int *color) 
