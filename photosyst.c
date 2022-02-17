@@ -793,12 +793,12 @@ photosyst(struct sstat *si)
 	}
 
 	/*
-	** gather vmware-related statistics from /proc/vmmemctl
+	** gather vmware-related statistics from /sys/kernel/debug/vmmemctl
 	** (only present if balloon driver enabled)
 	*/ 
 	si->mem.vmwballoon = (count_t) -1;
 
-	if ( (fp = fopen("vmmemctl", "r")) != NULL)
+	if ( (fp = fopen("/sys/kernel/debug/vmmemctl", "r")) != NULL)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
