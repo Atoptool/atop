@@ -2821,7 +2821,7 @@ generic_init(void)
        	** check if STDOUT is related to a tty or
        	** something else (file, pipe)
        	*/
-       	if ( isatty(1) )
+       	if ( isatty(fileno(stdout)) )
                	screen = 1;
        	else
              	screen = 0;
@@ -2837,10 +2837,9 @@ generic_init(void)
 		** to pipe or file), close it and duplicate stdout (tty)
 		** to stdin
 		*/
-       		if ( !isatty(0) )
+       		if ( !isatty(fileno(stdin)) )
 		{
-			(void) close(0);
-			(void) dup(1);
+			(void) dup2(fileno(stdout), fileno(stdin));
 		}
 
 		/*
