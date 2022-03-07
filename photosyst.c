@@ -455,7 +455,7 @@ photosyst(struct sstat *si)
         **
 	** store them in binary form
 	*/
-        static char fn[256];
+        static char fn[512];
         int didone=0;
 
 	if (si->cpu.nrcpu <= SCALINGMAXCPU)
