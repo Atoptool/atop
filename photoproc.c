@@ -318,6 +318,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 			*/
 			if ( chdir("task") == 0 )
 			{
+				unsigned long cur_nth = 0;
+
 				dirtask = opendir(".");
 	
 				/*
@@ -397,11 +399,16 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					// all stats read now
 					tval++;	    /* increment thread-level */
+					cur_nth++;  /* increment # threads    */
+
 					if ( chdir("..") == -1); /* thread */
 				}
 
 				closedir(dirtask);
 				if ( chdir("..") == -1); /* leave task */
+
+				// calibrate number of threads
+				curtask->gen.nthr = cur_nth;
 			}
 		}
 
