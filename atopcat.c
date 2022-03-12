@@ -82,7 +82,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if ( isatty(1) && !dryrun)
+	if ( isatty(fileno(stdout)) && !dryrun)
 	{
 		fprintf(stderr,
 			"this program produces binary output on stdout "

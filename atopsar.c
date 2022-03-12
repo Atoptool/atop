@@ -203,7 +203,7 @@ atopsar(int argc, char *argv[])
 			   case 'H':		/* repeat headers          */
 				repeathead = 23;	/* define default  */
 
-				if (isatty(1))
+				if (isatty(fileno(stdout)))
 				{
 					struct winsize wsz;
 
@@ -298,7 +298,7 @@ atopsar(int argc, char *argv[])
 	*/
 	if (usecolors == 't')
 	{
-		if (! isatty(1) )
+		if (! isatty(fileno(stdout)) )
 			usecolors = 0;
 	}
 
@@ -1168,7 +1168,7 @@ do_atopsarflags(char *name, char *val)
 		   case 'H':		/* repeat headers          */
 			repeathead = 23;	/* define default  */
 
-			if (isatty(1))
+			if (isatty(fileno(stdout)))
 			{
 				struct winsize wsz;
 
