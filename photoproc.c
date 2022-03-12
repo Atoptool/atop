@@ -181,7 +181,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 	DIR		*dirp;
 	struct dirent	*entp;
 	char		origdir[1024], dockstat=0;
-	unsigned long	tval=0,cur_nth=0;
+	unsigned long	tval=0;
 
 	/*
 	** one-time initialization stuff
@@ -234,7 +234,6 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 	while ( (entp = readdir(dirp)) && tval < maxtask )
 	{
-		cur_nth = 0;
 		/*
 		** skip non-numerical names
 		*/
@@ -293,7 +292,6 @@ photoproc(struct tstat *tasklist, int maxtask)
 		netatop_gettask(curtask->gen.tgid, 'g', curtask);
 
 		tval++;		/* increment for process-level info */
-		cur_nth++;
 
 		/*
  		** if needed (when number of threads is larger than 1):
@@ -320,6 +318,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 			*/
 			if ( chdir("task") == 0 )
 			{
+				unsigned long cur_nth = 0;
+
 				dirtask = opendir(".");
 	
 				/*
@@ -399,15 +399,18 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					// all stats read now
 					tval++;	    /* increment thread-level */
-					cur_nth++;
+					cur_nth++;  /* increment # threads    */
+
 					if ( chdir("..") == -1); /* thread */
 				}
 
 				closedir(dirtask);
 				if ( chdir("..") == -1); /* leave task */
+
+				// calibrate number of threads
+				curtask->gen.nthr = cur_nth;
 			}
 		}
-		curtask->gen.nthr = cur_nth;
 
 		if ( chdir("..") == -1); /* leave process-level directry */
 	}
