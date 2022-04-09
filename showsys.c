@@ -1646,7 +1646,6 @@ static char *
 sysprt_PAGPGOUT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
         static char buf[16]="pgout  ";
-	*color = -1;
         val2valstr(sstat->mem.pgouts, buf+6, 6, as->avgval, as->nsecs);
         return buf;
 }

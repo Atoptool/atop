@@ -1239,9 +1239,10 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "PAGPGIN:7 "
 	                "PAGPGOUT:7 "
+	                "BLANKBOX:0 "
 	                "PAGSWIN:5 "
-	                "PAGSWOUT:7 "
-			"OOMKILLS:8 ",
+	                "PAGSWOUT:8 "
+			"OOMKILLS:9 ",
 			pagsyspdefs, "builtin pagline",
 			sstat, &extra);
                 }
