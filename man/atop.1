@@ -1313,7 +1313,9 @@ huge pages (`compact'), the number of NUMA pages migrated (`numamig'), and
 the total number of memory pages migrated succesfully e.g. between
 NUMA nodes or for compaction (`migrate') are shown.
 .br
-Also the number of memory pages the system read from swap space (`swin'),
+Also the number of memory pages the system read from block devices (`pgin'),
+the number of memory pages the system wrote to block devices (`pgout'),
+the number of memory pages the system read from swap space (`swin'),
 the number of memory pages the system wrote to swap space (`swout'), and
 the number of out-of-memory kills (`oomkill').
 .PP
@@ -2224,8 +2226,10 @@ number of swapins,
 number of swapouts,
 number of oomkills (-1 when counter not present),
 number of process stalls to run memory compaction,
-number of pages successfully migrated in total, and
-number of NUMA pages migrated.
+number of pages successfully migrated in total,
+number of NUMA pages migrated,
+number of pages read from block devices, and
+number of pages written to block devices.
 .TP 9
 .B PSI
 Subsequent fields:

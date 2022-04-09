@@ -589,6 +589,19 @@ photosyst(struct sstat *si)
 			if (nr < 2)		/* headerline ? --> skip */
 				continue;
 
+			/* pgpgin & pgpgout fields in KB from vmstat */
+			if ( strcmp("pgpgin", nam) == EQ)
+			{
+				si->mem.pgins   = cnts[0] * 1024 / pagesize;
+				continue;
+			}
+
+			if ( strcmp("pgpgout", nam) == EQ)
+			{
+				si->mem.pgouts   = cnts[0] * 1024 / pagesize;
+				continue;
+			}
+
 			if ( strcmp("pswpin", nam) == EQ)
 			{
 				si->mem.swins   = cnts[0];

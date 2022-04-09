@@ -1633,6 +1633,26 @@ sys_printdef syspdef_PGMIGRATE = {"PGMIGRATE", sysprt_PGMIGRATE, NULL};
 
 /*******************************************************************/
 static char *
+sysprt_PAGPGIN(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="pgin   ";
+        val2valstr(sstat->mem.pgins, buf+5, 7, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PAGPGIN = {"PAGPGIN", sysprt_PAGPGIN, NULL};
+/*******************************************************************/
+static char *
+sysprt_PAGPGOUT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="pgout  ";
+        val2valstr(sstat->mem.pgouts, buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PAGPGOUT = {"PAGPGOUT", sysprt_PAGPGOUT, NULL};
+/*******************************************************************/
+static char *
 sysprt_PAGSWIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
         static char buf[16]="swin   ";
