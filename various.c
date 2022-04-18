@@ -805,3 +805,90 @@ set_oom_score_adj(void)
 
 	close(fd);
 }
+
+/* hypervisor enum, move this into header if actually in use */
+enum {
+	HYPER_NONE	= 0,
+	HYPER_XEN,
+	HYPER_KVM,
+	HYPER_MSHV,
+	HYPER_VMWARE,
+	HYPER_IBM,
+	HYPER_VSERVER,
+	HYPER_UML,
+	HYPER_INNOTEK,
+	HYPER_HITACHI,
+	HYPER_PARALLELS,
+	HYPER_VBOX,
+	HYPER_OS400,
+	HYPER_PHYP,
+	HYPER_SPAR,
+	HYPER_WSL,
+};
+
+#if defined(__x86_64__) || defined(__i386__)
+#define HYPERVISOR_INFO_LEAF   0x40000000
+
+static inline void
+x86_cpuid(unsigned int op, unsigned int *eax, unsigned int *ebx,
+			 unsigned int *ecx, unsigned int *edx)
+{
+	__asm__(
+#if defined(__PIC__) && defined(__i386__)
+		"xchg %%ebx, %%esi;"
+		"cpuid;"
+		"xchg %%esi, %%ebx;"
+		: "=S" (*ebx),
+#else
+		"cpuid;"
+		: "=b" (*ebx),
+#endif
+		  "=a" (*eax),
+		  "=c" (*ecx),
+		  "=d" (*edx)
+		: "1" (op), "c"(0));
+}
+
+static int
+get_hypervisor(void)
+{
+	unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0, hyper = HYPER_NONE;
+	char hyper_vendor_id[13];
+
+	memset(hyper_vendor_id, 0, sizeof(hyper_vendor_id));
+
+	x86_cpuid(HYPERVISOR_INFO_LEAF, &eax, &ebx, &ecx, &edx);
+	memcpy(hyper_vendor_id + 0, &ebx, 4);
+	memcpy(hyper_vendor_id + 4, &ecx, 4);
+	memcpy(hyper_vendor_id + 8, &edx, 4);
+	hyper_vendor_id[12] = '\0';
+
+	if (!hyper_vendor_id[0])
+		return hyper;
+
+	if (!strncmp("XenVMMXenVMM", hyper_vendor_id, 12))
+		hyper = HYPER_XEN;
+	else if (!strncmp("KVMKVMKVM", hyper_vendor_id, 9))
+		hyper = HYPER_KVM;
+	else if (!strncmp("Microsoft Hv", hyper_vendor_id, 12))
+		hyper = HYPER_MSHV;
+	else if (!strncmp("VMwareVMware", hyper_vendor_id, 12))
+		hyper = HYPER_VMWARE;
+	else if (!strncmp("UnisysSpar64", hyper_vendor_id, 12))
+		hyper = HYPER_SPAR;
+
+	return hyper;
+}
+#else /* ! (__x86_64__ || __i386__) */
+static int
+get_hypervisor(void)
+{
+	return HYPER_NONE;
+}
+#endif
+
+int
+run_in_guest(void)
+{
+	return get_hypervisor() != HYPER_NONE;
+}
