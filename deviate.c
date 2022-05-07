@@ -516,6 +516,9 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->cpu.rundelay  =
 		subcount(curstat->cpu.rundelay, prestat->cpu.rundelay);
 
+	devstat->cpu.blkdelay  =
+		subcount(curstat->cpu.blkdelay, prestat->cpu.blkdelay);
+
 	devstat->dsk.rio    =
 		subcount(curstat->dsk.rio, prestat->dsk.rio);
 	devstat->dsk.rsz    =

@@ -1543,6 +1543,10 @@ This information will only be shown when the kernel module `netatop'
 is loaded.
 .PP
 .TP 9
+.B BDELAY
+Aggregated block I/O delay, i.e. time waiting for disk I/O.
+.PP
+.TP 9
 .B CID
 Container ID (Docker) of 12 hexadecimal digits, referring to the container
 in which the process/thread is running.
@@ -2398,8 +2402,9 @@ CPU-consumption in system mode (clockticks),
 nice value, priority, realtime priority,
 scheduling policy, current CPU, sleep average,
 TGID (group number of related tasks/threads), is_process (y/n),
-runqueue delay in nanoseconds for this thread or for all threads (in case of 
-process), and wait channel of this thread (between parenthesis or underscores for spaces).
+runqueue delay in nanoseconds for this thread or for all threads (in case of process),
+wait channel of this thread (between parenthesis or underscores for spaces), and
+block I/O delay (clockticks).
 .TP 9
 .B PRE
 For every process one line is shown.

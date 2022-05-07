@@ -2033,6 +2033,27 @@ proc_printdef procprt_RUNDELAY =
    { "RDELAY", "RDELAY", procprt_RUNDELAY_a, procprt_RUNDELAY_e, 6};
 /***************************************************************/
 char *
+procprt_BLKDELAY_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        val2cpustr(curstat->cpu.blkdelay*1000/hertz, buf);
+        return buf;
+}
+
+char *
+procprt_BLKDELAY_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        snprintf(buf, sizeof buf, "     -");
+        return buf;
+}
+
+proc_printdef procprt_BLKDELAY =
+   { "BDELAY", "BDELAY", procprt_BLKDELAY_a, procprt_BLKDELAY_e, 6};
+/***************************************************************/
+char *
 procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         return "";   // dummy function

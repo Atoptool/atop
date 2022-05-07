@@ -425,6 +425,7 @@ extern proc_printdef procprt_GPUGPUBUSY;
 extern proc_printdef procprt_GPUMEMBUSY;
 extern proc_printdef procprt_SORTITEM;
 extern proc_printdef procprt_RUNDELAY;
+extern proc_printdef procprt_BLKDELAY;
 extern proc_printdef procprt_WCHAN;
 
 

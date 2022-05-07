@@ -148,13 +148,13 @@
 #include "atop.h"
 #include "photoproc.h"
 
-#define	SCANSTAT 	"%c   %d   %*d  %*d  %*d  %*d  "	\
-			"%*d  %lld %*d  %lld %*d  %lld "	\
-			"%lld %*d  %*d  %d   %d   %*d  "	\
-			"%*d  %ld %lld %lld %*d  %*d  "	\
-			"%*d  %*d  %*d  %*d  %*d  %*d  " 	\
-			"%*d  %*d  %*d  %*d  %*d  %*d  "	\
-			"%d   %d   %d "
+#define	SCANSTAT 	"%c   %d   %*d  %*d  %*d %*d  "	\
+			"%*d  %lld %*d  %lld %*d %lld "	\
+			"%lld %*d  %*d  %d   %d  %*d  "	\
+			"%*d  %ld  %lld %lld %*d %*d  "	\
+			"%*d  %*d  %*d  %*d  %*d %*d  " \
+			"%*d  %*d  %*d  %*d  %*d %*d  "	\
+			"%d   %d   %d   %lld"
 
 /* ATOP-extension line of /proc/pid/stat */
 #define ATOPSTAT	"%lld %llu %lld %llu %lld %llu %lld %llu "	\
@@ -307,11 +307,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 			curtask->gen.nthrslpu = 0;
 
 			/*
- 			** rundelay on process level is equal to the rundelay
-			** of the main thread; totalize the rundelays of all
-			** threads
+ 			** rundelay and blkdelay on process level only
+			** concerns the delays of the main thread;
+			** totalize the delays of all threads
 			*/
 			curtask->cpu.rundelay = 0;
+			curtask->cpu.blkdelay = 0;
 			
 			/*
 			** open underlying task directory
@@ -370,9 +371,12 @@ photoproc(struct tstat *tasklist, int maxtask)
                 			if (getwchan)
                         			procwchan(curthr);
 
-					/* totalize rundelays of all threads */
+					// totalize delays of all threads
 					curtask->cpu.rundelay +=
 						procschedstat(curthr);
+
+					curtask->cpu.blkdelay +=
+						curthr->cpu.blkdelay;
 
 					strcpy(curthr->gen.container,
 						curtask->gen.container);
@@ -554,7 +558,7 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 		&(curtask->gen.btime),
 		&(curtask->mem.vmem),	&(curtask->mem.rmem),
 		&(curtask->cpu.curcpu),	&(curtask->cpu.rtprio),
-		&(curtask->cpu.policy));
+		&(curtask->cpu.policy), &(curtask->cpu.blkdelay));
 
 	if (nr < 12)		/* parsing failed? */
 	{
