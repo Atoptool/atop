@@ -763,7 +763,7 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
-		       "%llu %s\n",
+		       "%llu %s %llu\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -780,7 +780,8 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.tgid,
 			ps->gen.isproc ? 'y':'n',
 			ps->cpu.rundelay,
-			spaceformat(ps->cpu.wchan, wchanout));
+			spaceformat(ps->cpu.wchan, wchanout),
+			ps->cpu.blkdelay);
 	}
 }
 

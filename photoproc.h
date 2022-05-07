@@ -77,7 +77,8 @@ struct tstat {
 		int	ifuture[4];	/* reserved for future use	*/
 		char	wchan[16];	/* wait channel string    	*/
 		count_t	rundelay;	/* schedstat rundelay (nanosec)	*/
-		count_t	cfuture[1];	/* reserved for future use	*/
+		count_t	blkdelay;	/* blkio delay (ticks)		*/
+		count_t	cfuture[3];	/* reserved for future use	*/
 	} cpu;
 
 	/* DISK STATISTICS						*/

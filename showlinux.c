@@ -603,6 +603,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_SYSCPU,
 	&procprt_USRCPU,
 	&procprt_RUNDELAY,
+	&procprt_BLKDELAY,
 	&procprt_WCHAN,
 	&procprt_VGROW,
 	&procprt_RGROW,
@@ -1473,7 +1474,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                 make_proc_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:4 VPID:3 CTID:3 TRUN:7 TSLPI:7 "
 			"TSLPU:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 ST:8 "
-			"EXC:8 S:8 RDELAY:8 WCHAN:5 SORTITEM:10 CMD:10",
+			"EXC:8 S:8 RDELAY:8 BDELAY: 7 WCHAN:5 SORTITEM:10 CMD:10",
                         "built-in schedprocs");
 
                 make_proc_prints(dskprocs, MAXITEMS, 
@@ -1608,6 +1609,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 #define	FORMCID	"CID:5 "
 #define	FORMCPU	"SYSCPU:9 USRCPU:9 "
 #define	FORMDEL	"RDELAY:4 "
+#define	FORMBDL	"BDELAY:4 "
 #define FORMMEM	"VGROW:8 RGROW:8 "
 #define FORMDSK	"RDDSK:7 CWRDSK:7 "
 #define FORMNET	"RNET:6 SNET:6 "
@@ -1639,6 +1641,9 @@ make_proc_dynamicgen()
 
 	memcpy(p, FORMDEL, sizeof FORMDEL -1);
 	p += sizeof FORMDEL -1;
+
+	memcpy(p, FORMBDL, sizeof FORMBDL -1);
+	p += sizeof FORMBDL -1;
 
 	memcpy(p, FORMMEM, sizeof FORMMEM -1);
 	p += sizeof FORMMEM -1;
