@@ -1343,8 +1343,10 @@ Logical volume/multiple device/disk utilization.
 .br
 Per active unit one line is produced, sorted on unit activity.
 Such line shows the name (e.g. VolGroup00-lvtmp for a logical volume or
-sda for a hard disk), the busy percentage i.e. the portion of time that the
-unit was busy handling requests (`busy'), the number of read requests issued
+sda for a hard disk), the percentage of elapsed time during which I/O requests
+were issued to the device (`busy') (note that for devices serving requests in
+parallel, such as RAID arrays, SSD and NVMe, this number does not reflect their
+performance limits), the number of read requests issued
 (`read'), the number of write requests issued (`write'),
 the number of discard requests issued (`discrd') if supported by kernel version,
 the number of KiBytes per read (`KiB/r'), 
