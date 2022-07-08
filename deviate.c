@@ -705,6 +705,9 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.zswstored	= cur->mem.zswstored;
 	dev->mem.zswtotpool	= cur->mem.zswtotpool;
 
+	dev->mem.tcpsock	= cur->mem.tcpsock;
+	dev->mem.udpsock	= cur->mem.udpsock;
+
 	dev->mem.pgouts		= subcount(cur->mem.pgouts,  pre->mem.pgouts);
 	dev->mem.pgins		= subcount(cur->mem.pgins,   pre->mem.pgins);
 	dev->mem.swouts		= subcount(cur->mem.swouts,  pre->mem.swouts);
@@ -1520,6 +1523,9 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.shmem		 = new->mem.shmem;
 		tot->mem.shmrss		 = new->mem.shmrss;
 		tot->mem.shmswp		 = new->mem.shmswp;
+
+		tot->mem.tcpsock	= new->mem.tcpsock;
+		tot->mem.udpsock	= new->mem.udpsock;
 
 		tot->mem.pgouts		+= new->mem.pgouts;
 		tot->mem.pgins		+= new->mem.pgins;

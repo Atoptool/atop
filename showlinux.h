@@ -247,6 +247,8 @@ extern sys_printdef syspdef_NUMAMIGRATE;
 extern sys_printdef syspdef_PGMIGRATE;
 extern sys_printdef syspdef_PAGPGIN;
 extern sys_printdef syspdef_PAGPGOUT;
+extern sys_printdef syspdef_TCPSOCK;
+extern sys_printdef syspdef_UDPSOCK;
 extern sys_printdef syspdef_PAGSWIN;
 extern sys_printdef syspdef_PAGSWOUT;
 extern sys_printdef syspdef_OOMKILLS;

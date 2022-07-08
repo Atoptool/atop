@@ -1653,6 +1653,26 @@ sysprt_PAGPGOUT(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_PAGPGOUT = {"PAGPGOUT", sysprt_PAGPGOUT, NULL};
 /*******************************************************************/
 static char *
+sysprt_TCPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="tcpsock  ";
+        val2valstr(sstat->mem.tcpsock, buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_TCPSOCK = {"TCPSOCK", sysprt_TCPSOCK, NULL};
+/*******************************************************************/
+static char *
+sysprt_UDPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="udpsock  ";
+        val2valstr(sstat->mem.udpsock, buf+8, 4, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_UDPSOCK = {"UDPSOCK", sysprt_UDPSOCK, NULL};
+/*******************************************************************/
+static char *
 sysprt_PAGSWIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
         static char buf[16]="swin   ";

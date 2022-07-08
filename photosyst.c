@@ -1027,6 +1027,7 @@ photosyst(struct sstat *si)
  	** 	- interface stats from the file /proc/net/dev
  	** 	- IPv4      stats from the file /proc/net/snmp
  	** 	- IPv6      stats from the file /proc/net/snmp6
+ 	** 	- sock mem  stats from the file /proc/net/sockstat
 	*/
 
 	/*
@@ -1204,6 +1205,37 @@ photosyst(struct sstat *si)
 		memcpy(&si->net.icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
 		memcpy(&si->net.udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
 
+		fclose(fp);
+	}
+
+	/*
+	** IP version 4: TCP & UDP memory allocations.
+	*/
+	if ( (fp = fopen("net/sockstat", "r")) != NULL)
+	{
+		char tcpmem[16], udpmem[16];
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			nr = sscanf(linebuf,
+				"%s %*s %*d %s %lld %*s %*d %*s %*d %s %lld\n",
+				nam, udpmem, &cnts[0], tcpmem, &cnts[1]);
+
+			if ( strcmp("TCP:", nam) == 0)
+			{
+				if ( strcmp("mem", tcpmem) == 0) {
+					si->mem.tcpsock = cnts[1];
+				}
+				continue;
+			}
+
+			if ( strcmp("UDP:", nam) == 0)
+			{
+				if ( strcmp("mem", udpmem) == 0) {
+					si->mem.udpsock = cnts[0];
+				}
+				continue;
+			}
+		}
 		fclose(fp);
 	}
 

@@ -420,6 +420,8 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_OOMKILLS,
 	&syspdef_PAGPGIN,
 	&syspdef_PAGPGOUT,
+	&syspdef_TCPSOCK,
+	&syspdef_UDPSOCK,
 	&syspdef_BLANKBOX,
         0
 };
@@ -1223,10 +1225,10 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "PAGCOMPACT:5 "
 			"NUMAMIGRATE:5"
 			"PGMIGRATE:6"
-	                "BLANKBOX:0 "
 	                "PAGPGIN:7 "
 	                "PAGPGOUT:7 "
-	                "BLANKBOX:0 "
+	                "TCPSOCK:7 "
+	                "UDPSOCK:5 "
 	                "PAGSWIN:5 "
 	                "PAGSWOUT:8 "
 			"OOMKILLS:9 ",
@@ -2191,6 +2193,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
             sstat->mem.compactstall 	||
             sstat->mem.pgins      	||
             sstat->mem.pgouts     	||
+            sstat->mem.tcpsock     	||
+            sstat->mem.udpsock     	||
             sstat->mem.swins      	||
             sstat->mem.swouts     	||
             sstat->mem.oomkills > 0   	||
