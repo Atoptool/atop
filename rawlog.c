@@ -277,6 +277,7 @@ rawwopen()
 	rh.ossub	= ossub;
 	rh.hertz	= hertz;
 	rh.pagesize	= pagesize;
+	rh.pidwidth	= getpidwidth();
 
 	memcpy(&rh.utsname, &utsname, sizeof rh.utsname);
 
@@ -530,6 +531,11 @@ rawread(void)
 
 	if (rh.pagesize)
 		pagesize = rh.pagesize;
+
+	if (rh.pidwidth)
+		pidwidth = rh.pidwidth;
+	else	
+		pidwidth = 5;
 
 	/*
 	** allocate a list for backtracking of rawrecord-offsets

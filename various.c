@@ -892,3 +892,26 @@ run_in_guest(void)
 {
 	return get_hypervisor() != HYPER_NONE;
 }
+
+/*
+** return maximum number of digits for PID/TID
+*/
+int
+getpidwidth(void)
+{
+	FILE 	*fp;
+	char	linebuf[64];
+	int	numdigits = 5;
+
+        if ( (fp = fopen("/proc/sys/kernel/pid_max", "r")) != NULL)
+        {
+                if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+                {
+                        numdigits = strlen(linebuf) - 1;
+                }
+
+                fclose(fp);
+        }
+
+	return numdigits;
+}

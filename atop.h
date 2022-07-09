@@ -99,6 +99,7 @@ extern int      	ossub;
 
 extern unsigned short	hertz;
 extern unsigned int	pagesize;
+extern unsigned int	pidwidth;
 extern unsigned int	nrgpus;
 
 extern int		supportflags;
@@ -187,6 +188,7 @@ unsigned short 	getnumvers(void);
 void		ptrverify(const void *, const char *, ...);
 void		mcleanstop(int, const char *, ...);
 void		cleanstop(int);
+int		getpidwidth(void);
 void		prusage(char *);
 
 int		droprootprivs(void);

@@ -54,7 +54,8 @@ struct rawheader {
 	unsigned short	rawheadlen;	/* length of struct rawheader    */
 	unsigned short	rawreclen;	/* length of struct rawrecord    */
 	unsigned short	hertz;		/* clock interrupts per second   */
-	unsigned short	sfuture[6];	/* future use                    */
+	unsigned short	pidwidth;	/* number of digits for PID/TID  */
+	unsigned short	sfuture[5];	/* future use                    */
 	unsigned int	sstatlen;	/* length of struct sstat        */
 	unsigned int	tstatlen;	/* length of struct tstat        */
 	struct utsname	utsname;	/* info about this system        */

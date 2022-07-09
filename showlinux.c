@@ -868,22 +868,8 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
 static void 
 init_proc_prints(count_t numcpu)
 {
-	int 	i, numdigits = 5;
 	char	linebuf[64];
-	FILE	*fp;
-
-	/*
-	** determine maximum number of digits for PID/TID
-	*/
-	if ( (fp = fopen("/proc/sys/kernel/pid_max", "r")) != NULL)
-	{
-                if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-                {
-                        numdigits = strlen(linebuf) - 1;
-                }
-
-                fclose(fp);
-        }
+	int	i;
 
 	/*
 	** fill number of digits for various PID/TID columns
@@ -891,15 +877,15 @@ init_proc_prints(count_t numcpu)
 	*/
 	for (i=0; idprocpdefs[i] != 0; i++)
 	{
-		idprocpdefs[i]->width = numdigits;
+		idprocpdefs[i]->width = pidwidth;
 
-		if ( strlen(idprocpdefs[i]->head) < numdigits)
+		if ( strlen(idprocpdefs[i]->head) < pidwidth)
 		{
-			char *p = malloc(numdigits+1);
+			char *p = malloc(pidwidth+1);
 
 			ptrverify(p, "Malloc failed for formatted header\n");
 
-			sprintf(p, "%*s", numdigits, idprocpdefs[i]->head);
+			sprintf(p, "%*s", pidwidth, idprocpdefs[i]->head);
 			idprocpdefs[i]->head = p;
 		}
 	}

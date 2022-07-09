@@ -325,6 +325,7 @@ char      	rmspaces   = 0;  /* boolean: remove spaces from command  */
 		                 /* name in case of parseable output     */
 
 unsigned short	hertz;
+unsigned int	pidwidth;
 unsigned int	pagesize;
 unsigned int	nrgpus;
 int 		osrel;
@@ -656,6 +657,7 @@ main(int argc, char *argv[])
 	*/
 	hertz		= sysconf(_SC_CLK_TCK);
 	pagesize	= sysconf(_SC_PAGESIZE);
+	pidwidth	= getpidwidth();
 
 	/*
 	** check if raw data from a file must be viewed
