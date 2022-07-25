@@ -14,6 +14,7 @@ ExecStartPre=/bin/sh -c 'test -n "$LOGGENERATIONS" -a "$LOGGENERATIONS" -eq "$LO
 ExecStart=/bin/sh -c 'exec /usr/bin/atop ${LOGOPTS} -w "${LOGPATH}/atop_$(date +%%Y%%m%%d)" ${LOGINTERVAL}'
 ExecStartPost=/usr/bin/find "${LOGPATH}" -name "atop_*" -mtime +${LOGGENERATIONS} -exec rm -v {} \;
 KillSignal=SIGUSR2
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
