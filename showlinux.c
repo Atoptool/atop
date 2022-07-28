@@ -669,6 +669,14 @@ proc_printdef *allprocpdefs[]=
 	&procprt_GPUMEMAVG,
 	&procprt_GPUGPUBUSY,
 	&procprt_GPUMEMBUSY,
+	&procprt_CGROUP_PATH,
+	&procprt_CGRCPUWGT,
+	&procprt_CGRCPUMAX,
+	&procprt_CGRCPUMAXR,
+	&procprt_CGRMEMMAX,
+	&procprt_CGRMEMMAXR,
+	&procprt_CGRSWPMAX,
+	&procprt_CGRSWPMAXR,
 	&procprt_SORTITEM,
         0
 };
@@ -700,6 +708,7 @@ proc_printpair netprocs[MAXITEMS];
 proc_printpair gpuprocs[MAXITEMS];
 proc_printpair varprocs[MAXITEMS];
 proc_printpair cmdprocs[MAXITEMS];
+proc_printpair cgrprocs[MAXITEMS];
 proc_printpair ownprocs[MAXITEMS];
 proc_printpair totusers[MAXITEMS];
 proc_printpair totprocs[MAXITEMS];
@@ -1127,9 +1136,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                     make_sys_prints(memline, MAXITEMS,
 	                "MEMTOT:8 "
 	                "MEMFREE:9 "
-	                "MEMCACHE:7 "
+	                "MEMCACHE:8 "
 	                "MEMDIRTY:5 "
-	                "MEMBUFFER:7 "
+	                "MEMBUFFER:6 "
 	                "MEMSLAB:7 "
 	                "RECSLAB:3 "
 	                "BLANKBOX:0 "
@@ -1494,6 +1503,11 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "PID:10 TID:4 S:8 SORTITEM:10 COMMAND-LINE:10", 
                         "built-in cmdprocs");
 
+                make_proc_prints(cgrprocs, MAXITEMS, 
+                        "PID:10 CPUWGT:9 CPUMAX:9 CPUMAXR:9 MEMMAX:8 MMMAXR:8 "
+			"SWPMAX:7 SWMAXR:7 SORTITEM:6 CMD:9 CGROUP-PATH:10", 
+                        "built-in cgrprocs");
+
                 make_proc_prints(totusers, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
@@ -1561,6 +1575,10 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 
            case MPROCARG:
                 showhdrline(cmdprocs, curlist, totlist, *showorder, autosort);
+                break;
+
+           case MPROCCGR:
+                showhdrline(cgrprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCOWN:
@@ -1807,6 +1825,10 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
                    case MPROCARG:
                         showprocline(cmdprocs, curstat, perc, nsecs, avgval);
+                        break;
+
+                   case MPROCCGR:
+                        showprocline(cgrprocs, curstat, perc, nsecs, avgval);
                         break;
 
                    case MPROCOWN:

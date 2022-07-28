@@ -89,6 +89,7 @@ struct sselection {
 #define	MPROCSCH	's'
 #define	MPROCVAR	'v'
 #define	MPROCARG	'c'
+#define	MPROCCGR	'X'
 #define MPROCOWN	'o'
 
 #define	MCUMUSER	'u'

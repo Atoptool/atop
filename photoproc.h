@@ -25,6 +25,7 @@
 
 #define	PNAMLEN		15
 #define	CMDLEN		255
+#define	CGRLEN		64
 
 /* 
 ** structure containing only relevant process-info extracted 
@@ -62,6 +63,7 @@ struct tstat {
 		int	wasinactive;	/* boolean: task inactive	*/
 
 		char	container[16];	/* Docker container id (12 pos)	*/
+		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
 	} gen;
 
 	/* CPU STATISTICS						*/
@@ -74,7 +76,10 @@ struct tstat {
 		int	policy;		/* scheduling policy            */
 		int	curcpu;		/* current processor            */
 		int	sleepavg;       /* sleep average percentage     */
-		int	ifuture[4];	/* reserved for future use	*/
+		int	cgcpuweight;	/* cgroup cpu.weight            */
+		int	cgcpumax;	/* cgroup cpu.max percentage    */
+		int	cgcpumaxr;	/* restrictive percentage       */
+		int	ifuture[3];	/* reserved for future use	*/
 		char	wchan[16];	/* wait channel string    	*/
 		count_t	rundelay;	/* schedstat rundelay (nanosec)	*/
 		count_t	blkdelay;	/* blkio delay (ticks)		*/
@@ -107,6 +112,10 @@ struct tstat {
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
 		count_t	vlock;		/* virtual locked   (Kb) 	*/
+		count_t	cgmemmax;	/* cgroup memory.max (Kb)	*/
+		count_t	cgmemmaxr;	/* restrictive memory.max (Kb)	*/
+		count_t	cgswpmax;	/* cgroup memory.swap.max (Kb)	*/
+		count_t	cgswpmaxr;	/* restrictive swap.max (Kb)	*/
 		count_t	cfuture[3];	/* reserved for future use	*/
 	} mem;
 

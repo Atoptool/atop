@@ -511,6 +511,22 @@ the occupation percentage for the chosen resource and the
 command line including arguments.
 .PP
 .TP 5
+.B X
+Show cgroup v2 information.
+
+Per process the following fields are shown:
+process-id,
+`cpu.weight' of the cgroup the process belongs to,
+`cpu.max' value (recalculated as percentage) of the cgroup the process belongs to,
+most restrictive `cpu.max' value found in the upper directories,
+`memory.max' value of the cgroup the process belongs to,
+most restrictive `memory.max' value found in the upper directories,
+`memory.swap.max' value of the cgroup the process belongs to,
+most restrictive `memory.swap.max' value found in the upper directories,
+the command name, and
+the cgroup path name (horizontally scrollable).
+.PP
+.TP 5
 .B e
 Show GPU utilization.
 
@@ -1549,6 +1565,12 @@ is loaded.
 Aggregated block I/O delay, i.e. time waiting for disk I/O.
 .PP
 .TP 9
+.B CGROUP
+Path name of the cgroup (version 2) to which this process belongs.
+This path name is relative to the cgroup root directory, which
+is usually `/sys/fs/cgroup'.
+.PP
+.TP 9
 .B CID
 Container ID (Docker) of 12 hexadecimal digits, referring to the container
 in which the process/thread is running.
@@ -1581,9 +1603,24 @@ The occupation percentage of this process related to the available capacity
 for this resource on system level.
 .PP
 .TP 9
+.B CPUMAX
+The `cpu.max' value of the cgroup (version 2) to which this process belongs,
+calculated as percentage of one CPU.
+.PP
+.TP 9
+.B CPUMAXR
+The most restrictive (i.e. effective) `cpu.max' value defined by the
+upper directories of the cgroup (version 2) to which this process belongs,
+calculated as percentage of one CPU.
+.PP
+.TP 9
 .B CPUNR
 The identification of the CPU the (main) thread is running on
 or has recently been running on.  
+.PP
+.TP 9
+.B CPUWGT
+The `cpu.weight' value of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B CTID
@@ -1690,8 +1727,17 @@ When the
 daemon does not run with root privileges, this value is not available.
 .PP
 .TP 9
+.B MEMMAX
+The `memory.max' value of the cgroup (version 2) to which this process belongs.
+.PP
+.TP 9
 .B MEMNOW
 Memory occupation at the moment of the sample on all used GPUs.
+.PP
+.TP 9
+.B MMMAXR
+The most restrictive (i.e. effective) `memory.max' value defined by the
+upper directories of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B MINFLT
@@ -1896,8 +1942,18 @@ The start time of the process.
 The saved user-id of the process.
 .PP
 .TP 9
+.B SWPMAX
+The `memory.swap.max' value of the cgroup (version 2) to which this
+process belongs.
+.PP
+.TP 9
 .B SWAPSZ
 The swap space consumed by this process (or user).
+.PP
+.TP 9
+.B SWMAXR
+The most restrictive (i.e. effective) `memory.swap.max' value defined by the
+upper directories of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B SYSCPU
@@ -2390,8 +2446,9 @@ effective uid, effective gid,
 saved uid, saved gid,
 filesystem uid, filesystem gid, elapsed time (hertz),
 is_process (y/n), OpenVZ  virtual pid (VPID), OpenVZ container id (CTID),
-Docker container id (CID), and indication if the task is newly started
-during this interval ('N').
+Docker container id (CID),
+indication if the task is newly started during this interval ('N'), and
+cgroup v2 path name (between parenthesis or underscores for spaces).
 .TP 9
 .B PRC
 For every process one line is shown.
@@ -2405,8 +2462,10 @@ nice value, priority, realtime priority,
 scheduling policy, current CPU, sleep average,
 TGID (group number of related tasks/threads), is_process (y/n),
 runqueue delay in nanoseconds for this thread or for all threads (in case of process),
-wait channel of this thread (between parenthesis or underscores for spaces), and
-block I/O delay (clockticks).
+wait channel of this thread (between parenthesis or underscores for spaces),
+block I/O delay (clockticks),
+cgroup v2 `cpu.max' calculated as percentage (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum), and
+cgroup v2 most restrictive `cpu.max' in upper directories calculated as percentage (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum).
 .TP 9
 .B PRE
 For every process one line is shown.
@@ -2428,20 +2487,24 @@ For every process one line is shown.
 Subsequent fields:
 PID, name (between parenthesis or underscores for spaces), state,
 page size for this machine (in bytes),
-virtual memory size (Kbytes),
-resident memory size (Kbytes),
-shared text memory size (Kbytes),
-virtual memory growth (Kbytes),
-resident memory growth (Kbytes),
+virtual memory size (KiB),
+resident memory size (KiB),
+shared text memory size (KiB),
+virtual memory growth (KiB),
+resident memory growth (KiB),
 number of minor page faults,
 number of major page faults,
-virtual library exec size (Kbytes),
-virtual data size (Kbytes),
-virtual stack size (Kbytes),
-swap space used (Kbytes),
+virtual library exec size (KiB),
+virtual data size (KiB),
+virtual stack size (KiB),
+swap space used (KiB),
 TGID (group number of related tasks/threads), is_process (y/n),
-proportional set size (Kbytes) if in 'R' option is specified and
-virtually locked memory space (Kbytes).
+proportional set size (KiB) if in 'R' option is specified,
+virtually locked memory space (KiB),
+cgroup v2 `memory.max' in KiB (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum), 
+cgroup v2 most restrictive `memory.max' in upper directories in KiB (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum),
+cgroup v2 `memory.swap.max' in KiB (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum), and
+cgroup v2 most restrictive `memory.swap.max' in upper directories in KiB (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum).
 .TP 9
 .B PRD
 For every process one line is shown.

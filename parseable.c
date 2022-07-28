@@ -67,6 +67,7 @@ void 	print_PRN();
 void 	print_PRE();
 
 static char *spaceformat(char *, char *);
+static int  cgroupv2max(int, int);
 
 /*
 ** table with possible labels and the corresponding
@@ -713,7 +714,8 @@ void
 print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i, exitcode;
-	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2];
+	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2],
+			pathout[CGRLEN+1];
 
 	for (i=0; i < nact; i++, ps++)
 	{
@@ -723,7 +725,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			exitcode = (ps->gen.excode >>   8) & 0xff;
 
 		printf("%s %d %s %c %d %d %d %d %d %ld %s %d %d %d %d "
- 		       "%d %d %d %d %d %d %ld %c %d %d %s %c\n",
+ 		       "%d %d %d %d %d %d %ld %c %d %d %s %c %s\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -750,7 +752,8 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.vpid,
 			ps->gen.ctid,
 			ps->gen.container[0] ? ps->gen.container:"-",
-        		ps->gen.excode & ~(INT_MAX) ? 'N' : '-');
+        		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
+			spaceformat(ps->gen.cgpath, pathout));
 	}
 }
 
@@ -763,7 +766,7 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
-		       "%llu %s %llu\n",
+		       "%llu %s %llu %d %d\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -781,7 +784,9 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.isproc ? 'y':'n',
 			ps->cpu.rundelay,
 			spaceformat(ps->cpu.wchan, wchanout),
-			ps->cpu.blkdelay);
+			ps->cpu.blkdelay,
+			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumax),
+			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumaxr));
 	}
 }
 
@@ -794,7 +799,7 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %d %c %lld %lld\n",
+		       "%lld %lld %lld %lld %lld %d %c %lld %lld %d %d %d %d\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -815,7 +820,11 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.isproc ? 'y':'n',
 			ps->mem.pmem == (unsigned long long)-1LL ?
 							0:ps->mem.pmem,
-			ps->mem.vlock);
+			ps->mem.vlock,
+			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmax),
+			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmaxr),
+			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmax),
+			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmaxr));
 	}
 }
 
@@ -939,4 +948,19 @@ spaceformat(char *istr, char *ostr)
 	}
 
 	return ostr;
+}
+
+/*
+** return proper integer for cgroup v2 maximum values
+*/
+static int
+cgroupv2max(int isproc, int max)
+{
+	if (! (supportflags&CGROUPV2))
+		return -3;
+
+	if (! isproc)
+		return -2;
+
+	return max;
 }

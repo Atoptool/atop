@@ -1176,6 +1176,21 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** cgroup v2 info per process
+			   */
+			   case MPROCCGR:
+				if ( !(supportflags & CGROUPV2) )
+				{
+					statmsg = "No cgroup v2 figures "
+					          "available; request ignored!";
+					break;
+				}
+
+				showtype  = MPROCCGR;
+				firstproc = 0;
+				break;
+
+			   /*
 			   ** own defined output per process
 			   */
 			   case MPROCOWN:
@@ -2707,7 +2722,7 @@ generic_init(void)
 			if ( !(supportflags & NETATOP) )
 			{
 				fprintf(stderr, "Kernel module 'netatop' not "
-					          "active; request ignored!");
+					          "active; request ignored!\n");
 				sleep(3);
 				break;
 			}
@@ -2722,6 +2737,18 @@ generic_init(void)
 
 		   case MPROCARG:
 			showtype  = MPROCARG;
+			break;
+
+		   case MPROCCGR:
+			if ( !(supportflags & CGROUPV2) )
+			{
+				fprintf(stderr, "No cgroup v2 details "
+				          "available; request ignored!\n");
+				sleep(3);
+				break;
+			}
+
+			showtype  = MPROCCGR;
 			break;
 
 		   case MPROCOWN:
@@ -2896,11 +2923,13 @@ static struct helptext {
 	{"\t'%c'  - memory details\n",				MPROCMEM},
 	{"\t'%c'  - disk details\n",				MPROCDSK},
 	{"\t'%c'  - network details\n",				MPROCNET},
-	{"\t'%c'  - GPU details\n",				MPROCGPU},
+	{"\t'%c'  - cgroups v2 details\n",			MPROCCGR},
 	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH},
+	{"\t'%c'  - GPU details\n",				MPROCGPU},
 	{"\t'%c'  - various info (ppid, user/group, date/time, status, "
 	 "exitcode)\n",	MPROCVAR},
 	{"\t'%c'  - full command line per process\n",		MPROCARG},
+	{"\t'%c'  - cgroup v2 info per process\n",		MPROCCGR},
 	{"\t'%c'  - use own output line definition\n",		MPROCOWN},
 	{"\n",							' '},
 	{"Sort list of processes in order of:\n",		' '},
@@ -3103,6 +3132,8 @@ generic_usage(void)
 	                 "date/time)\n", MPROCVAR);
 	printf("\t  -%c  show command line per process\n",
 			MPROCARG);
+	printf("\t  -%c  show cgroup v2 info per process\n",
+			MPROCCGR);
 	printf("\t  -%c  show own defined process-info\n",
 			MPROCOWN);
 	printf("\t  -%c  show cumulated process-info per user\n",
@@ -3410,6 +3441,10 @@ do_flags(char *name, char *val)
 
 		   case MPROCARG:
 			showtype  = MPROCARG;
+			break;
+
+		   case MPROCCGR:
+			showtype  = MPROCCGR;
 			break;
 
 		   case MPROCOWN:
