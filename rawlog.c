@@ -152,6 +152,9 @@ rawwrite(time_t curtime, int numsecs,
 	if (supportflags & NETATOPD)
 		rr.flags |= RRNETATOPD;
 
+	if (supportflags & CGROUPV2)
+		rr.flags |= RRCGRSTAT;
+
 	if (supportflags & DOCKSTAT)
 		rr.flags |= RRDOCKSTAT;
 
@@ -756,6 +759,11 @@ rawread(void)
 				supportflags |=  NETATOPD;
 			else
 				supportflags &= ~NETATOPD;
+
+			if (rr.flags & RRCGRSTAT)
+				supportflags |=  CGROUPV2;
+			else
+				supportflags &= ~CGROUPV2;
 
 			if (rr.flags & RRDOCKSTAT)
 				supportflags |=  DOCKSTAT;

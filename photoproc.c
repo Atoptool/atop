@@ -13,7 +13,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2022 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -29,111 +29,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: photoproc.c,v $
-** Revision 1.33  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.32  2009/11/27 13:44:00  gerlof
-** euid, suid, fsuid, egid, sgid and fsgid also registered.
-**
-** Revision 1.31  2008/03/06 08:38:14  gerlof
-** Register/show ppid of a process.
-**
-** Revision 1.30  2008/01/18 07:36:29  gerlof
-** Gather information about the state of the individual threads.
-**
-** Revision 1.29  2007/11/05 12:26:10  gerlof
-** Detect disappearing /proc/stat file  when process exits
-** (credits: Rene Rebe).
-**
-** Revision 1.28  2007/03/27 10:53:59  gerlof
-** Bug-solution: only allow IOSTAT when patches are not installed.
-**
-** Revision 1.27  2007/03/21 14:21:37  gerlof
-** Handle io counters maintained from 2.6.20
-**
-** Revision 1.26  2007/02/13 10:32:34  gerlof
-** Removal of external declarations.
-**
-** Revision 1.25  2007/01/15 09:00:14  gerlof
-** Add new function to count actual number of processes.
-**
-** Revision 1.24  2006/02/07 06:47:35  gerlof
-** Removed swap-counter.
-**
-** Revision 1.23  2005/10/21 09:49:57  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.22  2004/12/14 15:05:58  gerlof
-** Implementation of patch-recognition for disk and network-statistics.
-**
-** Revision 1.21  2004/09/23 09:07:49  gerlof
-** Solved segmentation fault by checking tval.
-**
-** Revision 1.20  2004/09/08 06:01:01  gerlof
-** Correct the priority of a process by adding 100 (the kernel
-** subtracts 100 when showing the value via /proc).
-**
-** Revision 1.19  2004/09/02 10:49:45  gerlof
-** Added sleep-average to process-info.
-**
-** Revision 1.18  2004/08/31 09:51:36  gerlof
-** Gather information about underlying threads.
-**
-** Revision 1.17  2003/07/07 09:26:59  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.16  2003/06/30 11:30:43  gerlof
-** Enlarge counters to 'long long'.
-**
-** Revision 1.15  2003/02/06 12:09:23  gerlof
-** Exchange tab-character in command-line by space.
-**
-** Revision 1.14  2003/01/24 14:19:39  gerlof
-** Exchange newline byte in command-line by space.
-**
-** Revision 1.13  2003/01/17 14:21:41  root
-** Change-directory to /proc to optimize opening /proc-files
-** via relative path-names i.s.o. absolute path-names.
-**
-** Revision 1.12  2003/01/17 07:31:29  gerlof
-** Store the full command-line for every process.
-**
-** Revision 1.11  2003/01/06 13:03:09  gerlof
-** Improved command-name parsing (command-names containing a close-bracket
-** were not parsed correctly).
-**
-** Revision 1.10  2002/10/03 11:12:39  gerlof
-** Modify (effective) uid/gid to real uid/gid.
-**
-** Revision 1.9  2002/07/24 11:13:31  gerlof
-** Changed to ease porting to other UNIX-platforms.
-**
-** Revision 1.8  2002/07/08 09:27:45  gerlof
-** Avoid buffer overflow during sprintf by using snprintf.
-**
-** Revision 1.7  2002/01/22 13:39:53  gerlof
-** Support for number of cpu's.
-**
-** Revision 1.6  2001/11/22 08:33:43  gerlof
-** Add priority per process.
-**
-** Revision 1.5  2001/11/13 08:26:15  gerlof
-** Small bug-fixes.
-**
-** Revision 1.4  2001/11/07 09:18:43  gerlof
-** Use /proc instead of /dev/kmem for process-level statistics.
-**
-** Revision 1.3  2001/10/04 13:57:34  gerlof
-** Explicit include of sched.h (i.s.o. linux/sched.h via linux/mm.h).
-**
-** Revision 1.2  2001/10/04 08:47:26  gerlof
-** Improved verification of kernel-symbol addresses
-**
-** Revision 1.1  2001/10/02 10:43:29  gerlof
-** Initial revision
-**
 */
 
 #include <sys/types.h>
@@ -144,6 +39,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -168,6 +64,14 @@ static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 static void	procwchan(struct tstat *);
 static count_t	procschedstat(struct tstat *);
+static int	proccgroupv2(struct tstat *);
+static struct cgroupv2vals *
+		alloccgroupv2(char *, int);
+static struct cgroupv2vals *
+		findhashcgroupv2(char *, int *);
+void		fillcgroupv2(struct cgroupv2vals *, char *, char *, int);
+int 		readcgroupv2(char *, char *, char *, int, long []);
+static void	wipecgroupv2(void);
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -199,6 +103,22 @@ photoproc(struct tstat *tasklist, int maxtask)
 			fclose(fp);
 		}
 
+		/*
+		** check if this kernel offers cgroups version 2
+		*/
+		if ( (fp = fopen("/proc/1/cgroup", "r")) )
+		{
+			char line[128];
+
+			if (fgets(line, sizeof line, fp))
+			{
+				if (memcmp(line, "0::", 3) == 0) // equal?
+					supportflags |= CGROUPV2;
+			}
+
+			fclose(fp);
+		}
+
 		if (! droprootprivs())
 			mcleanstop(42, "failed to drop root privs\n");
 
@@ -217,6 +137,9 @@ photoproc(struct tstat *tasklist, int maxtask)
 	regainrootprivs();
 
 	netatop_probe();
+
+	if (supportflags & CGROUPV2)
+		wipecgroupv2();
 
 	if (! droprootprivs())
 		mcleanstop(42, "failed to drop root privs\n");
@@ -272,6 +195,13 @@ photoproc(struct tstat *tasklist, int maxtask)
 		procschedstat(curtask);		/* from /proc/pid/schedstat */
 		proccmd(curtask);		/* from /proc/pid/cmdline */
 		dockstat += proccont(curtask);	/* from /proc/pid/cpuset  */
+
+		/*
+ 		** cgroups v2: determine cgroup for process and register most
+		**             relevant limits
+		*/
+		if (supportflags & CGROUPV2)
+			proccgroupv2(curtask);
 
 		/*
 		** reading the smaps file for every process with every sample
@@ -1023,4 +953,402 @@ procschedstat(struct tstat *curtask)
 	}
 
 	return curtask->cpu.rundelay;
+}
+
+/*
+** CGROUP V2 specific items
+*/
+#define	CGROUPROOT	"/sys/fs/cgroup"
+#define	CGROUPNHASH	64
+#define	CGROUPMASK	0x3f
+#define	MAXSLASH	16	// max. number of slashes in relative path
+
+struct cgroupv2vals {
+	char			*path;
+
+	int			cpuweight;  	// -1=max, -2=undefined
+
+	int			cpumax;  	// -1=max, -2=undefined (perc)
+	int			cpumaxr;  	// -1=max, -2=undefined (perc)
+
+	long long		memmax;		// -1=max, -2=undefined (KiB)
+	long long		memmaxr;	// -1=max, -2=undefined (KiB)
+
+	long long		swpmax;		// -1=max, -2=undefined (KiB)
+	long long		swpmaxr;	// -1=max, -2=undefined (KiB)
+
+	struct cgroupv2vals	*next;
+};
+
+static struct cgroupv2vals *cgrouphash[CGROUPNHASH];
+
+/*
+** get cgroup related to process from /proc/<pid>/cgroup
+** return code:		0 - no cgroup v2 in use
+**			1 - cgroup v2 in use
+**			2 - cgroup version can not be determined
+*/
+static int
+proccgroupv2(struct tstat *curtask)
+{
+	FILE			*fp;
+	char			line[1024], *relpath, abspath[1200];
+	int			hash, pathlen, restlen, nslash;
+	struct cgroupv2vals 	*pvals = NULL, *ptarget;
+	char			*p, *slashes[MAXSLASH];
+
+	/*
+ 	** open the cgroup file of the current process and
+	** read one line that should start with '0::' for cgroup v2
+	*/
+	if ( (fp = fopen("cgroup", "r")) )
+	{
+		if (fgets(line, sizeof line, fp))
+		{
+			if ( memcmp(line, "0::", 3) )	// unequal?
+			{
+				fclose(fp);
+				curtask->gen.cgpath[0] = '\0';
+				return 0;		// no cgroupv2 support
+			}
+		}
+		fclose(fp);
+
+		line[ strlen(line)-1 ] = '\0';	// remove newline
+
+		relpath = line+3;
+
+		strncpy(curtask->gen.cgpath, relpath,
+					sizeof curtask->gen.cgpath);
+		curtask->gen.cgpath[sizeof curtask->gen.cgpath -1] = '\0';
+	}
+	else	// open failed; no permission
+	{
+		curtask->gen.cgpath[0] = '\0';
+		return 2;
+	}
+
+	/*
+	** cgroup v2 pathname of this process is known;
+	** prepare absolute pathname of cgroup 
+	*/
+	pathlen = snprintf(abspath, sizeof abspath, "%s%s/",
+						CGROUPROOT, relpath);
+	restlen = sizeof abspath - pathlen -1;
+	abspath[sizeof abspath - 1] = '\0';	// guarantee delimiter
+	relpath = abspath + sizeof CGROUPROOT - 1;
+
+	/*
+	** cycle through all directory levels for values that
+	** might limit the values in the current cgroup (e.g. cpu.max)
+	*/
+	for (nslash=0, p=relpath; *p && nslash<MAXSLASH; p++)
+	{
+		if (*p == '/')			// find all slashes in path
+			slashes[nslash++] = p;
+	}
+
+	for (nslash--, ptarget=NULL; nslash > 0; nslash--)
+	{
+		*slashes[nslash] = '\0';
+
+		pvals = findhashcgroupv2(relpath, &hash); // search in cache
+
+		if (!pvals)				// not found in cache
+		{
+			// allocate new cache entry
+        		pvals = alloccgroupv2(relpath, hash);
+
+			// fill info in new cache entry
+			fillcgroupv2(pvals, abspath, slashes[nslash],
+								restlen);
+		}
+
+
+		/*
+		** if the target cgroup is not defined,
+		** determine the target cgroup (lowest level dir)
+		*/
+		if (! ptarget)
+		{
+			ptarget = pvals;
+			continue;
+		}
+
+		/*
+		** in case of a higher cgroup, check the restrictive values
+		** for the target cgroup
+		*/
+		switch (pvals->cpumax)
+		{
+		   case -1:
+			if (ptarget->cpumaxr == -2)
+				ptarget->cpumaxr = -1;
+			break;
+		   case -2:
+			break;
+		   default:
+			if (ptarget->cpumaxr == -1 || ptarget->cpumaxr == -2)
+			{
+				ptarget->cpumaxr = pvals->cpumax;
+				break;
+			}
+
+			if (ptarget->cpumaxr > pvals->cpumax)
+				ptarget->cpumaxr = pvals->cpumax;
+		}
+
+		switch (pvals->memmax)
+		{
+		   case -1:
+			if (ptarget->memmaxr == -2)
+				ptarget->memmaxr = -1;
+			break;
+		   case -2:
+			break;
+		   default:
+			if (ptarget->memmaxr == -1 || ptarget->memmaxr == -2)
+			{
+				ptarget->memmaxr = pvals->memmax;
+				break;
+			}
+
+			if (ptarget->memmaxr > pvals->memmax)
+				ptarget->memmaxr = pvals->memmax;
+		}
+
+		switch (pvals->swpmax)
+		{
+		   case -1:
+			if (ptarget->swpmaxr == -2)
+				ptarget->swpmaxr = -1;
+			break;
+		   case -2:
+			break;
+		   default:
+			if (ptarget->swpmaxr == -1 || ptarget->swpmaxr == -2)
+			{
+				ptarget->swpmaxr = pvals->swpmax;
+				break;
+			}
+
+			if (ptarget->swpmaxr > pvals->swpmax)
+				ptarget->swpmaxr = pvals->swpmax;
+		}
+
+
+	}
+
+	curtask->cpu.cgcpuweight = ptarget->cpuweight;
+
+	curtask->cpu.cgcpumax    = ptarget->cpumax;
+	curtask->cpu.cgcpumaxr   = ptarget->cpumaxr;
+
+	curtask->mem.cgmemmax    = ptarget->memmax;
+	curtask->mem.cgmemmaxr   = ptarget->memmaxr;
+
+	curtask->mem.cgswpmax    = ptarget->swpmax;
+	curtask->mem.cgswpmaxr   = ptarget->swpmaxr;
+
+	return 1;
+}
+
+/*
+** determine the most relevant values of this cgroup
+*/
+void
+fillcgroupv2(struct cgroupv2vals *pvals, char *abspath, char *extpath,
+								int restlen)
+{
+	long	retvals[2];
+
+	*extpath++ = '/';			// replace slash
+
+	/*
+	** get cpu.weight limitation
+	*/
+	pvals->cpuweight = -2;			// initial value (undefined)
+
+	switch (readcgroupv2(abspath, extpath, "cpu.weight", restlen, retvals))
+	{
+	   case 1:
+		pvals->cpuweight = retvals[0];
+		break;
+	}
+
+	/*
+	** get cpu.max limitation
+	*/
+	pvals->cpumax = -2;			// initial value (undefined)
+
+	switch (readcgroupv2(abspath, extpath, "cpu.max", restlen, retvals))
+	{
+	   case 2:
+		if (retvals[0] == -1)
+			pvals->cpumax = -1;
+		else
+			pvals->cpumax = retvals[0] * 100 / retvals[1];
+		break;
+	}
+
+	pvals->cpumaxr = pvals->cpumax;		// set temporary restrictive
+
+	/*
+	** get memory.max limitation
+	*/
+	pvals->memmax = -2;			// initial value (undefined)
+
+	switch (readcgroupv2(abspath, extpath, "memory.max", restlen, retvals))
+	{
+	   case 1:
+		if (retvals[0] == -1)
+			pvals->memmax = -1;
+		else
+			pvals->memmax = retvals[0] / 1024;	// KiB
+		break;
+	}
+
+	pvals->memmaxr = pvals->memmax;		// set temporary restrictive
+
+	/*
+	** get memory.swap.max limitation
+	*/
+	pvals->swpmax = -2;			// initial value (undefined)
+
+	switch (readcgroupv2(abspath, extpath, "memory.swap.max", restlen, retvals))
+	{
+	   case 1:
+		if (retvals[0] == -1)
+			pvals->swpmax = -1;
+		else
+			pvals->swpmax = retvals[0] / 1024;	// KiB
+		break;
+	}
+
+	pvals->swpmaxr = pvals->swpmax;		// set temporary restrictive
+}
+
+/*
+** read line with one or two values
+** and fill one or (maximum) two values
+** in retvals (value 'max' converted into -1)
+**
+** return value:	number of entries in retvals filled
+*/
+int 
+readcgroupv2(char *abspath, char *extpath, char *fname, int restlen,
+							long retvals[])
+{
+	char line[64];
+	int  n;
+	FILE *fp;
+
+	strncpy(extpath, fname, restlen);  // complete absolute path of file
+
+	if ( (fp = fopen(abspath, "r")) )
+	{
+		char firststr[16];
+
+		if (! fgets(line, sizeof line, fp))
+		{
+			fclose(fp);
+			return 0;
+		}
+
+		fclose(fp);
+
+		switch (n = sscanf(line, "%15s %ld", firststr, &retvals[1]))
+		{
+		   case 0:
+			return 0;
+		   case 1:
+		   case 2:
+			if ( strcmp(firststr, "max") == 0)
+				retvals[0] = -1;
+			else
+				retvals[0] = atol(firststr);
+
+			return n;
+		   default:
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
+/*
+** find existing info about cgroup in cgroupv2 cache
+**
+** return value:	pointer to structure that has been found, or
+**			NULL (not found)
+*/
+static struct cgroupv2vals *
+findhashcgroupv2(char *relpath, int *phash)
+{ 
+	struct cgroupv2vals 	*p;
+	char 			*s;
+	int  			hash = 0;
+
+	for (s = relpath; *s++; )	// calculate simple hash for this cgroup
+		hash += *s;		// by accumulating all path characters
+
+	*phash = hash;
+
+	// search hash list of earlier accessed cgroups within this interval
+	for (p = cgrouphash[hash&CGROUPMASK]; p; p = p->next)
+	{
+		if ( strcmp(relpath, p->path) == 0)	// found?
+			return p;
+	}
+
+	return NULL;
+}
+
+/*
+** allocate new hash entry in cgroupv2 cache
+**
+** return value:	pointer to newly allocated structure
+*/
+static struct cgroupv2vals *
+alloccgroupv2(char *relpath, int hash)
+{
+	struct cgroupv2vals 	*p;
+
+	p = malloc(sizeof(struct cgroupv2vals));
+
+	ptrverify(p, "Malloc failed for new cgroup values\n");
+
+	p->path = malloc(strlen(relpath)+1);
+
+	ptrverify(p->path, "Malloc failed for path in new cgroup values\n");
+
+	strcpy(p->path, relpath);
+
+	p->next = cgrouphash[hash&CGROUPMASK]; 	// add new entry to hash chain
+	cgrouphash[hash&CGROUPMASK] = p;
+
+	return p;
+}
+
+/*
+** clear entire cgroupv2 cache
+*/
+static void
+wipecgroupv2(void)
+{
+	int i;
+	struct cgroupv2vals *p, *pnext;
+
+	for (i=0; i < CGROUPNHASH; i++)
+	{
+		for (p = cgrouphash[i]; p; p = pnext)
+		{
+			pnext = p->next;
+			free(p->path);
+			free(p);
+		}
+
+		cgrouphash[i] = 0;
+	}
 }

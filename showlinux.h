@@ -427,7 +427,14 @@ extern proc_printdef procprt_SORTITEM;
 extern proc_printdef procprt_RUNDELAY;
 extern proc_printdef procprt_BLKDELAY;
 extern proc_printdef procprt_WCHAN;
-
+extern proc_printdef procprt_CGROUP_PATH;
+extern proc_printdef procprt_CGRCPUWGT;
+extern proc_printdef procprt_CGRCPUMAX;
+extern proc_printdef procprt_CGRCPUMAXR;
+extern proc_printdef procprt_CGRMEMMAX;
+extern proc_printdef procprt_CGRMEMMAXR;
+extern proc_printdef procprt_CGRSWPMAX;
+extern proc_printdef procprt_CGRSWPMAXR;
 
 
 //extern char *procprt_NRDDSK_ae(struct tstat *, int, int);
