@@ -295,9 +295,10 @@
 #include "photosyst.h"
 #include "showgeneric.h"
 #include "parseable.h"
+#include "json.h"
 #include "gpucom.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
+#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -587,6 +588,13 @@ main(int argc, char *argv[])
 					prusage(argv[0]);
 
 				vis.show_samp = parseout;
+				break;
+
+                           case 'J':		/* json output?          */
+				if ( !jsondef(optarg) )
+					prusage(argv[0]);
+
+				vis.show_samp = jsonout;
 				break;
 
                            case 'L':		/* line length                */
@@ -1090,6 +1098,7 @@ prusage(char *myname)
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
 	printf("\t  -P  generate parseable output for specified label(s)\n");
+	printf("\t  -J  generate JSON output for specified label(s)\n");
 	printf("\t  -%c  no spaces in parseable output for command (line)\n",
 			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "
