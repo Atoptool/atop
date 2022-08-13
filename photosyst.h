@@ -60,6 +60,8 @@ struct	memstat {
 	count_t	allocstall;	// try to free pages forced
 	count_t	swouts;		// number of pages swapped out
 	count_t	swins;		// number of pages swapped in
+	count_t	tcpsock;	// number of pages allocated by TCP sockets
+	count_t	udpsock;	// number of pages allocated by UDP sockets
 
 	count_t	commitlim;	// commit limit in pages
 	count_t	committed;	// number of reserved pages
@@ -87,7 +89,7 @@ struct	memstat {
 	count_t	numamigrate;	// counter for numa migrated (pages)
 	count_t	pgouts;		// total number of pages written to block device
 	count_t	pgins;		// total number of pages read from block device
-	count_t	cfuture[7];	// reserved for future use
+	count_t	cfuture[5];	// reserved for future use
 };
 
 /************************************************************************/

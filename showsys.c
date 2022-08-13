@@ -1473,6 +1473,26 @@ sysval_ZSWSTORED(struct sstat *sstat)
 sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED, sysval_ZSWSTORED};
 /*******************************************************************/
 static char *
+sysprt_TCPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="tcpsk ";
+        val2memstr(sstat->mem.tcpsock * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_TCPSOCK = {"TCPSOCK", sysprt_TCPSOCK, NULL};
+/*******************************************************************/
+static char *
+sysprt_UDPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="udpsk ";
+        val2memstr(sstat->mem.udpsock * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_UDPSOCK = {"UDPSOCK", sysprt_UDPSOCK, NULL};
+/*******************************************************************/
+static char *
 sysprt_KSMSHARING(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="kssav ";
