@@ -190,6 +190,12 @@ getspacings(proc_printpair* elemptr)
                 return spacings;
         }
 
+        // avoid division by 0
+        if (nitems==1)
+        {
+                spacings[0]=0;
+                return spacings;
+        }
 
         /* fixed columns, spread whitespace over columns */
         double over=(0.0+maxw-col)/(nitems-1);
@@ -278,7 +284,7 @@ showhdrline(proc_printpair* elemptr, int curlist, int totlist,
                 {
                         sprintf(buf+col, "%*s", allign+pagindiclen, pagindic);
                 }
-                else
+                else if (col+allign >= 0)
                 {    // allign by removing from the right
                         sprintf(buf+col+allign, "%s", pagindic);
                 }
