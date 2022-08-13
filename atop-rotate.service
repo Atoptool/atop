@@ -1,5 +1,6 @@
 [Unit]
 Description=Restart atop daemon to rotate logs
+Documentation=man:atop(1)
 
 [Service]
 Type=oneshot

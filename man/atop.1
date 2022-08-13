@@ -1003,7 +1003,11 @@ a certain time period within the raw file can be selected.
 .PP
 Every day at midnight
 .B atop
-is restarted to write compressed binary data to the file
+is restarted by the
+.BI atop-rotate.timer
+and
+.BI atop-rotate.service
+unit files, to write compressed binary data to the file
 .BI /var/log/atop/atop_ YYYYMMDD
 with an interval of 10 minutes by default.
 .br

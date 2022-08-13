@@ -1,5 +1,6 @@
 [Unit]
 Description=Daily atop restart
+Documentation=man:atop(1)
 
 [Timer]
 OnCalendar=daily
