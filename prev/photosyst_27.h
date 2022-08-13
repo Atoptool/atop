@@ -324,7 +324,7 @@ struct wwwstat_27 {
 };
 
 #if	HTTPSTATS
-int	getwwwstat(unsigned short, struct wwwstat_27 *);
+int	getwwwstat_27(unsigned short, struct wwwstat_27 *);
 #endif
 /************************************************************************/
 struct pergpu_27 {
