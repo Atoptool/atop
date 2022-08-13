@@ -213,7 +213,7 @@ process is alive.
 Whenever the last
 .I atop
 process stops (either by pressing `q' or by `kill \-15'), it deactivates the
-process accounting mechanism again. Therefor you should never terminate
+process accounting mechanism again. Therefore you should never terminate
 .I atop
 by `kill \-9', because then it has no chance to stop process accounting.
 As a result, the accounting file may consume a lot of 
@@ -1170,7 +1170,7 @@ while the frequency scaling of that CPU was 40%, only 20% of the full
 capacity of the CPU has been used in user mode.
 .br
 In case that the kernel module `cpufreq_stats' is active
-(after issueing `modprobe cpufreq_stats'), the
+(after issuing `modprobe cpufreq_stats'), the
 .I average
 frequency (`avgf') and the
 .I average
@@ -1326,7 +1326,7 @@ that free memory drops below a particular threshold, the number
 times that the kernel tries to reclaim pages due to an urgent need (`stall'),
 the number of process stalls to run memory compaction to allocate
 huge pages (`compact'), the number of NUMA pages migrated (`numamig'), and
-the total number of memory pages migrated succesfully e.g. between
+the total number of memory pages migrated successfully e.g. between
 NUMA nodes or for compaction (`migrate') are shown.
 .br
 Also the number of memory pages the system read from block devices (`pgin'),
@@ -1824,7 +1824,7 @@ The read data transfer issued physically on disk (so reading from the
 disk cache is not accounted for).
 .br
 Unfortunately, the kernel aggregates the
-data tranfer of a process to the data transfer of its parent process when
+data transfer of a process to the data transfer of its parent process when
 terminating, so you might see transfers for (parent) processes like
 cron, bash or init, that are not really issued by them.
 .PP
@@ -2055,9 +2055,9 @@ The virtual memory size of the private data used by this process
 .TP 9
 .B VGROW 
 The amount of virtual memory that the process has grown during the last
-interval. A virtual growth can be caused by e.g. issueing a malloc()
+interval. A virtual growth can be caused by e.g. issuing a malloc()
 or attaching a shared memory segment. Note that a virtual growth can also
-be negative by e.g. issueing a free() or detaching a shared memory segment.
+be negative by e.g. issuing a free() or detaching a shared memory segment.
 For a process which started during the last interval, the virtual growth
 reflects the total virtual size of the process at that moment.
 .br
@@ -2114,7 +2114,7 @@ to disk later on). Notice that disk I/O needed for swapping is
 not taken into account.
 .br
 Unfortunately, the kernel aggregates the
-data tranfer of a process to the data transfer of its parent process when
+data transfer of a process to the data transfer of its parent process when
 terminating, so you might see transfers for (parent) processes like
 cron, bash or init, that are not really issued by them.
 .PP
