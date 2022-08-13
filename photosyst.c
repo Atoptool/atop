@@ -1214,10 +1214,11 @@ photosyst(struct sstat *si)
 	if ( (fp = fopen("net/sockstat", "r")) != NULL)
 	{
 		char tcpmem[16], udpmem[16];
+
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-				"%s %*s %*d %s %lld %*s %*d %*s %*d %s %lld\n",
+				"%15s %*s %*d %s %lld %*s %*d %*s %*d %s %lld\n",
 				nam, udpmem, &cnts[0], tcpmem, &cnts[1]);
 
 			if ( strcmp("TCP:", nam) == 0)

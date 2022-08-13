@@ -380,6 +380,9 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_MEMSLAB,
 	&syspdef_RECSLAB,
 	&syspdef_BLANKBOX,
+	&syspdef_TCPSOCK,
+	&syspdef_UDPSOCK,
+	&syspdef_BLANKBOX,
 	&syspdef_SHMEM,
 	&syspdef_SHMRSS,
 	&syspdef_SHMSWP,
@@ -420,8 +423,6 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_OOMKILLS,
 	&syspdef_PAGPGIN,
 	&syspdef_PAGPGOUT,
-	&syspdef_TCPSOCK,
-	&syspdef_UDPSOCK,
 	&syspdef_BLANKBOX,
         0
 };
@@ -1144,6 +1145,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "MEMSLAB:7 "
 	                "RECSLAB:3 "
 	                "BLANKBOX:0 "
+	                "TCPSOCK:5 "
+	                "UDPSOCK:2 "
+	                "BLANKBOX:0 "
 	                "SHMEM:3 "
 	                "SHMRSS:3 "
 	                "SHMSWP:2 "
@@ -1236,8 +1240,6 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 			"PGMIGRATE:6"
 	                "PAGPGIN:7 "
 	                "PAGPGOUT:7 "
-	                "TCPSOCK:7 "
-	                "UDPSOCK:5 "
 	                "PAGSWIN:5 "
 	                "PAGSWOUT:8 "
 			"OOMKILLS:9 ",

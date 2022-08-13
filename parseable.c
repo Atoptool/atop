@@ -387,7 +387,7 @@ print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -406,7 +406,9 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.freehugepage,
         		ss->mem.zfsarcsize != -1 ? ss->mem.zfsarcsize : 0,
         		ss->mem.ksmsharing != -1 ? ss->mem.ksmsharing : 0,
-        		ss->mem.ksmshared  != -1 ? ss->mem.ksmshared  : 0);
+        		ss->mem.ksmshared  != -1 ? ss->mem.ksmshared  : 0,
+			ss->mem.tcpsock,
+			ss->mem.udpsock);
 }
 
 void
@@ -428,7 +430,7 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.pgscans,
@@ -441,9 +443,7 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.pgmigrate,
 			ss->mem.numamigrate,
 			ss->mem.pgins,
-			ss->mem.pgouts,
-			ss->mem.tcpsock,
-			ss->mem.udpsock);
+			ss->mem.pgouts);
 }
 
 void

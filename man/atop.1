@@ -1255,6 +1255,8 @@ the amount of memory that is currently claimed by the ARC (cache)
 of ZFSonlinux (`zfarc`),
 the amount of memory that is claimed for huge pages (`hptot`),
 the amount of huge page memory that is really in use (`hpuse`),
+the amount of memory that is used for TCP sockets (`tcps'),
+the amount of memory that is used for UDP sockets (`udps'),
 and the number of NUMA nodes in this system (`numnode').
 
 If the screen-width does not allow all of these counters,
@@ -1335,8 +1337,6 @@ NUMA nodes or for compaction (`migrate') are shown.
 .br
 Also the number of memory pages the system read from block devices (`pgin'),
 the number of memory pages the system wrote to block devices (`pgout'),
-the number of memory pages allocated by TCP sockets (`tcpsock`),
-the number of memory pages allocated by UDP sockets (`udpsock`),
 the number of memory pages the system read from swap space (`swin'),
 the number of memory pages the system wrote to swap space (`swout'), and
 the number of out-of-memory kills (`oomkill').
@@ -2263,8 +2263,10 @@ huge page size (in bytes),
 total size of huge pages (huge pages),
 size of free huge pages (huge pages),
 size of ARC (cache) of ZFSonlinux (pages),
-size of sharing pages for KSM (pages), and
-size of shared pages for KSM (pages).
+size of sharing pages for KSM (pages),
+size of shared pages for KSM (pages),
+size of memory used for TCP sockets (pages), and
+size of memory used for UDP sockets (pages).
 .TP 9
 .B SWP
 Subsequent fields:
@@ -2297,9 +2299,7 @@ number of process stalls to run memory compaction,
 number of pages successfully migrated in total,
 number of NUMA pages migrated,
 number of pages read from block devices, and
-number of pages written to block devices,
-number of pages allocated by TCP sockets,
-number of pages allocated by UDP sockets.
+number of pages written to block devices.
 .TP 9
 .B PSI
 Subsequent fields:
