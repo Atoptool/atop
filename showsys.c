@@ -1268,6 +1268,17 @@ sysprt_RECSLAB(struct sstat *sstat, extraparam *notused, int badness, int *color
 sys_printdef syspdef_RECSLAB = {"RECSLAB", sysprt_RECSLAB, NULL};
 /*******************************************************************/
 static char *
+sysprt_PAGETABS(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+{
+        static char buf[16]="pgtab    ";
+	*color = -1;
+        val2memstr(sstat->mem.pagetables * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_PAGETABS = {"PAGETABS", sysprt_PAGETABS, NULL};
+/*******************************************************************/
+static char *
 sysprt_SHMEM(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="shmem  ";

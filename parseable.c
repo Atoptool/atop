@@ -387,7 +387,8 @@ print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+   		"%lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -408,7 +409,8 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.ksmsharing != -1 ? ss->mem.ksmsharing : 0,
         		ss->mem.ksmshared  != -1 ? ss->mem.ksmshared  : 0,
 			ss->mem.tcpsock,
-			ss->mem.udpsock);
+			ss->mem.udpsock,
+   			ss->mem.pagetables);
 }
 
 void

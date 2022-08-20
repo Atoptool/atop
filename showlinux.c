@@ -349,11 +349,11 @@ sys_printdef *cpisyspdefs[] = {
         0
 };
 sys_printdef *cplsyspdefs[] = {
+	&syspdef_CPLNUMCPU,
 	&syspdef_CPLAVG1,
 	&syspdef_CPLAVG5,
 	&syspdef_CPLAVG15,
 	&syspdef_CPLCSW,
-	&syspdef_CPLNUMCPU,
 	&syspdef_CPLINTR,
 	&syspdef_BLANKBOX,
         0
@@ -371,14 +371,25 @@ sys_printdef *gpusyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
-sys_printdef *memsyspdefs[] = {
+sys_printdef *memsyspdefs1[] = {
 	&syspdef_MEMTOT,
 	&syspdef_MEMFREE,
+	&syspdef_BLANKBOX,
 	&syspdef_MEMCACHE,
 	&syspdef_MEMDIRTY,
 	&syspdef_MEMBUFFER,
+	&syspdef_BLANKBOX,
 	&syspdef_MEMSLAB,
 	&syspdef_RECSLAB,
+	&syspdef_BLANKBOX,
+	&syspdef_PAGETABS,
+	&syspdef_BLANKBOX,
+	&syspdef_HUPTOT,
+	&syspdef_HUPUSE,
+        0
+};
+sys_printdef *memsyspdefs2[] = {
+	&syspdef_NUMNUMA,
 	&syspdef_BLANKBOX,
 	&syspdef_TCPSOCK,
 	&syspdef_UDPSOCK,
@@ -390,10 +401,6 @@ sys_printdef *memsyspdefs[] = {
 	&syspdef_VMWBAL,
 	&syspdef_BLANKBOX,
 	&syspdef_ZFSARC,
-	&syspdef_BLANKBOX,
-	&syspdef_HUPTOT,
-	&syspdef_HUPUSE,
-	&syspdef_NUMNUMA,
         0
 };
 sys_printdef *swpsyspdefs[] = {
@@ -728,7 +735,8 @@ sys_printpair allcpuline[MAXITEMS];
 sys_printpair indivcpuline[MAXITEMS];
 sys_printpair cplline[MAXITEMS];
 sys_printpair gpuline[MAXITEMS];
-sys_printpair memline[MAXITEMS];
+sys_printpair memline1[MAXITEMS];
+sys_printpair memline2[MAXITEMS];
 sys_printpair swpline[MAXITEMS];
 sys_printpair memnumaline[MAXITEMS];
 sys_printpair cpunumaline[MAXITEMS];
@@ -1105,14 +1113,14 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (cplline[0].f == 0)
                 {
                     make_sys_prints(cplline, MAXITEMS,
+	                "CPLNUMCPU:7"
+	                "BLANKBOX:0 "
 	                "CPLAVG1:4 "
 	                "CPLAVG5:3 "
 	                "CPLAVG15:2 "
 	                "BLANKBOX:0 "
 	                "CPLCSW:6 "
-	                "CPLINTR:5 "
-	                "BLANKBOX:0 "
-	                "CPLNUMCPU:1",
+	                "CPLINTR:5 ",
 			cplsyspdefs, "builtin cplline",
 			sstat, &extra);
                 }
@@ -1134,32 +1142,43 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 			NULL, NULL);
                 }
 
-                if (memline[0].f == 0)
+                if (memline1[0].f == 0)
                 {
-                    make_sys_prints(memline, MAXITEMS,
+                    make_sys_prints(memline1, MAXITEMS,
 	                "MEMTOT:8 "
 	                "MEMFREE:9 "
+	                "BLANKBOX:0 "
 	                "MEMCACHE:8 "
-	                "MEMDIRTY:5 "
-	                "MEMBUFFER:6 "
+	                "MEMDIRTY:6 "
+	                "MEMBUFFER:7 "
+	                "BLANKBOX:0 "
 	                "MEMSLAB:7 "
 	                "RECSLAB:3 "
 	                "BLANKBOX:0 "
-	                "TCPSOCK:5 "
-	                "UDPSOCK:2 "
+	                "PAGETABS:4 "
 	                "BLANKBOX:0 "
+	                "HUPTOT:5 "
+	                "HUPUSE:2 ",
+			memsyspdefs1, "builtin memline1",
+			sstat, &extra);
+                }
+
+                if (memline2[0].f == 0)
+                {
+                    make_sys_prints(memline2, MAXITEMS,
+	                "NUMNUMA:6 "
+	                "BLANKBOX:1 "
 	                "SHMEM:3 "
 	                "SHMRSS:3 "
 	                "SHMSWP:2 "
 	                "BLANKBOX:0 "
+	                "TCPSOCK:5 "
+	                "UDPSOCK:2 "
+	                "BLANKBOX:0 "
 	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
-	                "ZFSARC:5 "
-	                "BLANKBOX:0 "
-	                "HUPTOT:5 "
-	                "HUPUSE:2 "
-	                "NUMNUMA:6 ",
-			memsyspdefs, "builtin memline",
+	                "ZFSARC:5 ",
+			memsyspdefs2, "builtin memline2",
 			sstat, &extra);
                 }
 
@@ -2063,7 +2082,10 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	if (screen)
 	        move(curline, 0);
 
-        showsysline(memline, sstat, &extra, "MEM", badness);
+        showsysline(memline1, sstat, &extra, "MEM", badness);
+        curline++;
+
+        showsysline(memline2, sstat, &extra, "MEM", badness);
         curline++;
 
         /*
@@ -3136,7 +3158,7 @@ do_owngpuline(char *name, char *val)
 void
 do_ownmemline(char *name, char *val)
 {
-        make_sys_prints(memline, MAXITEMS, val, memsyspdefs, name,
+        make_sys_prints(memline1, MAXITEMS, val, memsyspdefs1, name,
 					NULL, NULL);
 }
 

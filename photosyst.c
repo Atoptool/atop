@@ -657,6 +657,7 @@ photosyst(struct sstat *si)
 	si->mem.freeswap 	= (count_t)-1;
 	si->mem.swapcached 	= (count_t) 0;
 	si->mem.committed 	= (count_t) 0;
+	si->mem.pagetables 	= (count_t) 0;
 
 	if ( (fp = fopen("meminfo", "r")) != NULL)
 	{
@@ -776,6 +777,11 @@ photosyst(struct sstat *si)
 			else	if (strcmp("Hugepagesize:", nam) == EQ)
 				{
 					si->mem.hugepagesz = cnts[0]*1024;
+				}
+			else	if (strcmp("PageTables:", nam) == EQ)
+				{
+					si->mem.pagetables = cnts[0]*1024/
+								pagesize;
 				}
 		}
 
