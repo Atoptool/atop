@@ -1237,9 +1237,9 @@ The number of lines showing the GPUs can be limited.
 .PP
 .TP 5
 .B MEM
-Memory occupation.
+Memory occupation (two lines).
 .br
-This line contains the total amount of physical memory
+These lines contain the total amount of physical memory
 (`tot'), the amount of memory which is currently free (`free'),
 the amount of memory in use as page cache including
 the total resident shared memory (`cache'), the amount of memory within the
@@ -1247,17 +1247,18 @@ page cache that has to be flushed to disk (`dirty'), the amount
 of memory used for filesystem meta data (`buff'), the amount of
 memory being used for kernel mallocs (`slab'), the amount of
 slab memory that is reclaimable (`slrec'), the resident size of shared
-memory including tmpfs (`shmem`), the resident size of shared memory (`shrss`)
-the amount of shared memory that is currently swapped (`shswp`),
+memory including tmpfs (`shmem'), the resident size of shared memory (`shrss')
+the amount of shared memory that is currently swapped (`shswp'),
+the amount of memory that is currently used for page tables (`pgtab'),
+the number of NUMA nodes in this system (`numnode'),
 the amount of memory that is currently claimed by vmware's
-balloon driver (`vmbal`),
+balloon driver (`vmbal'),
 the amount of memory that is currently claimed by the ARC (cache)
-of ZFSonlinux (`zfarc`),
-the amount of memory that is claimed for huge pages (`hptot`),
-the amount of huge page memory that is really in use (`hpuse`),
-the amount of memory that is used for TCP sockets (`tcps'),
-the amount of memory that is used for UDP sockets (`udps'),
-and the number of NUMA nodes in this system (`numnode').
+of ZFSonlinux (`zfarc'),
+the amount of memory that is claimed for huge pages (`hptot'),
+the amount of huge page memory that is really in use (`hpuse'),
+the amount of memory that is used for TCP sockets (`tcps'), and
+the amount of memory that is used for UDP sockets (`udps').
 
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -2265,8 +2266,9 @@ size of free huge pages (huge pages),
 size of ARC (cache) of ZFSonlinux (pages),
 size of sharing pages for KSM (pages),
 size of shared pages for KSM (pages),
-size of memory used for TCP sockets (pages), and
-size of memory used for UDP sockets (pages).
+size of memory used for TCP sockets (pages),
+size of memory used for UDP sockets (pages), and
+size of pagetables (pages).
 .TP 9
 .B SWP
 Subsequent fields:

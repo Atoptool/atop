@@ -89,7 +89,8 @@ struct	memstat {
 	count_t	numamigrate;	// counter for numa migrated (pages)
 	count_t	pgouts;		// total number of pages written to block device
 	count_t	pgins;		// total number of pages read from block device
-	count_t	cfuture[5];	// reserved for future use
+	count_t	pagetables;	// page tables of processes (pages)
+	count_t	cfuture[4];	// reserved for future use
 };
 
 /************************************************************************/
