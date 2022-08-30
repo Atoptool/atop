@@ -279,6 +279,7 @@ generic_samp(time_t curtime, int nsecs,
 	while (1)
 	{
 		curline = 1;
+		genline[0] = '\0';
 
 	        /*
        	 	** prepare screen or file output for new sample
