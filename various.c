@@ -327,7 +327,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 				value /= 10;
 			}
 
-			if (remain >= 5)
+			if (remain >= 5 && value < maxval)
 				value++;
 
 			sprintf(strvalue, "%*llde%d%s",
