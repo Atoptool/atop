@@ -1,0 +1,706 @@
+<!-- /*
+ ** This is a Memory template html for ATOP Http Server
+ ** 
+ ** ==========================================================================
+ ** Author:      Enhua Zhou
+ ** E-mail:      zhouenhua@bytedance.com
+ ** Date:        September 2022
+ ** --------------------------------------------------------------------------
+ ** Copyright (C) 2022 Enhua Zhou <zhouenhua@bytedance.com>
+ **
+ ** This program is free software; you can redistribute it and/or modify it
+ ** under the terms of the GNU General Public License as published by the
+ ** Free Software Foundation; either version 2, or (at your option) any
+ ** later version.
+ **
+ ** This program is distributed in the hope that it will be useful, but
+ ** WITHOUT ANY WARRANTY; without even the implied warranty of
+ ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ ** See the GNU General Public License for more details.
+ **
+ ** You should have received a copy of the GNU General Public License
+ ** along with this program; if not, write to the Free Software
+ ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ ** --------------------------------------------------------------------------
+ */ -->
+
+<!DOCTYPE html>
+<html>
+
+<body>
+    <template id="tpl_general">
+        <div id="atop" class="atop">
+            <div class="bar">
+                <div class="global_header_entry">ATOP</div>
+                <div class="global_header_entry">{host}</div>
+                <div class="global_header_entry">{date}</div>
+                <div class="global_header_elapsed_entry">{elapsed}s elapsed</div>
+            </div>
+
+            <!-- PRC line -->
+            <div class="HPRC">
+                <div class="bar">
+                    <div class="header_key">PRC</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">sys</div>
+                        <div class="header_entry_value">{stime_unit_time}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">user</div>
+                        <div class="header_entry_value">{utime_unit_time}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#proc</div>
+                        <div class="header_entry_value">{proc_count}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#trun</div>
+                        <div class="header_entry_value">{running_count}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#tslpi</div>
+                        <div class="header_entry_value">{sleep_interrupt_count}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#tslpu</div>
+                        <div class="header_entry_value">{sleep_uninterrupt_count}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#zombie</div>
+                        <div class="header_entry_value">{zombie_count}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">#exit</div>
+                        <div class="header_entry_value">{exit_count}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CPU line -->
+            <div class="CPU">
+                <div class="bar">
+                    <div class="header_key">CPU</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">sys</div>
+                        <div class="header_entry_value">{stime}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">user</div>
+                        <div class="header_entry_value">{utime}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">irq</div>
+                        <div class="header_entry_value">{Itime}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">idle</div>
+                        <div class="header_entry_value">{itime}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">wait</div>
+                        <div class="header_entry_value">{wtime}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">steal</div>
+                        <div class="header_entry_value">{steal}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">guest</div>
+                        <div class="header_entry_value">{guest}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- cpu line -->
+            <div>
+                <div class="cpu">
+                    <div class="bar">
+                        <div class="header_key">cpu</div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">sys</div>
+                            <div class="header_entry_value">{stime}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">user</div>
+                            <div class="header_entry_value">{utime}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">irq</div>
+                            <div class="header_entry_value">{Itime}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">idle</div>
+                            <div class="header_entry_value">{itime}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">cpu {cpuid}</div>
+                            <div class="header_entry_value">w {wtime}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">steal</div>
+                            <div class="header_entry_value">{steal}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">guest</div>
+                            <div class="header_entry_value">{guest}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name"></div>
+                            <div class="header_entry_value"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- CPL line -->
+            <div class="CPL">
+                <div class="bar">
+                    <div class="header_key">CPL</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">avg1</div>
+                        <div class="header_entry_value">{lavg1}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">avg5</div>
+                        <div class="header_entry_value">{lavg5}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">avg15</div>
+                        <div class="header_entry_value">{lavg15}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">csw</div>
+                        <div class="header_entry_value">{csw}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">intr</div>
+                        <div class="header_entry_value">{devint}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">numcpu</div>
+                        <div class="header_entry_value">{nrcpu}</div>
+                    </div>
+                </div>
+            </div>
+            <!-- MEM line -->
+            <div class="MEM">
+                <div class="bar">
+                    <div class="header_key">MEM</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tot</div>
+                        <div class="header_entry_value">{physmem}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">free</div>
+                        <div class="header_entry_value">{freemem}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">cache</div>
+                        <div class="header_entry_value">{cachemem}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">dirty</div>
+                        <div class="header_entry_value">{cachedrt}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">buff</div>
+                        <div class="header_entry_value">{buffermem}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">slab</div>
+                        <div class="header_entry_value">{slabmem}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">shrss</div>
+                        <div class="header_entry_value">{shmrss}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">numanode</div>
+                        <div class="header_entry_value">{numanode}</div>
+                    </div>
+                </div>
+            </div>
+            <!-- SWP line -->
+            <div class="SWP">
+                <div class="bar">
+                    <div class="header_key">SWP</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tot</div>
+                        <div class="header_entry_value">{totswap}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">free</div>
+                        <div class="header_entry_value">{freeswap}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">swcac</div>
+                        <div class="header_entry_value">{swcac}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">vmcom</div>
+                        <div class="header_entry_value">{committed}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">vmlim</div>
+                        <div class="header_entry_value">{commitlim}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAG line -->
+            <div class="PAG">
+                <div class="bar">
+                    <div class="header_key">PAG</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">compact</div>
+                        <div class="header_entry_value">{compacts}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">numamig</div>
+                        <div class="header_entry_value">{numamigs}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">migrate</div>
+                        <div class="header_entry_value">{migrates}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">pgin</div>
+                        <div class="header_entry_value">{pgins}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">pgout</div>
+                        <div class="header_entry_value">{pgouts}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">swin</div>
+                        <div class="header_entry_value">{swins}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">swout</div>
+                        <div class="header_entry_value">{swouts}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">oomkill</div>
+                        <div class="header_entry_value">{oomkills}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PSI line -->
+            <div class="PSI">
+                <div class="bar">
+                    <div class="header_key">PSI</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">cpusome</div>
+                        <div class="header_entry_value">{cpusome}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">memsome</div>
+                        <div class="header_entry_value">{memsome}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">memfull</div>
+                        <div class="header_entry_value">{memfull}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">iosome</div>
+                        <div class="header_entry_value">{iosome}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">iofull</div>
+                        <div class="header_entry_value">{iofull}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">cs</div>
+                        <div class="header_entry_value">{cs}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">ms</div>
+                        <div class="header_entry_value">{ms}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">is</div>
+                        <div class="header_entry_value">{is}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NUM line -->
+            <div>
+                <div class="NUM">
+                    <div class="bar">
+                        <div class="header_key">NUM</div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">tot</div>
+                            <div class="header_entry_value">{totmem}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">free</div>
+                            <div class="header_entry_value">{freemem}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">file</div>
+                            <div class="header_entry_value">{filepage}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name"></div>
+                            <div class="header_entry_value"></div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name"></div>
+                            <div class="header_entry_value"></div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name"></div>
+                            <div class="header_entry_value"></div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">numanode</div>
+                            <div class="header_entry_value">{numanodeId}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">slab</div>
+                            <div class="header_entry_value">{slabmem}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- DSK line -->
+            <div>
+                <div class="DSK">
+                    <div class="bar">
+                        <div class="header_key">DSK</div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name"></div>
+                            <div class="header_entry_value">{dskname}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">busy</div>
+                            <div class="header_entry_value">{diskbusy}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">read</div>
+                            <div class="header_entry_value">{nread}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">write</div>
+                            <div class="header_entry_value">{nwrite}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">discrd</div>
+                            <div class="header_entry_value">{ndiscrd}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">MBr/s</div>
+                            <div class="header_entry_value">{MBr/s}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">MBw/s</div>
+                            <div class="header_entry_value">{MBw/s}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">avio</div>
+                            <div class="header_entry_value">{avio} ms</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NET GENERAL line -->
+            <div class="NET_GENERAL">
+                <div class="bar">
+                    <div class="header_key">NET</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">transport</div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tcpi</div>
+                        <div class="header_entry_value">{rpacketsTCP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tcpo</div>
+                        <div class="header_entry_value">{spacketsTCP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">udpi</div>
+                        <div class="header_entry_value">{rpacketsUDP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">udpo</div>
+                        <div class="header_entry_value">{spacketsUDP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tcpao</div>
+                        <div class="header_entry_value">{activeOpensTCP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tcppo</div>
+                        <div class="header_entry_value">{passiveOpensTCP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">tcprs</div>
+                        <div class="header_entry_value">{retransSegsTCP}</div>
+                    </div>
+                </div>
+                <div class="bar">
+                    <div class="header_key">NET</div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">network</div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">ipi</div>
+                        <div class="header_entry_value">{rpacketsIP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">ipo</div>
+                        <div class="header_entry_value">{spacketsIP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">ipfrw</div>
+                        <div class="header_entry_value">{fpacketsIP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">deliv</div>
+                        <div class="header_entry_value">{dpacketsIP}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name"></div>
+                        <div class="header_entry_value"></div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">icmpi</div>
+                        <div class="header_entry_value">{icmpi}</div>
+                    </div>
+                    <div class="header_entry">
+                        <div class="header_entry_split"> | </div>
+                        <div class="header_entry_name">icmpo</div>
+                        <div class="header_entry_value">{icmpo}</div>
+                    </div>
+                </div>
+            </div>
+            <!-- NET PORT -->
+            <div>
+                <div class="NET">
+                    <div class="bar">
+                        <div class="header_key">NET</div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">{name}</div>
+                            <div class="header_entry_value"></div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">pcki</div>
+                            <div class="header_entry_value">{rpack}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">pcko</div>
+                            <div class="header_entry_value">{spack}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">sp</div>
+                            <div class="header_entry_value">{speed}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">si</div>
+                            <div class="header_entry_value">{rbyte}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">so</div>
+                            <div class="header_entry_value">{sbyte}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">erri</div>
+                            <div class="header_entry_value">{rerrs}</div>
+                        </div>
+                        <div class="header_entry">
+                            <div class="header_entry_split"> | </div>
+                            <div class="header_entry_name">erro</div>
+                            <div class="header_entry_value">{serrs}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div></div>
+
+
+            <!-- maybe process should be changeable -->
+            <div class="bar">
+                <div class="process_entry">PID</div>
+                <div class="process_entry">TID</div>
+                <div class="process_entry">MINFLT</div>
+                <div class="process_entry">MAJFLT</div>
+                <div class="process_entry">VSTEXT</div>
+                <div class="process_entry">VSLIBS</div>
+                <div class="process_entry">VDATA</div>
+                <div class="process_entry">VSTACK</div>
+                <div class="process_entry">LOCKSZ</div>
+                <div class="process_entry">VSIZE</div>
+                <div class="process_entry">RSIZE</div>
+                <div class="process_entry">PSIZE</div>
+                <div class="process_entry">VGROW</div>
+                <div class="process_entry">RGROW</div>
+                <div class="process_entry">SWAPSZ</div>
+                <div class="process_entry">RUID</div>
+                <div class="process_entry">EUID</div>
+                <div class="process_entry">MEM</div>
+                <div class="process_last_entry">CMD</div>
+            </div>
+
+            <div class="outer-container">
+                <div class="inner-container">
+                    <div class="PRSUMMARY">
+                        <div class="bar">
+                            <div class="process_entry">{pid}</div>
+                            <div class="process_entry">{tid}</div>
+                            <div class="process_entry">{minflt}</div>
+                            <div class="process_entry">{majflt}</div>
+                            <div class="process_entry">{vexec}</div>
+                            <div class="process_entry">{vlibs}</div>
+                            <div class="process_entry">{vdata}</div>
+                            <div class="process_entry">{vstack}</div>
+                            <div class="process_entry">{vlock}</div>
+                            <div class="process_entry">{vmem}</div>
+                            <div class="process_entry">{rmem}</div>
+                            <div class="process_entry">{pmem}</div>
+                            <div class="process_entry">{vgrow}</div>
+                            <div class="process_entry">{rgrow}</div>
+                            <div class="process_entry">{vswap}</div>
+                            <div class="process_entry">{ruid}</div>
+                            <div class="process_entry">{euid}</div>
+                            <div class="process_entry">{membusy}</div>
+                            <div class="process_last_entry">{name}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</body>
+
+</html>
