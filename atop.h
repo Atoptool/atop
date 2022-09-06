@@ -61,7 +61,31 @@ struct netpertask;
 #define RRGPUSTAT	0x0080
 #define RRCGRSTAT	0x0100
 
+enum {
+	OUTPUT_STDOUT,
+	OUTPUT_FD,
+	OUTPUT_BUF
+};
+
+struct output {
+	int output_type;
+	union {
+		/* OUTPUT_STDOUT needs no more argument */
+		int fd; /* for OUTPUT_FD */
+		struct output_buf {
+			char *buf;
+			int size; /* size of buf, auto grow if not enough */
+			int offset; /* offset of buf, reset to 0 for next record */
+		} ob; /* OUTPUT_BUF */
+	};
+	void	(*done)(struct output *op);
+};
+
+void output_samp(struct output *op, char *buf, int size);
+void output_samp_done(struct output *op);
+
 struct visualize {
+	struct output op;
 	char	(*show_samp)  (time_t, int,
 	                struct devtstat *, struct sstat *,
 			int, unsigned int, char);

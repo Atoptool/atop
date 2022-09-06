@@ -336,7 +336,8 @@ int		supportflags;	/* supported features             	*/
 char		**argvp;
 
 
-struct visualize vis = {generic_samp, generic_error,
+struct visualize vis = {{.output_type = OUTPUT_STDOUT},
+			generic_samp, generic_error,
 			generic_end,  generic_usage};
 
 /*

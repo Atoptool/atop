@@ -39,6 +39,8 @@
 #include "photoproc.h"
 #include "parseable.h"
 
+#define LINE_BUF_SIZE 1024
+
 void 	print_CPU();
 void 	print_cpu();
 void 	print_CPL();
@@ -193,12 +195,14 @@ parseout(time_t curtime, int numsecs,
 {
 	register int	i;
 	char		datestr[32], timestr[32], header[256];
+	char *reset = "RESET\n";
+	char *sep = "SEP\n";
 
 	/*
 	** print reset-label for sample-values since boot
 	*/
 	if (flag&RRBOOT)
-		printf("RESET\n");
+		output_samp(&vis.op, reset, strlen(reset));
 
 	/*
 	** search all labels which are selected before
@@ -230,7 +234,8 @@ parseout(time_t curtime, int numsecs,
 	/*
 	** print separator
 	*/
-	printf("SEP\n");
+	output_samp(&vis.op, sep, strlen(sep));
+	output_samp_done(&vis.op);
 
 	return '\0';
 }
@@ -275,6 +280,8 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         count_t freq;
         int freqperc;
         int i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
         // calculate average clock frequency
 	for (i=0; i < ss->cpu.nrcpu; i++)
@@ -291,7 +298,7 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         	ss->cpu.all.cycle = 0;
 	}
 
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
+	buflen = snprintf(buf, sizeof(buf), "%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp,
 			hertz,
 	        	ss->cpu.nrcpu,
@@ -309,6 +316,7 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->cpu.all.instr,
         		ss->cpu.all.cycle
                         );
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
@@ -320,6 +328,8 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         count_t ticks=0;
         count_t freq;
         int freqperc;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->cpu.nrcpu; i++)
 	{
@@ -329,7 +339,7 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
                 calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
-		printf("%s %u %d %lld %lld %lld "
+		buflen = snprintf(buf, sizeof(buf), "%s %u %d %lld %lld %lld "
 		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp, hertz, i,
 	        	ss->cpu.cpu[i].stime,
@@ -346,13 +356,17 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->cpu.cpu[i].instr,
         		ss->cpu.cpu[i].cycle
 			);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
 void
 print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %lld %.2f %.2f %.2f %lld %lld\n",
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %lld %.2f %.2f %.2f %lld %lld\n",
 			hp,
 	        	ss->cpu.nrcpu,
 	        	ss->cpu.lavg1,
@@ -360,16 +374,19 @@ print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	        	ss->cpu.lavg15,
 	        	ss->cpu.csw,
 	        	ss->cpu.devint);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	int	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->gpu.nrgpus; i++)
 	{
-		printf("%s %d %s %s %d %d %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %s %d %d %lld %lld %lld %lld %lld %lld\n",
 			hp, i,
 	        	ss->gpu.gpu[i].busid,
 	        	ss->gpu.gpu[i].type,
@@ -381,13 +398,17 @@ print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	        	ss->gpu.gpu[i].gpuperccum,
 	        	ss->gpu.gpu[i].memperccum,
 	        	ss->gpu.gpu[i].memusecum);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
 void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
    		"%lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
@@ -411,12 +432,16 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.tcpsock,
 			ss->mem.udpsock,
    			ss->mem.pagetables);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.totswap,
@@ -427,12 +452,16 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.swapcached,
         		ss->mem.zswstored != -1 ? ss->mem.zswstored : 0,
         		ss->mem.zswtotpool != -1 ? ss->mem.zswtotpool : 0);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.pgscans,
@@ -446,12 +475,16 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.numamigrate,
 			ss->mem.pgins,
 			ss->mem.pgouts);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %c %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu "
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %c %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu "
 	       "%.1f %.1f %.1f %llu %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu\n",
 		hp, ss->psi.present ? 'y' : 'n',
                 ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
@@ -464,16 +497,19 @@ print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
                 ss->psi.iosome.avg300, ss->psi.iosome.total,
                 ss->psi.iofull.avg10, ss->psi.iofull.avg60,
                 ss->psi.iofull.avg300, ss->psi.iofull.total);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
         for (i=0; ss->dsk.lvm[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.lvm[i].name,
 			ss->dsk.lvm[i].io_ms,
@@ -483,6 +519,7 @@ print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->dsk.lvm[i].nwsect,
 			ss->dsk.lvm[i].ndisc,
 			ss->dsk.lvm[i].ndsect);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -490,10 +527,12 @@ void
 print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
         for (i=0; ss->dsk.mdd[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.mdd[i].name,
 			ss->dsk.mdd[i].io_ms,
@@ -503,6 +542,7 @@ print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->dsk.mdd[i].nwsect,
 			ss->dsk.mdd[i].ndisc,
 			ss->dsk.mdd[i].ndsect);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -510,10 +550,12 @@ void
 print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
         for (i=0; ss->dsk.dsk[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->dsk.dsk[i].name,
 			ss->dsk.dsk[i].io_ms,
@@ -523,6 +565,7 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->dsk.dsk[i].nwsect,
 			ss->dsk.dsk[i].ndisc,
 			ss->dsk.dsk[i].ndsect);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -530,10 +573,12 @@ void
 print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
         for (i=0; i < ss->nfs.nfsmounts.nrmounts; i++)
 	{
-		printf("%s %s %lld %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->nfs.nfsmounts.nfsmnt[i].mountdev,
 			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
@@ -544,25 +589,33 @@ print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->nfs.nfsmounts.nfsmnt[i].bytesdwrite,
 			ss->nfs.nfsmounts.nfsmnt[i].pagesmread,
 			ss->nfs.nfsmounts.nfsmnt[i].pagesmwrite);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
 void
 print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %lld %lld %lld %lld %lld\n",
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->nfs.client.rpccnt,
 			ss->nfs.client.rpcread,
 			ss->nfs.client.rpcwrite,
 			ss->nfs.client.rpcretrans,
 			ss->nfs.client.rpcautrefresh);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf(	"%s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+	char buf[LINE_BUF_SIZE];
+	int buflen;
+
+	buflen = snprintf(buf, sizeof(buf), "%s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 	        "%lld %lld %lld %lld %lld\n",
 			hp,
 			ss->nfs.server.rpccnt,
@@ -580,14 +633,17 @@ print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->nfs.server.rchits,
 			ss->nfs.server.rcmiss,
 			ss->nfs.server.rcnoca);
+	output_samp(&vis.op, buf, buflen);
 }
 
 void
 print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
-	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			"upper",
         		ss->net.tcp.InSegs,
@@ -614,10 +670,11 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->net.tcp.RetransSegs,
 			ss->net.tcp.InErrs,
 			ss->net.tcp.OutRsts);
+	output_samp(&vis.op, buf, buflen);
 
 	for (i=0; ss->intf.intf[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %ld %d\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %lld %lld %lld %lld %ld %d\n",
 			hp,
 			ss->intf.intf[i].name,
 			ss->intf.intf[i].rpack,
@@ -626,6 +683,7 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->intf.intf[i].sbyte,
 			ss->intf.intf[i].speed,
 			ss->intf.intf[i].duplex);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -633,10 +691,12 @@ void
 print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->ifb.nrports; i++)
 	{
-		printf(	"%s %s %hd %hd %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %s %hd %hd %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->ifb.ifb[i].ibname,
 			ss->ifb.ifb[i].portnr,
@@ -646,6 +706,7 @@ print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->ifb.ifb[i].sndb,
 			ss->ifb.ifb[i].rcvp,
 			ss->ifb.ifb[i].sndp);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -653,10 +714,12 @@ void
 print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->memnuma.nrnuma; i++)
 	{
-		printf(	"%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp, i,
 			pagesize,
 			ss->memnuma.numa[i].frag * 100.0,
@@ -670,6 +733,7 @@ print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->memnuma.numa[i].slabreclaim,
 			ss->memnuma.numa[i].shmem,
 			ss->memnuma.numa[i].tothp);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -677,10 +741,12 @@ void
 print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->cpunuma.nrnuma; i++)
 	{
-		printf(	"%s %d %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %d %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp, i,
 	        	ss->cpunuma.numa[i].nrcpu,
 	        	ss->cpunuma.numa[i].stime,
@@ -692,6 +758,7 @@ print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->cpunuma.numa[i].Stime,
         		ss->cpunuma.numa[i].steal,
         		ss->cpunuma.numa[i].guest);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -699,15 +766,18 @@ void
 print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < ss->llc.nrllcs; i++)
 	{
-		printf(	"%s LLC%03d %3.1f%% %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s LLC%03d %3.1f%% %lld %lld\n",
 			hp,
 			ss->llc.perllc[i].id,
 			ss->llc.perllc[i].occupancy * 100,
 			ss->llc.perllc[i].mbm_total,
 			ss->llc.perllc[i].mbm_local);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -720,6 +790,8 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	register int	i, exitcode;
 	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2],
 			pathout[CGRLEN+1];
+	char 		buf[LINE_BUF_SIZE];
+	int 		buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
@@ -728,7 +800,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 		else
 			exitcode = (ps->gen.excode >>   8) & 0xff;
 
-		printf("%s %d %s %c %d %d %d %d %d %ld %s %d %d %d %d "
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %d %d %d %d %d %ld %s %d %d %d %d "
  		       "%d %d %d %d %d %d %ld %c %d %d %s %c %s\n",
 			hp,
 			ps->gen.pid,
@@ -758,6 +830,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.container[0] ? ps->gen.container:"-",
         		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
 			spaceformat(ps->gen.cgpath, pathout));
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -766,10 +839,12 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2], wchanout[20];
+	char 		buf[LINE_BUF_SIZE];
+	int 		buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
 		       "%llu %s %llu %d %d\n",
 			hp,
 			ps->gen.pid,
@@ -791,6 +866,7 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->cpu.blkdelay,
 			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumax),
 			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumaxr));
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -799,10 +875,12 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int 	i;
 	char		namout[PNAMLEN+1+2];
+	char		buf[LINE_BUF_SIZE];
+	int		buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
 		       "%lld %lld %lld %lld %lld %d %c %lld %lld %d %d %d %d\n",
 			hp,
 			ps->gen.pid,
@@ -829,6 +907,7 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmaxr),
 			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmax),
 			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmaxr));
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -837,10 +916,12 @@ print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -851,6 +932,7 @@ print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->dsk.wio, ps->dsk.wsz, ps->dsk.cwsz,
 			ps->gen.tgid,
 			ps->gen.isproc ? 'y':'n');
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -859,10 +941,12 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %c %lld %lld %lld %lld %lld %lld "
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %c %lld %lld %lld %lld %lld %lld "
 		       "%lld %lld %d %d %d %c\n",
 			hp,
 			ps->gen.pid,
@@ -875,6 +959,7 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->net.udprcv, ps->net.udprsz,
 			0,              0,
 			ps->gen.tgid,   ps->gen.isproc ? 'y':'n');
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
@@ -883,10 +968,12 @@ print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
+	char buf[LINE_BUF_SIZE];
+	int buflen;
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %c %d %x %d %d %lld %lld %lld\n",
+		buflen = snprintf(buf, sizeof(buf), "%s %d %s %c %c %d %x %d %d %lld %lld %lld\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -899,6 +986,7 @@ print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gpu.memnow,
 			ps->gpu.memcum,
 			ps->gpu.sample);
+		output_samp(&vis.op, buf, buflen);
 	}
 }
 
