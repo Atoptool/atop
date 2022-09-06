@@ -298,7 +298,7 @@
 #include "json.h"
 #include "gpucom.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
+#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGH:IJ:KL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -348,6 +348,7 @@ static char		awaittrigger;	/* boolean: awaiting trigger */
 static unsigned int 	nsamples = 0xffffffff;
 static char		midnightflag;
 static char		rawwriteflag;
+static unsigned int     httpport   = -1; /* atop start HTTP server */
 
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
@@ -401,6 +402,7 @@ void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
 void do_pacctdir(char *, char *);
 void do_perfevents(char *, char *);
+static void do_httpport(char *name, char *val);
 
 static struct {
 	char	*tag;
@@ -455,6 +457,7 @@ static struct {
 	{	"atopsarflags",		do_atopsarflags,	0, },
 	{	"perfevents",		do_perfevents,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
+	{       "httpport",             do_httpport,            0, },
 };
 
 /*
@@ -604,6 +607,13 @@ main(int argc, char *argv[])
 				linelen = atoi(optarg);
 				break;
 
+			   case 'H':           /* HTTP listen port           */
+				if ( !numeric(optarg) )
+					prusage(argv[0]);
+
+				httpport = atoi(optarg);
+				break;
+
                            case MALLPROC:	/* all processes per sample ? */
 				deviatonly = 0;
 				break;
@@ -746,6 +756,10 @@ main(int argc, char *argv[])
 	*/
         if (! droprootprivs() )
 		mcleanstop(42, "failed to drop root privs\n");
+
+	/* HTTP server is allowed with '-w' only, this means atop run as a daemon */
+	if (httpport && rawwriteflag && (c = httpd(httpport)))
+		mcleanstop(c, "failed to start httpd\n");
 
 	/*
 	** start the engine now .....
@@ -1103,6 +1117,7 @@ prusage(char *myname)
 			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
+	printf("\t  -H  start HTTP server on a specified port\n");
 
 	if (vis.show_usage)
 		(*vis.show_usage)();
@@ -1177,6 +1192,12 @@ void
 do_linelength(char *name, char *val)
 {
 	linelen = get_posval(name, val);
+}
+
+static void
+do_httpport(char *name, char *val)
+{
+	httpport = get_posval(name, val);
 }
 
 /*

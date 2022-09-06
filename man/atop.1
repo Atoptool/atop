@@ -6,7 +6,7 @@
 Interactive Usage:
 .P
 .B atop
-[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...] [\-H port]
 [
 .I interval
 [
@@ -33,6 +33,13 @@ Writing and reading raw logfiles:
 ] [\-e
 .I [YYYYMMDD]hhmm
 ] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
+.P
+Listen on TCP port and start HTTP service(note that atop only starts HTTP service with [-w rawfile] together):
+.P
+.B atop
+\-w
+.I rawfile
+\-H port
 .SH DESCRIPTION
 The program
 .I atop
