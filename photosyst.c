@@ -2172,6 +2172,7 @@ get_infiniband(struct ifbstat *si)
 {
 	static int	firstcall = 1;
 	int		i;
+	char *p = NULL;
 
 	// verify if InfiniBand used in this system
 	if ( chdir("/sys/class/infiniband") == -1)
@@ -2179,7 +2180,7 @@ get_infiniband(struct ifbstat *si)
 
 	if (firstcall)
 	{
-		char		path[PATH_MAX], *p;
+		char		path[PATH_MAX];
 		struct stat	statbuf;
 		struct dirent	*contdent, *portdent;
 		DIR		*contp, *portp;
@@ -2259,6 +2260,8 @@ get_infiniband(struct ifbstat *si)
 
 					if (nib >= MAXIBPORT)
 						break;
+				} else {
+					free(p);
 				}
 			}
 
@@ -2280,8 +2283,14 @@ get_infiniband(struct ifbstat *si)
 
 		// variable metrics from sysfs
 		ibstat(&(ibcache[i]), &(si->ifb[i]));
+		free(ibcache[i].pathrcvb);	
+		free(ibcache[i].pathsndb);	
+		free(ibcache[i].pathrcvp);	
+		free(ibcache[i].pathsndp);
 	}	
-
+	if (p) {
+		free(p);
+	}
 	si->nrports = nib;
 	return 1;
 }
