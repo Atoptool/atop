@@ -2262,6 +2262,12 @@ get_infiniband(struct ifbstat *si)
 				snprintf(path, sizeof path, "%s/ports",
 							contdent->d_name);
 
+				/* 
+				** @p:the space malloced to store content->d_name
+				** @p_flag: ibcache[nib].ibha ?= p
+				*/
+
+				int p_flag = 1;
 				if ( (portp = opendir(path)) )
 				{
 					/*
@@ -2287,7 +2293,8 @@ get_infiniband(struct ifbstat *si)
 						//
 						ibcache[nib].port = port;
 						ibcache[nib].ibha = p;
-
+						p_flag = 0;
+						
 						ibprep(&ibcache[nib]);
 
 						if (++nib >= MAXIBPORT)
@@ -2299,6 +2306,14 @@ get_infiniband(struct ifbstat *si)
 					if (nib >= MAXIBPORT)
 						break;
 				}
+				/*
+				** If it is not recorded by ibcache[nib].ibha, 
+				** we free it here immediately. Otherwise it will 
+				** be freed with other malloced variables in 
+				** ibcache[nib] inside the following for()
+				*/
+				if (p_flag) 
+					free(p);
 			}
 
 			closedir(contp);
@@ -2319,6 +2334,16 @@ get_infiniband(struct ifbstat *si)
 
 		// variable metrics from sysfs
 		ibstat(&(ibcache[i]), &(si->ifb[i]));
+
+		char *d_name_ptr = NULL; 
+		if (d_name_ptr != ibcache[i].ibha){
+			d_name_ptr = ibcache[i].ibha;
+			free(ibcache[i].ibha);
+		}
+		free(ibcache[i].pathrcvb);	
+		free(ibcache[i].pathsndb);	
+		free(ibcache[i].pathrcvp);	
+		free(ibcache[i].pathsndp);
 	}	
 
 	si->nrports = nib;
