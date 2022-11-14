@@ -6,7 +6,7 @@
 Interactive Usage:
 .P
 .B atop
-[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I [YYYYMMDD]hhmm
 ] [\-e
 .I [YYYYMMDD]hhmm
-] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
+] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -2185,6 +2185,13 @@ The first part of each output-line consists of the following six fields:
 (time of this interval in format HH:MM:SS), and
 .B interval
 (number of seconds elapsed for this interval).
+.PP
+.SH JSON OUTPUT
+With the flag
+.B -J
+followed by a list of one or more labels (comma-separated), JSON output
+is produced for  each  sample. The syntax and name of JSON labels are
+same as parseable output.
 .PP
 The subsequent fields of each output-line depend on the label:
 .PP
