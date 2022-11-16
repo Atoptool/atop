@@ -5,3 +5,26 @@ Documentation=man:atop(1)
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/systemctl try-restart atop.service
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+
+PrivateDevices=yes
+PrivateUsers=yes
+PrivateNetwork=yes
+
+ProtectSystem=strict
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=true
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes

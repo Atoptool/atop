@@ -12,8 +12,37 @@ EnvironmentFile=/etc/default/atop
 ExecStartPre=/bin/sh -c 'test -n "$LOGINTERVAL" -a "$LOGINTERVAL" -eq "$LOGINTERVAL"'
 ExecStartPre=/bin/sh -c 'test -n "$LOGGENERATIONS" -a "$LOGGENERATIONS" -eq "$LOGGENERATIONS"'
 ExecStart=/bin/sh -c 'exec /usr/bin/atop ${LOGOPTS} -w "${LOGPATH}/atop_$(date +%%Y%%m%%d)" ${LOGINTERVAL}'
-ExecStartPost=/usr/bin/find "${LOGPATH}" -name "atop_*" -mtime +${LOGGENERATIONS} -exec rm -v {} \;
+ExecStartPost=/usr/bin/find "${LOGPATH}" -name "atop_*" -mtime +${LOGGENERATIONS} -delete
 KillSignal=SIGUSR2
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service perf_event_open acct
+
+PrivateDevices=yes
+PrivateUsers=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+
+ProtectSystem=strict
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=true
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+
+RestrictAddressFamilies=~AF_INET AF_INET6 AF_PACKET
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+LogsDirectory=atop
+MemoryDenyWriteExecute=yes
+
+CacheDirectory=atop.d
+LogsDirectory=atop
 
 [Install]
 WantedBy=multi-user.target
