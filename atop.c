@@ -295,6 +295,7 @@
 #include "photosyst.h"
 #include "showgeneric.h"
 #include "parseable.h"
+#include "intuitive.h"
 #include "gpucom.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJKL:MNOP:QRSTUVWXYZ"
@@ -593,6 +594,10 @@ main(int argc, char *argv[])
 					prusage(argv[0]);
 
 				linelen = atoi(optarg);
+				break;
+
+                           case 'I':		/* intuitively display all statistics at a glance */
+				vis.show_samp = intuitiveout;
 				break;
 
                            case MALLPROC:	/* all processes per sample ? */

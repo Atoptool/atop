@@ -159,6 +159,7 @@ struct freqcnt {
 
 struct percpu {
 	int		cpunr;
+	int		numanr;
 	count_t		stime;	/* system  time in clock ticks		*/
 	count_t		utime;	/* user    time in clock ticks		*/
 	count_t		ntime;	/* nice    time in clock ticks		*/

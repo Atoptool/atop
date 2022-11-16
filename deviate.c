@@ -641,6 +641,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		count_t 	ticks;
 
 		dev->cpu.cpu[i].cpunr = cur->cpu.cpu[i].cpunr;
+		dev->cpu.cpu[i].numanr = cur->cpu.cpu[i].numanr;
 		dev->cpu.cpu[i].stime = subcount(cur->cpu.cpu[i].stime,
 					         pre->cpu.cpu[i].stime);
 		dev->cpu.cpu[i].utime = subcount(cur->cpu.cpu[i].utime,
@@ -1498,6 +1499,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			for (i=0; i < new->cpu.nrcpu; i++)
 			{
 				tot->cpu.cpu[i].cpunr  = new->cpu.cpu[i].cpunr;
+				tot->cpu.cpu[i].numanr = new->cpu.cpu[i].numanr;
 				tot->cpu.cpu[i].stime += new->cpu.cpu[i].stime;
 				tot->cpu.cpu[i].utime += new->cpu.cpu[i].utime;
 				tot->cpu.cpu[i].ntime += new->cpu.cpu[i].ntime;
