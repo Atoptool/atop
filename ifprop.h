@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __IFPROP__
+#define __IFPROP__
+
 struct ifprop	{
 	char		type;		/* type: 'e' - ethernet		*/
 					/*       'w' - wireless  	*/
@@ -39,3 +42,5 @@ struct ifprop	{
 
 int 	getifprop(struct ifprop *);
 void 	initifprop(void);
+
+#endif

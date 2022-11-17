@@ -21,6 +21,9 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+#ifndef __SHOWGENERIC__
+#define __SHOWGENERIC__
+
 #define USERSTUB	9999999
 #define MAXUSERSEL	64
 #define MAXPID		32
@@ -161,3 +164,5 @@ int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
 void	priphead(int, int, char *, char *, char, count_t);
+
+#endif

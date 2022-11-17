@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __NETATOPD__
+#define __NETATOPD__
+
 #define SEMAKEY         1541961
 
 #define NETEXITFILE     "/var/run/netatop.log"
@@ -38,3 +41,5 @@ struct naheader {
         u_int16_t	ntplen;	// length of netpertask structure
         pid_t    	mypid;	// PID of netatopd itself
 };
+
+#endif

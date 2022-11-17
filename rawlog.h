@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __RAWLOG__
+#define __RAWLOG__
+
 /*
 ** structure describing the raw file contents
 **
@@ -90,3 +93,5 @@ struct rawrecord {
 	unsigned int	noverflow;	/* number of overflow processes */
 	unsigned int	ifuture[6];	/* future use                   */
 };
+
+#endif

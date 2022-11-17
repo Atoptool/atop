@@ -21,6 +21,9 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+#ifndef __ATOP__
+#define __ATOP__
+
 #define	EQ		0
 #define SECONDSINDAY	86400
 #define RAWNAMESZ	256
@@ -207,3 +210,5 @@ void		netatop_exithash(char);
 void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);
 void		set_oom_score_adj(void);
 int		run_in_guest(void);
+
+#endif

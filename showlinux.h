@@ -34,6 +34,10 @@
 ** Initial
 **
 */
+
+#ifndef __SHOWLINUX__
+#define __SHOWLINUX__
+
 #define MAXITEMS 80    /* The maximum number of items per line */
 
 /*
@@ -466,3 +470,5 @@ extern char *procprt_TCPSASZ_e(struct tstat *, int, int);
 extern char *procprt_TCPRASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPSASZ_e(struct tstat *, int, int);
 extern char *procprt_UDPRASZ_e(struct tstat *, int, int);
+
+#endif
