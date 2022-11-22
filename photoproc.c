@@ -63,6 +63,7 @@ static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 static void	procwchan(struct tstat *);
+static void	procfd(struct tstat *);
 static count_t	procschedstat(struct tstat *);
 static int	proccgroupv2(struct tstat *);
 static struct cgroupv2vals *
@@ -217,6 +218,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
                 if (getwchan)
                 	procwchan(curtask);
+
+		procfd(curtask);
 
 		// read network stats from netatop
 		netatop_gettask(curtask->gen.tgid, 'g', curtask);
@@ -979,6 +982,38 @@ procschedstat(struct tstat *curtask)
 	}
 
 	return curtask->cpu.rundelay;
+}
+
+/*
+** get current number of opened file descriptors for process
+** to monitor if fd leaks.
+** Considering users may set the max number of open files to
+** a very large number, we regard MAX_OPEN to be 10000.
+*/
+#define MAX_OPEN 10000
+
+static void
+procfd(struct tstat *curtask)
+{
+	DIR *dirp;
+	struct dirent *dentry;
+	int fd_num = 0;
+
+	if ( (dirp = opendir("fd")) )
+	{
+		while ( (dentry = readdir(dirp)) )
+		{
+			if ( isdigit(dentry->d_name[0]) )
+				fd_num++;
+
+			if ( fd_num >= MAX_OPEN )
+				break;
+		}
+
+		curtask->cpu.nropen = fd_num;
+
+		closedir(dirp);
+	}
 }
 
 /*

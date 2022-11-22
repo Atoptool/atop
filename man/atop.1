@@ -1661,6 +1661,11 @@ Time that the process has been finished. If the process is still running,
 this field shows `active'.
 .PP
 .TP 9
+.B NROPEN
+Current number of opened file descriptors (fds) for each process, at least 0.
+As each thread has the same fds with its process, this filed shows `-`.
+.PP
+.TP 9
 .B ENVID
 Virtual environment identified (OpenVZ only).
 .PP

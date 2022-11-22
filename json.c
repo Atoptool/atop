@@ -1030,6 +1030,7 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"blkdelay\": %lld, "
 			"\"nvcsw\": %llu, "
 			"\"nivcsw\": %llu, "
+			"\"nropen\": %d, "
 			"\"sleepavg\": %d}",
 			ps->gen.pid,
 			ps->cpu.utime,
@@ -1043,6 +1044,7 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->cpu.blkdelay*1000/hertz,
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw,
+			ps->cpu.nropen,
 			ps->cpu.sleepavg);
 	}
 

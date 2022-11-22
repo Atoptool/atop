@@ -418,6 +418,7 @@ extern proc_printdef procprt_STDATE;
 extern proc_printdef procprt_STTIME;
 extern proc_printdef procprt_ENDATE;
 extern proc_printdef procprt_ENTIME;
+extern proc_printdef procprt_NROPEN;
 extern proc_printdef procprt_THR;
 extern proc_printdef procprt_TRUN;
 extern proc_printdef procprt_TSLPI;

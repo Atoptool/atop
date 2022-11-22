@@ -115,6 +115,8 @@ char *procprt_ENDATE_a(struct tstat *, int, int);
 char *procprt_ENDATE_e(struct tstat *, int, int);
 char *procprt_ENTIME_a(struct tstat *, int, int);
 char *procprt_ENTIME_e(struct tstat *, int, int);
+char *procprt_NROPEN_a(struct tstat *, int, int);
+char *procprt_NROPEN_e(struct tstat *, int, int);
 char *procprt_THR_a(struct tstat *, int, int);
 char *procprt_THR_e(struct tstat *, int, int);
 char *procprt_TRUN_a(struct tstat *, int, int);
@@ -1233,6 +1235,32 @@ procprt_ENTIME_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_ENTIME = 
    { " ENTIME ", "ENTIME", procprt_ENTIME_a, procprt_ENTIME_e, 8 };
+/***************************************************************/
+char *
+procprt_NROPEN_a(struct tstat *curstat, int avgval, int nsecs)
+{
+	static char buf[64];
+
+	if (curstat->gen.isproc)
+		sprintf(buf, "%*d", procprt_NROPEN.width, curstat->cpu.nropen);
+	else
+		sprintf(buf, "%*s", procprt_NROPEN.width, "-");
+
+	return buf;
+}
+
+char *
+procprt_NROPEN_e(struct tstat *curstat, int avgval, int nsecs)
+{
+	static char buf[64];
+
+	sprintf(buf, "%*s", procprt_NROPEN.width, "-");
+
+	return buf;
+}
+
+proc_printdef procprt_NROPEN =
+   { " NROPEN", "NROPEN", procprt_NROPEN_a, procprt_NROPEN_e, 7 };
 /***************************************************************/
 char *
 procprt_THR_a(struct tstat *curstat, int avgval, int nsecs)
