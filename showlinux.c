@@ -392,6 +392,8 @@ proc_printdef *allprocpdefs[]=
 	&procprt_RUNDELAY,
 	&procprt_BLKDELAY,
 	&procprt_WCHAN,
+	&procprt_NVCSW,
+	&procprt_NIVCSW,
 	&procprt_VGROW,
 	&procprt_RGROW,
 	&procprt_MINFLT,
@@ -1270,7 +1272,8 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                 make_proc_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:4 VPID:3 CTID:3 TRUN:7 TSLPI:7 "
 			"TSLPU:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 ST:8 "
-			"EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 SORTITEM:10 CMD:10",
+			"EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 "
+			"NVCSW:8 NIVCSW:8 SORTITEM:10 CMD:10",
                         "built-in schedprocs");
 
                 make_proc_prints(dskprocs, MAXITEMS, 
