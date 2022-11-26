@@ -6,7 +6,7 @@
 Interactive Usage:
 .P
 .B atop
-[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
+[\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-afFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
 [
 .I interval
 [
@@ -32,7 +32,7 @@ Writing and reading raw logfiles:
 .I [YYYYMMDD]hhmm
 ] [\-e
 .I [YYYYMMDD]hhmm
-] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z]]
+] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [\-L linelen] [\-Plabel[,label]... [-Z] [\-Jlabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -2556,6 +2556,13 @@ TGID (group number of related tasks/threads) and is_process (y/n).
 .br
 If the kernel module is not active, the network I/O counters
 per process are not relevant.
+.PP
+.SH JSON OUTPUT
+With the flag
+.B -J
+followed by a list of one or more labels (comma-separated), JSON output
+is produced for  each  sample. The syntax and name of JSON labels are
+the same as for the parseable output.
 .SH SIGNALS
 By sending the SIGUSR1 signal to
 .I atop
