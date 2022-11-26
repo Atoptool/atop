@@ -312,6 +312,8 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 
 		strcpy(devstat->gen.cmdline, prestat.gen.cmdline);
 
+		devstat->cpu.curcpu = -1;
+
 		/*
 		** due to the strange exponent-type storage of values
 		** in the process accounting record, the resource-value
