@@ -2186,13 +2186,6 @@ The first part of each output-line consists of the following six fields:
 .B interval
 (number of seconds elapsed for this interval).
 .PP
-.SH JSON OUTPUT
-With the flag
-.B -J
-followed by a list of one or more labels (comma-separated), JSON output
-is produced for  each  sample. The syntax and name of JSON labels are
-same as parseable output.
-.PP
 The subsequent fields of each output-line depend on the label:
 .PP
 .TP 9
@@ -2563,6 +2556,13 @@ TGID (group number of related tasks/threads) and is_process (y/n).
 .br
 If the kernel module is not active, the network I/O counters
 per process are not relevant.
+.PP
+.SH JSON OUTPUT
+With the flag
+.B -J
+followed by a list of one or more labels (comma-separated), JSON output
+is produced for  each  sample. The syntax and name of JSON labels are
+the same as for the parseable output.
 .SH SIGNALS
 By sending the SIGUSR1 signal to
 .I atop

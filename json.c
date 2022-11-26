@@ -119,8 +119,8 @@ static struct labeldef	labeldef[] = {
 static int numlabels = sizeof labeldef / sizeof(struct labeldef);
 
 /*
-** analyse the parse-definition string that has been
-** passed as argument with the flag -P
+** analyse the json-definition string that has been
+** passed as argument with the flag -J
 */
 int jsondef(char *pd)
 {
@@ -128,11 +128,11 @@ int jsondef(char *pd)
 	char		*p, *ep = pd + strlen(pd);
 
 	/*
-	** check if string passed bahind -P is not another flag
+	** check if string passed behind -J is not another flag
 	*/
 	if (*pd == '-')
 	{
-		printf("json lables should be followed by label list\n");
+		printf("json labels should be followed by label list\n");
 		return 0;
 	}
 
@@ -177,7 +177,7 @@ int jsondef(char *pd)
 			}
 			else
 			{
-				printf("json lables not supported: %s\n", pd);
+				printf("json labels not supported: %s\n", pd);
 				return 0;
 			}
 		}
@@ -197,7 +197,7 @@ char jsonout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
          int nexit, unsigned int noverflow, char flag)
 {
-	register int	i;
+	register int	i, j, k;
 	char		header[256];
 	struct tstat	*tmp = devtstat->taskall;
 
@@ -210,11 +210,12 @@ char jsonout(time_t curtime, int numsecs,
 		);
 
 	/* Replace " with # in case json can not parse this out */
-	for (int k = 0; k < devtstat->ntaskall; k++, tmp++) {
-		for (int j = 0; (j < sizeof(tmp->gen.name)) && tmp->gen.name[j]; j++)
+	for (k = 0; k < devtstat->ntaskall; k++, tmp++) {
+		for (j = 0; (j < sizeof(tmp->gen.name)) && tmp->gen.name[j]; j++)
 			if ((tmp->gen.name[j] == '\"') || (tmp->gen.name[j] == '\\'))
 				tmp->gen.name[j] = '#';
-		for (int j = 0; (j < sizeof(tmp->gen.cmdline) && tmp->gen.cmdline[j]); j++)
+
+		for (j = 0; (j < sizeof(tmp->gen.cmdline) && tmp->gen.cmdline[j]); j++)
 			if ((tmp->gen.cmdline[j] == '\"') || (tmp->gen.cmdline[j] == '\\'))
 				tmp->gen.cmdline[j] = '#';
 	}
