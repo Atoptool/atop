@@ -25,6 +25,7 @@
 
 #define	_FILE_OFFSET_BITS	64
 
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -34,9 +35,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
-#include <sys/wait.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -101,7 +102,8 @@ struct sembuf	semclaim     =  {0, -1, SEM_UNDO},
 		semdecre     =  {1, -1, SEM_UNDO},
 		semincre     =  {1, +1, SEM_UNDO};
 
-struct sembuf	semreglock[] = {{0, -1, SEM_UNDO}, {1, -1, SEM_UNDO}},
+struct sembuf	semreglock[] = {{0, -1, SEM_UNDO|IPC_NOWAIT},
+				{1, -1, SEM_UNDO|IPC_NOWAIT}},
 		semunlock    =  {1, +1, SEM_UNDO};
 
 /*
@@ -174,11 +176,17 @@ acctswon(void)
 		FILE 			*cfp;
 		char    		shadowpath[128];
         	struct flock            flock;
+		struct timespec		maxsemwait = {3, 0};
 
 		if (! droprootprivs() )
 			mcleanstop(42, "failed to drop root privs\n");
 
-		(void) semop(sempacctpubid, semreglock, 2);
+		if (semtimedop(sempacctpubid, semreglock, 2, &maxsemwait) == -1)
+		{
+			acctfd = -1;
+			regainrootprivs();
+			return 3;
+		}
 
 		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
 					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
