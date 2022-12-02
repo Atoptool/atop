@@ -1302,6 +1302,17 @@ take care that the pseudo-filesystem is mounted:
 (on AMD)
 .PP
 .TP 5
+.B ZON
+Memory zone information.
+.br
+This line contains information of a memory zone, the free memory size 
+(`free'), the min free memory size (`min'), low watermark memory size 
+(`low'), high watermark memory size (`free'), the spanned memory size 
+(`span'), the present memory size (`prst'), the managed memory size 
+(`mgnd') and the CMA(Contiguous Memory Allocator) memory size (`cma').
+
+.PP
+.TP 5
 .B NUM
 Memory utilization per NUMA node (not shown for single NUMA node).
 .br
@@ -2145,7 +2156,7 @@ The labels that can be specified for system-level statistics
 correspond to the labels (first verb of each line)
 that can be found in the interactive output:
 "CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
-"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "LLC", "NUM" and "NUC".
+"DSK", "NFM", "NFC", "NFS", "NET", "IFB", "LLC", "ZON", "NUM" and "NUC".
 .br
 For process-level statistics special labels are available:
 "PRG" (general), "PRC" (cpu), "PRE" (GPU), "PRM" (memory), "PRD"
@@ -2287,6 +2298,19 @@ Subsequent fields:
 LLC id, percentage of LLC in use,
 total memory bandwidth of this LLC (in bytes), and
 memory bandwidth on local NUMA node of this LLC (in bytes).
+.TP 9
+.B ZON
+Subsequent fields:
+node id,
+zone name,
+free pages,
+min free pages,
+pages of low watermark,
+pages of high watermark,
+the spanned pages,
+the present pages,
+managed pages,
+cma pages.
 .TP 9
 .B PAG
 Subsequent fields:
