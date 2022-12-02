@@ -468,6 +468,19 @@ sys_printdef *llcsyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *zonesyspdefs[] = {
+	&syspdef_ZONNODE,
+	&syspdef_ZONNAME,
+	&syspdef_ZONFREE,
+	&syspdef_ZONMIN,
+	&syspdef_ZONLOW,
+	&syspdef_ZONHIGH,
+	&syspdef_ZONSPANNED,
+	&syspdef_ZONPRESENT,
+	&syspdef_ZONMANAGED,
+	&syspdef_ZONCMA,
+	0
+};
 sys_printdef *psisyspdefs[] = {
 	&syspdef_PSICPUSTOT,
 	&syspdef_PSIMEMSTOT,
@@ -741,6 +754,7 @@ sys_printpair swpline[MAXITEMS];
 sys_printpair memnumaline[MAXITEMS];
 sys_printpair cpunumaline[MAXITEMS];
 sys_printpair llcline[MAXITEMS];
+sys_printpair zoneline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
 sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
@@ -1245,6 +1259,23 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "NUMLLC:7 "
 	                "BLANKBOX:0 ",
 			llcsyspdefs, "builtin llcline",
+			sstat, &extra);
+                }
+
+                if (zoneline[0].f == 0)
+                {
+                    make_sys_prints(zoneline, MAXITEMS,
+	                "ZONNODE:9 "
+	                "ZONNAME:9 "
+	                "ZONFREE:9 "
+	                "ZONMIN:8 "
+	                "ZONLOW:8 "
+	                "ZONHIGH:8 "
+	                "ZONSPANNED:7 "
+	                "ZONPRESENT:9 "
+	                "ZONMANAGED:7 "
+	                "ZONCMA:9 ",
+			zonesyspdefs, "builtin zoneline",
 			sstat, &extra);
                 }
 
@@ -1893,7 +1924,8 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         int fixedhead, struct sselection *selp, char *highorderp,
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines, int maxifblines,
-	int maxnfslines, int maxcontlines, int maxnumalines, int maxllclines)
+	int maxnfslines, int maxcontlines, int maxnumalines, int maxllclines,
+	int maxzonelines)
 {
         extraparam      extra;
         int             lin;
@@ -2206,6 +2238,22 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 			curline++;
 			lin++;
 		}
+	}
+
+	/* ZON(memory zone) statistics */
+	for (extra.index=lin=0;
+			extra.index < sstat->zone.nrzones && lin < maxzonelines;
+			extra.index++)
+	{
+		if (screen)
+			move(curline, 0);
+
+		if (!sstat->zone.perzone[extra.index].present)
+			continue;
+
+		showsysline(zoneline, sstat, &extra, "ZON", 0);
+		curline++;
+		lin++;
 	}
 
 	/*
@@ -3194,6 +3242,13 @@ void
 do_ownllcline(char *name, char *val)
 {
         make_sys_prints(llcline, MAXITEMS, val, llcsyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_ownzoneline(char *name, char *val)
+{
+        make_sys_prints(zoneline, MAXITEMS, val, zonesyspdefs, name,
 					NULL, NULL);
 }
 

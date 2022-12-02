@@ -84,6 +84,7 @@ static int	maxnfslines = 999;  /* maximum nfs mount lines          */
 static int	maxcontlines = 999; /* maximum container lines          */
 static int	maxnumalines = 999; /* maximum numa      lines          */
 static int	maxllclines = 999;  /* maximum llc       lines          */
+static int	maxzonelines = 999; /* maximum zone      lines          */
 
 static short	colorinfo   = COLOR_GREEN;
 static short	coloralmost = COLOR_CYAN;
@@ -363,7 +364,8 @@ generic_samp(time_t curtime, int nsecs,
 		                  maxcpulines, maxgpulines, maxdsklines,
 				  maxmddlines, maxlvmlines,
 		                  maxintlines, maxifblines, maxnfslines,
-		                  maxcontlines, maxnumalines, maxllclines);
+		                  maxcontlines, maxnumalines, maxllclines,
+				  maxzonelines);
 
 		/*
  		** if system-wide statistics do not fit,
@@ -387,7 +389,7 @@ generic_samp(time_t curtime, int nsecs,
 		                        maxlvmlines, maxintlines,
 					maxifblines, maxnfslines,
 		                        maxcontlines, maxnumalines,
-					maxllclines);
+					maxllclines, maxzonelines);
 
 			/*
  			** if system-wide statistics still do not fit,
@@ -2094,6 +2096,11 @@ generic_samp(time_t curtime, int nsecs,
 				            "statistics (now %d): ",
 					    maxllclines, statline);
 
+				maxzonelines =
+				  getnumval("Maximum lines for ZON "
+				            "statistics (now %d): ",
+					    maxzonelines, statline);
+
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
@@ -2580,6 +2587,9 @@ limitedlines(void)
 
 	if (maxllclines  == 999)	// default?
 		maxllclines = 0;
+
+	if (maxzonelines == 999)	// default?
+		maxzonelines = 0;
 }
 
 /*
@@ -3309,6 +3319,12 @@ void
 do_maxllc(char *name, char *val)
 {
 	maxllclines = get_posval(name, val);
+}
+
+void
+do_maxzone(char *name, char *val)
+{
+	maxzonelines = get_posval(name, val);
 }
 
 struct colmap {

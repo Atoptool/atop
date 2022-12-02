@@ -1542,6 +1542,62 @@ photosyst(struct sstat *si)
 	}
 
 	/*
+	** zoneinfo statistics
+	*/
+	if ( (fp = fopen("zoneinfo", "r")) != NULL)
+	{
+		struct perzone *zone = NULL;
+
+		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			/* "Node" prefix with substr "zone". Ex, "Node 0, zone    DMA32" */
+			if (!strncmp(linebuf, "Node", 4) && strstr(linebuf, "zone")) {
+				zone = &si->zone.perzone[si->zone.nrzones++];
+				sscanf(linebuf, "Node %hd, zone %s", &zone->node, zone->name);
+				continue;
+			}
+
+			if (!zone)
+				break; /* BUG? skip zoneinfo collection */
+
+			if (!strncmp(linebuf, "  pages free", 12)) {
+				sscanf(linebuf, "  pages free %lld", &zone->free);
+				continue;
+			}
+			if (!strncmp(linebuf, "        min", 11)) {
+				sscanf(linebuf, "        min %lld", &zone->min);
+				continue;
+			}
+			if (!strncmp(linebuf, "        low", 11)) {
+				sscanf(linebuf, "        low %lld", &zone->low);
+				continue;
+			}
+			if (!strncmp(linebuf, "        high", 11)) {
+				sscanf(linebuf, "        high %lld", &zone->high);
+				continue;
+			}
+			if (!strncmp(linebuf, "        spanned", 15)) {
+				sscanf(linebuf, "        spanned %lld", &zone->spanned);
+				continue;
+			}
+			if (!strncmp(linebuf, "        present", 15)) {
+				sscanf(linebuf, "        present %lld", &zone->present);
+				continue;
+			}
+			if (!strncmp(linebuf, "        managed", 15)) {
+				sscanf(linebuf, "        managed %lld", &zone->managed);
+				continue;
+			}
+			if (!strncmp(linebuf, "        cma", 11)) {
+				sscanf(linebuf, "        cma %lld", &zone->cma);
+				continue;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	/*
 	** NFS client: per-mount statistics
 	*/
 	regainrootprivs();

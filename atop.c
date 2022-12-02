@@ -369,6 +369,7 @@ void do_maxnfsm(char *, char *);
 void do_maxcont(char *, char *);
 void do_maxnuma(char *, char *);
 void do_maxllc(char *, char *);
+void do_maxzone(char *, char *);
 void do_colinfo(char *, char *);
 void do_colalmost(char *, char *);
 void do_colcrit(char *, char *);
@@ -383,6 +384,7 @@ void do_ownpagline(char *, char *);
 void do_ownmemnumaline(char *, char *);
 void do_owncpunumaline(char *, char *);
 void do_ownllcline(char *, char *);
+void do_ownzoneline(char *, char *);
 void do_owndskline(char *, char *);
 void do_ownnettransportline(char *, char *);
 void do_ownnetnetline(char *, char *);
@@ -422,6 +424,7 @@ static struct {
 	{	"maxlinecont",		do_maxcont,		0, },
 	{	"maxlinenuma",		do_maxnuma,		0, },
 	{	"maxlinellc",		do_maxllc,		0, },
+	{	"maxlinezone",		do_maxzone,		0, },
 	{	"colorinfo",		do_colinfo,		0, },
 	{	"coloralmost",		do_colalmost,		0, },
 	{	"colorcritical",	do_colcrit,		0, },
@@ -435,6 +438,7 @@ static struct {
 	{	"ownmemnumaline",	do_ownmemnumaline,	0, },
 	{	"ownnumacpuline",	do_owncpunumaline,	0, },
 	{	"ownllcline",		do_ownllcline,		0, },
+	{	"ownzoneline",		do_ownzoneline,		0, },
 	{	"owndskline",		do_owndskline,		0, },
 	{	"ownnettrline",		do_ownnettransportline,	0, },
 	{	"ownnetnetline",	do_ownnetnetline,	0, },

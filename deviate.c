@@ -1440,6 +1440,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	}
 	
 	dev->llc.nrllcs = cur->llc.nrllcs;
+	dev->zone.nrzones = cur->zone.nrzones;
+	memcpy(dev->zone.perzone, cur->zone.perzone, dev->zone.nrzones * sizeof(dev->zone.perzone[0]));
 
 #if	HTTPSTATS
 	/*

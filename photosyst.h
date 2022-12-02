@@ -39,6 +39,7 @@
 #define	MAXGPUBUS	12
 #define	MAXGPUTYPE	12
 #define	MAXLLC		256
+#define	MAXZONE		256
 
 #define	MAXDKNAM	32
 #define	MAXIBNAME	12
@@ -421,6 +422,25 @@ struct llcstat {
 };
 
 /************************************************************************/
+struct perzone {
+	unsigned short	node;
+	char		name[14];
+	count_t		free;
+	count_t		min;
+	count_t		low;
+	count_t		high;
+	count_t		spanned;
+	count_t		present;
+	count_t		managed;
+	count_t		cma;
+};
+
+struct zonestat {
+	unsigned char	nrzones;	        // total number of LLC
+	struct perzone  perzone[MAXZONE];
+};
+
+/************************************************************************/
 
 struct	sstat {
 	struct cpustat	cpu;
@@ -436,6 +456,7 @@ struct	sstat {
 	struct gpustat 	gpu;
 	struct ifbstat 	ifb;
 	struct llcstat  llc;
+	struct zonestat zone;
 
 	struct wwwstat	www;
 };
