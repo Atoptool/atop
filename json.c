@@ -891,7 +891,7 @@ static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 
         printf(", %s: [", hp);
 
-	for (i = 0; i < ss->memnuma.nrnuma; i++) {
+	for (i = 0; i < ss->llc.nrllcs; i++) {
 		if (i > 0) {
 			printf(", ");
 		}
