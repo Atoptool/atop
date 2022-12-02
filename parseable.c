@@ -58,6 +58,7 @@ void 	print_IFB();
 void 	print_NUM();
 void 	print_NUC();
 void 	print_LLC();
+void 	print_ZON();
 
 void 	print_PRG();
 void 	print_PRC();
@@ -99,6 +100,7 @@ static struct labeldef	labeldef[] = {
 	{ "NUM",	0,	print_NUM },
 	{ "NUC",	0,	print_NUC },
 	{ "LLC",	0,	print_LLC },
+	{ "ZON",	0,	print_ZON },
 
 	{ "PRG",	0,	print_PRG },
 	{ "PRC",	0,	print_PRC },
@@ -708,6 +710,19 @@ print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->llc.perllc[i].occupancy * 100,
 			ss->llc.perllc[i].mbm_total,
 			ss->llc.perllc[i].mbm_local);
+	}
+}
+
+void
+print_ZON(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int 	i;
+
+	for (i=0; i < ss->zone.nrzones; i++)
+	{
+		struct perzone *zone = &ss->zone.perzone[i];
+		printf(	"%s ZON %d %s %lld %lld %lld %lld %lld %lld %lld %lld\n",
+			hp, zone->node, zone->name, zone->free, zone->min, zone->low, zone->high, zone->spanned, zone->present, zone->managed, zone->cma);
 	}
 }
 
