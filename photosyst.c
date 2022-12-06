@@ -875,6 +875,7 @@ photosyst(struct sstat *si)
 					if (cnts[0] != j)
 						continue;
 
+					si->memnuma.numa[j].numanr = j;
 					if ( strcmp("MemTotal:", nam) == EQ)
 						si->memnuma.numa[j].totmem = cnts[1]*1024/pagesize;
 					else if ( strcmp("MemFree:", nam) == EQ)
@@ -1018,6 +1019,7 @@ photosyst(struct sstat *si)
 					si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
 				}
 			}
+			si->cpunuma.numa[j].numanr = j;
 		}
 
 		free(line);

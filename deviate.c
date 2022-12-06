@@ -742,6 +742,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	for (i=0; i < dev->memnuma.nrnuma; i++)
 	{
+		dev->memnuma.numa[i].numanr      = cur->memnuma.numa[i].numanr;
 		dev->memnuma.numa[i].totmem      = cur->memnuma.numa[i].totmem;
 		dev->memnuma.numa[i].freemem     = cur->memnuma.numa[i].freemem;
 		dev->memnuma.numa[i].filepage    = cur->memnuma.numa[i].filepage;
@@ -762,6 +763,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		for (i=0; i < dev->cpunuma.nrnuma; i++)
 		{
 			dev->cpunuma.numa[i].nrcpu  = cur->cpunuma.numa[i].nrcpu;
+			dev->cpunuma.numa[i].numanr = cur->cpunuma.numa[i].numanr;
 
 			dev->cpunuma.numa[i].utime  = subcount(cur->cpunuma.numa[i].utime,
 								pre->cpunuma.numa[i].utime);
