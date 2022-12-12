@@ -1599,7 +1599,10 @@ the total number of pages of the process/thread list are shown.
 .B COMMAND-LINE
 The full command line of the process (including arguments). If the length of
 the command line exceeds the length of the screen line, the arrow 
-keys -> and <- can be used for horizontal scroll.
+keys -> and <- can be used for horizontal scroll. The '-z <regex>' command
+line option can be used to prepend matching environment variables to the
+displayed command line. POSIX Extended Regular Expression syntax are used
+(see regex(3)).
 .br
 Behind the verb `COMMAND-LINE' in the header line, the current page number
 and the total number of pages of the process/thread list are shown.

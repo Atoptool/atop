@@ -40,6 +40,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdlib.h>
+#include <regex.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -72,6 +73,9 @@ static struct cgroupv2vals *
 void		fillcgroupv2(struct cgroupv2vals *, char *, char *, int);
 int 		readcgroupv2(char *, char *, char *, int, long []);
 static void	wipecgroupv2(void);
+
+extern char	prependenv;
+extern regex_t  envregex;
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -711,21 +715,48 @@ procio(struct tstat *curtask)
 static void
 proccmd(struct tstat *curtask)
 {
-	FILE		*fp;
+	FILE		*fp, *fpe;
 	register int 	i, nr;
 
 	memset(curtask->gen.cmdline, 0, CMDLEN+1);
+
+	ssize_t env_len = 0;
+
+	if ( prependenv && (fpe = fopen("environ", "r")) != NULL) {
+		register char *p = curtask->gen.cmdline;
+		/* we let getdelim handle the allocation */
+		char *line = NULL;
+		ssize_t nread;
+		size_t len = 0;
+		while ((nread = getdelim(&line, &len, '\0', fpe)) != -1) {
+			if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0)) {
+				env_len += nread;
+
+				if (env_len >= CMDLEN) {
+					env_len -= nread;
+					break;
+				}
+
+				strcpy(p, line);
+				p += nread;
+			}
+		}
+		/* line has been (re)allocated within the first call to getlim */
+                /* even if the call fails, see getline(3) */
+		free(line);
+		fclose(fpe);
+	}
 
 	if ( (fp = fopen("cmdline", "r")) != NULL)
 	{
 		register char *p = curtask->gen.cmdline;
 
-		nr = fread(p, 1, CMDLEN, fp);
+		nr = fread(p+env_len, 1, CMDLEN-env_len, fp);
 		fclose(fp);
 
 		if (nr >= 0)	/* anything read ? */
 		{
-			for (i=0; i < nr-1; i++, p++)
+			for (i=0; i < nr+env_len-1; i++, p++)
 			{
 				switch (*p)
 				{
