@@ -2443,6 +2443,7 @@ sysprt_DSKAVIO(struct sstat *sstat, extraparam *as, int badness, int *color)
 	}
 	else if (avioms >= 99.95)
 	{
+		sprintf(buf+5, "%4.0lf ms", avioms);
 	}
 	else if (avioms >= 9.995)
 	{
