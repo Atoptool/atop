@@ -1346,17 +1346,16 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 		dev->cfs.cont[i].ctid    = cur->cfs.cont[i].ctid;
 		dev->cfs.cont[i].numproc = cur->cfs.cont[i].numproc;
+		dev->cfs.cont[i].physpages = cur->cfs.cont[i].physpages;
 
 		dev->cfs.cont[i].system  = subcount(cur->cfs.cont[i].system,
-		                                    pre->cfs.cont[i].system);
+		                                    pre->cfs.cont[j].system);
 		dev->cfs.cont[i].user    = subcount(cur->cfs.cont[i].user,
-		                                    pre->cfs.cont[i].user);
+		                                    pre->cfs.cont[j].user);
 		dev->cfs.cont[i].nice    = subcount(cur->cfs.cont[i].nice,
-		                                    pre->cfs.cont[i].nice);
+		                                    pre->cfs.cont[j].nice);
 		dev->cfs.cont[i].uptime  = subcount(cur->cfs.cont[i].uptime,
-		                                    pre->cfs.cont[i].uptime);
-
-		dev->cfs.cont[i].physpages = cur->cfs.cont[i].physpages;
+		                                    pre->cfs.cont[j].uptime);
 	}
 
 	dev->cfs.nrcontainer = cur->cfs.nrcontainer;
