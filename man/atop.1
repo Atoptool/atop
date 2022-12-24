@@ -1378,7 +1378,7 @@ the number of KiBytes per discard (`KiB/d') if supported by kernel version,
 the number of MiBytes per second throughput for reads (`MBr/s'), 
 the number of MiBytes per second throughput for writes (`MBw/s'), 
 requests issued to the device driver but not completed (`inflt'),
-the average queue depth (`avq')
+the average queue depth while busy (`avq')
 and the average number of milliseconds needed by a request (`avio')
 for seek, latency and data transfer.
 .br
@@ -2331,7 +2331,7 @@ number of sectors transferred for write,
 number of discards issued (-1 if not supported),
 number of sectors transferred for discards,
 number of requests currently in flight (not yet completed), and
-the average queue depth.
+the average queue depth while the disk was busy.
 .TP 9
 .B NFM
 Subsequent fields:
