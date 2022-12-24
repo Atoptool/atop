@@ -1031,6 +1031,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		                                  pre->dsk.dsk[j].nwrite);
 		dev->dsk.dsk[i].nwsect = subcount(cur->dsk.dsk[i].nwsect,
 		                                  pre->dsk.dsk[j].nwsect);
+		dev->dsk.dsk[i].inflight  = cur->dsk.dsk[i].inflight;
 		dev->dsk.dsk[i].io_ms  = subcount(cur->dsk.dsk[i].io_ms,
 		                                  pre->dsk.dsk[j].io_ms);
 		dev->dsk.dsk[i].avque  = subcount(cur->dsk.dsk[i].avque,
