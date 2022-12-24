@@ -209,7 +209,8 @@ numa_allocate_cpumask()
 	struct bitmask *bmp;
 
 	bmp = malloc(sizeof(*bmp));
-	ptrverify(bmp, "Malloc failed for numa bitmask");
+	if (!bmp)
+		ptrverify(bmp, "Malloc failed for numa bitmask");
 
 	bmp->size = ncpus;
 	bmp->maskp = calloc(longsperbits(ncpus), sizeof(unsigned long));

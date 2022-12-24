@@ -133,7 +133,8 @@ atopsar(int argc, char *argv[])
 		*/
 		flaglist = malloc(pricnt+32);
 
-		ptrverify(flaglist, "Malloc failed for %d flags\n", pricnt+32);
+		if (!flaglist)
+			ptrverify(flaglist, "Malloc failed for %d flags\n", pricnt+32);
 
 		for (i=0; i < pricnt; i++)
 			flaglist[i] = pridef[i].flag;

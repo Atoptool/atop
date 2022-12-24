@@ -1881,7 +1881,7 @@ format_bandw(char *buf, count_t kbps)
                 c = 'T';
         }
 
-        sprintf(buf, "%4lld %cbps", kbps, c);
+        sprintf(buf, "%4lld %cbps", kbps%100000, c);
 }
 /***************************************************************/
 char *

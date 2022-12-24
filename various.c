@@ -279,9 +279,9 @@ normalize_epoch(time_t epoch, long secondsinday)
 char *
 val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 {
-	count_t	maxval, remain = 0;
-	int	exp     = 0;
-	char	*suffix = "";
+	count_t		maxval, remain = 0;
+	unsigned short	exp     = 0;
+	char		*suffix = "";
 
 	if (avg && nsecs)
 	{
@@ -330,8 +330,8 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 			if (remain >= 5 && value < maxval)
 				value++;
 
-			sprintf(strvalue, "%*llde%d%s",
-					width, value, exp, suffix);
+			sprintf(strvalue, "%*llde%hd%s",
+					width%100, value, exp%100, suffix);
 		}
 	}
 
