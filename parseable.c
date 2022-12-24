@@ -657,7 +657,7 @@ print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < ss->memnuma.nrnuma; i++)
 	{
 		printf(	"%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
-			hp, i,
+			hp, ss->memnuma.numa[i].numanr,
 			pagesize,
 			ss->memnuma.numa[i].frag * 100.0,
 			ss->memnuma.numa[i].totmem,
@@ -681,7 +681,7 @@ print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < ss->cpunuma.nrnuma; i++)
 	{
 		printf(	"%s %d %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
-			hp, i,
+			hp, ss->cpunuma.numa[i].numanr,
 	        	ss->cpunuma.numa[i].nrcpu,
 	        	ss->cpunuma.numa[i].stime,
         		ss->cpunuma.numa[i].utime,

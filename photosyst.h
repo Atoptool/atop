@@ -96,6 +96,7 @@ struct	memstat {
 /************************************************************************/
 
 struct	mempernuma {
+	int	numanr;
 	float	frag;		// fragmentation level for this numa
 	count_t	totmem;		// number of physical pages for this numa
 	count_t	freemem;	// number of free     pages for this numa
@@ -117,6 +118,7 @@ struct	memnuma {
 };
 
 struct	cpupernuma {
+	int	numanr;
 	count_t	nrcpu;		// number of cpu's
 	count_t	stime;		// accumulate system  time in clock ticks for per numa
 	count_t	utime;		// accumulate user    time in clock ticks for per numa

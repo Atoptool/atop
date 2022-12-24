@@ -1765,7 +1765,7 @@ sysprt_NUMANR(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16];
 	*color = -1;
-	sprintf(buf, "numanode%04d", as->index);
+	sprintf(buf, "numanode%04d", sstat->memnuma.numa[as->index].numanr);
 	return buf;
 }
 
@@ -1970,7 +1970,7 @@ sysprt_NUMACPUWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
 	static char buf[15];
 
 	sprintf(buf, "nod%03d w%3.0f%%",
-		as->index,
+		sstat->cpunuma.numa[as->index].numanr,
 		(sstat->cpunuma.numa[as->index].wtime * 100.0) / as->percputot);
 	return buf;
 }

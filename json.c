@@ -70,6 +70,7 @@ static void json_print_NFS();
 static void json_print_NET();
 static void json_print_IFB();
 static void json_print_NUM();
+static void json_print_NUC();
 static void json_print_LLC();
 static void json_print_PRG();
 static void json_print_PRC();
@@ -106,6 +107,7 @@ static struct labeldef	labeldef[] = {
 	{ "NET",	0,	json_print_NET },
 	{ "IFB",	0,	json_print_IFB },
 	{ "NUM",	0,	json_print_NUM },
+	{ "NUC",	0,	json_print_NUC },
 	{ "LLC",	0,	json_print_LLC },
 
 	{ "PRG",	0,	json_print_PRG },
@@ -813,13 +815,14 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 {
 	register int i;
 
-        printf(", %s: [", hp);
+	printf(", %s: [", hp);
 
 	for (i = 0; i < ss->memnuma.nrnuma; i++) {
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"frag\": \"%f\", "
+		printf("{\"numanr\": \"%d\", "
+			"\"frag\": \"%f\", "
 			"\"totmem\": %lld, "
 			"\"freemem\": %lld, "
 			"\"active\": %lld, "
@@ -830,6 +833,7 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"slabreclaim\": %lld, "
 			"\"shmem\": %lld, "
 			"\"tothp\": %lld}",
+			ss->memnuma.numa[i].numanr,
 			ss->memnuma.numa[i].frag * 100.0,
 			ss->memnuma.numa[i].totmem * pagesize,
 			ss->memnuma.numa[i].freemem * pagesize,
@@ -841,6 +845,41 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->memnuma.numa[i].slabreclaim * pagesize,
 			ss->memnuma.numa[i].shmem * pagesize,
 			ss->memnuma.numa[i].tothp * ss->mem.hugepagesz);
+	}
+
+	printf("]");
+}
+
+static void json_print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int i;
+
+	printf(", %s: [", hp);
+
+	for (i = 0; i < ss->cpunuma.nrnuma; i++) {
+		if (i > 0) {
+			printf(", ");
+		}
+		printf("{\"numanr\": \"%d\", "
+			"\"stime\": %lld, "
+			"\"utime\": %lld, "
+			"\"ntime\": %lld, "
+			"\"itime\": %lld, "
+			"\"wtime\": %lld, "
+			"\"Itime\": %lld, "
+			"\"Stime\": %lld, "
+			"\"steal\": %lld, "
+			"\"guest\": %lld}",
+			ss->cpunuma.numa[i].numanr,
+			ss->cpunuma.numa[i].stime,
+			ss->cpunuma.numa[i].utime,
+			ss->cpunuma.numa[i].ntime,
+			ss->cpunuma.numa[i].itime,
+			ss->cpunuma.numa[i].wtime,
+			ss->cpunuma.numa[i].Itime,
+			ss->cpunuma.numa[i].Stime,
+			ss->cpunuma.numa[i].steal,
+			ss->cpunuma.numa[i].guest);
 	}
 
 	printf("]");
