@@ -193,16 +193,17 @@ struct	cpustat {
 /************************************************************************/
 
 struct	perdsk {
-        char	name[MAXDKNAM];	/* empty string for last        */
-        count_t	nread;	/* number of read  transfers            */
-        count_t	nrsect;	/* number of sectors read               */
-        count_t	nwrite;	/* number of write transfers            */
-        count_t	nwsect;	/* number of sectors written            */
-        count_t	io_ms;	/* number of millisecs spent for I/O    */
-        count_t	avque;	/* average queue length                 */
-        count_t	ndisc;	/* number of discards (-1 = unavailable)*/
-        count_t	ndsect;	/* number of sectors discarded          */
-	count_t	cfuture[2];	/* reserved for future use	*/
+        char	name[MAXDKNAM];	/* empty string for last		*/
+        count_t	nread;		/* number of read  transfers		*/
+        count_t	nrsect;		/* number of sectors read		*/
+        count_t	nwrite;		/* number of write transfers		*/
+        count_t	nwsect;		/* number of sectors written		*/
+        count_t	inflight;	/* number of inflight I/O		*/
+        count_t	io_ms;		/* number of millisecs spent for I/O	*/
+        count_t	avque;		/* average queue length			*/
+        count_t	ndisc;		/* number of discards (-1 = unavailable)*/
+        count_t	ndsect;		/* number of sectors discarded		*/
+        count_t	cfuture[1];	/* reserved for future use		*/
 };
 
 struct dskstat {

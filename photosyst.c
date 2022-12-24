@@ -1261,12 +1261,13 @@ photosyst(struct sstat *si)
 		{
 			nr = sscanf(linebuf,
 			      "%*d %*d %*d %255s %lld %*d %lld %*d "
-			      "%lld %*d %lld %*d %*d %lld %lld",
+			      "%lld %*d %lld %*d %lld %lld %lld",
 			        diskname,
 				&(si->dsk.dsk[i].nread),
 				&(si->dsk.dsk[i].nrsect),
 				&(si->dsk.dsk[i].nwrite),
 				&(si->dsk.dsk[i].nwsect),
+				&(si->dsk.dsk[i].inflight),
 				&(si->dsk.dsk[i].io_ms),
 				&(si->dsk.dsk[i].avque) );
 
@@ -1275,7 +1276,7 @@ photosyst(struct sstat *si)
 			** or just one of the partitions of a disk (to be
 			** skipped)
 			*/
-			if (nr == 7)	/* full stats-line ? */
+			if (nr == 8)	/* full stats-line ? */
 			{
 				if ( isdisk(0, 0, diskname,
 				                 &(si->dsk.dsk[i]),
@@ -1318,15 +1319,15 @@ photosyst(struct sstat *si)
 			      "%d %d %255s "		// ident
                               "%lld %*d %lld %*d "	// reads
 			      "%lld %*d %lld %*d "	// writes
-			      "%*d %lld %lld "		// misc
+			      "%lld %lld %lld "		// misc
 			      "%lld %*d %lld %*d",	// discards
 				&major, &minor, diskname,
 				&tmpdsk.nread,  &tmpdsk.nrsect,
 				&tmpdsk.nwrite, &tmpdsk.nwsect,
-				&tmpdsk.io_ms,  &tmpdsk.avque,
+				&tmpdsk.inflight, &tmpdsk.io_ms, &tmpdsk.avque,
 				&tmpdsk.ndisc,  &tmpdsk.ndsect);
 
-			if (nr >= 9)	/* full stats-line ? */
+			if (nr >= 10)	/* full stats-line ? */
 			{
 				/*
   				** when no transfers issued, skip disk (partition)
