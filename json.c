@@ -559,6 +559,7 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nrsect\": %lld, "
 			"\"nwrite\": %lld, "
 			"\"nwsect\": %lld, "
+			"\"avque\": %lld}, "
 			"\"inflight\": %lld}",
 			ss->dsk.lvm[i].name,
 			ss->dsk.lvm[i].io_ms,
@@ -566,6 +567,7 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->dsk.lvm[i].nrsect,
 			ss->dsk.lvm[i].nwrite,
 			ss->dsk.lvm[i].nwsect,
+			ss->dsk.lvm[i].avque,
 			ss->dsk.lvm[i].inflight);
 	}
 
@@ -588,6 +590,7 @@ static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nrsect\": %lld, "
 			"\"nwrite\": %lld, "
 			"\"nwsect\": %lld, "
+			"\"avque\": %lld, "
 			"\"inflight\": %lld}",
 			ss->dsk.mdd[i].name,
 			ss->dsk.mdd[i].io_ms,
@@ -595,6 +598,7 @@ static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->dsk.mdd[i].nrsect,
 			ss->dsk.mdd[i].nwrite,
 			ss->dsk.mdd[i].nwsect,
+			ss->dsk.mdd[i].avque,
 			ss->dsk.mdd[i].inflight);
 	}
 
@@ -618,6 +622,7 @@ static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"ndiscrd\": %lld, "
 			"\"nwrite\": %lld, "
 			"\"nwsect\": %lld, "
+			"\"avque\": %lld, "
 			"\"inflight\": %lld}",
 			ss->dsk.dsk[i].name,
 			ss->dsk.dsk[i].io_ms,
@@ -626,6 +631,7 @@ static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->dsk.dsk[i].ndisc,
 			ss->dsk.dsk[i].nwrite,
 			ss->dsk.dsk[i].nwsect,
+			ss->dsk.dsk[i].avque,
 			ss->dsk.dsk[i].inflight);
 	}
 
