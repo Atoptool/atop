@@ -915,3 +915,38 @@ getpidwidth(void)
 
 	return numdigits;
 }
+
+/*
+** run `cmd`, classic procedure
+** fds[0] will read from the child process, and fds[1] will write to it,
+** both set to line buffered
+** returns child PID to parent or 0 if failed
+*/
+pid_t pcreate(int fds[2], char* cmd) {
+	pid_t pid;
+	int pipes[4];
+	pipe(&pipes[0]); /* parent read/child write */
+	pipe(&pipes[2]); /* child read/parent write */
+	pid = fork();
+	if (pid > 0) {
+		/* parent */
+		fds[0] = pipes[0];
+		fds[1] = pipes[3];
+		close(pipes[1]);
+		close(pipes[2]);
+		return pid;
+	} else if (pid == 0) {
+		/* child */
+		close(pipes[0]);
+		close(pipes[3]);
+		dup2(pipes[1], 1);
+		dup2(pipes[2], 0);
+		close(pipes[2]);
+		close(pipes[1]);
+		setvbuf(stdout, NULL, _IOLBF, 0);
+		setvbuf(stdin, NULL, _IOLBF, 0);
+		execlp(cmd, cmd, NULL);
+		return 0; // execlp failed
+	}
+	return 0;
+}

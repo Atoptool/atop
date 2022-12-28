@@ -220,6 +220,21 @@ This option can only be specified in the
 .B /etc/atoprc
 file (on system level)!
 .PP
+.TP 4
+.B pidtocmd
+The external program to translate PID to CMD.
+If this keyword is supplied,
+.B CMD
+line is obtained by running this program. The program must read
+newline-terminated PID from stdin and write short newline-terminated
+string to be used instead of
+.B CMD
+to stdout, in line-buffered mode.
+This may be used to quickly distinguish between processes of the same executable.
+See
+.B pidtocmd.pl
+for example.
+.PP
 An example of the
 .B /etc/atoprc
 or

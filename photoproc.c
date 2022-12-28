@@ -73,6 +73,11 @@ void		fillcgroupv2(struct cgroupv2vals *, char *, char *, int);
 int 		readcgroupv2(char *, char *, char *, int, long []);
 static void	wipecgroupv2(void);
 
+extern int	pidtocmd_fds[2];
+extern char	pidtocmd_name[512];
+extern int	pidtocmd_started;
+pid_t pcreate(int fds[2], char* cmd);
+
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
 {
@@ -126,6 +131,10 @@ photoproc(struct tstat *tasklist, int maxtask)
  		** find epoch time of boot moment
 		*/
 		bootepoch = getboot();
+
+		if (pidtocmd_name[0] != '\0') {
+			pidtocmd_started = (pcreate (pidtocmd_fds, pidtocmd_name) > 0) ?  1 : 0;
+		}
 
 		firstcall = 0;
 	}
@@ -432,6 +441,9 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 	FILE	*fp;
 	int	nr;
 	char	line[4096], *p, *cmdhead, *cmdtail;
+    char	cpid[16];
+    int	cmdl;
+    char	buf[32];
 
 	if ( (fp = fopen("stat", "r")) == NULL)
 		return 0;
@@ -456,13 +468,36 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 		return 0;
 	}
 
-	if ( (nr = cmdtail-cmdhead-1) > PNAMLEN)
-		nr = PNAMLEN;
-
 	p = curtask->gen.name;
+	sscanf(line, "%d", &(curtask->gen.pid));  /* fetch pid */
 
-	memcpy(p, cmdhead+1, nr);
-	*(p+nr) = 0;
+	if (pidtocmd_started) {
+		/* get cmdline from external program */
+		snprintf (cpid, sizeof(cpid), "%d\n", curtask->gen.pid);
+		cpid[sizeof(cpid)-1] = '\0';
+		write (pidtocmd_fds[1], cpid, strlen(cpid));
+		fsync (pidtocmd_fds[1]);
+		cmdl = read (pidtocmd_fds[0], p, PNAMLEN);
+		if (cmdl == PNAMLEN && *(p+cmdl-1) != '\n') {
+			/* fetch the rest of output until newline */
+			do {
+				memset (buf, 0, sizeof(buf));
+				read (pidtocmd_fds[0], buf, sizeof(buf)-1);
+			} while (strchr(buf, '\n') == NULL);
+		}
+		if (cmdl < 0)
+			cmdl = 0;
+		*(p+cmdl) = 0;
+		if (*(p+cmdl-1) == '\n')
+			*(p+cmdl-1) = 0;
+
+	} else {
+		/* get cmdline from stat file */
+		if ( (nr = cmdtail-cmdhead-1) > PNAMLEN)
+			nr = PNAMLEN;
+	    memcpy(p, cmdhead+1, nr);
+		*(p+nr) = 0;
+	}
 
 	while ( (p = strchr(p, '\n')) != NULL)
 	{
@@ -477,8 +512,6 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 	curtask->cpu.rtprio  = 0;
 	curtask->cpu.policy  = 0;
 	curtask->gen.excode  = 0;
-
-	sscanf(line, "%d", &(curtask->gen.pid));  /* fetch pid */
 
 	nr = sscanf(cmdtail+2, SCANSTAT,
 		&(curtask->gen.state), 	&(curtask->gen.ppid),

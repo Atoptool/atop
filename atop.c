@@ -400,6 +400,7 @@ void do_almostcrit(char *, char *);
 void do_atopsarflags(char *, char *);
 void do_pacctdir(char *, char *);
 void do_perfevents(char *, char *);
+void do_pidtocmd(char *, char *);
 
 static struct {
 	char	*tag;
@@ -454,6 +455,7 @@ static struct {
 	{	"atopsarflags",		do_atopsarflags,	0, },
 	{	"perfevents",		do_perfevents,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
+	{	"pidtocmd",		do_pidtocmd,      0, },
 };
 
 /*

@@ -3506,3 +3506,25 @@ do_flags(char *name, char *val)
 		}
 	}
 }
+
+/*
+** set the name of external program to translate PID to CMD
+*/
+int	pidtocmd_fds[2];
+char	pidtocmd_name[512];
+int	pidtocmd_started;
+
+void
+do_pidtocmd(char *name, char *val)
+{
+    pidtocmd_name[0]='\0';
+    if (strlen(val) < sizeof pidtocmd_name) {
+        strncpy (pidtocmd_name, val, sizeof pidtocmd_name);
+        pidtocmd_name[(sizeof pidtocmd_name)-1]='\0';
+    } else {
+        fprintf(stderr,
+                "atoprc - %s: external command name is too long: %s\n",
+                name, val);
+        exit(1);
+    }
+}
