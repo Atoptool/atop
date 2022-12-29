@@ -88,7 +88,7 @@ ln -sf /usr/bin/atop-XVERSX     /usr/bin/atopsar-XVERSX
 
 %files
 %defattr(-,root,root)
-%doc README COPYING AUTHOR ChangeLog
+%doc README COPYING AUTHORS ChangeLog
 /usr/bin/atop
 /usr/bin/atopconvert
 /usr/bin/atopcat
