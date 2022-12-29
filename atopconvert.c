@@ -11,7 +11,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Initial:     July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2018-2021 Gerlof Langeveld
+** Copyright (C) 2018-2022 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -53,6 +53,8 @@
 #include "photoproc.h"
 #include "rawlog.h"
 
+#include "prev/netstats_wrong.h"
+
 #include "prev/photosyst_20.h"
 #include "prev/photoproc_20.h"
 
@@ -76,6 +78,9 @@
 
 #include "prev/photosyst_27.h"
 #include "prev/photoproc_27.h"
+
+#include "prev/photosyst_28.h"
+#include "prev/photoproc_28.h"
 
 
 ///////////////////////////////////////////////////////////////
@@ -218,6 +223,99 @@ sdsk_to_27(void *old, void *new, count_t oldsize, count_t newsize)
 	    d27->lvm[i].ndisc = -1;	// explicitly define 'unused'
 }
 
+void
+smem_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct memstat_27	*m27 = old;
+	struct memstat_28	*m28 = new;
+
+	memcpy(m28, m27, sizeof *m27);
+
+	m28->tcpsock		= 0;	// new counter
+	m28->udpsock		= 0;	// new counter
+
+	m28->commitlim		= m27->commitlim;
+	m28->committed		= m27->committed;
+	m28->shmem		= m27->shmem;
+	m28->shmrss		= m27->shmrss;
+	m28->shmswp		= m27->shmswp;
+	m28->slabreclaim	= m27->slabreclaim;
+	m28->tothugepage	= m27->tothugepage;
+	m28->freehugepage	= m27->freehugepage;
+	m28->hugepagesz		= m27->hugepagesz;
+	m28->vmwballoon		= m27->vmwballoon;
+	m28->zfsarcsize		= m27->zfsarcsize;
+	m28->swapcached		= m27->swapcached;
+	m28->ksmsharing		= m27->ksmsharing;
+	m28->ksmshared		= m27->ksmshared;
+	m28->zswstored		= m27->zswstored;
+	m28->zswtotpool		= m27->zswtotpool;
+	m28->oomkills		= m27->oomkills;
+	m28->compactstall	= m27->compactstall;
+	m28->pgmigrate		= m27->pgmigrate;
+	m28->numamigrate	= m27->numamigrate;
+
+        m28->pgouts		= 0;	// new counter
+        m28->pgins		= 0;	// new counter
+        m28->pagetables		= 0;	// new counter
+
+        memset(m28->cfuture, 0, sizeof m28->cfuture);
+}
+
+void
+sdsk_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct dskstat_27	*d27 = old;
+	struct dskstat_28	*d28 = new;
+	int			i;
+
+	d28->ndsk	= d27->ndsk;
+	d28->nmdd	= d27->nmdd;
+	d28->nlvm	= d27->nlvm;
+
+	for (i=0; i < d28->ndsk; i++)
+	    memcpy(&(d28->dsk[i]), &(d27->dsk[i]), sizeof d27->dsk[i]);
+
+	for (i=0; i < d28->nmdd; i++)
+	    memcpy(&(d28->mdd[i]), &(d27->mdd[i]), sizeof d27->mdd[i]);
+
+	for (i=0; i < d28->nlvm; i++)
+	    memcpy(&(d28->lvm[i]), &(d27->lvm[i]), sizeof d27->lvm[i]);
+}
+
+void
+smnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct memnuma_27	*n27 = old;
+	struct memnuma_28	*n28 = new;
+	int			i;
+
+	n28->nrnuma = n27->nrnuma;
+
+	for (i=0; i < n28->nrnuma; i++)
+	{
+		n28->numa[i].numanr = i;
+	    	memcpy(&(n28->numa[i].frag), &(n27->numa[i]), sizeof n27->numa[i]);
+	} 
+}
+
+void
+scnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct cpunuma_27	*n27 = old;
+	struct cpunuma_28	*n28 = new;
+	int			i;
+
+	n28->nrnuma = n27->nrnuma;
+
+	for (i=0; i < n28->nrnuma; i++)
+	{
+		n28->numa[i].numanr = i;
+	    	memcpy(&(n28->numa[i].nrcpu), &(n27->numa[i]), sizeof n27->numa[i]);
+	} 
+}
+
+
 // /////////////////////////////////////////////////////////////////
 // Specific functions that convert an old tstat sub-structure to
 // a new sub-structure (process level)
@@ -296,6 +394,50 @@ tmem_to_26(void *old, void *new, count_t oldsize, count_t newsize)
 	m26->vlock = 0;
 }
 
+void
+tcpu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// cgroup counters inserted
+	//
+	struct cpu_27	*c27 = old;
+	struct cpu_28	*c28 = new;
+
+        c28->utime	= c27->utime;
+        c28->stime	= c27->stime;
+        c28->nice	= c27->nice;
+        c28->prio	= c27->prio;
+        c28->rtprio	= c27->rtprio;
+        c28->policy	= c27->policy;
+        c28->curcpu	= c27->curcpu;
+        c28->sleepavg	= c27->sleepavg;
+        c28->rundelay	= c27->rundelay;
+
+	memcpy(c28->wchan, c27->wchan, sizeof c28->wchan);
+
+        c28->blkdelay	= 0;
+        c28->cgcpuweight= 0;
+        c28->cgcpumax	= 0;
+        c28->cgcpumaxr	= 0;
+
+	memset(c28->ifuture, 0, sizeof c28->ifuture);
+	memset(c28->cfuture, 0, sizeof c28->cfuture);
+}
+
+void
+tmem_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct mem_27	*m27 = old;
+	struct mem_28	*m28 = new;
+
+	memcpy(m28, m27, sizeof *m27);		// copy old struct
+
+	m28->cgmemmax	= 0;
+	m28->cgmemmaxr	= 0;
+	m28->cgswpmax 	= 0;
+	m28->cgswpmaxr	= 0;
+
+	memset(m28->cfuture, 0, sizeof m28->cfuture);
+}
 
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
@@ -323,6 +465,7 @@ struct sstat_24		sstat_24;
 struct sstat_25		sstat_25;
 struct sstat_26		sstat_26;
 struct sstat_27		sstat_27;
+struct sstat_28		sstat_28;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -333,6 +476,7 @@ struct tstat_24		tstat_24;
 struct tstat_25		tstat_25;
 struct tstat_26		tstat_26;
 struct tstat_27		tstat_27;
+struct tstat_28		tstat_28;
 struct tstat		tstat;
 
 struct convertall {
@@ -358,6 +502,7 @@ struct convertall {
 	struct sconvstruct 	sifb;
         struct sconvstruct	smnum;
         struct sconvstruct	scnum;
+        struct sconvstruct	sllc;
 
 	// conversion definition for subparts within tstat
 	struct tconvstruct 	tgen;
@@ -380,6 +525,7 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{sizeof(struct wwwstat_20),  	&sstat_20.www,	NULL},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
@@ -416,6 +562,7 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_21),
 			STROFFSET(&tstat_21.gen, &tstat_21),	tgen_to_21},
@@ -442,6 +589,7 @@ struct convertall {
 		{sizeof(struct nfsstat_22),  	&sstat_22.nfs,	NULL},
 		{sizeof(struct contstat_22), 	&sstat_22.cfs,	NULL},
 		{sizeof(struct wwwstat_22),  	&sstat_22.www,	justcopy},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
@@ -478,6 +626,7 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_23),
 			STROFFSET(&tstat_23.gen, &tstat_23),	justcopy},
@@ -507,6 +656,7 @@ struct convertall {
 		{0,  				&sstat_24.psi,	NULL},
 		{0,  				&sstat_24.gpu,	NULL},
 		{0,  				&sstat_24.ifb,	NULL},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 
@@ -541,6 +691,7 @@ struct convertall {
 		{sizeof(struct ifbstat_25),  	&sstat_25.ifb,	justcopy},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_25),
 			STROFFSET(&tstat_25.gen, &tstat_25),	justcopy},
@@ -571,6 +722,7 @@ struct convertall {
 		{sizeof(struct pressure_26),  	&sstat_26.psi,	justcopy},
 		{sizeof(struct gpustat_26),  	&sstat_26.gpu,	justcopy},
 		{sizeof(struct ifbstat_26),  	&sstat_26.ifb,	justcopy},
+		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 
@@ -605,6 +757,7 @@ struct convertall {
 		{sizeof(struct ifbstat_27),  	&sstat_27.ifb,	justcopy},
 		{0,  				&sstat_27.memnuma,	NULL},
 		{0,  				&sstat_27.cpunuma,	NULL},
+		{0,  				NULL,		NULL},
 
 		{sizeof(struct gen_27),
 			STROFFSET(&tstat_27.gen, &tstat_27),	justcopy},
@@ -618,6 +771,39 @@ struct convertall {
 			STROFFSET(&tstat_27.net, &tstat_27),	justcopy},
 		{sizeof(struct gpu_27),
 			STROFFSET(&tstat_27.gpu, &tstat_27),	justcopy},
+	},
+
+	{SETVERSION(2,8), // 2.7 --> 2.8
+		 sizeof(struct sstat_28),	&sstat_28,
+		 sizeof(struct tstat_28), 	NULL,
+
+		{sizeof(struct cpustat_28),  	&sstat_28.cpu,	   justcopy},
+		{sizeof(struct memstat_28),  	&sstat_28.mem,	   smem_to_28},
+		{sizeof(struct netstat_28),  	&sstat_28.net,	   justcopy},
+		{sizeof(struct intfstat_28), 	&sstat_28.intf,	   justcopy},
+		{sizeof(struct dskstat_28),  	&sstat_28.dsk,	   sdsk_to_28},
+		{sizeof(struct nfsstat_28),  	&sstat_28.nfs,	   justcopy},
+		{sizeof(struct contstat_28), 	&sstat_28.cfs,	   justcopy},
+		{sizeof(struct wwwstat_28),  	&sstat_28.www,	   justcopy},
+		{sizeof(struct pressure_28),  	&sstat_28.psi,	   justcopy},
+		{sizeof(struct gpustat_28),  	&sstat_28.gpu,	   justcopy},
+		{sizeof(struct ifbstat_28),  	&sstat_28.ifb,	   justcopy},
+		{sizeof(struct memnuma_28), 	&sstat_28.memnuma, smnu_to_28},
+		{sizeof(struct cpunuma_28),  	&sstat_28.cpunuma, scnu_to_28},
+		{0,  				&sstat_28.llc,	   NULL},
+
+		{sizeof(struct gen_28),
+			STROFFSET(&tstat_28.gen, &tstat_28),	justcopy},
+		{sizeof(struct cpu_28),
+			STROFFSET(&tstat_28.cpu, &tstat_28),	tcpu_to_28},
+		{sizeof(struct dsk_28),
+			STROFFSET(&tstat_28.dsk, &tstat_28),	justcopy},
+		{sizeof(struct mem_28),
+			STROFFSET(&tstat_28.mem, &tstat_28),	tmem_to_28},
+		{sizeof(struct net_28),
+			STROFFSET(&tstat_28.net, &tstat_28),	justcopy},
+		{sizeof(struct gpu_28),
+			STROFFSET(&tstat_28.gpu, &tstat_28),	justcopy},
 	},
 };
 

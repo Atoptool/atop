@@ -37,7 +37,7 @@ struct	memstat_20 {
 
 struct	netstat_20 {
 	struct ipv4_stats	ipv4;
-	struct icmpv4_stats	icmpv4;
+	struct icmpv4_stats_wrong	icmpv4;
 	struct udpv4_stats	udpv4;
 
 	struct ipv6_stats	ipv6;

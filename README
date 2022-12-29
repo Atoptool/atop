@@ -2,7 +2,7 @@ COPYRIGHT NOTICE
 ----------------
 For all files that are not marked differently:
 
-Copyright Gerlof Langeveld 2007-2021 and licensed under the GPL v2 (or any later version).
+Copyright Gerlof Langeveld 2007-2022 and licensed under the GPL v2 (or any later version).
 
 
 DEPENDENCIES
@@ -45,6 +45,7 @@ per process/thread as described in www.atoptool.nl/netatop.php
 
 PROCESS ACCOUNTING WITH PSACCT/ACCT PACKAGE
 -------------------------------------------
+
 Preferably, process accounting should be handled by the atopacctd daemon
 which is implicitly installed when installing atop. This daemon takes
 care that process accounting is only active when at least one atop
@@ -54,9 +55,8 @@ See the man page of atopacctd for further details.
 
 When the psacct or acct package is installed in parallel with the
 atop package and you want to enable/start the (ps)acct service for
-permanent process accounting, take care that the atopacct will be
-disabled. The atopacct service and the (ps)acct service mutually
-exclude one another.
+permanent process accounting, the atopacct.service refuses to activate
+the atopacctd daemon to avoid clashes.
 When the (ps)acct service is enabled, atop automatically uses the
 process accounting file that is used by this package.
 See also the section PROCESS ACCOUNTING in the man page of atop.
