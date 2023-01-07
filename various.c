@@ -12,7 +12,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2022 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -129,7 +129,7 @@ convtime(time_t utime, char *chartim)
 
 	tt = localtime(&utime);
 
-	sprintf(chartim, "%02d:%02d:%02d", tt->tm_hour, tt->tm_min, tt->tm_sec);
+	snprintf(chartim, 9, "%02d:%02d:%02d", tt->tm_hour, tt->tm_min, tt->tm_sec);
 
 	return chartim;
 }
@@ -146,7 +146,7 @@ convdate(time_t utime, char *chardat)
 
 	tt = localtime(&utime);
 
-	sprintf(chardat, "%04d/%02d/%02d",
+	snprintf(chardat, 11, "%04d/%02d/%02d",
 		tt->tm_year+1900, tt->tm_mon+1, tt->tm_mday);
 
 	return chardat;
@@ -273,7 +273,7 @@ normalize_epoch(time_t epoch, long secondsinday)
 ** Function val2valstr() converts a positive value to an ascii-string of a 
 ** fixed number of positions; if the value does not fit, it will be formatted
 ** to exponent-notation (as short as possible, so not via the standard printf-
-** formatters %f or %e). The offered string should have a length of width+1.
+** formatters %f or %e). The offered buffer should have a length of width+1.
 ** The value might even be printed as an average for the interval-time.
 */
 char *
@@ -282,6 +282,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 	count_t		maxval, remain = 0;
 	unsigned short	exp     = 0;
 	char		*suffix = "";
+ 	int		strsize = width+1;
 
 	if (avg && nsecs)
 	{
@@ -292,7 +293,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 
 	if (value < 0)		// no negative value expected
 	{
-		sprintf(strvalue, "%*s%s", width, "?", suffix);
+		snprintf(strvalue, strsize, "%*s%s", width, "?", suffix);
 		return strvalue;
 	}
 
@@ -300,7 +301,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 
 	if (value < maxval)
 	{
-		sprintf(strvalue, "%*lld%s", width, value, suffix);
+		snprintf(strvalue, strsize, "%*lld%s", width, value, suffix);
 	}
 	else
 	{
@@ -309,7 +310,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 			/*
 			** cannot avoid ignoring width
 			*/
-			sprintf(strvalue, "%lld%s", value, suffix);
+			snprintf(strvalue, strsize, "%lld%s", value, suffix);
 		}
 		else
 		{
@@ -330,7 +331,7 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 			if (remain >= 5 && value < maxval)
 				value++;
 
-			sprintf(strvalue, "%*llde%hd%s",
+			snprintf(strvalue, strsize, "%*llde%hd%s",
 					width%100, value, exp%100, suffix);
 		}
 	}
@@ -351,26 +352,35 @@ val2valstr(count_t value, char *strvalue, int width, int avg, int nsecs)
 int
 val2elapstr(int value, char *strvalue)
 {
-        char	*p=strvalue;
+        char	*p = strvalue;
+	int	rv, n = 14;
 
         if (value >= DAYSECS) 
         {
-                p+=sprintf(p, "%dd", value/DAYSECS);
+                rv = snprintf(p, n, "%dd", value/DAYSECS);
+		p += rv;
+		n -= rv;
         }
 
         if (value >= HOURSECS) 
         {
-                p+=sprintf(p, "%dh", (value%DAYSECS)/HOURSECS);
+                rv = snprintf(p, n, "%dh", (value%DAYSECS)/HOURSECS);
+		p += rv;
+		n -= rv;
         }
 
         if (value >= MINSECS) 
         {
-                p+=sprintf(p, "%dm", (value%HOURSECS)/MINSECS);
+                rv = snprintf(p, n, "%dm", (value%HOURSECS)/MINSECS);
+		p += rv;
+		n -= rv;
         }
 
-        p+=sprintf(p, "%ds", (value%MINSECS));
+        rv = snprintf(p, n, "%ds", (value%MINSECS));
+	p += rv;
+	n -= rv;
 
-        return p-strvalue;
+        return p - strvalue;
 }
 
 
@@ -388,7 +398,7 @@ val2cpustr(count_t value, char *strvalue)
 {
 	if (value < MAXMSEC)
 	{
-		sprintf(strvalue, "%2lld.%02llds", value/1000, value%1000/10);
+		snprintf(strvalue, 7, "%2lld.%02llds", value/1000, value%1000/10);
 	}
 	else
 	{
@@ -399,7 +409,7 @@ val2cpustr(count_t value, char *strvalue)
 
         	if (value < MAXSEC) 
         	{
-               	 	sprintf(strvalue, "%2lldm%02llds", value/60, value%60);
+               	 	snprintf(strvalue, 7, "%2lldm%02llds", value/60, value%60);
 		}
 		else
 		{
@@ -410,7 +420,7 @@ val2cpustr(count_t value, char *strvalue)
 
 			if (value < MAXMIN) 
 			{
-				sprintf(strvalue, "%2lldh%02lldm",
+				snprintf(strvalue, 7, "%2lldh%02lldm",
 							value/60, value%60);
 			}
 			else
@@ -420,7 +430,7 @@ val2cpustr(count_t value, char *strvalue)
 				*/
 				value = (value + 30) / 60;
 
-				sprintf(strvalue, "%2lldd%02lldh",
+				snprintf(strvalue, 7, "%2lldd%02lldh",
 						value/24, value%24);
 			}
 		}
@@ -442,7 +452,7 @@ val2Hzstr(count_t value, char *strvalue)
 
         if (value < 1000)
         {
-                sprintf(strvalue, "%4lldMHz", value);
+                snprintf(strvalue, 8, "%4lldMHz", value);
         }
         else
         {
@@ -467,7 +477,7 @@ val2Hzstr(count_t value, char *strvalue)
 				fformat = "%4.0f%cHz";
 		}
 
-                sprintf(strvalue, fformat, fval, prefix);
+                snprintf(strvalue, 8, fformat, fval, prefix);
         }
 
 	return strvalue;
@@ -505,7 +515,6 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 	char	*suffix = "";
 	int	basewidth = 6;
 
-
 	/*
 	** notice that the value can be negative, in which case the
 	** modulo-value should be evaluated and an extra position should
@@ -527,37 +536,36 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 		suffix        = "/s";
 
 		if (verifyval <= MAXBYTE)	/* bytes ? */
-			aformat = BFORMAT;
+		    aformat = BFORMAT;
 		else
-			if (verifyval <= MAXKBYTE9)	/* kbytes 1-9 ? */
-				aformat = KBFORMAT;
-			else
-				if (verifyval <= MAXKBYTE)	/* kbytes ? */
-					aformat = KBFORMAT_INT;
-				else
-					if (verifyval <= MAXMBYTE9)	/* mbytes 1-9 ? */
-						aformat = MBFORMAT;
-					else
-						if (verifyval <= MAXMBYTE)	/* mbytes 10-999 ? */
-							aformat = MBFORMAT_INT;
-						else
-							if (verifyval <= MAXGBYTE9)	/* gbytes 1-9 ? */
-								aformat = GBFORMAT;
-							else
-								if (verifyval <= MAXGBYTE)	/* gbytes 10-999 ? */
-									aformat = GBFORMAT_INT;
-								else
-									if (verifyval <= MAXTBYTE9)/* tbytes 1-9 ? */
-										aformat = TBFORMAT;/* tbytes! */
-									else
-										if (verifyval <= MAXTBYTE)/* tbytes 10-999? */
-											aformat = TBFORMAT_INT;/* tbytes! */
-										else
-											if (verifyval <= MAXPBYTE9)/* pbytes 1-9 ? */
-												aformat = PBFORMAT;/* pbytes! */
-											else
-												aformat = PBFORMAT_INT;/* pbytes! */
-
+		    if (verifyval <= MAXKBYTE9)	/* kbytes 1-9 ? */
+		        aformat = KBFORMAT;
+		    else
+		        if (verifyval <= MAXKBYTE)    /* kbytes ? */
+		            aformat = KBFORMAT_INT;
+		        else
+		            if (verifyval <= MAXMBYTE9)    /* mbytes 1-9 ? */
+		                aformat = MBFORMAT;
+		            else
+		                if (verifyval <= MAXMBYTE)    /* mbytes 10-999 ? */
+		                    aformat = MBFORMAT_INT;
+		                else
+		                    if (verifyval <= MAXGBYTE9)    /* gbytes 1-9 ? */
+		                        aformat = GBFORMAT;
+		                    else
+		                        if (verifyval <= MAXGBYTE)    /* gbytes 10-999 ? */
+		                            aformat = GBFORMAT_INT;
+		                        else
+		                            if (verifyval <= MAXTBYTE9)    /* tbytes 1-9 ? */
+		                                aformat = TBFORMAT;
+		                            else
+		                                if (verifyval <= MAXTBYTE)    /* tbytes 10-999? */
+		                                    aformat = TBFORMAT_INT;
+		                                else
+		                                    if (verifyval <= MAXPBYTE9)    /* pbytes 1-9 ? */
+		                                        aformat = PBFORMAT;
+		                                    else
+		                                        aformat = PBFORMAT_INT;    /* pbytes! */
 	} else 
 	/*
 	** printed value per interval (normal mode) 
@@ -578,12 +586,10 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 					if (verifyval <= MAXGBYTE)	/* gbytes ? */
 						aformat = GBFORMAT;
 					else
-						if (verifyval <= MAXTBYTE)/* tbytes? */
-							aformat = TBFORMAT;/* tbytes! */
+						if (verifyval <= MAXTBYTE)    /* tbytes? */
+							aformat = TBFORMAT;
 						else
-							aformat = PBFORMAT;/* pbytes! */
-
-
+							aformat = PBFORMAT;   /* pbytes! */
 	}
 
 
@@ -596,62 +602,80 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 	switch (aformat)
 	{
 	   case	BFORMAT:
-		sprintf(strvalue, "%*lldB%s",
+		snprintf(strvalue, 7, "%*lldB%s",
 				basewidth-1, value, suffix);
 		break;
 
 	   case	KBFORMAT:
-		sprintf(strvalue, "%*.1lfK%s",
+		snprintf(strvalue, 7, "%*.1lfK%s",
 			basewidth-1, (double)((double)value/ONEKBYTE), suffix); 
 		break;
 
 	   case	KBFORMAT_INT:
-		sprintf(strvalue, "%*lldK%s",
+		snprintf(strvalue, 7, "%*lldK%s",
 				basewidth-1, llround((double)((double)value/ONEKBYTE)), suffix);
 		break;
 
 	   case	MBFORMAT:
-		sprintf(strvalue, "%*.1lfM%s",
+		snprintf(strvalue, 7, "%*.1lfM%s",
 			basewidth-1, (double)((double)value/ONEMBYTE), suffix); 
 		break;
 
 	   case	MBFORMAT_INT:
-		sprintf(strvalue, "%*lldM%s",
+		snprintf(strvalue, 7, "%*lldM%s",
 			basewidth-1, llround((double)((double)value/ONEMBYTE)), suffix); 
 		break;
 
 	   case	GBFORMAT:
-		sprintf(strvalue, "%*.1lfG%s",
+		snprintf(strvalue, 7, "%*.1lfG%s",
 			basewidth-1, (double)((double)value/ONEGBYTE), suffix);
 		break;
 
 	   case	GBFORMAT_INT:
-		sprintf(strvalue, "%*lldG%s",
+		snprintf(strvalue, 7, "%*lldG%s",
 			basewidth-1, llround((double)((double)value/ONEGBYTE)), suffix);
 		break;
 
 	   case	TBFORMAT:
-		sprintf(strvalue, "%*.1lfT%s",
+		snprintf(strvalue, 7, "%*.1lfT%s",
 			basewidth-1, (double)((double)value/ONETBYTE), suffix);
 		break;
 
 	   case	TBFORMAT_INT:
-		sprintf(strvalue, "%*lldT%s",
+		snprintf(strvalue, 7, "%*lldT%s",
 			basewidth-1, llround((double)((double)value/ONETBYTE)), suffix);
 		break;
 
 	   case	PBFORMAT:
-		sprintf(strvalue, "%*.1lfP%s",
+		snprintf(strvalue, 7, "%*.1lfP%s",
 			basewidth-1, (double)((double)value/ONEPBYTE), suffix);
 		break;
 
 	   case	PBFORMAT_INT:
-		sprintf(strvalue, "%*lldP%s",
+		snprintf(strvalue, 7, "%*lldP%s",
 			basewidth-1, llround((double)((double)value/ONEPBYTE)), suffix);
 		break;
 
 	   default:
-		sprintf(strvalue, "!TILT!");
+		snprintf(strvalue, 7, "!TILT!");
+	}
+
+	// check if overflow occurred during the formatting
+	// by checking the last byte of the formatted string
+	//
+	switch ( *(strvalue+5) )
+	{
+	   case 's':		// in case of per-second value
+	   case 'B':
+	   case 'K':
+	   case 'M':
+	   case 'G':
+	   case 'T':
+	   case 'P':
+		break;
+
+	   default:
+		snprintf(strvalue, 7, "OVFLOW");
 	}
 
 	return strvalue;
