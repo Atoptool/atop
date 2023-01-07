@@ -146,8 +146,8 @@ convdate(time_t utime, char *chardat)
 
 	tt = localtime(&utime);
 
-	snprintf(chardat, 11, "%04d/%02d/%02d",
-		tt->tm_year+1900, tt->tm_mon+1, tt->tm_mday);
+	snprintf(chardat, 11, "%04u/%02u/%02u",
+		(tt->tm_year+1900)%10000, (tt->tm_mon+1)%100, tt->tm_mday%100);
 
 	return chardat;
 }
@@ -398,7 +398,8 @@ val2cpustr(count_t value, char *strvalue)
 {
 	if (value < MAXMSEC)
 	{
-		snprintf(strvalue, 7, "%2lld.%02llds", value/1000, value%1000/10);
+		snprintf(strvalue, 7, "%2llu.%02llus",
+				(value/1000)%100, value%1000/10);
 	}
 	else
 	{
@@ -409,7 +410,8 @@ val2cpustr(count_t value, char *strvalue)
 
         	if (value < MAXSEC) 
         	{
-               	 	snprintf(strvalue, 7, "%2lldm%02llds", value/60, value%60);
+               	 	snprintf(strvalue, 7, "%2llum%02llus",
+						(value/60)%100, value%60);
 		}
 		else
 		{
@@ -420,8 +422,8 @@ val2cpustr(count_t value, char *strvalue)
 
 			if (value < MAXMIN) 
 			{
-				snprintf(strvalue, 7, "%2lldh%02lldm",
-							value/60, value%60);
+				snprintf(strvalue, 7, "%2lluh%02llum",
+						(value/60)%100, value%60);
 			}
 			else
 			{
@@ -430,8 +432,8 @@ val2cpustr(count_t value, char *strvalue)
 				*/
 				value = (value + 30) / 60;
 
-				snprintf(strvalue, 7, "%2lldd%02lldh",
-						value/24, value%24);
+				snprintf(strvalue, 7, "%2llud%02lluh",
+						(value/24)%100, value%24);
 			}
 		}
 	}
@@ -452,7 +454,7 @@ val2Hzstr(count_t value, char *strvalue)
 
         if (value < 1000)
         {
-                snprintf(strvalue, 8, "%4lldMHz", value);
+                snprintf(strvalue, 8, "%4lluMHz", value%10000);
         }
         else
         {
