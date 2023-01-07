@@ -66,4 +66,5 @@ In combination with the optional daemon atopgpud, it shows system-level and proc
 
 ## Links
 
-* [https://codeberg.org/mgellner/atopsar-plot]( https://codeberg.org/mgellner/atopsar-plot)
+* [A Web interface for atop](https://github.com/pizhenwei/atophttpd)
+* [Graphical representation of system resource utilization]( https://codeberg.org/mgellner/atopsar-plot)
