@@ -294,8 +294,19 @@ smnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
 
 	for (i=0; i < n28->nrnuma; i++)
 	{
-		n28->numa[i].numanr = i;
-	    	memcpy(&(n28->numa[i].frag), &(n27->numa[i]), sizeof n27->numa[i]);
+		n28->numa[i].numanr 		= i;
+        	n28->numa[i].frag		= n27->numa[i].frag;
+        	n28->numa[i].totmem		= n27->numa[i].totmem;
+        	n28->numa[i].freemem		= n27->numa[i].freemem;
+        	n28->numa[i].filepage		= n27->numa[i].filepage;
+        	n28->numa[i].dirtymem		= n27->numa[i].dirtymem;
+        	n28->numa[i].filepage		= n27->numa[i].filepage;
+        	n28->numa[i].slabmem		= n27->numa[i].slabmem;
+        	n28->numa[i].slabreclaim	= n27->numa[i].slabreclaim;
+        	n28->numa[i].active		= n27->numa[i].active;
+        	n28->numa[i].inactive		= n27->numa[i].inactive;
+        	n28->numa[i].shmem		= n27->numa[i].shmem;
+        	n28->numa[i].tothp		= n27->numa[i].tothp;
 	} 
 }
 
@@ -310,8 +321,17 @@ scnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
 
 	for (i=0; i < n28->nrnuma; i++)
 	{
-		n28->numa[i].numanr = i;
-	    	memcpy(&(n28->numa[i].nrcpu), &(n27->numa[i]), sizeof n27->numa[i]);
+		n28->numa[i].numanr 	= i;
+        	n28->numa[i].nrcpu	= n27->numa[i].nrcpu;
+        	n28->numa[i].stime	= n27->numa[i].stime;
+        	n28->numa[i].utime	= n27->numa[i].utime;
+        	n28->numa[i].ntime	= n27->numa[i].ntime;
+        	n28->numa[i].itime	= n27->numa[i].itime;
+        	n28->numa[i].wtime	= n27->numa[i].wtime;
+        	n28->numa[i].Itime	= n27->numa[i].Itime;
+        	n28->numa[i].Stime	= n27->numa[i].Stime;
+        	n28->numa[i].steal	= n27->numa[i].steal;
+        	n28->numa[i].guest	= n27->numa[i].guest;
 	} 
 }
 
