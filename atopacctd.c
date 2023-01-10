@@ -641,6 +641,49 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	}
 
 	/*
+	** determine if any client is using the shadow
+	** accounting files; if not, verify if clients
+	** have been using the shadow files till now and
+	** cleanup has to be performed
+	*/
+	if (semop(sempub, &semlocknowait, 1) == 0) 	// lock succeeded?
+	{
+		if (NUMCLIENTS == 0)
+		{
+			/*
+			** did last client just disappear?
+			*/
+			if (*shadowbusyp)
+			{
+				/*
+				** remove all shadow files
+				*/
+				gcshadows(oldshadowp, (*curshadowp)+1);
+				*oldshadowp = 0;
+				*curshadowp = 0;
+				stotsize    = 0;
+
+				/*
+				** create new file with sequence 0
+				*/
+				(void) close(sfd);
+
+				sfd = createshadow(*curshadowp);
+				setcurrent(*curshadowp);
+
+				*shadowbusyp = 0;
+			}
+
+			(void) semop(sempub, &semunlock, 1);
+			return 1;
+		}
+
+		(void) semop(sempub, &semunlock, 1);
+	}
+
+	*shadowbusyp = 1;
+
+	/*
  	** read new process accounting record(s)
 	** such record(s) may not immediately be available (timing matter),
 	** so some retries might be necessary 
@@ -711,49 +754,6 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 			atotsize = 0;
 		}
 	}
-
-	/*
- 	** determine if any client is using the shadow
-	** accounting files; if not, verify if clients
-	** have been using the shadow files till now and
-	** cleanup has to be performed
-	*/
-	if (semop(sempub, &semlocknowait, 1) == 0) 	// lock succeeded?
-	{
-		if (NUMCLIENTS == 0)
-		{
-			/*
-			** did last client just disappear?
-			*/
-			if (*shadowbusyp)
-			{
-				/*
-				** remove all shadow files
-				*/
-				gcshadows(oldshadowp, (*curshadowp)+1);
-				*oldshadowp = 0;
-				*curshadowp = 0;
-				stotsize    = 0;
-	
-				/*
- 				** create new file with sequence 0
-				*/
-				(void) close(sfd);
-	
-				sfd = createshadow(*curshadowp);
-				setcurrent(*curshadowp);
-	
-				*shadowbusyp = 0;
-			}
-	
-			(void) semop(sempub, &semunlock, 1);
-			return 1;
-		}
-
-		(void) semop(sempub, &semunlock, 1);
-	}
-
-	*shadowbusyp = 1;
 
 	/*
  	** transfer process accounting data to shadow file
