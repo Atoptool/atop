@@ -626,6 +626,8 @@ acctprocnt(void)
 		** shadow file
 		*/
 		numrecs = (statacc.st_size - acctsize) / acctrecsz;
+		if (statacc.st_nlink == 0) /* shadow file is 'deleted' */
+			return 0;
 
 		/*
 		** verify if subsequent shadow files are involved
@@ -670,8 +672,20 @@ acctprocnt(void)
 		if (stat(shadowpath, &statacc) == -1)
 			return numrecs;
 
-		numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
-		           (statacc.st_size / acctrecsz);
+		/*
+		** Check cases like statacc.st_size / acctrecsz > maxshadowrec,
+		** and atopacctd restarts at the same time, now newseq is zero.
+		** Omit this interval's statistics by returning zero.
+		*/
+		if (newseq > curshadowseq)
+		{
+			numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
+				   (statacc.st_size / acctrecsz);
+		}
+		else
+		{
+			numrecs = 0;
+		}
 
 		return numrecs;
 	}
@@ -810,6 +824,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	struct acct 		acctrec;
 	struct acct_v3 		acctrec_v3;
 	struct stat		statacc;
+	int			filled;
 
 	/*
 	** if accounting not supported, skip call
@@ -826,8 +841,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	/*
 	** check all exited processes in accounting file
 	*/
-	for  (nrexit=0, api=accproc; nrexit < nrprocs;
-				nrexit++, api++, acctsize += acctrecsz)
+	for  (nrexit=0, api=accproc; nrexit < nrprocs; )
 	{
 		/*
 		** in case of shadow accounting files, we might have to
@@ -909,6 +923,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
 
 		   case 3:
@@ -937,7 +952,16 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec_v3.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
+		}
+
+		if (filled == 1) {
+			nrexit++;
+			api++;
+			acctsize += acctrecsz;
+
+			filled = 0;
 		}
 	}
 
