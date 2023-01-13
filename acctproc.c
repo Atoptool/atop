@@ -810,6 +810,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	struct acct 		acctrec;
 	struct acct_v3 		acctrec_v3;
 	struct stat		statacc;
+	int			filled;
 
 	/*
 	** if accounting not supported, skip call
@@ -826,8 +827,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	/*
 	** check all exited processes in accounting file
 	*/
-	for  (nrexit=0, api=accproc; nrexit < nrprocs;
-				nrexit++, api++, acctsize += acctrecsz)
+	for  (nrexit=0, api=accproc; nrexit < nrprocs; )
 	{
 		/*
 		** in case of shadow accounting files, we might have to
@@ -909,6 +909,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
 
 		   case 3:
@@ -937,7 +938,16 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec_v3.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
+		}
+
+		if (filled == 1) {
+			nrexit++;
+			api++;
+			acctsize += acctrecsz;
+
+			filled = 0;
 		}
 	}
 
