@@ -2043,6 +2043,116 @@ sysprt_NUMLLC(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 sys_printdef syspdef_NUMLLC = {"NUMLLC", sysprt_NUMLLC, NULL};
 /*******************************************************************/
+static char *
+sysprt_ZONNODE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="";
+	*color = -1;
+	snprintf(buf, sizeof(buf), "node %7d", sstat->zone.perzone[as->index].node);
+	return buf;
+}
+
+sys_printdef syspdef_ZONNODE = {"ZONNODE", sysprt_ZONNODE, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONNAME(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]={0};
+	*color = -1;
+	snprintf(buf, sizeof(buf) - 1, "%12s", sstat->zone.perzone[as->index].name);
+	return buf;
+}
+
+sys_printdef syspdef_ZONNAME = {"ZONNAME", sysprt_ZONNAME, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONFREE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="free  ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].free * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONFREE = {"ZONFREE", sysprt_ZONFREE, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONMIN(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="min   ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].min * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONMIN = {"ZONMIN", sysprt_ZONMIN, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONLOW(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="low   ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].low * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONLOW = {"ZONLOW", sysprt_ZONLOW, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONHIGH(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="high  ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].high * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONHIGH = {"ZONHIGH", sysprt_ZONHIGH, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONSPANNED(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="span  ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].spanned * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONSPANNED = {"ZONSPANNED", sysprt_ZONSPANNED, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONPRESENT(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="prst  ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].present * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONPRESENT = {"ZONPRESENT", sysprt_ZONPRESENT, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONMANAGED(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="mngd  ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].managed * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONMANAGED = {"ZONMANAGED", sysprt_ZONMANAGED, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZONCMA(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="cma   ";
+	*color = -1;
+	val2memstr(sstat->zone.perzone[as->index].cma * pagesize, buf+6, KBFORMAT, as->avgval, as->nsecs);
+	return buf;
+}
+
+sys_printdef syspdef_ZONCMA = {"ZONCMA", sysprt_ZONCMA, NULL};
+/*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)

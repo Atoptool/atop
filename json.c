@@ -72,6 +72,7 @@ static void json_print_IFB();
 static void json_print_NUM();
 static void json_print_NUC();
 static void json_print_LLC();
+static void json_print_ZON();
 static void json_print_PRG();
 static void json_print_PRC();
 static void json_print_PRM();
@@ -109,6 +110,7 @@ static struct labeldef	labeldef[] = {
 	{ "NUM",	0,	json_print_NUM },
 	{ "NUC",	0,	json_print_NUC },
 	{ "LLC",	0,	json_print_LLC },
+	{ "ZON",	0,	json_print_ZON },
 
 	{ "PRG",	0,	json_print_PRG },
 	{ "PRC",	0,	json_print_PRC },
@@ -915,6 +917,43 @@ static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->llc.perllc[i].occupancy * 100,
 			ss->llc.perllc[i].mbm_total,
 			ss->llc.perllc[i].mbm_local);
+	}
+
+	printf("]");
+}
+
+static void json_print_ZON(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+{
+	register int i;
+	struct perzone *zone;
+
+        printf(", %s: [", hp);
+
+	for (i = 0; i < ss->zone.nrzones; i++) {
+		if (i > 0) {
+			printf(", ");
+		}
+		zone = &ss->zone.perzone[i];
+		printf("{\"node\": %d, "
+			"\"name\": \"%s\", "
+			"\"free\": \"%lld\", "
+			"\"min\": \"%lld\", "
+			"\"low\": \"%lld\", "
+			"\"high\": \"%lld\", "
+			"\"spanned\": \"%lld\", "
+			"\"present\": \"%lld\", "
+			"\"managed\": \"%lld\", "
+			"\"cma\": %lld}",
+			zone->node,
+			zone->name,
+			zone->free,
+			zone->min,
+			zone->low,
+			zone->high,
+			zone->spanned,
+			zone->present,
+			zone->managed,
+			zone->cma);
 	}
 
 	printf("]");
