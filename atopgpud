@@ -86,9 +86,8 @@ class GpuProp(object):
         self.gpuhandle         = gpuhandle
         self.stats             = Stats()
 
-        self.stats.busid       = pciInfo.busId.decode('ascii', errors='replace')
-        self.stats.devname     = pynvml.nvmlDeviceGetName(gpuhandle).decode(
-                                   'ascii', errors='replace').replace(' ', '_')
+        self.stats.busid       = pciInfo.busId
+        self.stats.devname     = pynvml.nvmlDeviceGetName(gpuhandle).replace(' ', '_')
 
         self.stats.tasksupport = 0		# process stats support
 
