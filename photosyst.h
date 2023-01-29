@@ -24,6 +24,7 @@
 #ifndef __PHOTOSYST__
 #define __PHOTOSYST__
 
+#include <semaphore.h>
 #include "netstats.h"
 
 #define	MAXCPU		2048
@@ -467,4 +468,37 @@ void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
 void	do_perfevents(char *, char *);
+
+#define	PHYNETMAX	8
+struct snmp {
+	count_t	ipv4[20];
+	count_t	icmpv4[30];
+	count_t	udpv4[5];
+	count_t	tcp[20];
+};
+
+struct snmp6 {
+	count_t	val[100];
+};
+
+struct pernetns {
+	int	nsnr;
+	char	nsname[NETNSNAMELEN];
+	int	nrintf;
+	struct	perintf perintf[PHYNETMAX]; /* max physical nic */
+	struct	snmp snmp;
+	struct	snmp6 snmp6;
+};
+
+struct netnsdata {
+	int	nssum;
+	struct	pernetns pernetns[MAXNETNS - 1];
+};
+
+struct shmbuf {
+	sem_t	sem;			/* POSIX unnamed semaphore */
+	struct	netnsdata netnsdata;	/* Data being transferred */
+};
+
+int	getothernetns(struct shmbuf *);
 #endif

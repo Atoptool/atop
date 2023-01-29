@@ -39,3 +39,5 @@ struct ifprop	{
 
 int 	getifprop(struct ifprop *);
 void 	initifprop(void);
+int	getphysprop(struct ifprop *);
+int 	getbusinfo(struct ifprop *);
