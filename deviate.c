@@ -805,177 +805,194 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	** as tables of frequency-counters that have to be subtracted;
 	** values that do not represent a frequency are corrected afterwards
 	*/
-	for (cdev = (count_t *)&dev->net.ipv4,
-	     ccur = (count_t *)&cur->net.ipv4,
-	     cpre = (count_t *)&pre->net.ipv4,
-	     i    = 0;
-		i < (sizeof dev->net.ipv4 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
-	
-	dev->net.ipv4.Forwarding = cur->net.ipv4.Forwarding;
-	dev->net.ipv4.DefaultTTL = cur->net.ipv4.DefaultTTL;
+	int nr = 0;
+	dev->net.nrnetns = cur->net.nrnetns;
+	if (dev->net.nrnetns > 0)
+	{
+		for (nr = 0; nr < dev->net.nrnetns; nr++)
+		{
+			for (cdev = (count_t *)&dev->net.netns[nr].ipv4,
+			     ccur = (count_t *)&cur->net.netns[nr].ipv4,
+			     cpre = (count_t *)&pre->net.netns[nr].ipv4,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].ipv4 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-		/* ------------- */
+			dev->net.netns[nr].ipv4.Forwarding = cur->net.netns[nr].ipv4.Forwarding;
+			dev->net.netns[nr].ipv4.DefaultTTL = cur->net.netns[nr].ipv4.DefaultTTL;
 
-	for (cdev = (count_t *)&dev->net.icmpv4,
-	     ccur = (count_t *)&cur->net.icmpv4,
-	     cpre = (count_t *)&pre->net.icmpv4,
-	     i    = 0;
-		i < (sizeof dev->net.icmpv4 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-		/* ------------- */
+			for (cdev = (count_t *)&dev->net.netns[nr].icmpv4,
+			     ccur = (count_t *)&cur->net.netns[nr].icmpv4,
+			     cpre = (count_t *)&pre->net.netns[nr].icmpv4,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].icmpv4 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-	for (cdev = (count_t *)&dev->net.udpv4,
-	     ccur = (count_t *)&cur->net.udpv4,
-	     cpre = (count_t *)&pre->net.udpv4,
-	     i    = 0;
-		i < (sizeof dev->net.udpv4 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-		/* ------------- */
+			for (cdev = (count_t *)&dev->net.netns[nr].udpv4,
+			     ccur = (count_t *)&cur->net.netns[nr].udpv4,
+			     cpre = (count_t *)&pre->net.netns[nr].udpv4,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].udpv4 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-	for (cdev = (count_t *)&dev->net.ipv6,
-	     ccur = (count_t *)&cur->net.ipv6,
-	     cpre = (count_t *)&pre->net.ipv6,
-	     i    = 0;
-		i < (sizeof dev->net.ipv6 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-		/* ------------- */
+			for (cdev = (count_t *)&dev->net.netns[nr].ipv6,
+			     ccur = (count_t *)&cur->net.netns[nr].ipv6,
+			     cpre = (count_t *)&pre->net.netns[nr].ipv6,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].ipv6 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-	for (cdev = (count_t *)&dev->net.icmpv6,
-	     ccur = (count_t *)&cur->net.icmpv6,
-	     cpre = (count_t *)&pre->net.icmpv6,
-	     i    = 0;
-		i < (sizeof dev->net.icmpv6 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-		/* ------------- */
+			for (cdev = (count_t *)&dev->net.netns[nr].icmpv6,
+			     ccur = (count_t *)&cur->net.netns[nr].icmpv6,
+			     cpre = (count_t *)&pre->net.netns[nr].icmpv6,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].icmpv6 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-	for (cdev = (count_t *)&dev->net.udpv6,
-	     ccur = (count_t *)&cur->net.udpv6,
-	     cpre = (count_t *)&pre->net.udpv6,
-	     i    = 0;
-		i < (sizeof dev->net.udpv6 / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-		/* ------------- */
+			for (cdev = (count_t *)&dev->net.netns[nr].udpv6,
+			     ccur = (count_t *)&cur->net.netns[nr].udpv6,
+			     cpre = (count_t *)&pre->net.netns[nr].udpv6,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].udpv6 / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
 
-	for (cdev = (count_t *)&dev->net.tcp,
-	     ccur = (count_t *)&cur->net.tcp,
-	     cpre = (count_t *)&pre->net.tcp,
-	     i    = 0;
-		i < (sizeof dev->net.tcp / sizeof(count_t));
-	     		cdev++, ccur++, cpre++, i++)
-				*cdev = *ccur - *cpre;
+				/* ------------- */
 
-	dev->net.tcp.RtoAlgorithm = cur->net.tcp.RtoAlgorithm;
-	dev->net.tcp.RtoMin       = cur->net.tcp.RtoMin;
-	dev->net.tcp.RtoMax       = cur->net.tcp.RtoMax;
-	dev->net.tcp.MaxConn      = cur->net.tcp.MaxConn;
-	dev->net.tcp.CurrEstab    = cur->net.tcp.CurrEstab;
+			for (cdev = (count_t *)&dev->net.netns[nr].tcp,
+			     ccur = (count_t *)&cur->net.netns[nr].tcp,
+			     cpre = (count_t *)&pre->net.netns[nr].tcp,
+			      i    = 0;
+				 i < (sizeof dev->net.netns[nr].tcp / sizeof(count_t));
+					cdev++, ccur++, cpre++, i++)
+						*cdev = *ccur - *cpre;
+
+			dev->net.netns[nr].tcp.RtoAlgorithm = cur->net.netns[nr].tcp.RtoAlgorithm;
+			dev->net.netns[nr].tcp.RtoMin       = cur->net.netns[nr].tcp.RtoMin;
+			dev->net.netns[nr].tcp.RtoMax       = cur->net.netns[nr].tcp.RtoMax;
+			dev->net.netns[nr].tcp.MaxConn      = cur->net.netns[nr].tcp.MaxConn;
+			dev->net.netns[nr].tcp.CurrEstab    = cur->net.netns[nr].tcp.CurrEstab;
+			strcpy(dev->net.netns[nr].nsname, cur->net.netns[nr].nsname);
+		}
+	}
 
 	/*
 	** calculate deviations for interfaces
 	*/
-	if (pre->intf.intf[0].name[0] == '\0')	/* first sample? */
+	dev->intf.nrintfns = cur->intf.nrintfns;
+	if (dev->intf.nrintfns > 0)
 	{
-		for (i=0; cur->intf.intf[i].name[0]; i++)
+		for (nr = 0; nr < dev->intf.nrintfns; nr++)
 		{
-			strcpy(pre->intf.intf[i].name, cur->intf.intf[i].name);
-
-			pre->intf.intf[i].type   = cur->intf.intf[i].type;
-			pre->intf.intf[i].speed  = cur->intf.intf[i].speed;
-			pre->intf.intf[i].speedp = cur->intf.intf[i].speedp;
-			pre->intf.intf[i].duplex = cur->intf.intf[i].duplex;
- 		}
-	}
-	
-	for (i=0, j=0; cur->intf.intf[i].name[0]; i++, j++)
-	{
-		/*
-		** be sure that we have the same interface
-		** (interfaces could have been added or removed since
-		** previous sample)
-		*/
-		if (strcmp(cur->intf.intf[i].name, pre->intf.intf[j].name) != 0)
-		{
-			// try to resync
-			for (j=0; pre->intf.intf[j].name[0]; j++)
+			if (pre->intf.intfns[nr].intf[0].name[0] == '\0')	/* first sample? */
 			{
-				if (strcmp(cur->intf.intf[i].name,
-				           pre->intf.intf[j].name) == 0)
-					break;
+				for (i=0; cur->intf.intfns[nr].intf[i].name[0]; i++)
+				{
+					strcpy(pre->intf.intfns[nr].intf[i].name, cur->intf.intfns[nr].intf[i].name);
+
+					pre->intf.intfns[nr].intf[i].type   = cur->intf.intfns[nr].intf[i].type;
+					pre->intf.intfns[nr].intf[i].speed  = cur->intf.intfns[nr].intf[i].speed;
+					pre->intf.intfns[nr].intf[i].speedp = cur->intf.intfns[nr].intf[i].speedp;
+					pre->intf.intfns[nr].intf[i].duplex = cur->intf.intfns[nr].intf[i].duplex;
+				}
 			}
 
-			// resync not succeeded?
-			if (! pre->intf.intf[j].name[0])
+			for (i=0, j=0; cur->intf.intfns[nr].intf[i].name[0]; i++, j++)
 			{
-				memcpy(&dev->intf.intf[i],
-				       &cur->intf.intf[i],
-				       sizeof cur->intf.intf[i]);
+				/*
+				** be sure that we have the same interface
+				** (interfaces could have been added or removed since
+				** previous sample)
+				*/
+				if (strcmp(cur->intf.intfns[nr].intf[i].name, pre->intf.intfns[nr].intf[j].name) != 0)
+				{
+					// try to resync
+					for (j=0; pre->intf.intfns[nr].intf[j].name[0]; j++)
+					{
+						if (strcmp(cur->intf.intfns[nr].intf[i].name,
+							   pre->intf.intfns[nr].intf[j].name) == 0)
+							break;
+					}
 
-				j = 0;
-				continue;
+					// resync not succeeded?
+					if (! pre->intf.intfns[nr].intf[j].name[0])
+					{
+						memcpy(&dev->intf.intfns[nr].intf[i],
+						       &cur->intf.intfns[nr].intf[i],
+						       sizeof cur->intf.intfns[nr].intf[i]);
+
+						j = 0;
+						continue;
+					}
+				}
+
+				/*
+				** calculate interface deviations for this sample
+				*/
+				strcpy(dev->intf.intfns[nr].intf[i].name, cur->intf.intfns[nr].intf[i].name);
+
+				dev->intf.intfns[nr].intf[i].rbyte = subcount(cur->intf.intfns[nr].intf[i].rbyte,
+								   pre->intf.intfns[nr].intf[j].rbyte);
+				dev->intf.intfns[nr].intf[i].rpack = subcount(cur->intf.intfns[nr].intf[i].rpack,
+								   pre->intf.intfns[nr].intf[j].rpack);
+				dev->intf.intfns[nr].intf[i].rerrs = subcount(cur->intf.intfns[nr].intf[i].rerrs,
+								   pre->intf.intfns[nr].intf[j].rerrs);
+				dev->intf.intfns[nr].intf[i].rdrop = subcount(cur->intf.intfns[nr].intf[i].rdrop,
+								   pre->intf.intfns[nr].intf[j].rdrop);
+				dev->intf.intfns[nr].intf[i].rfifo = subcount(cur->intf.intfns[nr].intf[i].rfifo,
+								   pre->intf.intfns[nr].intf[j].rfifo);
+				dev->intf.intfns[nr].intf[i].rframe= subcount(cur->intf.intfns[nr].intf[i].rframe,
+								   pre->intf.intfns[nr].intf[j].rframe);
+				dev->intf.intfns[nr].intf[i].rcompr= subcount(cur->intf.intfns[nr].intf[i].rcompr,
+								   pre->intf.intfns[nr].intf[j].rcompr);
+				dev->intf.intfns[nr].intf[i].rmultic=subcount(cur->intf.intfns[nr].intf[i].rmultic,
+								   pre->intf.intfns[nr].intf[j].rmultic);
+
+				dev->intf.intfns[nr].intf[i].sbyte = subcount(cur->intf.intfns[nr].intf[i].sbyte,
+								   pre->intf.intfns[nr].intf[j].sbyte);
+				dev->intf.intfns[nr].intf[i].spack = subcount(cur->intf.intfns[nr].intf[i].spack,
+								   pre->intf.intfns[nr].intf[j].spack);
+				dev->intf.intfns[nr].intf[i].serrs = subcount(cur->intf.intfns[nr].intf[i].serrs,
+								   pre->intf.intfns[nr].intf[j].serrs);
+				dev->intf.intfns[nr].intf[i].sdrop = subcount(cur->intf.intfns[nr].intf[i].sdrop,
+								   pre->intf.intfns[nr].intf[j].sdrop);
+				dev->intf.intfns[nr].intf[i].sfifo = subcount(cur->intf.intfns[nr].intf[i].sfifo,
+								   pre->intf.intfns[nr].intf[j].sfifo);
+				dev->intf.intfns[nr].intf[i].scollis= subcount(cur->intf.intfns[nr].intf[i].scollis,
+								   pre->intf.intfns[nr].intf[j].scollis);
+				dev->intf.intfns[nr].intf[i].scarrier= subcount(cur->intf.intfns[nr].intf[i].scarrier,
+								   pre->intf.intfns[nr].intf[j].scarrier);
+				dev->intf.intfns[nr].intf[i].scompr= subcount(cur->intf.intfns[nr].intf[i].scompr,
+								   pre->intf.intfns[nr].intf[j].scompr);
+
+				dev->intf.intfns[nr].intf[i].type  	= cur->intf.intfns[nr].intf[i].type;
+				dev->intf.intfns[nr].intf[i].duplex	= cur->intf.intfns[nr].intf[i].duplex;
+				dev->intf.intfns[nr].intf[i].speed 	= cur->intf.intfns[nr].intf[i].speed;
+				dev->intf.intfns[nr].intf[i].speedp 	= pre->intf.intfns[nr].intf[j].speed;
+
+				cur->intf.intfns[nr].intf[i].speedp 	= pre->intf.intfns[nr].intf[j].speed;
 			}
+
+			dev->intf.intfns[nr].intf[i].name[0] = '\0';
+			dev->intf.intfns[nr].nrintf = i;
+			strcpy(dev->intf.intfns[nr].nsname, cur->intf.intfns[nr].nsname);
 		}
-
-		/*
-		** calculate interface deviations for this sample
-		*/
-		strcpy(dev->intf.intf[i].name, cur->intf.intf[i].name);
-
-		dev->intf.intf[i].rbyte = subcount(cur->intf.intf[i].rbyte,
-           	                                   pre->intf.intf[j].rbyte);
-		dev->intf.intf[i].rpack = subcount(cur->intf.intf[i].rpack,
-		                                   pre->intf.intf[j].rpack);
-		dev->intf.intf[i].rerrs = subcount(cur->intf.intf[i].rerrs,
-		                                   pre->intf.intf[j].rerrs);
-		dev->intf.intf[i].rdrop = subcount(cur->intf.intf[i].rdrop,
-		                                   pre->intf.intf[j].rdrop);
-		dev->intf.intf[i].rfifo = subcount(cur->intf.intf[i].rfifo,
-		                                   pre->intf.intf[j].rfifo);
-		dev->intf.intf[i].rframe= subcount(cur->intf.intf[i].rframe,
-		                                   pre->intf.intf[j].rframe);
-		dev->intf.intf[i].rcompr= subcount(cur->intf.intf[i].rcompr,
-		                                   pre->intf.intf[j].rcompr);
-		dev->intf.intf[i].rmultic=subcount(cur->intf.intf[i].rmultic,
-		                                   pre->intf.intf[j].rmultic);
-
-		dev->intf.intf[i].sbyte = subcount(cur->intf.intf[i].sbyte,
-		                                   pre->intf.intf[j].sbyte);
-		dev->intf.intf[i].spack = subcount(cur->intf.intf[i].spack,
-		                                   pre->intf.intf[j].spack);
-		dev->intf.intf[i].serrs = subcount(cur->intf.intf[i].serrs,
-		                                   pre->intf.intf[j].serrs);
-		dev->intf.intf[i].sdrop = subcount(cur->intf.intf[i].sdrop,
-		                                   pre->intf.intf[j].sdrop);
-		dev->intf.intf[i].sfifo = subcount(cur->intf.intf[i].sfifo,
-		                                   pre->intf.intf[j].sfifo);
-		dev->intf.intf[i].scollis= subcount(cur->intf.intf[i].scollis,
-		                                   pre->intf.intf[j].scollis);
-		dev->intf.intf[i].scarrier= subcount(cur->intf.intf[i].scarrier,
-		                                   pre->intf.intf[j].scarrier);
-		dev->intf.intf[i].scompr= subcount(cur->intf.intf[i].scompr,
-		                                   pre->intf.intf[j].scompr);
-
-		dev->intf.intf[i].type  	= cur->intf.intf[i].type;
-		dev->intf.intf[i].duplex	= cur->intf.intf[i].duplex;
-		dev->intf.intf[i].speed 	= cur->intf.intf[i].speed;
-		dev->intf.intf[i].speedp 	= pre->intf.intf[j].speed;
-
-		cur->intf.intf[i].speedp 	= pre->intf.intf[j].speed;
 	}
-
-	dev->intf.intf[i].name[0] = '\0';
-	dev->intf.nrintf = i;
 
 	/*
 	** calculate deviations for disks
@@ -1567,127 +1584,142 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		** values that do not represent a frequency are corrected
 		** afterwards
 		*/
-		for (ctot = (count_t *)&tot->net.ipv4,
-		     cnew = (count_t *)&new->net.ipv4, i = 0;
-			i < (sizeof tot->net.ipv4 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-
-		tot->net.ipv4.Forwarding = new->net.ipv4.Forwarding;
-		tot->net.ipv4.DefaultTTL = new->net.ipv4.DefaultTTL;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.icmpv4,
-		     cnew = (count_t *)&new->net.icmpv4, i = 0;
-			i < (sizeof tot->net.icmpv4 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.udpv4,
-		     cnew = (count_t *)&new->net.udpv4, i = 0;
-			i < (sizeof tot->net.udpv4 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.ipv6,
-		     cnew = (count_t *)&new->net.ipv6, i = 0;
-			i < (sizeof tot->net.ipv6 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.icmpv6,
-		     cnew = (count_t *)&new->net.icmpv6, i = 0;
-			i < (sizeof tot->net.icmpv6 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.udpv6,
-		     cnew = (count_t *)&new->net.udpv6, i = 0;
-			i < (sizeof tot->net.udpv6 / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-			/* ------------- */
-	
-		for (ctot = (count_t *)&tot->net.tcp,
-		     cnew = (count_t *)&new->net.tcp, i = 0;
-			i < (sizeof tot->net.tcp / sizeof(count_t));
-		     		ctot++, cnew++, i++)
-					*ctot += *cnew;
-	
-		tot->net.tcp.RtoAlgorithm = new->net.tcp.RtoAlgorithm;
-		tot->net.tcp.RtoMin       = new->net.tcp.RtoMin;
-		tot->net.tcp.RtoMax       = new->net.tcp.RtoMax;
-		tot->net.tcp.MaxConn      = new->net.tcp.MaxConn;
-		tot->net.tcp.CurrEstab    = new->net.tcp.CurrEstab;
-	
-		for (i=0; new->intf.intf[i].name[0]; i++)
+		int nr = 0;
+		if (new->net.nrnetns > 0)
 		{
-			/*
-			** check if an interface has been added or removed;
-			** in that case, zero all counters
-			*/
-			if (strcmp(new->intf.intf[i].name,
-			           tot->intf.intf[i].name) != 0)
+			for (nr = 0; nr < new->net.nrnetns; nr++)
 			{
-				tot->intf.intf[i].rbyte    = 0;
-				tot->intf.intf[i].rpack    = 0;
-				tot->intf.intf[i].rerrs    = 0;
-				tot->intf.intf[i].rdrop    = 0;
-				tot->intf.intf[i].rfifo    = 0;
-				tot->intf.intf[i].rframe   = 0;
-				tot->intf.intf[i].rcompr   = 0;
-				tot->intf.intf[i].rmultic  = 0;
-	
-				tot->intf.intf[i].sbyte    = 0;
-				tot->intf.intf[i].spack    = 0;
-				tot->intf.intf[i].serrs    = 0;
-				tot->intf.intf[i].sdrop    = 0;
-				tot->intf.intf[i].sfifo    = 0;
-				tot->intf.intf[i].scollis  = 0;
-				tot->intf.intf[i].scarrier = 0;
-				tot->intf.intf[i].scompr   = 0;
+				for (ctot = (count_t *)&tot->net.netns[nr].ipv4,
+				     cnew = (count_t *)&new->net.netns[nr].ipv4, i = 0;
+					i < (sizeof tot->net.netns[nr].ipv4 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+				tot->net.netns[nr].ipv4.Forwarding = new->net.netns[nr].ipv4.Forwarding;
+				tot->net.netns[nr].ipv4.DefaultTTL = new->net.netns[nr].ipv4.DefaultTTL;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].icmpv4,
+				     cnew = (count_t *)&new->net.netns[nr].icmpv4, i = 0;
+					i < (sizeof tot->net.netns[nr].icmpv4 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].udpv4,
+				     cnew = (count_t *)&new->net.netns[nr].udpv4, i = 0;
+					i < (sizeof tot->net.netns[nr].udpv4 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].ipv6,
+				     cnew = (count_t *)&new->net.netns[nr].ipv6, i = 0;
+					i < (sizeof tot->net.netns[nr].ipv6 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].icmpv6,
+				     cnew = (count_t *)&new->net.netns[nr].icmpv6, i = 0;
+					i < (sizeof tot->net.netns[nr].icmpv6 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].udpv6,
+				     cnew = (count_t *)&new->net.netns[nr].udpv6, i = 0;
+					i < (sizeof tot->net.netns[nr].udpv6 / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+					/* ------------- */
+
+				for (ctot = (count_t *)&tot->net.netns[nr].tcp,
+				     cnew = (count_t *)&new->net.netns[nr].tcp, i = 0;
+					i < (sizeof tot->net.netns[nr].tcp / sizeof(count_t));
+						ctot++, cnew++, i++)
+							*ctot += *cnew;
+
+				tot->net.netns[nr].tcp.RtoAlgorithm = new->net.netns[nr].tcp.RtoAlgorithm;
+				tot->net.netns[nr].tcp.RtoMin       = new->net.netns[nr].tcp.RtoMin;
+				tot->net.netns[nr].tcp.RtoMax       = new->net.netns[nr].tcp.RtoMax;
+				tot->net.netns[nr].tcp.MaxConn      = new->net.netns[nr].tcp.MaxConn;
+				tot->net.netns[nr].tcp.CurrEstab    = new->net.netns[nr].tcp.CurrEstab;
+				strcpy(tot->net.netns[nr].nsname, new->net.netns[nr].nsname);
 			}
-	
-			/*
-			** accumulate counters for this sample
-			*/
-			strcpy(tot->intf.intf[i].name, new->intf.intf[i].name);
-	
-			tot->intf.intf[i].rbyte   += new->intf.intf[i].rbyte;
-			tot->intf.intf[i].rpack   += new->intf.intf[i].rpack;
-			tot->intf.intf[i].rerrs   += new->intf.intf[i].rerrs;
-			tot->intf.intf[i].rdrop   += new->intf.intf[i].rdrop;
-			tot->intf.intf[i].rfifo   += new->intf.intf[i].rfifo;
-			tot->intf.intf[i].rframe  += new->intf.intf[i].rframe;
-			tot->intf.intf[i].rcompr  += new->intf.intf[i].rcompr;
-			tot->intf.intf[i].rmultic += new->intf.intf[i].rmultic;
-	
-			tot->intf.intf[i].sbyte   += new->intf.intf[i].sbyte;
-			tot->intf.intf[i].spack   += new->intf.intf[i].spack;
-			tot->intf.intf[i].serrs   += new->intf.intf[i].serrs;
-			tot->intf.intf[i].sdrop   += new->intf.intf[i].sdrop;
-			tot->intf.intf[i].sfifo   += new->intf.intf[i].sfifo;
-			tot->intf.intf[i].scollis += new->intf.intf[i].scollis;
-			tot->intf.intf[i].scarrier+= new->intf.intf[i].scarrier;
-			tot->intf.intf[i].scompr  += new->intf.intf[i].scompr;
-	
-			tot->intf.intf[i].type     = new->intf.intf[i].type;
-			tot->intf.intf[i].speed    = new->intf.intf[i].speed;
-			tot->intf.intf[i].duplex   = new->intf.intf[i].duplex;
 		}
-	
-		tot->intf.intf[i].name[0] = '\0';
-		tot->intf.nrintf          = i;
+
+		if (new->intf.nrintfns > 0)
+		{
+			for (nr = 0; nr < new->intf.nrintfns; nr++)
+			{
+				for (i=0; new->intf.intfns[nr].intf[i].name[0]; i++)
+				{
+					/*
+					** check if an interface has been added or removed;
+					** in that case, zero all counters
+					*/
+					if (strcmp(new->intf.intfns[nr].intf[i].name,
+						   tot->intf.intfns[nr].intf[i].name) != 0)
+					{
+						tot->intf.intfns[nr].intf[i].rbyte    = 0;
+						tot->intf.intfns[nr].intf[i].rpack    = 0;
+						tot->intf.intfns[nr].intf[i].rerrs    = 0;
+						tot->intf.intfns[nr].intf[i].rdrop    = 0;
+						tot->intf.intfns[nr].intf[i].rfifo    = 0;
+						tot->intf.intfns[nr].intf[i].rframe   = 0;
+						tot->intf.intfns[nr].intf[i].rcompr   = 0;
+						tot->intf.intfns[nr].intf[i].rmultic  = 0;
+
+						tot->intf.intfns[nr].intf[i].sbyte    = 0;
+						tot->intf.intfns[nr].intf[i].spack    = 0;
+						tot->intf.intfns[nr].intf[i].serrs    = 0;
+						tot->intf.intfns[nr].intf[i].sdrop    = 0;
+						tot->intf.intfns[nr].intf[i].sfifo    = 0;
+						tot->intf.intfns[nr].intf[i].scollis  = 0;
+						tot->intf.intfns[nr].intf[i].scarrier = 0;
+						tot->intf.intfns[nr].intf[i].scompr   = 0;
+					}
+
+					/*
+					** accumulate counters for this sample
+					*/
+					strcpy(tot->intf.intfns[nr].intf[i].name, new->intf.intfns[nr].intf[i].name);
+
+					tot->intf.intfns[nr].intf[i].rbyte   += new->intf.intfns[nr].intf[i].rbyte;
+					tot->intf.intfns[nr].intf[i].rpack   += new->intf.intfns[nr].intf[i].rpack;
+					tot->intf.intfns[nr].intf[i].rerrs   += new->intf.intfns[nr].intf[i].rerrs;
+					tot->intf.intfns[nr].intf[i].rdrop   += new->intf.intfns[nr].intf[i].rdrop;
+					tot->intf.intfns[nr].intf[i].rfifo   += new->intf.intfns[nr].intf[i].rfifo;
+					tot->intf.intfns[nr].intf[i].rframe  += new->intf.intfns[nr].intf[i].rframe;
+					tot->intf.intfns[nr].intf[i].rcompr  += new->intf.intfns[nr].intf[i].rcompr;
+					tot->intf.intfns[nr].intf[i].rmultic += new->intf.intfns[nr].intf[i].rmultic;
+
+					tot->intf.intfns[nr].intf[i].sbyte   += new->intf.intfns[nr].intf[i].sbyte;
+					tot->intf.intfns[nr].intf[i].spack   += new->intf.intfns[nr].intf[i].spack;
+					tot->intf.intfns[nr].intf[i].serrs   += new->intf.intfns[nr].intf[i].serrs;
+					tot->intf.intfns[nr].intf[i].sdrop   += new->intf.intfns[nr].intf[i].sdrop;
+					tot->intf.intfns[nr].intf[i].sfifo   += new->intf.intfns[nr].intf[i].sfifo;
+					tot->intf.intfns[nr].intf[i].scollis += new->intf.intfns[nr].intf[i].scollis;
+					tot->intf.intfns[nr].intf[i].scarrier+= new->intf.intfns[nr].intf[i].scarrier;
+					tot->intf.intfns[nr].intf[i].scompr  += new->intf.intfns[nr].intf[i].scompr;
+
+					tot->intf.intfns[nr].intf[i].type     = new->intf.intfns[nr].intf[i].type;
+					tot->intf.intfns[nr].intf[i].speed    = new->intf.intfns[nr].intf[i].speed;
+					tot->intf.intfns[nr].intf[i].duplex   = new->intf.intfns[nr].intf[i].duplex;
+				}
+
+				tot->intf.intfns[nr].intf[i].name[0] = '\0';
+				tot->intf.intfns[nr].nrintf          = i;
+				strcpy(tot->intf.intfns[nr].nsname, new->intf.intfns[nr].nsname);
+			}
+		}
 
 #if		HTTPSTATS
 		tot->www.accesses  += new->www.accesses;
@@ -1716,14 +1748,14 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			}
 			
 		}
-	
+
 		tot->dsk.dsk[i].name[0] = '\0';
 		tot->dsk.ndsk = i;
 
 		for (i=0; new->dsk.lvm[i].name[0]; i++)
 		{
 			strcpy(tot->dsk.lvm[i].name, new->dsk.lvm[i].name);
-	
+
 			tot->dsk.lvm[i].nread  += new->dsk.lvm[i].nread;
 			tot->dsk.lvm[i].nrsect += new->dsk.lvm[i].nrsect;
 			tot->dsk.lvm[i].nwrite += new->dsk.lvm[i].nwrite;
@@ -1737,14 +1769,14 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			    tot->dsk.lvm[i].ndsect += new->dsk.lvm[i].ndsect;
 			}
 		}
-	
+
 		tot->dsk.lvm[i].name[0] = '\0';
 		tot->dsk.nlvm = i;
 
 		for (i=0; new->dsk.mdd[i].name[0]; i++)
 		{
 			strcpy(tot->dsk.mdd[i].name, new->dsk.mdd[i].name);
-	
+
 			tot->dsk.mdd[i].nread  += new->dsk.mdd[i].nread;
 			tot->dsk.mdd[i].nrsect += new->dsk.mdd[i].nrsect;
 			tot->dsk.mdd[i].nwrite += new->dsk.mdd[i].nwrite;
@@ -1758,7 +1790,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			    tot->dsk.mdd[i].ndsect += new->dsk.lvm[i].ndsect;
 			}
 		}
-	
+
 		tot->dsk.mdd[i].name[0] = '\0';
 		tot->dsk.nmdd = i;
 		break;

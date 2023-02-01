@@ -1066,23 +1066,23 @@ photosyst(struct sstat *si)
                                     "%15s %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld\n",
-				  si->intf.intf[i].name,
-				&(si->intf.intf[i].rbyte),
-				&(si->intf.intf[i].rpack),
-				&(si->intf.intf[i].rerrs),
-				&(si->intf.intf[i].rdrop),
-				&(si->intf.intf[i].rfifo),
-				&(si->intf.intf[i].rframe),
-				&(si->intf.intf[i].rcompr),
-				&(si->intf.intf[i].rmultic),
-				&(si->intf.intf[i].sbyte),
-				&(si->intf.intf[i].spack),
-				&(si->intf.intf[i].serrs),
-				&(si->intf.intf[i].sdrop),
-				&(si->intf.intf[i].sfifo),
-				&(si->intf.intf[i].scollis),
-				&(si->intf.intf[i].scarrier),
-				&(si->intf.intf[i].scompr));
+				  si->intf.intfns[0].intf[i].name,
+				&(si->intf.intfns[0].intf[i].rbyte),
+				&(si->intf.intfns[0].intf[i].rpack),
+				&(si->intf.intfns[0].intf[i].rerrs),
+				&(si->intf.intfns[0].intf[i].rdrop),
+				&(si->intf.intfns[0].intf[i].rfifo),
+				&(si->intf.intfns[0].intf[i].rframe),
+				&(si->intf.intfns[0].intf[i].rcompr),
+				&(si->intf.intfns[0].intf[i].rmultic),
+				&(si->intf.intfns[0].intf[i].sbyte),
+				&(si->intf.intfns[0].intf[i].spack),
+				&(si->intf.intfns[0].intf[i].serrs),
+				&(si->intf.intfns[0].intf[i].sdrop),
+				&(si->intf.intfns[0].intf[i].sfifo),
+				&(si->intf.intfns[0].intf[i].scollis),
+				&(si->intf.intfns[0].intf[i].scarrier),
+				&(si->intf.intfns[0].intf[i].scompr));
 
 			/*
 			** skip header line and lines without stats
@@ -1096,7 +1096,7 @@ photosyst(struct sstat *si)
 			** because the total number of interfaces
 			** exceeds the maximum supported by atop (MAXINTF)
 			*/
-			strcpy(ifprop.name, si->intf.intf[i].name);
+			strcpy(ifprop.name, si->intf.intfns[0].intf[i].name);
 
 			if (!getifprop(&ifprop))
 				continue;
@@ -1115,8 +1115,10 @@ photosyst(struct sstat *si)
 				break;
 		}
 
-		si->intf.intf[i].name[0] = '\0'; /* set terminator for table */
-		si->intf.nrintf = i;
+		si->intf.intfns[0].intf[i].name[0] = '\0'; /* set terminator for table */
+		si->intf.intfns[0].nrintf = i;
+		strcpy(si->intf.intfns[0].nsname, "init");
+		si->intf.nrintfns = 1;
 
 		fclose(fp);
 	}
@@ -1151,34 +1153,36 @@ photosyst(struct sstat *si)
 
 			if ( strcmp("Ip:", nam) == 0)
 			{
-				memcpy(&si->net.ipv4, cnts,
-						sizeof si->net.ipv4);
+				memcpy(&si->net.netns[0].ipv4, cnts,
+						sizeof si->net.netns[0].ipv4);
 				continue;
 			}
 	
 			if ( strcmp("Icmp:", nam) == 0)
 			{
-				memcpy(&si->net.icmpv4, cnts,
-						sizeof si->net.icmpv4);
+				memcpy(&si->net.netns[0].icmpv4, cnts,
+						sizeof si->net.netns[0].icmpv4);
 				continue;
 			}
 	
 			if ( strcmp("Tcp:", nam) == 0)
 			{
-				memcpy(&si->net.tcp, cnts,
-						sizeof si->net.tcp);
+				memcpy(&si->net.netns[0].tcp, cnts,
+						sizeof si->net.netns[0].tcp);
 				continue;
 			}
 	
 			if ( strcmp("Udp:", nam) == 0)
 			{
-				memcpy(&si->net.udpv4, cnts,
-						sizeof si->net.udpv4);
+				memcpy(&si->net.netns[0].udpv4, cnts,
+						sizeof si->net.netns[0].udpv4);
 				continue;
 			}
 		}
 	
 		fclose(fp);
+		strcpy(si->net.netns[0].nsname, "init");
+		si->net.nrnetns = 1;
 	}
 
 	/*
@@ -1221,9 +1225,9 @@ photosyst(struct sstat *si)
 				cur = 0;
 		}
 
-		memcpy(&si->net.ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
-		memcpy(&si->net.icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
-		memcpy(&si->net.udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
+		memcpy(&si->net.netns[0].ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
+		memcpy(&si->net.netns[0].icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
+		memcpy(&si->net.netns[0].udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
 
 		fclose(fp);
 	}

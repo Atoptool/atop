@@ -51,6 +51,7 @@ typedef struct {
         count_t		iotot;
 	struct perdsk	*perdsk;
         int		index;
+	int		nsnr;
         count_t		cputot;
         count_t		pernumacputot;
         count_t		percputot;
@@ -324,6 +325,7 @@ extern sys_printdef syspdef_NETIPDELIV;
 extern sys_printdef syspdef_NETICMPIN;
 extern sys_printdef syspdef_NETICMPOUT;
 extern sys_printdef syspdef_NETNAME;
+extern sys_printdef syspdef_NETINTFNS;
 extern sys_printdef syspdef_NETPCKI;
 extern sys_printdef syspdef_NETPCKO;
 extern sys_printdef syspdef_NETSPEEDMAX;

@@ -128,7 +128,7 @@ generic_samp(time_t curtime, int nsecs,
 	char		*p;
 
 
-	register int	i, curline, statline, nproc;
+	register int	i, curline, statline, nproc, nr;
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
 	char		format1[16], format2[16], branchtime[32];
@@ -240,9 +240,11 @@ generic_samp(time_t curtime, int nsecs,
 			qsort(sstat->dsk.dsk, sstat->dsk.ndsk,
 			       sizeof sstat->dsk.dsk[0], diskcompar);
 
-		if (sstat->intf.nrintf > 1 && maxintlines > 0)
-			qsort(sstat->intf.intf, sstat->intf.nrintf,
-		  	       sizeof sstat->intf.intf[0], intfcompar);
+		for (nr = 0; nr < sstat->intf.nrintfns; nr++) {
+			if (sstat->intf.intfns[nr].nrintf > 1 && maxintlines > 0)
+				qsort(sstat->intf.intfns[nr].intf, sstat->intf.intfns[nr].nrintf,
+				       sizeof sstat->intf.intfns[nr].intf[0], intfcompar);
+		}
 
 		if (sstat->ifb.nrports > 1 && maxifblines > 0)
 			qsort(sstat->ifb.ifb, sstat->ifb.nrports,
