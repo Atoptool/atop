@@ -369,7 +369,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 unsigned long
 counttasks(void)
 {
-	unsigned long	nr=0;
+	unsigned long	nrproc=0, nrthread=0;
 	char		linebuf[256];
 	FILE		*fp;
 	DIR             *dirp;
@@ -383,7 +383,7 @@ counttasks(void)
 	{
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			if ( sscanf(linebuf, "%*f %*f %*f %*d/%lu", &nr) < 1)
+			if ( sscanf(linebuf, "%*f %*f %*f %*d/%lu", &nrthread) < 1)
 				mcleanstop(53, "wrong /proc/loadavg\n");
 		}
 		else
@@ -412,7 +412,7 @@ counttasks(void)
 		** count subdirectory names under /proc starting with a digit
 		*/
 		if (isdigit(entp->d_name[0]))
-			nr++;
+			nrproc++;
 	}
 
 	closedir(dirp);
@@ -420,7 +420,11 @@ counttasks(void)
 	if ( chdir(origdir) == -1)
 		mcleanstop(53, "cannot change to %s\n", origdir);
 
-	return nr;
+	if (nrthread < nrproc)
+		mcleanstop(53, "#threads (%ld) < #procs (%ld)\n",
+					nrthread, nrproc);
+
+	return nrproc + nrthread;
 }
 
 /*
