@@ -1101,6 +1101,11 @@ photosyst(struct sstat *si)
 			if (!getifprop(&ifprop))
 				continue;
 
+			si->intf.intfns[0].intf[i].type   = ifprop.type;
+			si->intf.intfns[0].intf[i].speed  = ifprop.speed;
+			si->intf.intfns[0].intf[i].speedp = ifprop.speed;
+			si->intf.intfns[0].intf[i].duplex = ifprop.fullduplex;
+
 			/*
 			** accept this interface but skip the remaining
 			** interfaces because we reached the total number

@@ -45,7 +45,6 @@
 #include <string.h>
 
 #include "atop.h"
-#include "ifprop.h"
 #include "photoproc.h"
 #include "photosyst.h"
 
@@ -617,7 +616,6 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 {
 	register int	i, j;
 	count_t		*cdev, *ccur, *cpre;
-	struct ifprop	ifprop;
 
 	dev->cpu.nrcpu     = cur->cpu.nrcpu;
 	dev->cpu.devint    = subcount(cur->cpu.devint, pre->cpu.devint);
@@ -887,19 +885,6 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	/*
 	** calculate deviations for interfaces
 	*/
-	for (i=0; cur->intf.intf[i].name[0]; i++)
-	{
-		// fill current properties for each valid interface
-		strcpy(ifprop.name, cur->intf.intf[i].name);
-
-		getifprop(&ifprop);
-
-		cur->intf.intf[i].type   = ifprop.type;
-		cur->intf.intf[i].speed  = ifprop.speed;
-		cur->intf.intf[i].speedp = ifprop.speed;
-		cur->intf.intf[i].duplex = ifprop.fullduplex;
-	}
-
 	if (pre->intf.intf[0].name[0] == '\0')	/* first sample? */
 	{
 		for (i=0; cur->intf.intf[i].name[0]; i++)
