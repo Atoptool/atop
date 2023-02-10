@@ -116,6 +116,7 @@ static struct udpv6_stats	udpv6_tmp;
 struct v6tab {
 	char 	*nam;
 	count_t *val;
+	int	idx; /* the position of nam in /proc/snmp6 file */
 };
 
 static struct v6tab 		v6tab[] = {
@@ -1195,7 +1196,7 @@ photosyst(struct sstat *si)
 	if ( (fp = fopen("net/snmp6", "r")) != NULL)
 	{
 		count_t	countval;
-		int	cur = 0;
+		int	cur = 0, idx = 0;
 
 		/*
 		** one name-value pair per line
@@ -1210,6 +1211,7 @@ photosyst(struct sstat *si)
 		   	if (strcmp(v6tab[cur].nam, nam) == 0)
 		   	{
 		   		*(v6tab[cur].val) = countval;
+				v6tab[cur].idx = idx;
 		   	}
 		   	else
 		   	{
@@ -1217,12 +1219,16 @@ photosyst(struct sstat *si)
 					if (strcmp(v6tab[cur].nam, nam) == 0)
 						break;
 
-				if (cur < v6tab_entries) /* found ? */
+				if (cur < v6tab_entries) {/* found ? */
 		   			*(v6tab[cur].val) = countval;
+					v6tab[cur].idx = idx;
+				}
 			}
 
 			if (++cur >= v6tab_entries)
 				cur = 0;
+
+			idx++;
 		}
 
 		memcpy(&si->net.netns[0].ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
