@@ -469,6 +469,7 @@ void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
 void	do_perfevents(char *, char *);
+void	do_netns(char *, char *);
 
 #define	PHYNETMAX	8
 struct snmp {
