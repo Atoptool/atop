@@ -3120,3 +3120,36 @@ int getothernetns(struct shmbuf *shmp) {
 
 	exit(0);
 }
+
+void
+do_netns(char *name, char *val)
+{
+	char *pernetns, *validnetns;
+	int ns = 0;
+	struct stat nsstat;
+
+	if ( strlen(val) == 0 )
+		return;
+
+	validnetns = malloc( (MAXNETNS - 1) * NETNSNAMELEN * sizeof(char) );
+	strncpy(validnetns, val, (MAXNETNS - 1) * NETNSNAMELEN);
+
+	/* split netns by blank space */
+	pernetns = strtok(validnetns, " ");
+	while (pernetns)
+	{
+		/* valid if this file exits, and later setns() will prove the netns is available */
+		if ( stat(pernetns, &nsstat) )
+		{
+			fprintf(stderr, "netns %s stat failed, errno is %d\n", pernetns, errno);
+			pernetns = strtok(NULL, " ");
+			continue;
+		}
+
+		strncpy(othernetns[ns], pernetns, sizeof(othernetns[ns]));
+		if (++ns >= MAXNETNS - 1)
+			break;
+		pernetns = strtok(NULL, " ");
+	}
+	free(validnetns);
+}
