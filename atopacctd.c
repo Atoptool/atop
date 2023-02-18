@@ -123,10 +123,6 @@ static int	acctsize(struct acct *);
 static void	cleanup(int);
 
 
-int		netlink_open(void);		// from netlink.c
-int		netlink_recv(int, int);		// from netlink.c
-
-
 int
 main(int argc, char *argv[])
 {

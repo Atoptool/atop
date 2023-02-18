@@ -407,7 +407,6 @@ static void
 engine(void)
 {
 	struct sigaction 	sigact;
-	void			getusr1(int);
 
 	int			nrgpus;         /* number of GPUs        */
 	int			nrgpuproc,	/* number of GPU procs   */

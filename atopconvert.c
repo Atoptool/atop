@@ -82,6 +82,25 @@
 #include "prev/photosyst_28.h"
 #include "prev/photoproc_28.h"
 
+void	justcopy(void *, void *, count_t, count_t);
+
+void	scpu_to_21(void *, void *, count_t, count_t);
+void	sdsk_to_21(void *, void *, count_t, count_t);
+void	sint_to_22(void *, void *, count_t, count_t);
+void	scpu_to_27(void *, void *, count_t, count_t);
+void	smem_to_27(void *, void *, count_t, count_t);
+void	sdsk_to_27(void *, void *, count_t, count_t);
+void	smem_to_28(void *, void *, count_t, count_t);
+void	sdsk_to_28(void *, void *, count_t, count_t);
+void	smnu_to_28(void *, void *, count_t, count_t);
+void	scnu_to_28(void *, void *, count_t, count_t);
+void	tgen_to_21(void *, void *, count_t, count_t);
+void	tmem_to_21(void *, void *, count_t, count_t);
+void	tgen_to_22(void *, void *, count_t, count_t);
+void	tcpu_to_26(void *, void *, count_t, count_t);
+void	tmem_to_26(void *, void *, count_t, count_t);
+void	tcpu_to_28(void *, void *, count_t, count_t);
+void	tmem_to_28(void *, void *, count_t, count_t);
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions

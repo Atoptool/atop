@@ -3242,9 +3242,6 @@ do_procname(char *name, char *val)
 	}
 }
 
-extern int get_posval(char *name, char *val);
-
-
 void
 do_maxcpu(char *name, char *val)
 {

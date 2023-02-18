@@ -207,3 +207,10 @@ void		netatop_exithash(char);
 void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);
 void		set_oom_score_adj(void);
 int		run_in_guest(void);
+
+void		getusr1(int), getusr2(int);
+void		do_pacctdir(char *, char *);
+void		do_atopsarflags(char *, char *);
+
+int		netlink_open(void);
+int		netlink_recv(int, int);

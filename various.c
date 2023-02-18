@@ -28,74 +28,6 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: various.c,v $
-** Revision 1.21  2010/11/12 06:16:16  gerlof
-** Show all parts of timestamp in header line, even when zero.
-**
-** Revision 1.20  2010/05/18 19:21:08  gerlof
-** Introduce CPU frequency and scaling (JC van Winkel).
-**
-** Revision 1.19  2010/04/28 18:21:11  gerlof
-** Cast value larger than 4GB to long long.
-**
-** Revision 1.18  2010/04/23 12:19:35  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.17  2010/03/26 11:52:45  gerlof
-** Introduced unit of Tbytes for memory-usage.
-**
-** Revision 1.16  2009/12/17 08:28:38  gerlof
-** Express CPU-time usage in days and hours for large values.
-**
-** Revision 1.15  2009/12/10 08:50:39  gerlof
-** Introduction of a new function to convert number of seconds
-** to a string indicating days, hours, minutes and seconds.
-**
-** Revision 1.14  2007/02/13 10:32:47  gerlof
-** Removal of external declarations.
-** Removal of function getpagesz().
-**
-** Revision 1.13  2006/02/07 08:27:21  gerlof
-** Add possibility to show counters per second.
-** Modify presentation of CPU-values.
-**
-** Revision 1.12  2005/10/31 12:26:09  gerlof
-** Modified date-format to yyyy/mm/dd.
-**
-** Revision 1.11  2005/10/21 09:51:29  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.10  2004/05/06 09:46:24  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.9  2003/07/07 09:27:46  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.8  2003/07/03 11:16:59  gerlof
-** Minor bug solutions.
-**
-** Revision 1.7  2003/06/30 11:31:17  gerlof
-** Enlarge counters to 'long long'.
-**
-** Revision 1.6  2003/06/24 06:22:24  gerlof
-** Limit number of system resource lines.
-**
-** Revision 1.5  2002/08/30 07:49:09  gerlof
-** Convert a hh:mm string into a number of seconds since 00:00.
-**
-** Revision 1.4  2002/08/27 12:08:37  gerlof
-** Modified date format (from yyyy/mm/dd to mm/dd/yyyy).
-**
-** Revision 1.3  2002/07/24 11:14:05  gerlof
-** Changed to ease porting to other UNIX-platforms.
-**
-** Revision 1.2  2002/07/11 09:43:36  root
-** Modified HZ into sysconf(_SC_CLK_TCK).
-**
-** Revision 1.1  2001/10/02 10:43:36  gerlof
-** Initial revision
-**
 */
 
 #include <sys/types.h>
@@ -113,9 +45,13 @@
 #include <stdarg.h>
 #include <string.h>
 #include <fcntl.h>
+#include <wait.h>
 
 #include "atop.h"
 #include "acctproc.h"
+
+
+static unsigned long long getbootlinux(long);
 
 /*
 ** Function convtime() converts a value (number of seconds since
@@ -711,13 +647,76 @@ unsigned long long
 getboot(void)
 {
 	static unsigned long long	boottime;
-	unsigned long long		getbootlinux(long);
 
 	if (!boottime)		/* do this only once */
 		boottime = getbootlinux(hertz);
 
 	return boottime;
 }
+
+
+/*
+** LINUX SPECIFIC:
+** Determine boot-time of this system (as number of jiffies since 1-1-1970).
+*/
+static unsigned long long
+getbootlinux(long hertz)
+{
+	int    		 	cpid;
+	char  	  		tmpbuf[1280];
+	FILE    		*fp;
+	unsigned long 		startticks;
+	unsigned long long	bootjiffies = 0;
+	struct timespec		ts;
+
+	/*
+	** dirty hack to get the boottime, since the
+	** Linux 2.6 kernel (2.6.5) does not return a proper
+	** boottime-value with the times() system call   :-(
+	*/
+	if ( (cpid = fork()) == 0 )
+	{
+		/*
+		** child just waiting to be killed by parent
+		*/
+		pause();
+	}
+	else
+	{
+		/*
+		** parent determines start-time (in jiffies since boot) 
+		** of the child and calculates the boottime in jiffies
+		** since 1-1-1970
+		*/
+		(void) clock_gettime(CLOCK_REALTIME, &ts);	// get current
+		bootjiffies = 1LL * ts.tv_sec  * hertz +
+		              1LL * ts.tv_nsec * hertz / 1000000000LL;
+
+		snprintf(tmpbuf, sizeof tmpbuf, "/proc/%d/stat", cpid);
+
+		if ( (fp = fopen(tmpbuf, "r")) != NULL)
+		{
+			if ( fscanf(fp, "%*d (%*[^)]) %*c %*d %*d %*d %*d "
+			                "%*d %*d %*d %*d %*d %*d %*d %*d "
+			                "%*d %*d %*d %*d %*d %*d %lu",
+			                &startticks) == 1)
+			{
+				bootjiffies -= startticks;
+			}
+
+			fclose(fp);
+		}
+
+		/*
+		** kill the child and get rid of the zombie
+		*/
+		kill(cpid, SIGKILL);
+		(void) wait((int *)0);
+	}
+
+	return bootjiffies;
+}
+
 
 /*
 ** generic pointer verification after malloc

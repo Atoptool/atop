@@ -27,13 +27,8 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
-**
-** $Log: showlinux.h,v $
-** Initial revision
-**
-** Initial
-**
 */
+
 #define MAXITEMS 80    /* The maximum number of items per line */
 
 /*
@@ -127,6 +122,34 @@ void showhdrline(proc_printpair* elemptr, int curlist, int totlist,
                   char showorder, char autosort);
 void showprocline(proc_printpair* elemptr, struct tstat *curstat, 
                   double perc, int nsecs, int avgval);
+
+void do_cpucritperc(char *, char *);
+void do_gpucritperc(char *, char *);
+void do_memcritperc(char *, char *);
+void do_swpcritperc(char *, char *);
+void do_dskcritperc(char *, char *);
+void do_netcritperc(char *, char *);
+void do_swoutcritsec(char *, char *);
+void do_almostcrit(char *, char *);
+void do_ownsysprcline(char *, char *);
+void do_ownallcpuline(char *, char *);
+void do_ownindivcpuline(char *, char *);
+void do_owncplline(char *, char *);
+void do_owngpuline(char *, char *);
+void do_ownmemline(char *, char *);
+void do_ownswpline(char *, char *);
+void do_ownpagline(char *, char *);
+void do_ownmemnumaline(char *, char *);
+void do_owncpunumaline(char *, char *);
+void do_ownllcline(char *, char *);
+void do_owndskline(char *, char *);
+void do_ownnettransportline(char *, char *);
+void do_ownnetnetline(char *, char *);
+void do_ownnetinterfaceline(char *, char *);
+void do_owninfinibandline(char *, char *);
+void do_ownprocline(char *, char *);
+
+int  get_posval(char *, char *);
 
 extern sys_printdef *prcsyspdefs[];
 extern sys_printdef *cpusyspdefs[];

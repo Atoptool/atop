@@ -52,6 +52,11 @@
 #include "showgeneric.h"
 #include "showlinux.h"
 
+static void	addblanks(double *, double *);
+static void	sumscaling(struct sstat *, count_t *, count_t *, count_t *);
+static void	psiformatavg(struct psi *, char *, char *, int);
+static void	psiformattot(struct psi *, char *, extraparam *, int *, char *, int);
+
 /*******************************************************************/
 /*
 ** print the label of a system-statistics line and switch on
@@ -112,7 +117,7 @@ syscolorlabel(char *labeltext, unsigned int badness)
 
 static char *sysprt_BLANKBOX(struct sstat *sstat, extraparam *notused, int, int *);
 
-void
+static void
 addblanks(double *charslackused, double *charslackover)
 {
         *charslackused+=*charslackover;
@@ -588,10 +593,10 @@ dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 
 
 /*
- * sumscaling: sum scaling info for all processors
- *
- */
-void sumscaling(struct sstat *sstat, count_t *maxfreq,
+** sumscaling: sum scaling info for all processors
+*/
+static void
+sumscaling(struct sstat *sstat, count_t *maxfreq,
 				count_t *cnt, count_t *ticks)
 {
         count_t mymaxfreq = 0;
@@ -2044,7 +2049,7 @@ sysprt_NUMLLC(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_NUMLLC = {"NUMLLC", sysprt_NUMLLC, NULL};
 /*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
-void
+static void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)
 {
 	static char	formats[] = "%.0f/%.0f/%.0f";
@@ -2118,7 +2123,7 @@ sys_printdef syspdef_PSIIOF = {"PSIIOF", sysprt_PSIIOF, NULL};
 
 /*******************************************************************/
 // general formatting of PSI field in total percentage
-void
+static void
 psiformattot(struct psi *p, char *head, extraparam *as, int *color,
 						char *buf, int bufsize)
 {

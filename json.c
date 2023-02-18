@@ -49,35 +49,36 @@
 #include "atop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "json.h"
 
 #define LEN_HP_SIZE	64
 #define LINE_BUF_SIZE	1024
 
-static void json_print_CPU();
-static void json_print_cpu();
-static void json_print_CPL();
-static void json_print_GPU();
-static void json_print_MEM();
-static void json_print_SWP();
-static void json_print_PAG();
-static void json_print_PSI();
-static void json_print_LVM();
-static void json_print_MDD();
-static void json_print_DSK();
-static void json_print_NFM();
-static void json_print_NFC();
-static void json_print_NFS();
-static void json_print_NET();
-static void json_print_IFB();
-static void json_print_NUM();
-static void json_print_NUC();
-static void json_print_LLC();
-static void json_print_PRG();
-static void json_print_PRC();
-static void json_print_PRM();
-static void json_print_PRD();
-static void json_print_PRN();
-static void json_print_PRE();
+static void json_print_CPU(char *, struct sstat *, struct tstat *, int);
+static void json_print_cpu(char *, struct sstat *, struct tstat *, int);
+static void json_print_CPL(char *, struct sstat *, struct tstat *, int);
+static void json_print_GPU(char *, struct sstat *, struct tstat *, int);
+static void json_print_MEM(char *, struct sstat *, struct tstat *, int);
+static void json_print_SWP(char *, struct sstat *, struct tstat *, int);
+static void json_print_PAG(char *, struct sstat *, struct tstat *, int);
+static void json_print_PSI(char *, struct sstat *, struct tstat *, int);
+static void json_print_LVM(char *, struct sstat *, struct tstat *, int);
+static void json_print_MDD(char *, struct sstat *, struct tstat *, int);
+static void json_print_DSK(char *, struct sstat *, struct tstat *, int);
+static void json_print_NFM(char *, struct sstat *, struct tstat *, int);
+static void json_print_NFC(char *, struct sstat *, struct tstat *, int);
+static void json_print_NFS(char *, struct sstat *, struct tstat *, int);
+static void json_print_NET(char *, struct sstat *, struct tstat *, int);
+static void json_print_IFB(char *, struct sstat *, struct tstat *, int);
+static void json_print_NUM(char *, struct sstat *, struct tstat *, int);
+static void json_print_NUC(char *, struct sstat *, struct tstat *, int);
+static void json_print_LLC(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRG(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRC(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRM(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRD(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRN(char *, struct sstat *, struct tstat *, int);
+static void json_print_PRE(char *, struct sstat *, struct tstat *, int);
 
 /*
 ** table with possible labels and the corresponding

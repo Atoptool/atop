@@ -93,6 +93,8 @@ enum {
 };
 
 static int	perfevents = PERF_EVENTS_AUTO;
+static long	perf_event_open(struct perf_event_attr *, pid_t,
+                int, int, unsigned long);
 static void	getperfevents(struct cpustat *);
 #endif
 
@@ -102,6 +104,10 @@ static int	get_zswap(struct sstat *);
 
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
+
+static struct bitmask *numa_allocate_cpumask(void);
+static void	numa_bitmask_free(struct bitmask *);
+static int	numa_parse_bitmap_v2(char *, struct bitmask *);
 
 static struct ipv6_stats	ipv6_tmp;
 static struct icmpv6_stats	icmpv6_tmp;
@@ -202,8 +208,8 @@ struct bitmask {
  * Allocate a bitmask for cpus, of a size large enough to
  * match the kernel's cpumask_t.
  */
-struct bitmask *
-numa_allocate_cpumask()
+static struct bitmask *
+numa_allocate_cpumask(void)
 {
 	int ncpus = CPUMASK_SZ;
 	struct bitmask *bmp;
@@ -219,7 +225,7 @@ numa_allocate_cpumask()
 	return bmp;
 }
 
-void
+static void
 numa_bitmask_free(struct bitmask *bmp)
 {
 	if (bmp == 0)
@@ -230,7 +236,7 @@ numa_bitmask_free(struct bitmask *bmp)
 	return;
 }
 
-int
+static int
 numa_parse_bitmap_v2(char *line, struct bitmask *mask)
 {
 	int i;
@@ -2129,68 +2135,6 @@ isdisk(unsigned int major, unsigned int minor,
 	return NONTYPE;
 }
 
-/*
-** LINUX SPECIFIC:
-** Determine boot-time of this system (as number of jiffies since 1-1-1970).
-*/
-unsigned long long
-getbootlinux(long hertz)
-{
-	int    		 	cpid;
-	char  	  		tmpbuf[1280];
-	FILE    		*fp;
-	unsigned long 		startticks;
-	unsigned long long	bootjiffies = 0;
-	struct timespec		ts;
-
-	/*
-	** dirty hack to get the boottime, since the
-	** Linux 2.6 kernel (2.6.5) does not return a proper
-	** boottime-value with the times() system call   :-(
-	*/
-	if ( (cpid = fork()) == 0 )
-	{
-		/*
-		** child just waiting to be killed by parent
-		*/
-		pause();
-	}
-	else
-	{
-		/*
-		** parent determines start-time (in jiffies since boot) 
-		** of the child and calculates the boottime in jiffies
-		** since 1-1-1970
-		*/
-		(void) clock_gettime(CLOCK_REALTIME, &ts);	// get current
-		bootjiffies = 1LL * ts.tv_sec  * hertz +
-		              1LL * ts.tv_nsec * hertz / 1000000000LL;
-
-		snprintf(tmpbuf, sizeof tmpbuf, "/proc/%d/stat", cpid);
-
-		if ( (fp = fopen(tmpbuf, "r")) != NULL)
-		{
-			if ( fscanf(fp, "%*d (%*[^)]) %*c %*d %*d %*d %*d "
-			                "%*d %*d %*d %*d %*d %*d %*d %*d "
-			                "%*d %*d %*d %*d %*d %*d %lu",
-			                &startticks) == 1)
-			{
-				bootjiffies -= startticks;
-			}
-
-			fclose(fp);
-		}
-
-		/*
-		** kill the child and get rid of the zombie
-		*/
-		kill(cpid, SIGKILL);
-		(void) wait((int *)0);
-	}
-
-	return bootjiffies;
-}
-
 
 /*
 ** get stats of all InfiniBand ports below
@@ -2716,7 +2660,7 @@ enable_perfevents()
 	return perfevents == PERF_EVENTS_ENABLE;
 }
 
-long
+static long
 perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
                 int cpu, int groupfd, unsigned long flags)
 {

@@ -113,162 +113,6 @@
 ** flags. In this way various representation-layers (ASCII, graphical, ...)
 ** can be linked with 'atop'; the one to use can eventually be chosen
 ** at runtime. 
-**
-** $Log: atop.c,v $
-** Revision 1.49  2010/10/23 14:01:00  gerlof
-** Show counters for total number of running and sleep (S and D) threads.
-**
-** Revision 1.48  2010/10/23 08:18:15  gerlof
-** Catch signal SIGUSR2 to take a final sample and stop.
-** Needed for improved of suspend/hibernate.
-**
-** Revision 1.47  2010/04/23 12:20:19  gerlof
-** Modified mail-address in header.
-**
-** Revision 1.46  2010/04/23 09:57:28  gerlof
-** Version (flag -V) handled earlier after startup.
-**
-** Revision 1.45  2010/04/17 17:19:41  gerlof
-** Allow modifying the layout of the columns in the system lines.
-**
-** Revision 1.44  2010/04/16 13:00:23  gerlof
-** Automatically start another version of atop if the logfile to
-** be read has not been created by the current version.
-**
-** Revision 1.43  2010/03/04 10:51:10  gerlof
-** Support I/O-statistics on logical volumes and MD devices.
-**
-** Revision 1.42  2009/12/31 11:33:33  gerlof
-** Sanity-check to bypass kernel-bug showing 497 days of CPU-consumption.
-**
-** Revision 1.41  2009/12/17 10:51:31  gerlof
-** Allow own defined process line with key 'o' and a definition
-** in the atoprc file.
-**
-** Revision 1.40  2009/12/17 08:15:15  gerlof
-** Introduce branch-key to go to specific time in raw file.
-**
-** Revision 1.39  2009/12/10 13:34:32  gerlof
-** Cosmetical changes.
-**
-** Revision 1.38  2009/12/10 11:55:38  gerlof
-** Introduce -L flag for line length.
-**
-** Revision 1.37  2009/12/10 10:43:33  gerlof
-** Correct calculation of node name.
-**
-** Revision 1.36  2009/12/10 09:19:06  gerlof
-** Various changes related to redesign of user-interface.
-** Made by JC van Winkel.
-**
-** Revision 1.35  2009/11/27 15:11:55  gerlof
-** *** empty log message ***
-**
-** Revision 1.34  2009/11/27 15:07:25  gerlof
-** Give up root-privileges at a earlier stage.
-**
-** Revision 1.33  2009/11/27 14:01:01  gerlof
-** Introduce system-wide configuration file /etc/atoprc
-**
-** Revision 1.32  2008/01/07 10:16:13  gerlof
-** Implement summaries for atopsar.
-**
-** Revision 1.31  2007/11/06 09:16:05  gerlof
-** Add keyword atopsarflags to configuration-file ~/.atoprc
-**
-** Revision 1.30  2007/08/16 11:58:35  gerlof
-** Add support for atopsar reporting.
-**
-** Revision 1.29  2007/03/20 13:01:36  gerlof
-** Introduction of variable supportflags.
-**
-** Revision 1.28  2007/03/20 12:13:00  gerlof
-** Be sure that all tstat struct's are initialized with binary zeroes.
-**
-** Revision 1.27  2007/02/19 11:55:04  gerlof
-** Bug-fix: flag -S was not recognized any more.
-**
-** Revision 1.26  2007/02/13 10:34:20  gerlof
-** Support parseable output with flag -P
-**
-** Revision 1.25  2007/01/26 12:10:40  gerlof
-** Add configuration-value 'swoutcritsec'.
-**
-** Revision 1.24  2007/01/18 10:29:22  gerlof
-** Improved syntax-checking for ~/.atoprc file.
-** Support for network-interface busy-percentage.
-**
-** Revision 1.23  2006/02/07 08:27:04  gerlof
-** Cosmetic changes.
-**
-** Revision 1.22  2005/10/28 09:50:29  gerlof
-** All flags/subcommands are defined as macro's.
-**
-** Revision 1.21  2005/10/21 09:48:48  gerlof
-** Per-user accumulation of resource consumption.
-**
-** Revision 1.20  2004/12/14 15:05:38  gerlof
-** Implementation of patch-recognition for disk and network-statistics.
-**
-** Revision 1.19  2004/10/26 13:42:49  gerlof
-** Also lock current physical pages in memory.
-**
-** Revision 1.18  2004/09/15 08:23:42  gerlof
-** Set resource limit for locked memory to infinite, because
-** in certain environments it is set to 32K (causes atop-malloc's
-** to fail).
-**
-** Revision 1.17  2004/05/06 09:45:44  gerlof
-** Ported to kernel-version 2.6.
-**
-** Revision 1.16  2003/07/07 09:18:22  gerlof
-** Cleanup code (-Wall proof).
-**
-** Revision 1.15  2003/07/03 11:16:14  gerlof
-** Implemented subcommand `r' (reset).
-**
-** Revision 1.14  2003/06/30 11:29:12  gerlof
-** Handle configuration file ~/.atoprc
-**
-** Revision 1.13  2003/01/14 09:01:10  gerlof
-** Explicit clearing of malloced space for exited processes.
-**
-** Revision 1.12  2002/10/30 13:44:51  gerlof
-** Generate notification for statistics since boot.
-**
-** Revision 1.11  2002/10/08 11:34:52  gerlof
-** Modified storage of raw filename.
-**
-** Revision 1.10  2002/09/26 13:51:47  gerlof
-** Limit header lines by not showing disks.
-**
-** Revision 1.9  2002/09/17 10:42:00  gerlof
-** Copy functions rawread() and rawwrite() to separate source-file rawlog.c
-**
-** Revision 1.8  2002/08/30 07:49:35  gerlof
-** Implement possibility to store and retrieve atop-data in raw format.
-**
-** Revision 1.7  2002/08/27 12:09:16  gerlof
-** Allow raw data file to be written and to be read (with compression).
-**
-** Revision 1.6  2002/07/24 11:12:07  gerlof
-** Redesigned to ease porting to other UNIX-platforms.
-**
-** Revision 1.5  2002/07/11 09:15:53  root
-** *** empty log message ***
-**
-** Revision 1.4  2002/07/08 09:20:45  root
-** Bug solution: flag list overflow.
-**
-** Revision 1.3  2001/11/07 09:17:41  gerlof
-** Use /proc instead of /dev/kmem for process-level statistics.
-**
-** Revision 1.2  2001/10/04 13:03:15  gerlof
-** Separate kopen() function called i.s.o. implicit with first kmem-read
-**
-** Revision 1.1  2001/10/02 10:43:19  gerlof
-** Initial revision
-**
 */
 
 #include <sys/types.h>
@@ -294,6 +138,7 @@
 #include "photoproc.h"
 #include "photosyst.h"
 #include "showgeneric.h"
+#include "showlinux.h"
 #include "parseable.h"
 #include "json.h"
 #include "gpucom.h"
@@ -353,53 +198,8 @@ static char		rawwriteflag;
 */
 static void		readrc(char *, int);
 
-void do_flags(char *, char *);
-void do_interval(char *, char *);
-void do_linelength(char *, char *);
-void do_username(char *, char *);
-void do_procname(char *, char *);
-void do_maxcpu(char *, char *);
-void do_maxgpu(char *, char *);
-void do_maxdisk(char *, char *);
-void do_maxmdd(char *, char *);
-void do_maxlvm(char *, char *);
-void do_maxintf(char *, char *);
-void do_maxifb(char *, char *);
-void do_maxnfsm(char *, char *);
-void do_maxcont(char *, char *);
-void do_maxnuma(char *, char *);
-void do_maxllc(char *, char *);
-void do_colinfo(char *, char *);
-void do_colalmost(char *, char *);
-void do_colcrit(char *, char *);
-void do_colthread(char *, char *);
-void do_ownsysprcline(char *, char *);
-void do_ownallcpuline(char *, char *);
-void do_ownindivcpuline(char *, char *);
-void do_owncplline(char *, char *);
-void do_ownmemline(char *, char *);
-void do_ownswpline(char *, char *);
-void do_ownpagline(char *, char *);
-void do_ownmemnumaline(char *, char *);
-void do_owncpunumaline(char *, char *);
-void do_ownllcline(char *, char *);
-void do_owndskline(char *, char *);
-void do_ownnettransportline(char *, char *);
-void do_ownnetnetline(char *, char *);
-void do_ownnetinterfaceline(char *, char *);
-void do_owninfinibandline(char *, char *);
-void do_ownprocline(char *, char *);
-void do_cpucritperc(char *, char *);
-void do_gpucritperc(char *, char *);
-void do_memcritperc(char *, char *);
-void do_swpcritperc(char *, char *);
-void do_dskcritperc(char *, char *);
-void do_netcritperc(char *, char *);
-void do_swoutcritsec(char *, char *);
-void do_almostcrit(char *, char *);
-void do_atopsarflags(char *, char *);
-void do_pacctdir(char *, char *);
-void do_perfevents(char *, char *);
+static void do_interval(char *, char *);
+static void do_linelength(char *, char *);
 
 static struct {
 	char	*tag;
@@ -764,7 +564,6 @@ engine(void)
 {
 	struct sigaction 	sigact;
 	static time_t		timelimit;
-	void			getusr1(int), getusr2(int);
 
 	/*
 	** reserve space for system-level statistics
@@ -1164,15 +963,13 @@ getusr2(int sig)
 /*
 ** functions to handle a particular tag in the .atoprc file
 */
-extern int get_posval(char *name, char *val);
-
-void
+static void
 do_interval(char *name, char *val)
 {
 	interval = get_posval(name, val);
 }
 
-void
+static void
 do_linelength(char *name, char *val)
 {
 	linelen = get_posval(name, val);

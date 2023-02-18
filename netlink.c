@@ -31,6 +31,8 @@
 #include <linux/genetlink.h>
 #include <linux/taskstats.h>
 
+#include "atop.h"
+
 /*
 ** generic macro's
 */

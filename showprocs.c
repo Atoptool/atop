@@ -53,6 +53,134 @@
 #include "showlinux.h"
 
 static void	format_bandw(char *, count_t);
+static void	gettotwidth(proc_printpair *, int *, int *, int *);
+static int 	*getspacings(proc_printpair *);
+
+char *procprt_TID_ae(struct tstat *, int, int);
+char *procprt_PID_a(struct tstat *, int, int);
+char *procprt_PID_e(struct tstat *, int, int);
+char *procprt_PPID_a(struct tstat *, int, int);
+char *procprt_PPID_e(struct tstat *, int, int);
+char *procprt_VPID_a(struct tstat *, int, int);
+char *procprt_VPID_e(struct tstat *, int, int);
+char *procprt_CTID_a(struct tstat *, int, int);
+char *procprt_CTID_e(struct tstat *, int, int);
+char *procprt_CID_a(struct tstat *, int, int);
+char *procprt_CID_e(struct tstat *, int, int);
+char *procprt_SYSCPU_ae(struct tstat *, int, int);
+char *procprt_USRCPU_ae(struct tstat *, int, int);
+char *procprt_VGROW_a(struct tstat *, int, int);
+char *procprt_VGROW_e(struct tstat *, int, int);
+char *procprt_RGROW_a(struct tstat *, int, int);
+char *procprt_RGROW_e(struct tstat *, int, int);
+char *procprt_MINFLT_ae(struct tstat *, int, int);
+char *procprt_MAJFLT_ae(struct tstat *, int, int);
+char *procprt_VSTEXT_a(struct tstat *, int, int);
+char *procprt_VSTEXT_e(struct tstat *, int, int);
+char *procprt_VSIZE_a(struct tstat *, int, int);
+char *procprt_VSIZE_e(struct tstat *, int, int);
+char *procprt_RSIZE_a(struct tstat *, int, int);
+char *procprt_RSIZE_e(struct tstat *, int, int);
+char *procprt_PSIZE_a(struct tstat *, int, int);
+char *procprt_PSIZE_e(struct tstat *, int, int);
+char *procprt_VSLIBS_a(struct tstat *, int, int);
+char *procprt_VSLIBS_e(struct tstat *, int, int);
+char *procprt_VDATA_a(struct tstat *, int, int);
+char *procprt_VDATA_e(struct tstat *, int, int);
+char *procprt_VSTACK_a(struct tstat *, int, int);
+char *procprt_VSTACK_e(struct tstat *, int, int);
+char *procprt_SWAPSZ_a(struct tstat *, int, int);
+char *procprt_SWAPSZ_e(struct tstat *, int, int);
+char *procprt_LOCKSZ_a(struct tstat *, int, int);
+char *procprt_LOCKSZ_e(struct tstat *, int, int);
+char *procprt_CMD_a(struct tstat *, int, int);
+char *procprt_CMD_e(struct tstat *, int, int);
+char *procprt_RUID_ae(struct tstat *, int, int);
+char *procprt_EUID_a(struct tstat *, int, int);
+char *procprt_EUID_e(struct tstat *, int, int);
+char *procprt_SUID_a(struct tstat *, int, int);
+char *procprt_SUID_e(struct tstat *, int, int);
+char *procprt_FSUID_a(struct tstat *, int, int);
+char *procprt_FSUID_e(struct tstat *, int, int);
+char *procprt_RGID_ae(struct tstat *, int, int);
+char *procprt_EGID_a(struct tstat *, int, int);
+char *procprt_EGID_e(struct tstat *, int, int);
+char *procprt_SGID_a(struct tstat *, int, int);
+char *procprt_SGID_e(struct tstat *, int, int);
+char *procprt_FSGID_a(struct tstat *, int, int);
+char *procprt_FSGID_e(struct tstat *, int, int);
+char *procprt_STDATE_ae(struct tstat *, int, int);
+char *procprt_STTIME_ae(struct tstat *, int, int);
+char *procprt_ENDATE_a(struct tstat *, int, int);
+char *procprt_ENDATE_e(struct tstat *, int, int);
+char *procprt_ENTIME_a(struct tstat *, int, int);
+char *procprt_ENTIME_e(struct tstat *, int, int);
+char *procprt_THR_a(struct tstat *, int, int);
+char *procprt_THR_e(struct tstat *, int, int);
+char *procprt_TRUN_a(struct tstat *, int, int);
+char *procprt_TRUN_e(struct tstat *, int, int);
+char *procprt_TSLPI_a(struct tstat *, int, int);
+char *procprt_TSLPI_e(struct tstat *, int, int);
+char *procprt_TSLPU_a(struct tstat *, int, int);
+char *procprt_TSLPU_e(struct tstat *, int, int);
+char *procprt_POLI_a(struct tstat *, int, int);
+char *procprt_POLI_e(struct tstat *, int, int);
+char *procprt_NICE_a(struct tstat *, int, int);
+char *procprt_NICE_e(struct tstat *, int, int);
+char *procprt_PRI_a(struct tstat *, int, int);
+char *procprt_PRI_e(struct tstat *, int, int);
+char *procprt_RTPR_a(struct tstat *, int, int);
+char *procprt_RTPR_e(struct tstat *, int, int);
+char *procprt_CURCPU_a(struct tstat *, int, int);
+char *procprt_CURCPU_e(struct tstat *, int, int);
+char *procprt_ST_a(struct tstat *, int, int);
+char *procprt_ST_e(struct tstat *, int, int);
+char *procprt_EXC_a(struct tstat *, int, int);
+char *procprt_EXC_e(struct tstat *, int, int);
+char *procprt_S_a(struct tstat *, int, int);
+char *procprt_S_e(struct tstat *, int, int);
+char *procprt_COMMAND_LINE_ae(struct tstat *, int, int);
+char *procprt_NPROCS_ae(struct tstat *, int, int);
+char *procprt_RDDSK_a(struct tstat *, int, int);
+char *procprt_RDDSK_e(struct tstat *, int, int);
+char *procprt_WRDSK_a(struct tstat *, int, int);
+char *procprt_WRDSK_e(struct tstat *, int, int);
+char *procprt_CWRDSK_a(struct tstat *, int, int);
+char *procprt_WCANCEL_a(struct tstat *, int, int);
+char *procprt_WCANCEL_e(struct tstat *, int, int);
+char *procprt_BANDWI_a(struct tstat *, int, int);
+char *procprt_BANDWI_e(struct tstat *, int, int);
+char *procprt_BANDWO_a(struct tstat *, int, int);
+char *procprt_BANDWO_e(struct tstat *, int, int);
+char *procprt_GPULIST_ae(struct tstat *, int, int);
+char *procprt_GPUMEMNOW_ae(struct tstat *, int, int);
+char *procprt_GPUMEMAVG_ae(struct tstat *, int, int);
+char *procprt_GPUGPUBUSY_ae(struct tstat *, int, int);
+char *procprt_GPUMEMBUSY_ae(struct tstat *, int, int);
+char *procprt_WCHAN_a(struct tstat *, int, int);
+char *procprt_WCHAN_e(struct tstat *, int, int);
+char *procprt_RUNDELAY_a(struct tstat *, int, int);
+char *procprt_RUNDELAY_e(struct tstat *, int, int);
+char *procprt_BLKDELAY_a(struct tstat *, int, int);
+char *procprt_BLKDELAY_e(struct tstat *, int, int);
+char *procprt_CGROUP_PATH_a(struct tstat *, int, int);
+char *procprt_CGROUP_PATH_e(struct tstat *, int, int);
+char *procprt_CGRCPUWGT_a(struct tstat *, int, int);
+char *procprt_CGRCPUWGT_e(struct tstat *, int, int);
+char *procprt_CGRCPUMAX_a(struct tstat *, int, int);
+char *procprt_CGRCPUMAX_e(struct tstat *, int, int);
+char *procprt_CGRCPUMAXR_a(struct tstat *, int, int);
+char *procprt_CGRCPUMAXR_e(struct tstat *, int, int);
+char *procprt_CGRMEMMAX_a(struct tstat *, int, int);
+char *procprt_CGRMEMMAX_e(struct tstat *, int, int);
+char *procprt_CGRMEMMAXR_a(struct tstat *, int, int);
+char *procprt_CGRMEMMAXR_e(struct tstat *, int, int);
+char *procprt_CGRSWPMAX_a(struct tstat *, int, int);
+char *procprt_CGRSWPMAX_e(struct tstat *, int, int);
+char *procprt_CGRSWPMAXR_a(struct tstat *, int, int);
+char *procprt_CGRSWPMAXR_e(struct tstat *, int, int);
+char *procprt_SORTITEM_ae(struct tstat *, int, int);
+
 
 static char     *columnhead[] = {
 	[MSORTCPU]= "CPU", [MSORTMEM]= "MEM",
@@ -84,7 +212,7 @@ static proc_printpair newelems[MAXITEMS];
  * sumwidth: (ref) returns the total width of the printitems in the array
  * varwidth: (ref) returns the number of variable width items in the array
  */
-void
+static void
 gettotwidth(proc_printpair* elemptr, int *nitems, int *sumwidth, int* varwidth) 
 {
         int i;
@@ -116,7 +244,7 @@ gettotwidth(proc_printpair* elemptr, int *nitems, int *sumwidth, int* varwidth)
  *
  * Note: this function is only to be called when screen is true.
  */
-int *
+static int *
 getspacings(proc_printpair* elemptr) 
 {
         static int spacings[MAXITEMS];
