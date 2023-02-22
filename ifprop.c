@@ -310,7 +310,7 @@ getphysprop(struct ifprop *p)
 	int sockfd;
 
 #ifdef ETHTOOL_GLINKSETTINGS
-	struct ethtool_link_settings 	*ethlink;	// preferred!
+	struct ethtool_link_settings 	*ethlink = NULL;	// preferred!
 #endif
 	struct ethtool_cmd 		ethcmd;		// deprecated	
 
@@ -375,8 +375,6 @@ getphysprop(struct ifprop *p)
 		ethernet = 1;
 		speed    = ethlink->speed;
 		duplex   = ethlink->duplex;
-
-		free(ethlink);
 	}
 	else
 #endif
@@ -436,6 +434,7 @@ getphysprop(struct ifprop *p)
 		}
 	}
 
+	free(ethlink);
 	close(sockfd);
 
 	return 1;
