@@ -1442,7 +1442,7 @@ Network utilization (TCP/IP).
 One line is shown for activity of the transport layer (TCP and UDP), one line
 for the IP layer and one line per active interface.
 .br
-For the transport layer,
+For the transport layer (shown as `tl $netns_name'),
 counters are shown concerning the number of received TCP segments
 including those received in error (`tcpi'),
 the number of transmitted TCP segments excluding
@@ -1462,7 +1462,8 @@ only a relevant subset is shown.
 .br
 These counters are related to IPv4 and IPv6 combined.
 
-For the IP layer, counters are shown concerning the number of IP datagrams
+For the IP layer (shown as `nl $netns_name'),
+counters are shown concerning the number of IP datagrams
 received from interfaces, including those received in error (`ipi'),
 the number of IP datagrams that local higher-layer protocols offered for
 transmission (`ipo'), the number of received IP datagrams which were
@@ -1487,7 +1488,8 @@ highest of either the transmitted or the received bits.
 When the interface speed can not be determined (e.g. for the loopback
 interface), `---' is shown instead of the percentage.
 .br
-Furthermore the number of received packets (`pcki'),
+Furthermore the netns the interface belongs to (`ns'),
+the number of received packets (`pcki'),
 the number of transmitted packets (`pcko'),
 the line speed of the interface (`sp'),
 the effective amount of bits received per second (`si'),

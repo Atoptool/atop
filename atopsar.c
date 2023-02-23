@@ -1976,7 +1976,7 @@ ibline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 ifhead(int osvers, int osrel, int ossub)
 {
-	printf("interf busy ipack/s opack/s iKbyte/s oKbyte/s "
+	printf("netns  interf busy ipack/s opack/s iKbyte/s oKbyte/s "
 	       "imbps ombps maxmbps_if_");
 }
 
@@ -1992,107 +1992,111 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	char		busyval[16], dupval;
 	unsigned int	badness;
 	char		*pn;
-	int		len;
+	int		len, nr;
 
-	for (i=0; i < ss->intf.nrintf; i++)	/* per interface */
+	for (nr = 0; nr < ss->intf.nrintfns; nr++)	/* per net namespace */
 	{
-		count_t ival, oval;
-
-		/*
-		** print for the first sample all interfaces which
-		** are found; afterwards print only the interfaces
-		** which were really active during the interval
-		*/
-		if (!firstcall && !allresources &&
-		    !ss->intf.intf[i].rpack && !ss->intf.intf[i].spack)
-			continue;
-
-		/*
-		** convert byte-transfers to bit-transfers     (*       8)
-		** convert bit-transfers  to megabit-transfers (/ 1000000)
-		** per second
-		*/
-		ival = ss->intf.intf[i].rbyte/125000/deltasec;
-		oval = ss->intf.intf[i].sbyte/125000/deltasec;
-
-		/*
-		** calculate busy-percentage for interface
-		*/
-		if (ss->intf.intf[i].speed)	/* speed known? */
+		for (i=0; i < ss->intf.intfns[nr].nrintf; i++)	/* per interface */
 		{
-			if (ss->intf.intf[i].duplex)
-				busy = (ival > oval ? ival*100 : oval*100) /
-				        ss->intf.intf[i].speed;
-			else
-				busy = (ival + oval) * 100 /
-				        ss->intf.intf[i].speed;
+			count_t ival, oval;
 
-			// especially with wireless, the speed might have
-			// dropped temporarily to a very low value (snapshot)
-			// it might be better to take the speed of the
-			// previous sample
-			if (busy > 100 && ss->intf.intf[i].speed <
-			                  	ss->intf.intf[i].speedp )
+			/*
+			** print for the first sample all interfaces which
+			** are found; afterwards print only the interfaces
+			** which were really active during the interval
+			*/
+			if (!firstcall && !allresources &&
+			    !ss->intf.intfns[nr].intf[i].rpack && !ss->intf.intfns[nr].intf[i].spack)
+				continue;
+
+			/*
+			** convert byte-transfers to bit-transfers     (*       8)
+			** convert bit-transfers  to megabit-transfers (/ 1000000)
+			** per second
+			*/
+			ival = ss->intf.intfns[nr].intf[i].rbyte/125000/deltasec;
+			oval = ss->intf.intfns[nr].intf[i].sbyte/125000/deltasec;
+
+			/*
+			** calculate busy-percentage for interface
+			*/
+			if (ss->intf.intfns[nr].intf[i].speed)	/* speed known? */
 			{
-				ss->intf.intf[i].speed =
-					ss->intf.intf[i].speedp;
-
-				if (ss->intf.intf[i].duplex)
-					busy = (ival > oval ?
-						ival*100 : oval*100) /
-				        	ss->intf.intf[i].speed;
+				if (ss->intf.intfns[nr].intf[i].duplex)
+					busy = (ival > oval ? ival*100 : oval*100) /
+						ss->intf.intfns[nr].intf[i].speed;
 				else
 					busy = (ival + oval) * 100 /
-				        	ss->intf.intf[i].speed;
+						ss->intf.intfns[nr].intf[i].speed;
+
+				// especially with wireless, the speed might have
+				// dropped temporarily to a very low value (snapshot)
+				// it might be better to take the speed of the
+				// previous sample
+				if (busy > 100 && ss->intf.intfns[nr].intf[i].speed <
+							ss->intf.intfns[nr].intf[i].speedp )
+				{
+					ss->intf.intfns[nr].intf[i].speed =
+						ss->intf.intfns[nr].intf[i].speedp;
+
+					if (ss->intf.intfns[nr].intf[i].duplex)
+						busy = (ival > oval ?
+							ival*100 : oval*100) /
+							ss->intf.intfns[nr].intf[i].speed;
+					else
+						busy = (ival + oval) * 100 /
+							ss->intf.intfns[nr].intf[i].speed;
+				}
+
+				snprintf(busyval, sizeof busyval,
+							"%3.0lf%%", busy);
+			}
+			else
+			{
+				strcpy(busyval, "?"); /* speed unknown */
+				busy = 0;
 			}
 
-			snprintf(busyval, sizeof busyval,
-						"%3.0lf%%", busy);
-		}
-		else
-		{
-			strcpy(busyval, "?"); /* speed unknown */
-			busy = 0;
-		}
+			if (nlines++)
+				printf("%s  ", tstamp);
 
-		if (nlines++)
-			printf("%s  ", tstamp);
-
-		if (ss->intf.intf[i].speed)
-		{
-			if (ss->intf.intf[i].duplex)
-				dupval = 'f';
+			if (ss->intf.intfns[nr].intf[i].speed)
+			{
+				if (ss->intf.intfns[nr].intf[i].duplex)
+					dupval = 'f';
+				else
+					dupval = 'h';
+			}
 			else
-				dupval = 'h';
+			{
+				dupval = ' ';
+			}
+
+			if (netbadness)
+				badness = busy * 100 / netbadness;
+			else
+				badness = 0;
+
+			if ( (len = strlen(ss->intf.intfns[nr].intf[i].name)) > 6)
+				pn = ss->intf.intfns[nr].intf[i].name + len - 6;
+			else
+				pn = ss->intf.intfns[nr].intf[i].name;
+
+			preprint(badness);
+
+			printf("%s  %-6s %4s %7.1lf %7.1lf %8.0lf %8.0lf "
+			       "%5lld %5lld %7ld %c",
+				ss->intf.intfns[nr].nsname,
+				pn, busyval,
+				(double)ss->intf.intfns[nr].intf[i].rpack / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].spack / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].rbyte / 1024 / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].sbyte / 1024 / deltasec,
+				ival, oval,
+				ss->intf.intfns[nr].intf[i].speed, dupval);
+
+			postprint(badness);
 		}
-		else
-		{
-			dupval = ' ';
-		}
-
-		if (netbadness)
-			badness = busy * 100 / netbadness;
-		else
-			badness = 0;
-
-		if ( (len = strlen(ss->intf.intf[i].name)) > 6)
-			pn = ss->intf.intf[i].name + len - 6;
-		else
-			pn = ss->intf.intf[i].name;
-
-		preprint(badness);
-
-		printf("%-6s %4s %7.1lf %7.1lf %8.0lf %8.0lf "
-		       "%5lld %5lld %7ld %c", 
-			pn, busyval,
-			(double)ss->intf.intf[i].rpack / deltasec,
-			(double)ss->intf.intf[i].spack / deltasec,
-			(double)ss->intf.intf[i].rbyte / 1024 / deltasec,
-			(double)ss->intf.intf[i].sbyte / 1024 / deltasec,
-			ival, oval,
-			ss->intf.intf[i].speed, dupval);
-
-		postprint(badness);
 	}
 
 	if (nlines == 0)
@@ -2108,7 +2112,7 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 IFhead(int osvers, int osrel, int ossub)
 {
-	printf("interf ierr/s oerr/s coll/s idrop/s odrop/s "
+	printf("netns  interf ierr/s oerr/s coll/s idrop/s odrop/s "
 	       "iframe/s ocarrier/s  _if_");
 }
 
@@ -2121,37 +2125,41 @@ IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	static char	firstcall = 1;
 	register long	i, nlines = 0;
 	char		*pn;
-	int		len;
+	int		len, nr;
 
-	for (i=0; i < ss->intf.nrintf; i++)	/* per interface */
+	for (nr = 0; nr < ss->intf.nrintfns; nr++)
 	{
-		/*
-		** print for the first sample all interfaces which
-		** are found; afterwards print only the interfaces
-		** which were really active during the interval
-		*/
-		if (!firstcall && !allresources &&
-		    !ss->intf.intf[i].rpack && !ss->intf.intf[i].spack)
-			continue;
+		for (i=0; i < ss->intf.intfns[nr].nrintf; i++)	/* per interface */
+		{
+			/*
+			** print for the first sample all interfaces which
+			** are found; afterwards print only the interfaces
+			** which were really active during the interval
+			*/
+			if (!firstcall && !allresources &&
+			    !ss->intf.intfns[nr].intf[i].rpack && !ss->intf.intfns[nr].intf[i].spack)
+				continue;
 
-		if (nlines++)
-			printf("%s  ", tstamp);
+			if (nlines++)
+				printf("%s  ", tstamp);
 
-		if ( (len = strlen(ss->intf.intf[i].name)) > 6)
-			pn = ss->intf.intf[i].name + len - 6;
-		else
-			pn = ss->intf.intf[i].name;
+			if ( (len = strlen(ss->intf.intfns[nr].intf[i].name)) > 6)
+				pn = ss->intf.intfns[nr].intf[i].name + len - 6;
+			else
+				pn = ss->intf.intfns[nr].intf[i].name;
 
-		printf("%-6s %6.2lf %6.2lf %6.2lf %7.2lf %7.2lf "
-		       "%8.2lf %10.2lf\n", 
-			pn,
-			(double)ss->intf.intf[i].rerrs    / deltasec,
-			(double)ss->intf.intf[i].serrs    / deltasec,
-			(double)ss->intf.intf[i].scollis  / deltasec,
-			(double)ss->intf.intf[i].rdrop    / deltasec,
-			(double)ss->intf.intf[i].sdrop    / deltasec,
-			(double)ss->intf.intf[i].rframe   / deltasec,
-			(double)ss->intf.intf[i].scarrier / deltasec);
+			printf("%s  %-6s %6.2lf %6.2lf %6.2lf %7.2lf %7.2lf "
+			       "%8.2lf %10.2lf\n",
+				ss->intf.intfns[nr].nsname,
+				pn,
+				(double)ss->intf.intfns[nr].intf[i].rerrs    / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].serrs    / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].scollis  / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].rdrop    / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].sdrop    / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].rframe   / deltasec,
+				(double)ss->intf.intfns[nr].intf[i].scarrier / deltasec);
+		}
 	}
 
 	if (nlines == 0)
@@ -2170,7 +2178,7 @@ IFline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 ipv4head(int osvers, int osrel, int ossub)
 {
-	printf("inrecv/s outreq/s indeliver/s forward/s "
+	printf("netns inrecv/s outreq/s indeliver/s forward/s "
 	       "reasmok/s fragcreat/s  _ipv4_");
 }
 
@@ -2180,20 +2188,28 @@ ipv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%8.1lf %8.1lf %11.1lf %9.1lf %9.1lf %11.1lf\n", 
-		(double)ss->net.ipv4.InReceives  / deltasec,
-		(double)ss->net.ipv4.OutRequests / deltasec,
-		(double)ss->net.ipv4.InDelivers  / deltasec,
-		(double)ss->net.ipv4.Forwarding  / deltasec,
-		(double)ss->net.ipv4.ReasmOKs    / deltasec,
-		(double)ss->net.ipv4.FragCreates / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s %8.1lf %8.1lf %11.1lf %9.1lf %9.1lf %11.1lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].ipv4.InReceives  / deltasec,
+			(double)ss->net.netns[nr].ipv4.OutRequests / deltasec,
+			(double)ss->net.netns[nr].ipv4.InDelivers  / deltasec,
+			(double)ss->net.netns[nr].ipv4.Forwarding  / deltasec,
+			(double)ss->net.netns[nr].ipv4.ReasmOKs    / deltasec,
+			(double)ss->net.netns[nr].ipv4.FragCreates / deltasec);
+	}
+
 	return 1;
 }
 
 static void
 IPv4head(int osvers, int osrel, int ossub)
 {
-	printf("in: dsc/s hder/s ader/s unkp/s ratim/s rfail/s "
+	printf("netns  "
+	       "in: dsc/s hder/s ader/s unkp/s ratim/s rfail/s "
 	       "out: dsc/s nrt/s_ipv4_");
 }
 
@@ -2203,16 +2219,23 @@ IPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
-	       "    %5.1lf %5.1lf\n", 
-		(double)ss->net.ipv4.InDiscards      / deltasec,
-		(double)ss->net.ipv4.InHdrErrors     / deltasec,
-		(double)ss->net.ipv4.InAddrErrors    / deltasec,
-		(double)ss->net.ipv4.InUnknownProtos / deltasec,
-		(double)ss->net.ipv4.ReasmTimeout    / deltasec,
-		(double)ss->net.ipv4.ReasmFails      / deltasec,
-		(double)ss->net.ipv4.OutDiscards     / deltasec,
-		(double)ss->net.ipv4.OutNoRoutes     / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  "
+		       "    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
+		       "    %5.1lf %5.1lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].ipv4.InDiscards      / deltasec,
+			(double)ss->net.netns[nr].ipv4.InHdrErrors     / deltasec,
+			(double)ss->net.netns[nr].ipv4.InAddrErrors    / deltasec,
+			(double)ss->net.netns[nr].ipv4.InUnknownProtos / deltasec,
+			(double)ss->net.netns[nr].ipv4.ReasmTimeout    / deltasec,
+			(double)ss->net.netns[nr].ipv4.ReasmFails      / deltasec,
+			(double)ss->net.netns[nr].ipv4.OutDiscards     / deltasec,
+			(double)ss->net.netns[nr].ipv4.OutNoRoutes     / deltasec);
+	}
 	return 1;
 }
 
@@ -2222,7 +2245,7 @@ IPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 icmpv4head(int osvers, int osrel, int ossub)
 {
-	printf("intot/s outtot/s  inecho/s inerep/s  "
+	printf("netns  intot/s outtot/s  inecho/s inerep/s  "
 	       "otecho/s oterep/s       _icmpv4_"   );
 }
 
@@ -2232,20 +2255,26 @@ icmpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.1lf %8.1lf  %8.2lf %8.2lf  %8.2lf %8.2lf\n", 
-		(double)ss->net.icmpv4.InMsgs      / deltasec, 
-		(double)ss->net.icmpv4.OutMsgs     / deltasec, 
-		(double)ss->net.icmpv4.InEchos     / deltasec, 
-		(double)ss->net.icmpv4.OutEchos    / deltasec, 
-		(double)ss->net.icmpv4.InEchoReps  / deltasec, 
-		(double)ss->net.icmpv4.OutEchoReps / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  %7.1lf %8.1lf  %8.2lf %8.2lf  %8.2lf %8.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].icmpv4.InMsgs      / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutMsgs     / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InEchos     / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutEchos    / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InEchoReps  / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutEchoReps / deltasec);
+	}
 	return 1;
 }
 
 static void
 ICMPv4head(int osvers, int osrel, int ossub)
 {
-	printf("ierr/s isq/s ird/s idu/s ite/s "
+	printf("netns  ierr/s isq/s ird/s idu/s ite/s "
 	       "oerr/s osq/s ord/s odu/s ote/s_icmpv4_");
 }
 
@@ -2255,18 +2284,24 @@ ICMPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf "
-	       "%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf\n", 
-		(double)ss->net.icmpv4.InErrors        / deltasec,
-		(double)ss->net.icmpv4.InSrcQuenchs    / deltasec,
-		(double)ss->net.icmpv4.InRedirects     / deltasec,
-		(double)ss->net.icmpv4.InDestUnreachs  / deltasec,
-		(double)ss->net.icmpv4.InTimeExcds     / deltasec,
-		(double)ss->net.icmpv4.OutErrors       / deltasec,
-		(double)ss->net.icmpv4.OutSrcQuenchs   / deltasec,
-		(double)ss->net.icmpv4.OutRedirects    / deltasec,
-		(double)ss->net.icmpv4.OutDestUnreachs / deltasec,
-		(double)ss->net.icmpv4.OutTimeExcds    / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  %6.2lf %5.2lf %5.2lf %5.2lf %5.2lf "
+		       "%6.2lf %5.2lf %5.2lf %5.2lf %5.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].icmpv4.InErrors        / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InSrcQuenchs    / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InRedirects     / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InDestUnreachs  / deltasec,
+			(double)ss->net.netns[nr].icmpv4.InTimeExcds     / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutErrors       / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutSrcQuenchs   / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutRedirects    / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutDestUnreachs / deltasec,
+			(double)ss->net.netns[nr].icmpv4.OutTimeExcds    / deltasec);
+	}
 	return 1;
 }
 
@@ -2276,7 +2311,7 @@ ICMPv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 udpv4head(int osvers, int osrel, int ossub)
 {
-	printf("indgram/s outdgram/s   inerr/s  noport/s    "
+	printf("netns   indgram/s outdgram/s   inerr/s  noport/s    "
 	       "                  _udpv4_");
 }
 
@@ -2286,11 +2321,17 @@ udpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%9.1lf %10.1lf   %7.2lf %9.2lf\n",
-		(double)ss->net.udpv4.InDatagrams  / deltasec,
-		(double)ss->net.udpv4.OutDatagrams / deltasec,
-		(double)ss->net.udpv4.InErrors     / deltasec,
-		(double)ss->net.udpv4.NoPorts      / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s   %9.1lf %10.1lf   %7.2lf %9.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].udpv4.InDatagrams  / deltasec,
+			(double)ss->net.netns[nr].udpv4.OutDatagrams / deltasec,
+			(double)ss->net.netns[nr].udpv4.InErrors     / deltasec,
+			(double)ss->net.netns[nr].udpv4.NoPorts      / deltasec);
+	}
 	return 1;
 }
 
@@ -2300,7 +2341,7 @@ udpv4line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 ipv6head(int osvers, int osrel, int ossub)
 {
-	printf("inrecv/s outreq/s inmc/s outmc/s indeliv/s "
+	printf("netns  inrecv/s outreq/s inmc/s outmc/s indeliv/s "
 	       "reasmok/s fragcre/s _ipv6_");
 }
 
@@ -2310,21 +2351,28 @@ ipv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%8.1lf %8.1lf %6.1lf %7.1lf %9.1lf %9.1lf %9.1lf\n", 
-		(double)ss->net.ipv6.Ip6InReceives   / deltasec,
-		(double)ss->net.ipv6.Ip6OutRequests  / deltasec,
-		(double)ss->net.ipv6.Ip6InMcastPkts  / deltasec,
-		(double)ss->net.ipv6.Ip6OutMcastPkts / deltasec,
-		(double)ss->net.ipv6.Ip6InDelivers   / deltasec,
-		(double)ss->net.ipv6.Ip6ReasmOKs     / deltasec,
-		(double)ss->net.ipv6.Ip6FragCreates  / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  %8.1lf %8.1lf %6.1lf %7.1lf %9.1lf %9.1lf %9.1lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].ipv6.Ip6InReceives   / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6OutRequests  / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6InMcastPkts  / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6OutMcastPkts / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6InDelivers   / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6ReasmOKs     / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6FragCreates  / deltasec);
+	}
 	return 1;
 }
 
 static void
 IPv6head(int osvers, int osrel, int ossub)
 {
-	printf("in: dsc/s hder/s ader/s unkp/s ratim/s rfail/s "
+	printf("netns  "
+	       "in: dsc/s hder/s ader/s unkp/s ratim/s rfail/s "
 	       "out: dsc/s nrt/s_ipv6_");
 }
 
@@ -2334,16 +2382,23 @@ IPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
-	       "    %5.1lf %5.1lf\n", 
-		(double)ss->net.ipv6.Ip6InDiscards      / deltasec,
-		(double)ss->net.ipv6.Ip6InHdrErrors     / deltasec,
-		(double)ss->net.ipv6.Ip6InAddrErrors    / deltasec,
-		(double)ss->net.ipv6.Ip6InUnknownProtos / deltasec,
-		(double)ss->net.ipv6.Ip6ReasmTimeout    / deltasec,
-		(double)ss->net.ipv6.Ip6ReasmFails      / deltasec,
-		(double)ss->net.ipv6.Ip6OutDiscards  / deltasec,
-		(double)ss->net.ipv6.Ip6OutNoRoutes     / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  "
+		       "    %5.1lf %6.1lf %6.1lf %6.1lf %7.1lf %7.1lf  "
+		       "    %5.1lf %5.1lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].ipv6.Ip6InDiscards      / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6InHdrErrors     / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6InAddrErrors    / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6InUnknownProtos / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6ReasmTimeout    / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6ReasmFails      / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6OutDiscards  / deltasec,
+			(double)ss->net.netns[nr].ipv6.Ip6OutNoRoutes     / deltasec);
+	}
 	return 1;
 }
 
@@ -2353,7 +2408,7 @@ IPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 icmpv6head(int osvers, int osrel, int ossub)
 {
-	printf("intot/s outtot/s inerr/s innsol/s innadv/s "
+	printf("netns  intot/s outtot/s inerr/s innsol/s innadv/s "
 	       "otnsol/s otnadv/s  _icmp6_"   );
 }
 
@@ -2363,22 +2418,28 @@ icmpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.1lf %8.1lf %7.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n", 
-		(double)ss->net.icmpv6.Icmp6InMsgs                  / deltasec, 
-		(double)ss->net.icmpv6.Icmp6OutMsgs                 / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InErrors                / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InNeighborSolicits      / deltasec, 
-		(double)ss->net.icmpv6.Icmp6InNeighborAdvertisements/ deltasec, 
-		(double)ss->net.icmpv6.Icmp6OutNeighborSolicits     / deltasec, 
-		(double)ss->net.icmpv6.Icmp6OutNeighborAdvertisements
-								/deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  %7.1lf %8.1lf %7.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InMsgs                  / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutMsgs                 / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InErrors                / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InNeighborSolicits      / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InNeighborAdvertisements/ deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutNeighborSolicits     / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutNeighborAdvertisements
+									/deltasec);
+	}
 	return 1;
 }
 
 static void
 ICMPv6head(int osvers, int osrel, int ossub)
 {
-	printf("iecho/s ierep/s oerep/s idu/s odu/s ird/s ord/s ite/s "
+	printf("netns  iecho/s ierep/s oerep/s idu/s odu/s ird/s ord/s ite/s "
 	       "ote/s  _icmpv6_");
 }
 
@@ -2388,17 +2449,23 @@ ICMPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.2lf %7.2lf %7.2lf %5.2lf %5.2lf "
-	       "%5.2lf %5.2lf %5.2lf %5.2lf\n", 
-		(double)ss->net.icmpv6.Icmp6InEchos         / deltasec,
-		(double)ss->net.icmpv6.Icmp6InEchoReplies   / deltasec,
-		(double)ss->net.icmpv6.Icmp6OutEchoReplies  / deltasec,
-		(double)ss->net.icmpv6.Icmp6InDestUnreachs  / deltasec,
-		(double)ss->net.icmpv6.Icmp6OutDestUnreachs / deltasec,
-		(double)ss->net.icmpv6.Icmp6InRedirects     / deltasec,
-		(double)ss->net.icmpv6.Icmp6OutRedirects    / deltasec,
-		(double)ss->net.icmpv6.Icmp6InTimeExcds     / deltasec,
-		(double)ss->net.icmpv6.Icmp6OutTimeExcds    / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s  %7.2lf %7.2lf %7.2lf %5.2lf %5.2lf "
+		       "%5.2lf %5.2lf %5.2lf %5.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InEchos         / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InEchoReplies   / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutEchoReplies  / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InDestUnreachs  / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutDestUnreachs / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InRedirects     / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutRedirects    / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6InTimeExcds     / deltasec,
+			(double)ss->net.netns[nr].icmpv6.Icmp6OutTimeExcds    / deltasec);
+	}
 	return 1;
 }
 
@@ -2408,7 +2475,7 @@ ICMPv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 udpv6head(int osvers, int osrel, int ossub)
 {
-	printf("indgram/s outdgram/s   inerr/s  noport/s    "
+	printf("netns   indgram/s outdgram/s   inerr/s  noport/s    "
 	       "                  _udpv6_");
 }
 
@@ -2418,11 +2485,17 @@ udpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%9.1lf %10.1lf   %7.2lf %9.2lf\n",
-		(double)ss->net.udpv6.Udp6InDatagrams  / deltasec,
-		(double)ss->net.udpv6.Udp6OutDatagrams / deltasec,
-		(double)ss->net.udpv6.Udp6InErrors     / deltasec,
-		(double)ss->net.udpv6.Udp6NoPorts      / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s   %9.1lf %10.1lf   %7.2lf %9.2lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].udpv6.Udp6InDatagrams  / deltasec,
+			(double)ss->net.netns[nr].udpv6.Udp6OutDatagrams / deltasec,
+			(double)ss->net.netns[nr].udpv6.Udp6InErrors     / deltasec,
+			(double)ss->net.netns[nr].udpv6.Udp6NoPorts      / deltasec);
+	}
 	return 1;
 }
 
@@ -2432,7 +2505,7 @@ udpv6line(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 tcphead(int osvers, int osrel, int ossub)
 {
-	printf("insegs/s outsegs/s  actopen/s pasopen/s  "
+	printf("netns   insegs/s outsegs/s  actopen/s pasopen/s  "
 	       "nowopen                _tcp_");
 }
 
@@ -2442,19 +2515,25 @@ tcpline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%8.1lf %9.1lf  %9.1lf %9.1lf  %7lld\n",
-		(double)ss->net.tcp.InSegs       / deltasec,
-		(double)ss->net.tcp.OutSegs      / deltasec,
-		(double)ss->net.tcp.ActiveOpens  / deltasec,
-		(double)ss->net.tcp.PassiveOpens / deltasec,
-		        ss->net.tcp.CurrEstab);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s   %8.1lf %9.1lf  %9.1lf %9.1lf  %7lld\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].tcp.InSegs       / deltasec,
+			(double)ss->net.netns[nr].tcp.OutSegs      / deltasec,
+			(double)ss->net.netns[nr].tcp.ActiveOpens  / deltasec,
+			(double)ss->net.netns[nr].tcp.PassiveOpens / deltasec,
+				ss->net.netns[nr].tcp.CurrEstab);
+	}
 	return 1;
 }
 
 static void
 TCPhead(int osvers, int osrel, int ossub)
 {
-	printf("inerr/s  retrans/s  attfail/s  "
+	printf("netns   inerr/s  retrans/s  attfail/s  "
 	       "estabreset/s  outreset/s         _tcp_");
 }
 
@@ -2464,12 +2543,18 @@ TCPline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int osvers, int osrel, int ossub, char *tstamp,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int pexit, int pzombie)
 {
-	printf("%7.1lf  %9.1lf  %9.1lf  %12.1lf  %10.1lf\n",
-		(double)ss->net.tcp.InErrs       / deltasec,
-		(double)ss->net.tcp.RetransSegs  / deltasec,
-		(double)ss->net.tcp.AttemptFails / deltasec,
-		(double)ss->net.tcp.EstabResets  / deltasec,
-		(double)ss->net.tcp.OutRsts      / deltasec);
+	int nr;
+
+	for (nr = 0; nr < ss->net.nrnetns; nr++)
+	{
+		printf("%s   %7.1lf  %9.1lf  %9.1lf  %12.1lf  %10.1lf\n",
+			ss->net.netns[nr].nsname,
+			(double)ss->net.netns[nr].tcp.InErrs       / deltasec,
+			(double)ss->net.netns[nr].tcp.RetransSegs  / deltasec,
+			(double)ss->net.netns[nr].tcp.AttemptFails / deltasec,
+			(double)ss->net.netns[nr].tcp.EstabResets  / deltasec,
+			(double)ss->net.netns[nr].tcp.OutRsts      / deltasec);
+	}
 	return 1;
 }
 

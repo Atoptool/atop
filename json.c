@@ -726,68 +726,82 @@ static void json_print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nac
 
 static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int i;
+	register int i, nr;
 
-	printf(", \"NET_GENERAL\": {"
-		"\"rpacketsTCP\": %lld, "
-		"\"spacketsTCP\": %lld, "
-		"\"activeOpensTCP\": %lld, "
-		"\"passiveOpensTCP\": %lld, "
-		"\"retransSegsTCP\": %lld, "
-		"\"rpacketsUDP\": %lld, "
-		"\"spacketsUDP\": %lld, "
-		"\"rpacketsIP\": %lld, "
-		"\"spacketsIP\": %lld, "
-		"\"dpacketsIP\": %lld, "
-		"\"fpacketsIP\": %lld, "
-		"\"icmpi\" : %lld, "
-		"\"icmpo\" : %lld}",
-		ss->net.tcp.InSegs,
-		ss->net.tcp.OutSegs,
-		ss->net.tcp.ActiveOpens,
-		ss->net.tcp.PassiveOpens,
-		ss->net.tcp.RetransSegs,
-		ss->net.udpv4.InDatagrams +
-		ss->net.udpv6.Udp6InDatagrams,
-		ss->net.udpv4.OutDatagrams +
-		ss->net.udpv6.Udp6OutDatagrams,
-		ss->net.ipv4.InReceives  +
-		ss->net.ipv6.Ip6InReceives,
-		ss->net.ipv4.OutRequests +
-		ss->net.ipv6.Ip6OutRequests,
-		ss->net.ipv4.InDelivers +
-		ss->net.ipv6.Ip6InDelivers,
-		ss->net.ipv4.ForwDatagrams +
-		ss->net.ipv6.Ip6OutForwDatagrams,
-		ss->net.icmpv4.InMsgs +
-		ss->net.icmpv6.Icmp6InMsgs,
-		ss->net.icmpv4.OutMsgs +
-		ss->net.icmpv6.Icmp6OutMsgs);
-
-        printf(", %s: [", hp);
-
-	for (i = 0; ss->intf.intf[i].name[0]; i++) {
-		if (i > 0) {
+	printf(", \"NET_GENERAL\": [");
+	for (nr = 0; nr < ss->net.nrnetns; nr++) {
+		if (nr > 0) {
 			printf(", ");
 		}
-		printf("{\"name\": \"%.19s\", "
-			"\"rpack\": %lld, "
-			"\"rbyte\": %lld, "
-			"\"rerrs\": %lld, "
-			"\"spack\": %lld, "
-			"\"sbyte\": %lld, "
-			"\"serrs\": %lld, "
-			"\"speed\": \"%ld\", "
-			"\"duplex\": %d}",
-			ss->intf.intf[i].name,
-			ss->intf.intf[i].rpack,
-			ss->intf.intf[i].rbyte,
-			ss->intf.intf[i].rerrs,
-			ss->intf.intf[i].spack,
-			ss->intf.intf[i].sbyte,
-			ss->intf.intf[i].serrs,
-			ss->intf.intf[i].speed,
-			ss->intf.intf[i].duplex);
+		printf("{\"netns\": \"%.19s\", "
+			"\"rpacketsTCP\": %lld, "
+			"\"spacketsTCP\": %lld, "
+			"\"activeOpensTCP\": %lld, "
+			"\"passiveOpensTCP\": %lld, "
+			"\"retransSegsTCP\": %lld, "
+			"\"rpacketsUDP\": %lld, "
+			"\"spacketsUDP\": %lld, "
+			"\"rpacketsIP\": %lld, "
+			"\"spacketsIP\": %lld, "
+			"\"dpacketsIP\": %lld, "
+			"\"fpacketsIP\": %lld, "
+			"\"icmpi\" : %lld, "
+			"\"icmpo\" : %lld}",
+			ss->net.netns[nr].nsname,
+			ss->net.netns[nr].tcp.InSegs,
+			ss->net.netns[nr].tcp.OutSegs,
+			ss->net.netns[nr].tcp.ActiveOpens,
+			ss->net.netns[nr].tcp.PassiveOpens,
+			ss->net.netns[nr].tcp.RetransSegs,
+			ss->net.netns[nr].udpv4.InDatagrams +
+			ss->net.netns[nr].udpv6.Udp6InDatagrams,
+			ss->net.netns[nr].udpv4.OutDatagrams +
+			ss->net.netns[nr].udpv6.Udp6OutDatagrams,
+			ss->net.netns[nr].ipv4.InReceives  +
+			ss->net.netns[nr].ipv6.Ip6InReceives,
+			ss->net.netns[nr].ipv4.OutRequests +
+			ss->net.netns[nr].ipv6.Ip6OutRequests,
+			ss->net.netns[nr].ipv4.InDelivers +
+			ss->net.netns[nr].ipv6.Ip6InDelivers,
+			ss->net.netns[nr].ipv4.ForwDatagrams +
+			ss->net.netns[nr].ipv6.Ip6OutForwDatagrams,
+			ss->net.netns[nr].icmpv4.InMsgs +
+			ss->net.netns[nr].icmpv6.Icmp6InMsgs,
+			ss->net.netns[nr].icmpv4.OutMsgs +
+			ss->net.netns[nr].icmpv6.Icmp6OutMsgs);
+	}
+
+	printf(", %s: [", hp);
+
+	for (nr = 0; nr < ss->intf.nrintfns; nr++) {
+		if (nr > 0) {
+			printf(", ");
+		}
+		for (i = 0; ss->intf.intfns[nr].intf[i].name[0]; i++) {
+			if (i > 0) {
+				printf(", ");
+			}
+			printf("{\"name\": \"%.19s\", "
+				"\"netns\": \"%.12s\", "
+				"\"rpack\": %lld, "
+				"\"rbyte\": %lld, "
+				"\"rerrs\": %lld, "
+				"\"spack\": %lld, "
+				"\"sbyte\": %lld, "
+				"\"serrs\": %lld, "
+				"\"speed\": \"%ld\", "
+				"\"duplex\": %d}",
+				ss->intf.intfns[nr].intf[i].name,
+				ss->intf.intfns[nr].nsname,
+				ss->intf.intfns[nr].intf[i].rpack,
+				ss->intf.intfns[nr].intf[i].rbyte,
+				ss->intf.intfns[nr].intf[i].rerrs,
+				ss->intf.intfns[nr].intf[i].spack,
+				ss->intf.intfns[nr].intf[i].sbyte,
+				ss->intf.intfns[nr].intf[i].serrs,
+				ss->intf.intfns[nr].intf[i].speed,
+				ss->intf.intfns[nr].intf[i].duplex);
+		}
 	}
 
 	printf("]");

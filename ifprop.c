@@ -55,7 +55,6 @@ typedef __u8	u8;
 #include "photosyst.h"
 
 static int		calcbucket(char *);
-static int		getphysprop(struct ifprop *);
 
 /*
 ** hash table for linked lists with *all* interfaces
@@ -304,7 +303,7 @@ calcbucket(char *p)
 **
 ** return value reflects true (success) or false (unknown interface type)
 */
-static int
+int
 getphysprop(struct ifprop *p)
 {
 	int sockfd;
@@ -439,4 +438,27 @@ getphysprop(struct ifprop *p)
 	close(sockfd);
 
 	return 1;
+}
+
+int getbusinfo(struct ifprop *p) {
+	int			sockfd, ret = 0;
+	struct ifreq		ifreq;
+	struct ethtool_drvinfo	drv;
+
+	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1 )
+		return 0;
+
+	memset(&ifreq, 0, sizeof ifreq);
+	strncpy((void *)&ifreq.ifr_ifrn.ifrn_name, p->name,
+			sizeof ifreq.ifr_ifrn.ifrn_name - 1);
+
+	drv.cmd = ETHTOOL_GDRVINFO;
+	ifreq.ifr_ifru.ifru_data = (void *)&drv;
+	if ( ioctl(sockfd, SIOCETHTOOL, &ifreq) == 0 )
+		if ( strlen(drv.bus_info) > 0 )
+			ret = 1;
+
+	close(sockfd);
+
+	return ret;
 }

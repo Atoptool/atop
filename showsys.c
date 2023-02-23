@@ -2489,9 +2489,23 @@ sysprt_DSKAVIO(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_DSKAVIO = {"DSKAVIO", sysprt_DSKAVIO, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETTRANSPORT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+sysprt_NETTRANSPORT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        return "transport   ";
+	static char buf[16], splitted[9];
+	char *src = sstat->net.netns[as->nsnr].nsname;
+	int i, len = strlen(src);
+
+	for ( i = len - 1; i >= 0 && src[i] != '\0'; i-- )
+		if ( src[i] == '/' )
+			break;
+
+	if ( len - i - 1 > 9 )
+		strncpy(splitted, src + len - 9, 9);
+	else
+		strncpy(splitted, src + i + 1, 9);
+
+	sprintf(buf, "tl %9.9s", splitted); /* transport layer */
+	return buf;
 }
 
 sys_printdef syspdef_NETTRANSPORT = {"NETTRANSPORT", sysprt_NETTRANSPORT, NULL};
@@ -2499,9 +2513,9 @@ sys_printdef syspdef_NETTRANSPORT = {"NETTRANSPORT", sysprt_NETTRANSPORT, NULL};
 static char *
 sysprt_NETTCPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcpi   ";
-        val2valstr(sstat->net.tcp.InSegs,  buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcpi   ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.InSegs,  buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPI = {"NETTCPI", sysprt_NETTCPI, NULL};
@@ -2509,9 +2523,9 @@ sys_printdef syspdef_NETTCPI = {"NETTCPI", sysprt_NETTCPI, NULL};
 static char *
 sysprt_NETTCPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcpo   ";
-        val2valstr(sstat->net.tcp.OutSegs,  buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcpo   ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.OutSegs,  buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPO = {"NETTCPO", sysprt_NETTCPO, NULL};
@@ -2519,9 +2533,9 @@ sys_printdef syspdef_NETTCPO = {"NETTCPO", sysprt_NETTCPO, NULL};
 static char *
 sysprt_NETTCPACTOPEN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcpao  ";
-        val2valstr(sstat->net.tcp.ActiveOpens,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcpao  ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.ActiveOpens,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPACTOPEN = {"NETTCPACTOPEN", sysprt_NETTCPACTOPEN, NULL};
@@ -2529,9 +2543,9 @@ sys_printdef syspdef_NETTCPACTOPEN = {"NETTCPACTOPEN", sysprt_NETTCPACTOPEN, NUL
 static char *
 sysprt_NETTCPPASVOPEN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcppo  ";
-        val2valstr(sstat->net.tcp.PassiveOpens, buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcppo  ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.PassiveOpens, buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPPASVOPEN = {"NETTCPPASVOPEN", sysprt_NETTCPPASVOPEN, NULL};
@@ -2539,9 +2553,9 @@ sys_printdef syspdef_NETTCPPASVOPEN = {"NETTCPPASVOPEN", sysprt_NETTCPPASVOPEN, 
 static char *
 sysprt_NETTCPRETRANS(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcprs  ";
-        val2valstr(sstat->net.tcp.RetransSegs,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcprs  ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.RetransSegs,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPRETRANS = {"NETTCPRETRANS", sysprt_NETTCPRETRANS, NULL};
@@ -2549,9 +2563,9 @@ sys_printdef syspdef_NETTCPRETRANS = {"NETTCPRETRANS", sysprt_NETTCPRETRANS, NUL
 static char *
 sysprt_NETTCPINERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcpie  ";
-        val2valstr(sstat->net.tcp.InErrs,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcpie  ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.InErrs,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPINERR = {"NETTCPINERR", sysprt_NETTCPINERR, NULL};
@@ -2559,9 +2573,9 @@ sys_printdef syspdef_NETTCPINERR = {"NETTCPINERR", sysprt_NETTCPINERR, NULL};
 static char *
 sysprt_NETTCPORESET(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="tcpor  ";
-        val2valstr(sstat->net.tcp.OutRsts,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="tcpor  ";
+	val2valstr(sstat->net.netns[as->nsnr].tcp.OutRsts,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETTCPORESET = {"NETTCPORESET", sysprt_NETTCPORESET, NULL};
@@ -2569,9 +2583,9 @@ sys_printdef syspdef_NETTCPORESET = {"NETTCPORESET", sysprt_NETTCPORESET, NULL};
 static char *
 sysprt_NETUDPNOPORT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="udpnp  ";
-        val2valstr(sstat->net.udpv4.NoPorts,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="udpnp  ";
+	val2valstr(sstat->net.netns[as->nsnr].udpv4.NoPorts,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETUDPNOPORT = {"NETUDPNOPORT", sysprt_NETUDPNOPORT, NULL};
@@ -2579,9 +2593,9 @@ sys_printdef syspdef_NETUDPNOPORT = {"NETUDPNOPORT", sysprt_NETUDPNOPORT, NULL};
 static char *
 sysprt_NETUDPINERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="udpie  ";
-        val2valstr(sstat->net.udpv4.InErrors,  buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="udpie  ";
+	val2valstr(sstat->net.netns[as->nsnr].udpv4.InErrors,  buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETUDPINERR = {"NETUDPINERR", sysprt_NETUDPINERR, NULL};
@@ -2589,11 +2603,11 @@ sys_printdef syspdef_NETUDPINERR = {"NETUDPINERR", sysprt_NETUDPINERR, NULL};
 static char *
 sysprt_NETUDPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="udpi   ";
-        count_t udpin  = sstat->net.udpv4.InDatagrams  +
-                        sstat->net.udpv6.Udp6InDatagrams;
-        val2valstr(udpin,   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="udpi   ";
+	count_t udpin   = sstat->net.netns[as->nsnr].udpv4.InDatagrams  +
+			sstat->net.netns[as->nsnr].udpv6.Udp6InDatagrams;
+	val2valstr(udpin,   buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETUDPI = {"NETUDPI", sysprt_NETUDPI, NULL};
@@ -2601,19 +2615,33 @@ sys_printdef syspdef_NETUDPI = {"NETUDPI", sysprt_NETUDPI, NULL};
 static char *
 sysprt_NETUDPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="udpo   ";
-        count_t udpout = sstat->net.udpv4.OutDatagrams +
-                        sstat->net.udpv6.Udp6OutDatagrams;
-        val2valstr(udpout,   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="udpo   ";
+	count_t udpout  = sstat->net.netns[as->nsnr].udpv4.OutDatagrams +
+			sstat->net.netns[as->nsnr].udpv6.Udp6OutDatagrams;
+	val2valstr(udpout,   buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETUDPO = {"NETUDPO", sysprt_NETUDPO, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETNETWORK(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+sysprt_NETNETWORK(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        return "network     ";
+	static char buf[16], splitted[9];
+	char *src = sstat->net.netns[as->nsnr].nsname;
+	int i, len = strlen(src);
+
+	for ( i = len - 1; i >= 0 && src[i] != '\0'; i-- )
+		if ( src[i] == '/' )
+			break;
+
+	if ( len - i - 1 > 9 )
+		strncpy(splitted, src + len - 9, 9);
+	else
+		strncpy(splitted, src + i + 1, 9);
+
+	sprintf(buf, "nl %9.9s", splitted); /* network layer */
+	return buf;
 }
 
 sys_printdef syspdef_NETNETWORK = {"NETNETWORK", sysprt_NETNETWORK, NULL};
@@ -2621,11 +2649,11 @@ sys_printdef syspdef_NETNETWORK = {"NETNETWORK", sysprt_NETNETWORK, NULL};
 static char *
 sysprt_NETIPI(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="ipi    ";
-        count_t ipin    = sstat->net.ipv4.InReceives  +
-                        sstat->net.ipv6.Ip6InReceives;
-        val2valstr(ipin, buf+4, 8, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="ipi    ";
+	count_t ipin    = sstat->net.netns[as->nsnr].ipv4.InReceives  +
+			sstat->net.netns[as->nsnr].ipv6.Ip6InReceives;
+	val2valstr(ipin, buf+4, 8, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETIPI = {"NETIPI", sysprt_NETIPI, NULL};
@@ -2633,11 +2661,11 @@ sys_printdef syspdef_NETIPI = {"NETIPI", sysprt_NETIPI, NULL};
 static char *
 sysprt_NETIPO(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="ipo    ";
-        count_t ipout   = sstat->net.ipv4.OutRequests +
-                        sstat->net.ipv6.Ip6OutRequests;
-        val2valstr(ipout, buf+4, 8, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="ipo    ";
+	count_t ipout   = sstat->net.netns[as->nsnr].ipv4.OutRequests +
+			sstat->net.netns[as->nsnr].ipv6.Ip6OutRequests;
+	val2valstr(ipout, buf+4, 8, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETIPO = {"NETIPO", sysprt_NETIPO, NULL};
@@ -2645,11 +2673,11 @@ sys_printdef syspdef_NETIPO = {"NETIPO", sysprt_NETIPO, NULL};
 static char *
 sysprt_NETIPFRW(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="ipfrw  ";
-        count_t ipfrw   = sstat->net.ipv4.ForwDatagrams +
-                        sstat->net.ipv6.Ip6OutForwDatagrams;
-        val2valstr(ipfrw, buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="ipfrw  ";
+	count_t ipfrw   = sstat->net.netns[as->nsnr].ipv4.ForwDatagrams +
+			sstat->net.netns[as->nsnr].ipv6.Ip6OutForwDatagrams;
+	val2valstr(ipfrw, buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETIPFRW = {"NETIPFRW", sysprt_NETIPFRW, NULL};
@@ -2657,11 +2685,11 @@ sys_printdef syspdef_NETIPFRW = {"NETIPFRW", sysprt_NETIPFRW, NULL};
 static char *
 sysprt_NETIPDELIV(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="deliv  ";
-        count_t ipindel = sstat->net.ipv4.InDelivers +
-                        sstat->net.ipv6.Ip6InDelivers;
-        val2valstr(ipindel, buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="deliv  ";
+	count_t ipindel = sstat->net.netns[as->nsnr].ipv4.InDelivers +
+			sstat->net.netns[as->nsnr].ipv6.Ip6InDelivers;
+	val2valstr(ipindel, buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETIPDELIV = {"NETIPDELIV", sysprt_NETIPDELIV, NULL};
@@ -2669,11 +2697,11 @@ sys_printdef syspdef_NETIPDELIV = {"NETIPDELIV", sysprt_NETIPDELIV, NULL};
 static char *
 sysprt_NETICMPIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="icmpi  ";
-        count_t icmpin = sstat->net.icmpv4.InMsgs+
-                        sstat->net.icmpv6.Icmp6InMsgs;
-        val2valstr(icmpin , buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="icmpi  ";
+	count_t icmpin  = sstat->net.netns[as->nsnr].icmpv4.InMsgs+
+			sstat->net.netns[as->nsnr].icmpv6.Icmp6InMsgs;
+	val2valstr(icmpin , buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETICMPIN = {"NETICMPIN", sysprt_NETICMPIN, NULL};
@@ -2681,11 +2709,11 @@ sys_printdef syspdef_NETICMPIN = {"NETICMPIN", sysprt_NETICMPIN, NULL};
 static char *
 sysprt_NETICMPOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16]="icmpo  ";
-        count_t icmpin = sstat->net.icmpv4.OutMsgs+
-                        sstat->net.icmpv6.Icmp6OutMsgs;
-        val2valstr(icmpin , buf+6, 6, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="icmpo  ";
+	count_t icmpin  = sstat->net.netns[as->nsnr].icmpv4.OutMsgs+
+			sstat->net.netns[as->nsnr].icmpv6.Icmp6OutMsgs;
+	val2valstr(icmpin , buf+6, 6, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETICMPOUT = {"NETICMPOUT", sysprt_NETICMPOUT, NULL};
@@ -2693,40 +2721,40 @@ sys_printdef syspdef_NETICMPOUT = {"NETICMPOUT", sysprt_NETICMPOUT, NULL};
 static char *
 sysprt_NETNAME(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        count_t busy;
-        count_t ival = sstat->intf.intf[as->index].rbyte/125/as->nsecs;
-        count_t oval = sstat->intf.intf[as->index].sbyte/125/as->nsecs;
+	count_t busy;
+	count_t ival = sstat->intf.intfns[as->nsnr].intf[as->index].rbyte/125/as->nsecs;
+	count_t oval = sstat->intf.intfns[as->nsnr].intf[as->index].sbyte/125/as->nsecs;
 
-        static char buf[16] = "ethxxxx ----";
+	static char buf[16] = "ethxxxx ----";
                       //       012345678901
 
 	*color = -1;
 
-        if (sstat->intf.intf[as->index].speed)  /* speed known? */
-        {
-                if (sstat->intf.intf[as->index].duplex)
-                        busy = (ival > oval ? ival : oval) /
-                               (sstat->intf.intf[as->index].speed *10);
-                else
-                        busy = (ival + oval) /
-                               (sstat->intf.intf[as->index].speed *10);
+	if (sstat->intf.intfns[as->nsnr].intf[as->index].speed)  /* speed known? */
+	{
+		if (sstat->intf.intfns[as->nsnr].intf[as->index].duplex)
+			busy  = (ival > oval ? ival : oval) /
+				(sstat->intf.intfns[as->nsnr].intf[as->index].speed *10);
+		else
+			busy  = (ival + oval) /
+				(sstat->intf.intfns[as->nsnr].intf[as->index].speed *10);
 
 		// especially with wireless, the speed might have dropped
 		// temporarily to a very low value (snapshot)
 		// then it might be better to take the speed of the previous
 		// sample
-		if (busy > 100 && sstat->intf.intf[as->index].speed <
-					sstat->intf.intf[as->index].speedp)
+		if (busy > 100 && sstat->intf.intfns[as->nsnr].intf[as->index].speed <
+					sstat->intf.intfns[as->nsnr].intf[as->index].speedp)
 		{
-			sstat->intf.intf[as->index].speed =
-				sstat->intf.intf[as->index].speedp;
+			sstat->intf.intfns[as->nsnr].intf[as->index].speed =
+				sstat->intf.intfns[as->nsnr].intf[as->index].speedp;
 
-                	if (sstat->intf.intf[as->index].duplex)
-                        	busy = (ival > oval ? ival : oval) /
-                               		(sstat->intf.intf[as->index].speed *10);
+			if (sstat->intf.intfns[as->nsnr].intf[as->index].duplex)
+				busy  = (ival > oval ? ival : oval) /
+					(sstat->intf.intfns[as->nsnr].intf[as->index].speed *10);
                 	else
-                        	busy = (ival + oval) /
-                               		(sstat->intf.intf[as->index].speed *10);
+				busy  = (ival + oval) /
+					(sstat->intf.intfns[as->nsnr].intf[as->index].speed *10);
 		}
 
 		if( busy < -99 )
@@ -2738,45 +2766,64 @@ sysprt_NETNAME(struct sstat *sstat, extraparam *as, int badness, int *color)
 		{
 			busy = 999;
 		}
-	        snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%", 
-       		          sstat->intf.intf[as->index].name, busy);
-
-        } 
-        else 
-        {
-                snprintf(buf, sizeof(buf)-1, "%-7.7s ----",
-                               sstat->intf.intf[as->index].name);
-                strcpy(buf+8, "----");
-        } 
-        return buf;
+		snprintf(buf, sizeof(buf)-1, "%-7.7s %3lld%%",
+			sstat->intf.intfns[as->nsnr].intf[as->index].name, busy);
+	}
+	else
+	{
+		snprintf(buf, sizeof(buf)-1, "%-7.7s ----",
+				sstat->intf.intfns[as->nsnr].intf[as->index].name);
+		strcpy(buf+8, "----");
+	}
+	return buf;
 }
 
 sys_printdef syspdef_NETNAME = {"NETNAME", sysprt_NETNAME, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETPCKI(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETINTFNS(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="pcki  ";
+	static char buf[16], splitted[9];
+	char *src = sstat->intf.intfns[as->nsnr].nsname;
+	int i, len = strlen(src);
 
+	for ( i = len - 1; i >= 0 && src[i] != '\0'; i-- )
+		if ( src[i] == '/' )
+			break;
+
+	if ( len - i - 1 > 9 )
+		strncpy(splitted, src + len - 9, 9);
+	else
+		strncpy(splitted, src + i + 1, 9);
+
+	sprintf(buf, "ns %9.9s", splitted);
+	return buf;
+}
+
+sys_printdef syspdef_NETINTFNS = {"NETINTFNS", sysprt_NETINTFNS, NULL};
+/*******************************************************************/
+static char *
+sysprt_NETPCKI(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="pcki  ";
 	*color = -1;
 
-        val2valstr(sstat->intf.intf[as->index].rpack, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].rpack,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETPCKI = {"NETPCKI", sysprt_NETPCKI, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETPCKO(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETPCKO(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="pcko  ";
-
+	static char buf[16]="pcko  ";
 	*color = -1;
 
-        val2valstr(sstat->intf.intf[as->index].spack, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].spack,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETPCKO = {"NETPCKO", sysprt_NETPCKO, NULL};
@@ -2832,8 +2879,8 @@ static char *makenetspeed(count_t val, int nsecs)
 static char *
 sysprt_NETSPEEDMAX(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-        static char buf[16];
-        count_t speed = sstat->intf.intf[as->index].speed;
+	static char buf[16];
+	count_t speed = sstat->intf.intfns[as->nsnr].intf[as->index].speed;
 
 	*color = -1;
 
@@ -2855,7 +2902,7 @@ sysprt_NETSPEEDMAX(struct sstat *sstat, extraparam *as, int badness, int *color)
         	snprintf(buf, sizeof buf, "sp %4lld Gbps", speed);
 	}
 
-        return buf;
+	return buf;
 }
 
 sys_printdef syspdef_NETSPEEDMAX = {"NETSPEEDMAX", sysprt_NETSPEEDMAX, NULL};
@@ -2863,13 +2910,12 @@ sys_printdef syspdef_NETSPEEDMAX = {"NETSPEEDMAX", sysprt_NETSPEEDMAX, NULL};
 static char *
 sysprt_NETSPEEDIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-
 	*color = -1;
 
-        char *ps=makenetspeed(sstat->intf.intf[as->index].rbyte,as->nsecs);
-        ps[0]='s';
-        ps[1]='i';
-        return ps;
+	char *ps=makenetspeed(sstat->intf.intfns[as->nsnr].intf[as->index].rbyte,as->nsecs);
+	ps[0]='s';
+	ps[1]='i';
+	return ps;
 }
 
 sys_printdef syspdef_NETSPEEDIN = {"NETSPEEDIN", sysprt_NETSPEEDIN, NULL};
@@ -2877,79 +2923,78 @@ sys_printdef syspdef_NETSPEEDIN = {"NETSPEEDIN", sysprt_NETSPEEDIN, NULL};
 static char *
 sysprt_NETSPEEDOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
-
 	*color = -1;
 
-        char *ps=makenetspeed(sstat->intf.intf[as->index].sbyte,as->nsecs);
-        ps[0]='s';
-        ps[1]='o';
-        return ps;
+	char *ps=makenetspeed(sstat->intf.intfns[as->nsnr].intf[as->index].sbyte,as->nsecs);
+	ps[0]='s';
+	ps[1]='o';
+	return ps;
 }
 
 sys_printdef syspdef_NETSPEEDOUT = {"NETSPEEDOUT", sysprt_NETSPEEDOUT, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETCOLLIS(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETCOLLIS(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="coll  ";
-        val2valstr(sstat->intf.intf[as->index].scollis, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="coll  ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].scollis,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETCOLLIS = {"NETCOLLIS", sysprt_NETCOLLIS, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETMULTICASTIN(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETMULTICASTIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="mlti ";
-        val2valstr(sstat->intf.intf[as->index].rmultic, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="mlti ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].rmultic,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETMULTICASTIN = {"NETMULTICASTIN", sysprt_NETMULTICASTIN, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETRCVERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETRCVERR(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="erri   ";
-        val2valstr(sstat->intf.intf[as->index].rerrs, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="erri   ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].rerrs,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETRCVERR = {"NETRCVERR", sysprt_NETRCVERR, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETSNDERR(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETSNDERR(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="erro   ";
-        val2valstr(sstat->intf.intf[as->index].serrs, 
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="erro   ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].serrs,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETSNDERR = {"NETSNDERR", sysprt_NETSNDERR, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETRCVDROP(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETRCVDROP(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="drpi   ";
-        val2valstr(sstat->intf.intf[as->index].rdrop,
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="drpi   ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].rdrop,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETRCVDROP = {"NETRCVDROP", sysprt_NETRCVDROP, NULL};
 /*******************************************************************/
 static char *
-sysprt_NETSNDDROP(struct sstat *sstat, extraparam *as, int badness, int *color) 
+sysprt_NETSNDDROP(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
-        static char buf[16]="drpo   ";
-        val2valstr(sstat->intf.intf[as->index].sdrop,
-                   buf+5, 7, as->avgval, as->nsecs);
-        return buf;
+	static char buf[16]="drpo   ";
+	val2valstr(sstat->intf.intfns[as->nsnr].intf[as->index].sdrop,
+			buf+5, 7, as->avgval, as->nsecs);
+	return buf;
 }
 
 sys_printdef syspdef_NETSNDDROP = {"NETSNDDROP", sysprt_NETSNDDROP, NULL};

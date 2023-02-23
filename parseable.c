@@ -598,47 +598,51 @@ print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 void
 print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	register int 	i;
+	register int 	i, nr;
 
-	printf(	"%s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
-			hp,
+	for (nr = 0; nr < ss->net.nrnetns; nr++) {
+		printf(	"%s %s %s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+			hp, ss->net.netns[nr].nsname,
 			"upper",
-        		ss->net.tcp.InSegs,
-   		     	ss->net.tcp.OutSegs,
-       		 	ss->net.udpv4.InDatagrams +
-				ss->net.udpv6.Udp6InDatagrams,
-       		 	ss->net.udpv4.OutDatagrams +
-				ss->net.udpv6.Udp6OutDatagrams,
-       		 	ss->net.ipv4.InReceives  +
-				ss->net.ipv6.Ip6InReceives,
-       		 	ss->net.ipv4.OutRequests +
-				ss->net.ipv6.Ip6OutRequests,
-       		 	ss->net.ipv4.InDelivers +
-       		 		ss->net.ipv6.Ip6InDelivers,
-       		 	ss->net.ipv4.ForwDatagrams +
-       		 		ss->net.ipv6.Ip6OutForwDatagrams,
-       		 	ss->net.udpv4.InErrors +
-				ss->net.udpv6.Udp6InErrors,
-       		 	ss->net.udpv4.NoPorts +
-				ss->net.udpv6.Udp6NoPorts,
-			ss->net.tcp.ActiveOpens,
-			ss->net.tcp.PassiveOpens,
-			ss->net.tcp.CurrEstab,
-			ss->net.tcp.RetransSegs,
-			ss->net.tcp.InErrs,
-			ss->net.tcp.OutRsts);
+			ss->net.netns[nr].tcp.InSegs,
+			ss->net.netns[nr].tcp.OutSegs,
+			ss->net.netns[nr].udpv4.InDatagrams +
+				ss->net.netns[nr].udpv6.Udp6InDatagrams,
+			ss->net.netns[nr].udpv4.OutDatagrams +
+				ss->net.netns[nr].udpv6.Udp6OutDatagrams,
+			ss->net.netns[nr].ipv4.InReceives  +
+				ss->net.netns[nr].ipv6.Ip6InReceives,
+			ss->net.netns[nr].ipv4.OutRequests +
+				ss->net.netns[nr].ipv6.Ip6OutRequests,
+			ss->net.netns[nr].ipv4.InDelivers +
+				ss->net.netns[nr].ipv6.Ip6InDelivers,
+			ss->net.netns[nr].ipv4.ForwDatagrams +
+				ss->net.netns[nr].ipv6.Ip6OutForwDatagrams,
+			ss->net.netns[nr].udpv4.InErrors +
+				ss->net.netns[nr].udpv6.Udp6InErrors,
+			ss->net.netns[nr].udpv4.NoPorts +
+				ss->net.netns[nr].udpv6.Udp6NoPorts,
+			ss->net.netns[nr].tcp.ActiveOpens,
+			ss->net.netns[nr].tcp.PassiveOpens,
+			ss->net.netns[nr].tcp.CurrEstab,
+			ss->net.netns[nr].tcp.RetransSegs,
+			ss->net.netns[nr].tcp.InErrs,
+			ss->net.netns[nr].tcp.OutRsts);
+	}
 
-	for (i=0; ss->intf.intf[i].name[0]; i++)
-	{
-		printf(	"%s %s %lld %lld %lld %lld %ld %d\n",
-			hp,
-			ss->intf.intf[i].name,
-			ss->intf.intf[i].rpack,
-			ss->intf.intf[i].rbyte,
-			ss->intf.intf[i].spack,
-			ss->intf.intf[i].sbyte,
-			ss->intf.intf[i].speed,
-			ss->intf.intf[i].duplex);
+	for (nr = 0; nr < ss->intf.nrintfns; nr++) {
+		for (i=0; ss->intf.intfns[nr].intf[i].name[0]; i++)
+		{
+			printf(	"%s %s %s %lld %lld %lld %lld %ld %d\n",
+				hp, ss->intf.intfns[nr].nsname,
+				ss->intf.intfns[nr].intf[i].name,
+				ss->intf.intfns[nr].intf[i].rpack,
+				ss->intf.intfns[nr].intf[i].rbyte,
+				ss->intf.intfns[nr].intf[i].spack,
+				ss->intf.intfns[nr].intf[i].sbyte,
+				ss->intf.intfns[nr].intf[i].speed,
+				ss->intf.intfns[nr].intf[i].duplex);
+		}
 	}
 }
 

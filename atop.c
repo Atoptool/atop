@@ -254,6 +254,7 @@ static struct {
 	{	"atopsarflags",		do_atopsarflags,	0, },
 	{	"perfevents",		do_perfevents,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
+	{	"netns",		do_netns,		1, },
 };
 
 /*

@@ -352,6 +352,7 @@ sys_printdef *netnetsyspdefs[] = {
 };
 sys_printdef *netintfsyspdefs[] = {
 	&syspdef_NETNAME,
+	&syspdef_NETINTFNS,
 	&syspdef_NETPCKI,
 	&syspdef_NETPCKO,
 	&syspdef_NETSPEEDMAX,
@@ -1197,7 +1198,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 {
                     make_sys_prints(netinterfaceline, MAXITEMS,
 	                "NETNAME:8 "
-	                "BLANKBOX:0 "
+	                "NETINTFNS:4 "
 	                "NETPCKI:7 "
 	                "NETPCKO:7 "
 	                "BLANKBOX:0 "
@@ -2169,154 +2170,164 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 curline++;
         }
 
-        /*
-        ** NET statistics: transport
-        */
-        if (sstat->net.tcp.InSegs             ||
-            sstat->net.tcp.OutSegs            ||
-            sstat->net.udpv4.InDatagrams      ||
-            sstat->net.udpv6.Udp6InDatagrams  ||
-            sstat->net.udpv4.OutDatagrams     ||
-            sstat->net.udpv6.Udp6OutDatagrams ||
-            fixedhead )
-        {
-		if (screen)
-                	move(curline, 0);
-
-                showsysline(nettransportline, sstat, &extra, "NET", 0);
-                curline++;
-        }
-
-        /*
-        ** NET statistics: network
-        */
-        if (sstat->net.ipv4.InReceives ||
-            sstat->net.ipv6.Ip6InReceives ||
-            sstat->net.ipv4.OutRequests ||
-            sstat->net.ipv6.Ip6OutRequests ||
-            fixedhead )
-        {
-		if (screen)
-                	move(curline, 0);
-
-                showsysline(netnetline, sstat, &extra, "NET", 0);
-                curline++;
-        }
-
-        /*
-        ** NET statistics: interfaces
-        */
-        for (extra.index=0, lin=0;
-	     sstat->intf.intf[extra.index].name[0] && lin < maxintlines;
-             extra.index++)
-        {
-                if (sstat->intf.intf[extra.index].rpack ||
-                    sstat->intf.intf[extra.index].spack || fixedhead)
-                {
-			if (selp->itfnamesz && regexec(&(selp->itfregex),
-			       sstat->intf.intf[extra.index].name, 0, NULL, 0))
-				continue;	// suppress (not selected)
-
-                        /*
-                        ** calculate busy-percentage for interface
-                        */
-
-                       count_t ival, oval;
-
-                        /*
-                        ** convert byte-transfers to bit-transfers     (*    8)
-                        ** convert bit-transfers  to kilobit-transfers (/ 1000)
-                        ** per second
-                        */
-                        ival    = sstat->intf.intf[extra.index].rbyte/125/nsecs;
-                        oval    = sstat->intf.intf[extra.index].sbyte/125/nsecs;
-
-			/* speed known? */
-                        if (sstat->intf.intf[extra.index].speed) 
-                        {
-                                if (sstat->intf.intf[extra.index].duplex)
-                                       busy = (ival > oval ? ival : oval) /
-					   (sstat->intf.intf[extra.index].speed
-									*10);
-                                else
-                                       busy = (ival + oval) /
-                                           (sstat->intf.intf[extra.index].speed
-									*10);
-
-                        }
-                        else
-                        {
-                                busy = 0;
-                        }
-
-                        if (netbadness)
-                                badness = busy * 100 / netbadness;
-                        else
-                                badness = 0;
-
-                        if (highbadness < badness && (supportflags & NETATOP) )
-                        {
-                                highbadness = badness;
-                                *highorderp = MSORTNET;
-                        }
-
+	int nr;
+	for (nr = 0; nr < sstat->net.nrnetns; nr++)
+	{
+		/*
+		** NET statistics: transport per netns
+		*/
+		if (sstat->net.netns[nr].tcp.InSegs             ||
+		    sstat->net.netns[nr].tcp.OutSegs            ||
+		    sstat->net.netns[nr].udpv4.InDatagrams      ||
+		    sstat->net.netns[nr].udpv6.Udp6InDatagrams  ||
+		    sstat->net.netns[nr].udpv4.OutDatagrams     ||
+		    sstat->net.netns[nr].udpv6.Udp6OutDatagrams ||
+		    fixedhead )
+		{
 			if (screen)
-                		move(curline, 0);
+				move(curline, 0);
 
-                        showsysline(netinterfaceline, sstat, &extra, 
-                                      			"NET", badness);
-                        curline++;
-                        lin++;
-                }
-        }
+			extra.nsnr = nr; /* the network namespace */
+			showsysline(nettransportline, sstat, &extra, "NET", 0);
+			curline++;
+		}
 
-        /*
-        ** NET statistics: InfiniBand
-        */
-        for (extra.index=0, lin=0;
-	     extra.index < sstat->ifb.nrports && lin < maxifblines;
-             extra.index++)
-        {
-                if (sstat->ifb.ifb[extra.index].rcvb ||
-                    sstat->ifb.ifb[extra.index].sndb || fixedhead)
-                {
-                        /*
-                        ** calculate busy-percentage for IB port
-                        */
-                       count_t ival, oval;
-
-                        /*
-                        ** convert byte-transfers to bit-transfers     (*    8)
-                        ** convert bit-transfers  to kilobit-transfers (/ 1000)
-                        ** per second
-                        */
-                        ival    = sstat->ifb.ifb[extra.index].rcvb/125/nsecs;
-                        oval    = sstat->ifb.ifb[extra.index].sndb/125/nsecs;
-
-			busy = (ival > oval ? ival : oval) *
-			                 sstat->ifb.ifb[extra.index].lanes /
-					(sstat->ifb.ifb[extra.index].rate * 10);
-
-                        if (netbadness)
-                                badness = busy * 100 / netbadness;
-                        else
-                                badness = 0;
-
-                        if (highbadness < badness)
-                        {
-                                highbadness = badness;
-                                *highorderp = MSORTNET;
-                        }
-
+		/*
+		** NET statistics: network per netns
+		*/
+		if (sstat->net.netns[nr].ipv4.InReceives ||
+		    sstat->net.netns[nr].ipv6.Ip6InReceives ||
+		    sstat->net.netns[nr].ipv4.OutRequests ||
+		    sstat->net.netns[nr].ipv6.Ip6OutRequests ||
+		    fixedhead )
+		{
 			if (screen)
-                		move(curline, 0);
+				move(curline, 0);
 
-                        showsysline(infinibandline, sstat, &extra, 
-                                      			"IFB", badness);
-                        curline++;
-                        lin++;
-                }
-        }
+			extra.nsnr = nr; /* the network namespace */
+			showsysline(netnetline, sstat, &extra, "NET", 0);
+			curline++;
+		}
+	}
+
+	for (nr = 0; nr < sstat->intf.nrintfns; nr++)
+	{
+		/*
+		** NET statistics: interfaces per netns
+		*/
+		for (extra.index=0, lin=0;
+		     sstat->intf.intfns[nr].intf[extra.index].name[0] && lin < maxintlines;
+		     extra.index++)
+		{
+			if (sstat->intf.intfns[nr].intf[extra.index].rpack ||
+			    sstat->intf.intfns[nr].intf[extra.index].spack || fixedhead)
+			{
+				if (selp->itfnamesz && regexec(&(selp->itfregex),
+				       sstat->intf.intfns[nr].intf[extra.index].name, 0, NULL, 0))
+					continue;	// suppress (not selected)
+
+				/*
+				** calculate busy-percentage for interface
+				*/
+
+			       count_t ival, oval;
+
+				/*
+				** convert byte-transfers to bit-transfers     (*    8)
+				** convert bit-transfers  to kilobit-transfers (/ 1000)
+				** per second
+				*/
+				ival    = sstat->intf.intfns[nr].intf[extra.index].rbyte/125/nsecs;
+				oval    = sstat->intf.intfns[nr].intf[extra.index].sbyte/125/nsecs;
+
+				/* speed known? */
+				if (sstat->intf.intfns[nr].intf[extra.index].speed)
+				{
+					if (sstat->intf.intfns[nr].intf[extra.index].duplex)
+					       busy = (ival > oval ? ival : oval) /
+						   (sstat->intf.intfns[nr].intf[extra.index].speed
+										*10);
+					else
+					       busy = (ival + oval) /
+						   (sstat->intf.intfns[nr].intf[extra.index].speed
+										*10);
+
+				}
+				else
+				{
+					busy = 0;
+				}
+
+				if (netbadness)
+					badness = busy * 100 / netbadness;
+				else
+					badness = 0;
+
+				if (highbadness < badness && (supportflags & NETATOP) )
+				{
+					highbadness = badness;
+					*highorderp = MSORTNET;
+				}
+
+				if (screen)
+					move(curline, 0);
+
+				extra.nsnr = nr;
+				showsysline(netinterfaceline, sstat, &extra,
+								"NET", badness);
+				curline++;
+				lin++;
+			}
+		}
+
+		/*
+		** NET statistics: InfiniBand
+		*/
+		for (extra.index=0, lin=0;
+		     extra.index < sstat->ifb.nrports && lin < maxifblines;
+		     extra.index++)
+		{
+			if (sstat->ifb.ifb[extra.index].rcvb ||
+			    sstat->ifb.ifb[extra.index].sndb || fixedhead)
+			{
+				/*
+				** calculate busy-percentage for IB port
+				*/
+			       count_t ival, oval;
+
+				/*
+				** convert byte-transfers to bit-transfers     (*    8)
+				** convert bit-transfers  to kilobit-transfers (/ 1000)
+				** per second
+				*/
+				ival    = sstat->ifb.ifb[extra.index].rcvb/125/nsecs;
+				oval    = sstat->ifb.ifb[extra.index].sndb/125/nsecs;
+
+				busy = (ival > oval ? ival : oval) *
+						 sstat->ifb.ifb[extra.index].lanes /
+						(sstat->ifb.ifb[extra.index].rate * 10);
+
+				if (netbadness)
+					badness = busy * 100 / netbadness;
+				else
+					badness = 0;
+
+				if (highbadness < badness)
+				{
+					highbadness = badness;
+					*highorderp = MSORTNET;
+				}
+
+				if (screen)
+					move(curline, 0);
+
+				showsysline(infinibandline, sstat, &extra,
+								"IFB", badness);
+				curline++;
+				lin++;
+			}
+		}
+	}
 
         /*
         ** application statistics

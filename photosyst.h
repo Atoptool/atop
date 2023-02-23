@@ -24,6 +24,7 @@
 #ifndef __PHOTOSYST__
 #define __PHOTOSYST__
 
+#include <semaphore.h>
 #include "netstats.h"
 
 #define	MAXCPU		2048
@@ -42,6 +43,10 @@
 
 #define	MAXDKNAM	32
 #define	MAXIBNAME	12
+
+#define	MAXNETNS	8
+#define	NETNSNAMELEN	128
+char	othernetns[MAXNETNS][NETNSNAMELEN];
 
 /************************************************************************/
 struct	memstat {
@@ -138,7 +143,9 @@ struct	cpunuma {
 
 /************************************************************************/
 
-struct	netstat {
+struct	netperns {
+	int			nsnr;			/* the net namespace number */
+	char			nsname[NETNSNAMELEN];	/* the net namespace name   */
 	struct ipv4_stats	ipv4;
 	struct icmpv4_stats	icmpv4;
 	struct udpv4_stats	udpv4;
@@ -148,6 +155,11 @@ struct	netstat {
 	struct udpv6_stats	udpv6;
 
 	struct tcp_stats	tcp;
+};
+
+struct netstat {
+	count_t		nrnetns;
+	struct netperns	netns[MAXNETNS];
 };
 
 /************************************************************************/
@@ -247,9 +259,16 @@ struct	perintf {
 	count_t	cfuture[4];	/* reserved for future use	*/
 };
 
-struct intfstat {
+struct intfperns {
 	int		nrintf;
+	int		nsnr;			/* the net namespace number */
+	char		nsname[NETNSNAMELEN];	/* the net namespace name   */
 	struct perintf	intf[MAXINTF];
+};
+
+struct intfstat {
+	count_t			nrintfns;
+	struct intfperns	intfns[MAXNETNS];
 };
 
 /************************************************************************/
@@ -450,4 +469,38 @@ void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
 void	do_perfevents(char *, char *);
+void	do_netns(char *, char *);
+
+#define	PHYNETMAX	8
+struct snmp {
+	count_t	ipv4[20];
+	count_t	icmpv4[30];
+	count_t	udpv4[5];
+	count_t	tcp[20];
+};
+
+struct snmp6 {
+	count_t	val[100];
+};
+
+struct pernetns {
+	int	nsnr;
+	char	nsname[NETNSNAMELEN];
+	int	nrintf;
+	struct	perintf perintf[PHYNETMAX]; /* max physical nic */
+	struct	snmp snmp;
+	struct	snmp6 snmp6;
+};
+
+struct netnsdata {
+	int	nssum;
+	struct	pernetns pernetns[MAXNETNS - 1];
+};
+
+struct shmbuf {
+	sem_t	sem;			/* POSIX unnamed semaphore */
+	struct	netnsdata netnsdata;	/* Data being transferred */
+};
+
+int	getothernetns(struct shmbuf *);
 #endif

@@ -29,13 +29,16 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <regex.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/wait.h>
@@ -46,6 +49,8 @@
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <limits.h>
+#include <semaphore.h>
+#include <sched.h>
 
 #define SCALINGMAXCPU	8	// threshold for scaling info per CPU
 
@@ -116,6 +121,7 @@ static struct udpv6_stats	udpv6_tmp;
 struct v6tab {
 	char 	*nam;
 	count_t *val;
+	int	idx; /* the position of nam in /proc/snmp6 file */
 };
 
 static struct v6tab 		v6tab[] = {
@@ -1066,23 +1072,23 @@ photosyst(struct sstat *si)
                                     "%15s %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld\n",
-				  si->intf.intf[i].name,
-				&(si->intf.intf[i].rbyte),
-				&(si->intf.intf[i].rpack),
-				&(si->intf.intf[i].rerrs),
-				&(si->intf.intf[i].rdrop),
-				&(si->intf.intf[i].rfifo),
-				&(si->intf.intf[i].rframe),
-				&(si->intf.intf[i].rcompr),
-				&(si->intf.intf[i].rmultic),
-				&(si->intf.intf[i].sbyte),
-				&(si->intf.intf[i].spack),
-				&(si->intf.intf[i].serrs),
-				&(si->intf.intf[i].sdrop),
-				&(si->intf.intf[i].sfifo),
-				&(si->intf.intf[i].scollis),
-				&(si->intf.intf[i].scarrier),
-				&(si->intf.intf[i].scompr));
+				  si->intf.intfns[0].intf[i].name,
+				&(si->intf.intfns[0].intf[i].rbyte),
+				&(si->intf.intfns[0].intf[i].rpack),
+				&(si->intf.intfns[0].intf[i].rerrs),
+				&(si->intf.intfns[0].intf[i].rdrop),
+				&(si->intf.intfns[0].intf[i].rfifo),
+				&(si->intf.intfns[0].intf[i].rframe),
+				&(si->intf.intfns[0].intf[i].rcompr),
+				&(si->intf.intfns[0].intf[i].rmultic),
+				&(si->intf.intfns[0].intf[i].sbyte),
+				&(si->intf.intfns[0].intf[i].spack),
+				&(si->intf.intfns[0].intf[i].serrs),
+				&(si->intf.intfns[0].intf[i].sdrop),
+				&(si->intf.intfns[0].intf[i].sfifo),
+				&(si->intf.intfns[0].intf[i].scollis),
+				&(si->intf.intfns[0].intf[i].scarrier),
+				&(si->intf.intfns[0].intf[i].scompr));
 
 			/*
 			** skip header line and lines without stats
@@ -1096,10 +1102,15 @@ photosyst(struct sstat *si)
 			** because the total number of interfaces
 			** exceeds the maximum supported by atop (MAXINTF)
 			*/
-			strcpy(ifprop.name, si->intf.intf[i].name);
+			strcpy(ifprop.name, si->intf.intfns[0].intf[i].name);
 
 			if (!getifprop(&ifprop))
 				continue;
+
+			si->intf.intfns[0].intf[i].type   = ifprop.type;
+			si->intf.intfns[0].intf[i].speed  = ifprop.speed;
+			si->intf.intfns[0].intf[i].speedp = ifprop.speed;
+			si->intf.intfns[0].intf[i].duplex = ifprop.fullduplex;
 
 			/*
 			** accept this interface but skip the remaining
@@ -1110,8 +1121,10 @@ photosyst(struct sstat *si)
 				break;
 		}
 
-		si->intf.intf[i].name[0] = '\0'; /* set terminator for table */
-		si->intf.nrintf = i;
+		si->intf.intfns[0].intf[i].name[0] = '\0'; /* set terminator for table */
+		si->intf.intfns[0].nrintf = i;
+		strcpy(si->intf.intfns[0].nsname, "init");
+		si->intf.nrintfns = 1;
 
 		fclose(fp);
 	}
@@ -1146,34 +1159,36 @@ photosyst(struct sstat *si)
 
 			if ( strcmp("Ip:", nam) == 0)
 			{
-				memcpy(&si->net.ipv4, cnts,
-						sizeof si->net.ipv4);
+				memcpy(&si->net.netns[0].ipv4, cnts,
+						sizeof si->net.netns[0].ipv4);
 				continue;
 			}
 	
 			if ( strcmp("Icmp:", nam) == 0)
 			{
-				memcpy(&si->net.icmpv4, cnts,
-						sizeof si->net.icmpv4);
+				memcpy(&si->net.netns[0].icmpv4, cnts,
+						sizeof si->net.netns[0].icmpv4);
 				continue;
 			}
 	
 			if ( strcmp("Tcp:", nam) == 0)
 			{
-				memcpy(&si->net.tcp, cnts,
-						sizeof si->net.tcp);
+				memcpy(&si->net.netns[0].tcp, cnts,
+						sizeof si->net.netns[0].tcp);
 				continue;
 			}
 	
 			if ( strcmp("Udp:", nam) == 0)
 			{
-				memcpy(&si->net.udpv4, cnts,
-						sizeof si->net.udpv4);
+				memcpy(&si->net.netns[0].udpv4, cnts,
+						sizeof si->net.netns[0].udpv4);
 				continue;
 			}
 		}
 	
 		fclose(fp);
+		strcpy(si->net.netns[0].nsname, "init");
+		si->net.nrnetns = 1;
 	}
 
 	/*
@@ -1186,7 +1201,7 @@ photosyst(struct sstat *si)
 	if ( (fp = fopen("net/snmp6", "r")) != NULL)
 	{
 		count_t	countval;
-		int	cur = 0;
+		int	cur = 0, idx = 0;
 
 		/*
 		** one name-value pair per line
@@ -1201,6 +1216,7 @@ photosyst(struct sstat *si)
 		   	if (strcmp(v6tab[cur].nam, nam) == 0)
 		   	{
 		   		*(v6tab[cur].val) = countval;
+				v6tab[cur].idx = idx;
 		   	}
 		   	else
 		   	{
@@ -1208,17 +1224,21 @@ photosyst(struct sstat *si)
 					if (strcmp(v6tab[cur].nam, nam) == 0)
 						break;
 
-				if (cur < v6tab_entries) /* found ? */
+				if (cur < v6tab_entries) {/* found ? */
 		   			*(v6tab[cur].val) = countval;
+					v6tab[cur].idx = idx;
+				}
 			}
 
 			if (++cur >= v6tab_entries)
 				cur = 0;
+
+			idx++;
 		}
 
-		memcpy(&si->net.ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
-		memcpy(&si->net.icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
-		memcpy(&si->net.udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
+		memcpy(&si->net.netns[0].ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
+		memcpy(&si->net.netns[0].icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
+		memcpy(&si->net.netns[0].udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
 
 		fclose(fp);
 	}
@@ -1253,6 +1273,108 @@ photosyst(struct sstat *si)
 			}
 		}
 		fclose(fp);
+	}
+
+	/*
+	** gather other net namespaces' network-related statistics
+	*/
+	if ( strlen(othernetns[0]) > 0 )
+	{
+		int	nsnr, wstatus;
+		pid_t	pid;
+		struct	timespec	maxsemwait;
+
+		struct shmbuf *shmp = mmap(NULL, sizeof(*shmp), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+		if ( shmp == MAP_FAILED )
+			mcleanstop(53, "mmap failed when collecting othernetns, errno is %d\n", errno);
+
+		if ( (sem_init(&shmp->sem, 1, 0) == -1) )
+			mcleanstop(53, "sem_init failed when collecting othernetns, errno is %d\n", errno);
+
+		pid = fork();
+		if ( pid == -1 )
+			mcleanstop(53, "fork failed when collecting othernetns, errno is %d\n", errno);
+		else if ( pid == 0 )
+			/* collect other netns statistics */
+			getothernetns(shmp);
+		else
+		{
+			if ( clock_gettime(CLOCK_REALTIME, &maxsemwait) == -1 )
+				mcleanstop(53, "failed to gettime in getothernetns, errno is %d\n", errno);
+
+			/* firstly timeout-wait: wait for 'sem' to be posted by child before touching shared memory. */
+			maxsemwait.tv_sec += 3;
+			if ( sem_timedwait(&shmp->sem, &maxsemwait) == -1 )
+				mcleanstop(53, "sem_wait failed when collecting othernetns, errno is %d\n", errno);
+
+			/* secondly: kill & waitpid to cleanup zombie child. */
+			kill(pid, SIGKILL);
+			waitpid(pid, &wstatus, 0);
+
+			if ( shmp->netnsdata.nssum > 0 )
+			{
+				for (nsnr = 0; nsnr < shmp->netnsdata.nssum; nsnr++)
+				{
+					/* 1. interface stats from the file /proc/net/dev */
+					for (i = 0; i < shmp->netnsdata.pernetns[nsnr].nrintf; i++)
+					{
+						strcpy(si->intf.intfns[nsnr+1].intf[i].name, shmp->netnsdata.pernetns[nsnr].perintf[i].name);
+						si->intf.intfns[nsnr+1].intf[i].rbyte = shmp->netnsdata.pernetns[nsnr].perintf[i].rbyte;
+						si->intf.intfns[nsnr+1].intf[i].rpack = shmp->netnsdata.pernetns[nsnr].perintf[i].rpack;
+						si->intf.intfns[nsnr+1].intf[i].rerrs = shmp->netnsdata.pernetns[nsnr].perintf[i].rerrs;
+						si->intf.intfns[nsnr+1].intf[i].rdrop = shmp->netnsdata.pernetns[nsnr].perintf[i].rdrop;
+						si->intf.intfns[nsnr+1].intf[i].rfifo = shmp->netnsdata.pernetns[nsnr].perintf[i].rfifo;
+						si->intf.intfns[nsnr+1].intf[i].rframe = shmp->netnsdata.pernetns[nsnr].perintf[i].rframe;
+						si->intf.intfns[nsnr+1].intf[i].rcompr = shmp->netnsdata.pernetns[nsnr].perintf[i].rcompr;
+						si->intf.intfns[nsnr+1].intf[i].rmultic = shmp->netnsdata.pernetns[nsnr].perintf[i].rmultic;
+						si->intf.intfns[nsnr+1].intf[i].sbyte = shmp->netnsdata.pernetns[nsnr].perintf[i].sbyte;
+						si->intf.intfns[nsnr+1].intf[i].spack = shmp->netnsdata.pernetns[nsnr].perintf[i].spack;
+						si->intf.intfns[nsnr+1].intf[i].serrs = shmp->netnsdata.pernetns[nsnr].perintf[i].serrs;
+						si->intf.intfns[nsnr+1].intf[i].sdrop = shmp->netnsdata.pernetns[nsnr].perintf[i].sdrop;
+						si->intf.intfns[nsnr+1].intf[i].sfifo = shmp->netnsdata.pernetns[nsnr].perintf[i].sfifo;
+						si->intf.intfns[nsnr+1].intf[i].scollis = shmp->netnsdata.pernetns[nsnr].perintf[i].scollis;
+						si->intf.intfns[nsnr+1].intf[i].scarrier = shmp->netnsdata.pernetns[nsnr].perintf[i].scarrier;
+						si->intf.intfns[nsnr+1].intf[i].scompr = shmp->netnsdata.pernetns[nsnr].perintf[i].scompr;
+						si->intf.intfns[nsnr+1].intf[i].type = shmp->netnsdata.pernetns[nsnr].perintf[i].type;
+						si->intf.intfns[nsnr+1].intf[i].speed = shmp->netnsdata.pernetns[nsnr].perintf[i].speed;
+						si->intf.intfns[nsnr+1].intf[i].speedp = shmp->netnsdata.pernetns[nsnr].perintf[i].speedp;
+						si->intf.intfns[nsnr+1].intf[i].duplex = shmp->netnsdata.pernetns[nsnr].perintf[i].duplex;
+					}
+					si->intf.intfns[nsnr+1].intf[i].name[0] = '\0';
+					si->intf.intfns[nsnr+1].nrintf = i + 1;
+					strcpy(si->intf.intfns[nsnr+1].nsname, shmp->netnsdata.pernetns[nsnr].nsname);
+
+					/* 2. IPv4 stats from the file /proc/net/snmp */
+					memcpy(&si->net.netns[nsnr+1].ipv4, shmp->netnsdata.pernetns[nsnr].snmp.ipv4,
+										sizeof si->net.netns[nsnr].ipv4);
+					memcpy(&si->net.netns[nsnr+1].icmpv4, shmp->netnsdata.pernetns[nsnr].snmp.icmpv4,
+										sizeof si->net.netns[nsnr].icmpv4);
+					memcpy(&si->net.netns[nsnr+1].udpv4, shmp->netnsdata.pernetns[nsnr].snmp.udpv4,
+										sizeof si->net.netns[nsnr].udpv4);
+					memcpy(&si->net.netns[nsnr+1].tcp, shmp->netnsdata.pernetns[nsnr].snmp.tcp,
+										sizeof si->net.netns[nsnr].tcp);
+
+					/* 3. IPv6 stats from the file /proc/net/snmp6 */
+					memset(&ipv6_tmp,   0, sizeof ipv6_tmp);
+					memset(&icmpv6_tmp, 0, sizeof icmpv6_tmp);
+					memset(&udpv6_tmp,  0, sizeof udpv6_tmp);
+
+					for (i = 0; i < v6tab_entries; i++)
+						*(v6tab[i].val) = shmp->netnsdata.pernetns[nsnr].snmp6.val[i];
+
+					memcpy(&si->net.netns[nsnr+1].ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
+					memcpy(&si->net.netns[nsnr+1].icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
+					memcpy(&si->net.netns[nsnr+1].udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
+
+					strcpy(si->net.netns[nsnr+1].nsname, shmp->netnsdata.pernetns[nsnr].nsname);
+
+					si->net.nrnetns += 1;
+					si->intf.nrintfns += 1;
+				}
+			}
+		}
+
+		munmap(shmp, sizeof(*shmp));
 	}
 
 	/*
@@ -2794,3 +2916,238 @@ do_perfevents(char *tagname, char *tagvalue)
 		mcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
 }
 #endif
+
+int getothernetns(struct shmbuf *shmp) {
+	int	fd, ret, nr, i = 0;
+	int	nsnr = 0, validns = 0;
+	FILE	*fp = NULL;
+	count_t	cnts[64], countval;
+	char	linebuf[1024], nam[64];
+
+	while ( strlen(othernetns[nsnr]) )
+	{
+		fd = open(othernetns[nsnr], O_RDONLY);
+		if ( fd < 0 )
+		{
+			fprintf(stderr, "failed to open %s, errno is %d\n", othernetns[nsnr], errno);
+			nsnr++;
+			continue;
+		}
+
+		/* use setns to validate if the netns can be collected, if not: pass */
+		ret = setns(fd, CLONE_NEWNET);
+		if ( ret == -1 )
+		{
+			close(fd);
+			nsnr++;
+			continue;
+		}
+
+		close(fd);
+
+		/* 1. interface stats from the file /proc/net/dev */
+		if ( (fp = fopen("/proc/net/dev", "r")) != NULL )
+		{
+			struct ifprop ifprop;
+			char *cp;
+			i = 0;
+
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				if ( (cp = strchr(linebuf, ':')) != NULL )
+					*cp = ' '; /* substitute ':' by space */
+
+				nr = sscanf(linebuf,
+					"%15s   %lld %lld %lld %lld %lld %lld %lld "
+					"%lld %lld %lld %lld %lld %lld %lld %lld "
+					"%lld\n",
+					nam,
+					&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
+					&cnts[4],  &cnts[5],  &cnts[6],  &cnts[7],
+					&cnts[8],  &cnts[9],  &cnts[10], &cnts[11],
+					&cnts[12], &cnts[13], &cnts[14], &cnts[15]);
+
+				/* skip header line and lines without stats */
+				if ( nr != 17 )
+					continue;
+
+				/* omit virtual net, but keep lo */
+				strcpy(ifprop.name, nam);
+
+				/* If `ethtool -i` failed or bus-info is null: not physical, omit */
+				if ( getbusinfo(&ifprop) == 0 && strcmp(nam, "lo") != 0 )
+					continue;
+
+				if ( getphysprop(&ifprop) == 0 )
+					continue;
+
+				/* If rpack and spack is both zero, omit */
+				if ( ! (cnts[1] || cnts[9]) )
+					continue;
+
+				strcpy(shmp->netnsdata.pernetns[validns].perintf[i].name, nam);
+				shmp->netnsdata.pernetns[validns].perintf[i].rbyte = cnts[0];
+				shmp->netnsdata.pernetns[validns].perintf[i].rpack = cnts[1];
+				shmp->netnsdata.pernetns[validns].perintf[i].rerrs = cnts[2];
+				shmp->netnsdata.pernetns[validns].perintf[i].rdrop = cnts[3];
+				shmp->netnsdata.pernetns[validns].perintf[i].rfifo = cnts[4];
+				shmp->netnsdata.pernetns[validns].perintf[i].rframe = cnts[5];
+				shmp->netnsdata.pernetns[validns].perintf[i].rcompr = cnts[6];
+				shmp->netnsdata.pernetns[validns].perintf[i].rmultic = cnts[7];
+				shmp->netnsdata.pernetns[validns].perintf[i].sbyte = cnts[8];
+				shmp->netnsdata.pernetns[validns].perintf[i].spack = cnts[9];
+				shmp->netnsdata.pernetns[validns].perintf[i].serrs = cnts[10];
+				shmp->netnsdata.pernetns[validns].perintf[i].sdrop = cnts[11];
+				shmp->netnsdata.pernetns[validns].perintf[i].sfifo = cnts[12];
+				shmp->netnsdata.pernetns[validns].perintf[i].scollis = cnts[13];
+				shmp->netnsdata.pernetns[validns].perintf[i].scarrier = cnts[14];
+				shmp->netnsdata.pernetns[validns].perintf[i].scompr = cnts[15];
+
+				shmp->netnsdata.pernetns[validns].perintf[i].type   = ifprop.type;
+				shmp->netnsdata.pernetns[validns].perintf[i].speed  = ifprop.speed;
+				shmp->netnsdata.pernetns[validns].perintf[i].speedp = ifprop.speed;
+				shmp->netnsdata.pernetns[validns].perintf[i].duplex = ifprop.fullduplex;
+
+
+				if ( ++i >= PHYNETMAX - 1 )
+					break;
+			}
+
+			if ( i > 0 )
+			{
+				shmp->netnsdata.pernetns[validns].nrintf = i;
+				shmp->netnsdata.pernetns[validns].perintf[i].name[0] = '\0'; /* set terminator for table */
+			}
+			fclose(fp);
+		}
+
+		/* If neither physical nic nor 'lo' has statistics, omit this netns */
+		if ( i == 0 )
+		{
+			close(fd);
+			nsnr++;
+			continue;
+		}
+
+		/* 2. IPv4 stats from the file /proc/net/snmp */
+		if ( (fp = fopen("/proc/net/snmp", "r")) != NULL )
+		{
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(linebuf,
+				 "%s   %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+				 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+				 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+				 "%lld\n",
+					nam,
+					&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
+					&cnts[4],  &cnts[5],  &cnts[6],  &cnts[7],
+					&cnts[8],  &cnts[9],  &cnts[10], &cnts[11],
+					&cnts[12], &cnts[13], &cnts[14], &cnts[15],
+					&cnts[16], &cnts[17], &cnts[18], &cnts[19],
+					&cnts[20], &cnts[21], &cnts[22], &cnts[23],
+					&cnts[24], &cnts[25], &cnts[26], &cnts[27],
+					&cnts[28], &cnts[29]);
+
+				if ( nr < 2 )		/* headerline ? --> skip */
+					continue;
+
+				if ( strcmp("Ip:", nam) == 0 )
+				{
+					memcpy(&shmp->netnsdata.pernetns[validns].snmp.ipv4, cnts,
+						sizeof shmp->netnsdata.pernetns[validns].snmp.ipv4);
+					continue;
+				}
+
+				if ( strcmp("Icmp:", nam) == 0 )
+				{
+					memcpy(&shmp->netnsdata.pernetns[validns].snmp.icmpv4, cnts,
+						sizeof shmp->netnsdata.pernetns[validns].snmp.icmpv4);
+					continue;
+				}
+
+				if ( strcmp("Tcp:", nam) == 0 )
+				{
+					memcpy(&shmp->netnsdata.pernetns[validns].snmp.tcp, cnts,
+						sizeof shmp->netnsdata.pernetns[validns].snmp.tcp);
+					continue;
+				}
+
+				if ( strcmp("Udp:", nam) == 0 )
+				{
+					memcpy(&shmp->netnsdata.pernetns[validns].snmp.udpv4, cnts,
+						sizeof shmp->netnsdata.pernetns[validns].snmp.udpv4);
+					continue;
+				}
+			}
+
+			fclose(fp);
+		}
+
+		/* 3. IPv6 stats from the file /proc/net/snmp6 */
+		if ( (fp = fopen("/proc/net/snmp6", "r")) != NULL )
+		{
+			int idx = 0, cur = 0;
+
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				/* headerline ? --> skip */
+				if ( sscanf(linebuf, "%15s %lld\n", nam, &countval) < 2 )
+					continue;
+
+				if ( v6tab[cur].idx == idx )
+				{
+					shmp->netnsdata.pernetns[validns].snmp6.val[cur] = countval;
+					cur++;
+				}
+				idx++;
+			}
+
+			fclose(fp);
+		}
+
+		strncpy(shmp->netnsdata.pernetns[validns].nsname, othernetns[nsnr], sizeof(othernetns[0]));
+		shmp->netnsdata.nssum++;
+
+		validns++;
+		nsnr++;
+	}
+
+	if ( sem_post(&shmp->sem) == -1 )
+		mcleanstop(53, "failed to sem_post in getothernetns, errno is %d\n", errno);
+
+	exit(0);
+}
+
+void
+do_netns(char *name, char *val)
+{
+	char *pernetns, *validnetns;
+	int ns = 0;
+	struct stat nsstat;
+
+	if ( strlen(val) == 0 )
+		return;
+
+	validnetns = malloc( (MAXNETNS - 1) * NETNSNAMELEN * sizeof(char) );
+	strncpy(validnetns, val, (MAXNETNS - 1) * NETNSNAMELEN);
+
+	/* split netns by blank space */
+	pernetns = strtok(validnetns, " ");
+	while (pernetns)
+	{
+		/* valid if this file exits, and later setns() will prove the netns is available */
+		if ( stat(pernetns, &nsstat) )
+		{
+			fprintf(stderr, "netns %s stat failed, errno is %d\n", pernetns, errno);
+			pernetns = strtok(NULL, " ");
+			continue;
+		}
+
+		strncpy(othernetns[ns], pernetns, sizeof(othernetns[ns]));
+		if (++ns >= MAXNETNS - 1)
+			break;
+		pernetns = strtok(NULL, " ");
+	}
+	free(validnetns);
+}
