@@ -1455,6 +1455,17 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	
 	dev->llc.nrllcs = cur->llc.nrllcs;
 
+	dev->k8smem.file         = cur->k8smem.file;
+	dev->k8smem.anon         = cur->k8smem.anon;
+	dev->k8smem.shmem        = cur->k8smem.shmem;
+	dev->k8smem.filemapped   = cur->k8smem.filemapped;
+	dev->k8smem.inactiveanon = cur->k8smem.inactiveanon;
+	dev->k8smem.activeanon   = cur->k8smem.activeanon;
+	dev->k8smem.inactivefile = cur->k8smem.inactivefile;
+	dev->k8smem.activefile   = cur->k8smem.activefile;
+	dev->k8smem.usagefile    = cur->k8smem.usagefile;
+	dev->k8smem.workingset   = cur->k8smem.workingset;
+
 #if	HTTPSTATS
 	/*
 	** application-specific counters

@@ -423,6 +423,19 @@ struct llcstat {
 	struct perllc   perllc[MAXLLC];
 };
 
+struct k8smem {
+	count_t file;		/* number of file pages for k8s global memcg */
+	count_t anon;		/* number of mapped anonymous pages for k8s global memcg */
+	count_t shmem;		/* number of shmem pages (included tmpfs/GEM pages) for k8s global memcg */
+	count_t filemapped;	/* number of pagecache pages mapped into pagetables for k8s global memcg */
+	count_t inactiveanon;	/* number of lru inactive anon pages for k8s global memcg */
+	count_t activeanon;	/* number of lru active anon pages for k8s global memcg */
+	count_t inactivefile;	/* number of lru inactive file pages for k8s global memcg */
+	count_t activefile;	/* number of lru active file pages for k8s global memcg */
+	count_t usagefile;	/* number of current usage pages for k8s global memcg */
+	count_t workingset;	/* k8s vision: number of current usage pages minus inactivefile pages */
+};
+
 /************************************************************************/
 
 struct	sstat {
@@ -439,6 +452,7 @@ struct	sstat {
 	struct gpustat 	gpu;
 	struct ifbstat 	ifb;
 	struct llcstat  llc;
+	struct k8smem	k8smem;
 
 	struct wwwstat	www;
 };
