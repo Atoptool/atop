@@ -245,6 +245,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 			curtask->cpu.blkdelay = 0;
 			
 			/*
+ 			** nvcsw and nivcsw on process level only
+			** concerns the delays of the main thread;
+			** totalize the delays of all threads
+			*/
+			curtask->cpu.nvcsw  = 0;
+			curtask->cpu.nivcsw = 0;
+
+			/*
 			** open underlying task directory
 			*/
 			if ( chdir("task") == 0 )
@@ -301,13 +309,20 @@ photoproc(struct tstat *tasklist, int maxtask)
                 			if (getwchan)
                         			procwchan(curthr);
 
-					// totalize delays of all threads
+					// totalize values of all threads
 					curtask->cpu.rundelay +=
 						procschedstat(curthr);
 
 					curtask->cpu.blkdelay +=
 						curthr->cpu.blkdelay;
 
+					curtask->cpu.nvcsw +=
+						curthr->cpu.nvcsw;
+
+					curtask->cpu.nivcsw +=
+						curthr->cpu.nivcsw;
+
+					// continue gathering
 					strcpy(curthr->gen.container,
 						curtask->gen.container);
 
