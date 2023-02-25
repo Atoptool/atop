@@ -2369,6 +2369,8 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 	curstat->gen.nthr   += curproc->gen.nthr;
 	curstat->cpu.utime  += curproc->cpu.utime;
 	curstat->cpu.stime  += curproc->cpu.stime;
+	curstat->cpu.nvcsw  += curproc->cpu.nvcsw;
+	curstat->cpu.nivcsw += curproc->cpu.nivcsw;
 
 	if (curproc->dsk.wsz > curproc->dsk.cwsz)
                	nett_wsz = curproc->dsk.wsz -curproc->dsk.cwsz;

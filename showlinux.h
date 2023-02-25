@@ -457,6 +457,8 @@ extern proc_printdef procprt_SORTITEM;
 extern proc_printdef procprt_RUNDELAY;
 extern proc_printdef procprt_BLKDELAY;
 extern proc_printdef procprt_WCHAN;
+extern proc_printdef procprt_NVCSW;
+extern proc_printdef procprt_NIVCSW;
 extern proc_printdef procprt_CGROUP_PATH;
 extern proc_printdef procprt_CGRCPUWGT;
 extern proc_printdef procprt_CGRCPUMAX;

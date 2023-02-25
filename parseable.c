@@ -783,7 +783,7 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
-		       "%llu %s %llu %d %d\n",
+		       "%llu %s %llu %d %d %llu %llu\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -803,7 +803,9 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			spaceformat(ps->cpu.wchan, wchanout),
 			ps->cpu.blkdelay,
 			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumax),
-			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumaxr));
+			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumaxr),
+			ps->cpu.nvcsw,
+			ps->cpu.nivcsw);
 	}
 }
 

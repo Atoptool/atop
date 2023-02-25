@@ -1766,9 +1766,19 @@ The more or less static priority that can be given to a process on a
 scale from -20 (high priority) to +19 (low priority).
 .PP
 .TP 9
+.B NIVCSW
+Number of times the process was context-switched involuntarily,
+in case that the time slice expired.
+.PP
+.TP 9
 .B NPROCS
 The number of active and terminated processes accumulated for this user
 or program.
+.PP
+.TP 9
+.B NVCSW
+Number of times that the program was context-switched voluntarily in
+case of a blocking system call, e.g. to wait for an I/O operation to complete.
 .PP
 .TP 9
 .B PID
@@ -2477,8 +2487,12 @@ TGID (group number of related tasks/threads), is_process (y/n),
 runqueue delay in nanoseconds for this thread or for all threads (in case of process),
 wait channel of this thread (between parenthesis or underscores for spaces),
 block I/O delay (clockticks),
-cgroup v2 `cpu.max' calculated as percentage (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum), and
-cgroup v2 most restrictive `cpu.max' in upper directories calculated as percentage (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum).
+cgroup v2 `cpu.max' calculated as percentage (-3 means no cgroup v2 support,
+-2 means undefined and -1 means maximum),
+cgroup v2 most restrictive `cpu.max' in upper directories calculated as percentage
+(-3 means no cgroup v2 support, -2 means undefined and -1 means maximum),
+number of voluntary context switches, and
+number of involuntary context switches.
 .TP 9
 .B PRE
 For every process one line is shown.
