@@ -2196,14 +2196,14 @@ procprt_NVCSW_a(struct tstat *curstat, int avgval, int nsecs)
 {
 	static char buf[64];
 
-	sprintf(buf, "%*lld", procprt_NVCSW.width, curstat->cpu.nvcsw);
+        val2valstr(curstat->cpu.nvcsw, buf, 6, avgval, nsecs);
 	return buf;
 }
 
 char *
 procprt_NVCSW_e(struct tstat *curstat, int avgval, int nsecs)
 {
-	return "    -";
+	return "     -";
 }
 
 proc_printdef procprt_NVCSW =
@@ -2214,7 +2214,7 @@ procprt_NIVCSW_a(struct tstat *curstat, int avgval, int nsecs)
 {
 	static char buf[64];
 
-	sprintf(buf, "%*lld", procprt_NIVCSW.width, curstat->cpu.nivcsw);
+        val2valstr(curstat->cpu.nivcsw, buf, 6, avgval, nsecs);
 	return buf;
 }
 
