@@ -163,6 +163,10 @@ char *procprt_RUNDELAY_a(struct tstat *, int, int);
 char *procprt_RUNDELAY_e(struct tstat *, int, int);
 char *procprt_BLKDELAY_a(struct tstat *, int, int);
 char *procprt_BLKDELAY_e(struct tstat *, int, int);
+char *procprt_NVCSW_a(struct tstat *, int, int);
+char *procprt_NVCSW_e(struct tstat *, int, int);
+char *procprt_NIVCSW_a(struct tstat *, int, int);
+char *procprt_NIVCSW_e(struct tstat *, int, int);
 char *procprt_CGROUP_PATH_a(struct tstat *, int, int);
 char *procprt_CGROUP_PATH_e(struct tstat *, int, int);
 char *procprt_CGRCPUWGT_a(struct tstat *, int, int);
@@ -2186,6 +2190,42 @@ procprt_BLKDELAY_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_BLKDELAY =
    { "BDELAY", "BDELAY", procprt_BLKDELAY_a, procprt_BLKDELAY_e, 6};
+/***************************************************************/
+char *
+procprt_NVCSW_a(struct tstat *curstat, int avgval, int nsecs)
+{
+	static char buf[64];
+
+	sprintf(buf, "%*lld", procprt_NVCSW.width, curstat->cpu.nvcsw);
+	return buf;
+}
+
+char *
+procprt_NVCSW_e(struct tstat *curstat, int avgval, int nsecs)
+{
+	return "    -";
+}
+
+proc_printdef procprt_NVCSW =
+   { " NVCSW", "NVCSW", procprt_NVCSW_a, procprt_NVCSW_e, 6 };
+/***************************************************************/
+char *
+procprt_NIVCSW_a(struct tstat *curstat, int avgval, int nsecs)
+{
+	static char buf[64];
+
+	sprintf(buf, "%*lld", procprt_NIVCSW.width, curstat->cpu.nivcsw);
+	return buf;
+}
+
+char *
+procprt_NIVCSW_e(struct tstat *curstat, int avgval, int nsecs)
+{
+	return "     -";
+}
+
+proc_printdef procprt_NIVCSW =
+   { "NIVCSW", "NIVCSW", procprt_NIVCSW_a, procprt_NIVCSW_e, 6 };
 /***************************************************************/
 char *
 procprt_CGROUP_PATH_a(struct tstat *curstat, int avgval, int nsecs)

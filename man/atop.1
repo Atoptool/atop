@@ -1573,6 +1573,16 @@ is loaded.
 Aggregated block I/O delay, i.e. time waiting for disk I/O.
 .PP
 .TP 9
+.B NVCSW
+Number of times that the program was context-switched voluntarily, for
+instance while waiting for an I/O operation to complete.
+.PP
+.TP 9
+.B NIVCSW
+Number of times the process was context-switched involuntarily,
+e.g. the time slice expired.
+.PP
+.TP 9
 .B CGROUP
 Path name of the cgroup (version 2) to which this process belongs.
 This path name is relative to the cgroup root directory, which
