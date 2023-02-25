@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __NETATOP__
+#define __NETATOP__
+
 #define	COMLEN	16
 
 struct taskcount {
@@ -73,3 +76,5 @@ struct netpertask {
 
 // get counters for thread:  input is 'id' (tid)
 #define NETATOP_GETCNT_PID 	(NETATOP_BASE_CTL+5)
+
+#endif

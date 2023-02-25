@@ -21,6 +21,9 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+#ifndef __SHOWGENERIC__
+#define __SHOWGENERIC__
+
 #define USERSTUB	9999999
 #define MAXUSERSEL	64
 #define MAXPID		32
@@ -180,3 +183,5 @@ void	do_colalmost(char *, char *);
 void	do_colcrit(char *, char *);
 void	do_colthread(char *, char *);
 void	do_flags(char *, char *);
+
+#endif

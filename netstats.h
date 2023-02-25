@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __NETSTATS__
+#define __NETSTATS__
+
 /*
 ** structures defined from the output of /proc/net/snmp and /proc/net/snmp6
 */
@@ -167,3 +170,5 @@ struct udpv6_stats {
 	count_t Udp6InErrors;
 	count_t Udp6OutDatagrams;
 };
+
+#endif

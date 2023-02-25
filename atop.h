@@ -21,6 +21,9 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+#ifndef __ATOP__
+#define __ATOP__
+
 #define	EQ		0
 #define SECONDSINDAY	86400
 #define RAWNAMESZ	256
@@ -214,3 +217,5 @@ void		do_atopsarflags(char *, char *);
 
 int		netlink_open(void);
 int		netlink_recv(int, int);
+
+#endif

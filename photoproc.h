@@ -23,6 +23,9 @@
 ** See the GNU General Public License for more details.
 */
 
+#ifndef __PHOTOPROC__
+#define __PHOTOPROC__
+
 #define	PNAMLEN		15
 #define	CMDLEN		255
 #define	CGRLEN		64
@@ -198,3 +201,5 @@ void		deviattask(struct tstat *, unsigned long,
 
 unsigned long	photoproc(struct tstat *, int);
 unsigned long	counttasks(void);
+
+#endif

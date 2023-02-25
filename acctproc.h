@@ -21,6 +21,10 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
+
+#ifndef __ACCTPROC__
+#define __ACCTPROC__
+
 int 		acctswon(void);
 void		acctswoff(void);
 unsigned long 	acctprocnt(void);
@@ -156,3 +160,5 @@ struct acct_v3
 	comp_t		ac_swaps;		/* Number of Swaps */
 	char		ac_comm[ACCT_COMM];	/* Command Name */
 };
+
+#endif

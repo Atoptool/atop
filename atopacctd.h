@@ -26,6 +26,9 @@
 ** --------------------------------------------------------------------------
 */
 
+#ifndef __ATOPACCTD__
+#define __ATOPACCTD__
+
 /*
 ** keys to access the semaphores
 */
@@ -61,3 +64,5 @@
 						// sequence and MAXSHADOWREC
 
 #define MAXSHADOWREC	10000 	// number of accounting records per shadow file
+
+#endif
