@@ -2470,8 +2470,9 @@ saved uid, saved gid,
 filesystem uid, filesystem gid, elapsed time of terminated process (hertz),
 is_process (y/n), OpenVZ  virtual pid (VPID), OpenVZ container id (CTID),
 Docker container id (CID),
-indication if the task is newly started during this interval ('N'), and
-cgroup v2 path name (between parenthesis or underscores for spaces).
+indication if the task is newly started during this interval ('N'),
+cgroup v2 path name (between parenthesis or underscores for spaces), and
+end time (epoch or 0 if still active).
 .TP 9
 .B PRC
 For every process one line is shown.
