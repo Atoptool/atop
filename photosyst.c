@@ -598,13 +598,37 @@ photosyst(struct sstat *si)
 				continue;
 			}
 
-			if ( strncmp("pgscan_", nam, 7) == EQ)
+			if ( strncmp("pgscan_kswapd", nam, 13) == EQ)
 			{
 				si->mem.pgscans += cnts[0];
 				continue;
 			}
 
-			if ( strncmp("pgsteal_", nam, 8) == EQ)
+			if ( strncmp("pgscan_direct", nam, 13) == EQ)
+			{
+				si->mem.pgscans += cnts[0];
+				continue;
+			}
+
+			if ( strncmp("pgscan_khugepaged", nam, 17) == EQ)
+			{
+				si->mem.pgscans += cnts[0];
+				continue;
+			}
+
+			if ( strncmp("pgsteal_kswapd", nam, 14) == EQ)
+			{
+				si->mem.pgsteal += cnts[0];
+				continue;
+			}
+
+			if ( strncmp("pgsteal_direct", nam, 14) == EQ)
+			{
+				si->mem.pgsteal += cnts[0];
+				continue;
+			}
+
+			if ( strncmp("pgsteal_khugepaged", nam, 18) == EQ)
 			{
 				si->mem.pgsteal += cnts[0];
 				continue;
