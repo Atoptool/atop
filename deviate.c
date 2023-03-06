@@ -1065,7 +1065,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		/*
 		** determine new j
 		*/
-		if (pre->dsk.dsk[j].name)	// existing matching entry
+		if (pre->dsk.dsk[j].name[0])	// existing matching entry
 			j++;
 		else
 			j = realj;		// empty entry: stick to old j
@@ -1134,7 +1134,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		/*
 		** determine new j
 		*/
-		if (pre->dsk.mdd[j].name)	// existing matching entry
+		if (pre->dsk.mdd[j].name[0])	// existing matching entry
 			j++;
 		else
 			j = realj;		// empty entry: stick to old j
@@ -1203,7 +1203,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		/*
 		** determine new j
 		*/
-		if (pre->dsk.lvm[j].name)	// existing matching entry
+		if (pre->dsk.lvm[j].name[0])	// existing matching entry
 			j++;
 		else
 			j = realj;		// empty entry: stick to old j
