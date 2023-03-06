@@ -378,11 +378,11 @@ static void json_print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"lavg1\": %.2f, "
-		"\"lavg5\": %.2f, "
-		"\"lavg15\": %.2f, "
+		"\"avg1\": %.2f, "
+		"\"avg5\": %.2f, "
+		"\"avg15\": %.2f, "
 		"\"csw\": %lld, "
-		"\"devint\": %lld}",
+		"\"intr\": %lld}",
 		hp,
 		ss->cpu.lavg1,
 		ss->cpu.lavg5,
@@ -406,8 +406,8 @@ static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"type\": \"%.19s\", "
 			"\"gpupercnow\": %d, "
 			"\"mempercnow\": %d, "
-			"\"memtotnow\": %lld, "
-			"\"memusenow\": %lld, "
+			"\"total\": %lld, "
+			"\"used\": %lld, "
 			"\"samples\": %lld, "
 			"\"gpuperccum\": %lld, "
 			"\"memperccum\": %lld, "
@@ -417,8 +417,8 @@ static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->gpu.gpu[i].type,
 			ss->gpu.gpu[i].gpupercnow,
 			ss->gpu.gpu[i].mempercnow,
-			ss->gpu.gpu[i].memtotnow,
-			ss->gpu.gpu[i].memusenow,
+			ss->gpu.gpu[i].memtotnow * 1024,
+			ss->gpu.gpu[i].memusenow * 1024,
 			ss->gpu.gpu[i].samples,
 			ss->gpu.gpu[i].gpuperccum,
 			ss->gpu.gpu[i].memperccum,
@@ -431,20 +431,20 @@ static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"physmem\": %lld, "
-		"\"freemem\": %lld, "
-		"\"cachemem\": %lld, "
-		"\"buffermem\": %lld, "
-		"\"slabmem\": %lld, "
-		"\"cachedrt\": %lld, "
-		"\"slabreclaim\": %lld, "
-		"\"vmwballoon\": %lld, "
+		"\"tot\": %lld, "
+		"\"free\": %lld, "
+		"\"cache\": %lld, "
+		"\"buff\": %lld, "
+		"\"slab\": %lld, "
+		"\"dirty\": %lld, "
+		"\"slrec\": %lld, "
+		"\"vmwbal\": %lld, "
 		"\"shmem\": %lld, "
-		"\"shmrss\": %lld, "
-		"\"shmswp\": %lld, "
-		"\"hugepagesz\": %lld, "
-		"\"tothugepage\": %lld, "
-		"\"freehugepage\": %lld}",
+		"\"shrss\": %lld, "
+		"\"shswp\": %lld, "
+		"\"hpsz\": %lld, "
+		"\"hptot\": %lld, "
+		"\"hpfree\": %lld}",
 		hp,
 		ss->mem.physmem * pagesize,
 		ss->mem.freemem * pagesize,
@@ -465,11 +465,11 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"totswap\": %lld, "
-		"\"freeswap\": %lld, "
+		"\"tot\": %lld, "
+		"\"free\": %lld, "
 		"\"swcac\": %lld, "
-		"\"committed\": %lld, "
-		"\"commitlim\": %lld}",
+		"\"vmcom\": %lld, "
+		"\"vmlim\": %lld}",
 		hp,
 		ss->mem.totswap * pagesize,
 		ss->mem.freeswap * pagesize,
@@ -481,16 +481,16 @@ static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"compacts\": %lld, "
-		"\"numamigs\": %lld, "
-		"\"migrates\": %lld, "
-		"\"pgscans\": %lld, "
-		"\"allocstall\": %lld, "
-		"\"pgins\": %lld, "
-		"\"pgouts\": %lld, "
-		"\"swins\": %lld, "
-		"\"swouts\": %lld, "
-		"\"oomkills\": %lld}",
+		"\"compact\": %lld, "
+		"\"numamig\": %lld, "
+		"\"migrate\": %lld, "
+		"\"scan\": %lld, "
+		"\"stall\": %lld, "
+		"\"pgin\": %lld, "
+		"\"pgout\": %lld, "
+		"\"swin\": %lld, "
+		"\"swout\": %lld, "
+		"\"oomkill\": %lld}",
 		hp,
 		ss->mem.compactstall,
 		ss->mem.numamigrate,
@@ -554,14 +554,14 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"lvmname\": \"%.19s\", "
+		printf("{\"name\": \"%.19s\", "
 			"\"io_ms\": %lld, "
-			"\"nread\": %lld, "
+			"\"read\": %lld, "
 			"\"nrsect\": %lld, "
-			"\"nwrite\": %lld, "
+			"\"write\": %lld, "
 			"\"nwsect\": %lld, "
 			"\"avque\": %lld}, "
-			"\"inflight\": %lld}",
+			"\"inflt\": %lld}",
 			ss->dsk.lvm[i].name,
 			ss->dsk.lvm[i].io_ms,
 			ss->dsk.lvm[i].nread,
@@ -585,14 +585,14 @@ static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"mddname\": \"%.19s\", "
+		printf("{\"name\": \"%.19s\", "
 			"\"io_ms\": %lld, "
-			"\"nread\": %lld, "
+			"\"read\": %lld, "
 			"\"nrsect\": %lld, "
-			"\"nwrite\": %lld, "
+			"\"write\": %lld, "
 			"\"nwsect\": %lld, "
 			"\"avque\": %lld, "
-			"\"inflight\": %lld}",
+			"\"inflt\": %lld}",
 			ss->dsk.mdd[i].name,
 			ss->dsk.mdd[i].io_ms,
 			ss->dsk.mdd[i].nread,
@@ -616,15 +616,15 @@ static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"dskname\": \"%.19s\", "
+		printf("{\"name\": \"%.19s\", "
 			"\"io_ms\": %lld, "
-			"\"nread\": %lld, "
+			"\"read\": %lld, "
 			"\"nrsect\": %lld, "
-			"\"ndiscrd\": %lld, "
-			"\"nwrite\": %lld, "
+			"\"discrd\": %lld, "
+			"\"write\": %lld, "
 			"\"nwsect\": %lld, "
 			"\"avque\": %lld, "
-			"\"inflight\": %lld}",
+			"\"inflt\": %lld}",
 			ss->dsk.dsk[i].name,
 			ss->dsk.dsk[i].io_ms,
 			ss->dsk.dsk[i].nread,
@@ -649,15 +649,15 @@ static void json_print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"mountdev\": \"%.19s\", "
-			"\"bytestotread\": %lld, "
-			"\"bytestotwrite\": %lld, "
-			"\"bytesread\": %lld, "
-			"\"byteswrite\": %lld, "
-			"\"bytesdread\": %lld, "
-			"\"bytesdwrite\": %lld, "
-			"\"pagesmread\": %lld, "
-			"\"pagesmwrite\": %lld}",
+		printf("{\"srv\": \"%.19s\", "
+			"\"read\": %lld, "
+			"\"write\": %lld, "
+			"\"nread\": %lld, "
+			"\"nwrite\": %lld, "
+			"\"dread\": %lld, "
+			"\"dwrite\": %lld, "
+			"\"mread\": %lld, "
+			"\"mwrite\": %lld}",
 			ss->nfs.nfsmounts.nfsmnt[i].mountdev,
 			ss->nfs.nfsmounts.nfsmnt[i].bytestotread,
 			ss->nfs.nfsmounts.nfsmnt[i].bytestotwrite,
@@ -675,11 +675,11 @@ static void json_print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"rpccnt\": %lld, "
-		"\"rpcread\": %lld, "
-		"\"rpcwrite\": %lld, "
-		"\"rpcretrans\": %lld, "
-		"\"rpcautrefresh\": %lld}",
+		"\"rpc\": %lld, "
+		"\"read\": %lld, "
+		"\"write\": %lld, "
+		"\"retxmit\": %lld, "
+		"\"autref\": %lld}",
 		hp,
 		ss->nfs.client.rpccnt,
 		ss->nfs.client.rpcread,
@@ -691,21 +691,21 @@ static void json_print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 static void json_print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(", %s: {"
-		"\"rpccnt\": %lld, "
-		"\"rpcread\": %lld, "
-		"\"rpcwrite\": %lld, "
+		"\"rpc\": %lld, "
+		"\"cread\": %lld, "
+		"\"cwrite\": %lld, "
 		"\"nrbytes\": %lld, "
 		"\"nwbytes\": %lld, "
-		"\"rpcbadfmt\": %lld, "
-		"\"rpcbadaut\": %lld, "
-		"\"rpcbadcln\": %lld, "
+		"\"badfmt\": %lld, "
+		"\"badaut\": %lld, "
+		"\"badcln\": %lld, "
 		"\"netcnt\": %lld, "
-		"\"nettcpcnt\": %lld, "
-		"\"netudpcnt\": %lld, "
+		"\"nettcp\": %lld, "
+		"\"netudp\": %lld, "
 		"\"nettcpcon\": %lld, "
 		"\"rchits\": %lld, "
 		"\"rcmiss\": %lld, "
-		"\"rcnocache\": %lld}",
+		"\"rcnoca\": %lld}",
 		hp,
 		ss->nfs.server.rpccnt,
 		ss->nfs.server.rpcread,
@@ -729,17 +729,17 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	register int i;
 
 	printf(", \"NET_GENERAL\": {"
-		"\"rpacketsTCP\": %lld, "
-		"\"spacketsTCP\": %lld, "
-		"\"activeOpensTCP\": %lld, "
-		"\"passiveOpensTCP\": %lld, "
-		"\"retransSegsTCP\": %lld, "
-		"\"rpacketsUDP\": %lld, "
-		"\"spacketsUDP\": %lld, "
-		"\"rpacketsIP\": %lld, "
-		"\"spacketsIP\": %lld, "
-		"\"dpacketsIP\": %lld, "
-		"\"fpacketsIP\": %lld, "
+		"\"tcpi\": %lld, "
+		"\"tcpo\": %lld, "
+		"\"tcpao\": %lld, "
+		"\"tcppo\": %lld, "
+		"\"tcprs\": %lld, "
+		"\"udpi\": %lld, "
+		"\"udpo\": %lld, "
+		"\"ipi\": %lld, "
+		"\"ipo\": %lld, "
+		"\"deliv\": %lld, "
+		"\"ipfrw\": %lld, "
 		"\"icmpi\" : %lld, "
 		"\"icmpo\" : %lld}",
 		ss->net.tcp.InSegs,
@@ -771,12 +771,12 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			printf(", ");
 		}
 		printf("{\"name\": \"%.19s\", "
-			"\"rpack\": %lld, "
+			"\"pcki\": %lld, "
 			"\"rbyte\": %lld, "
-			"\"rerrs\": %lld, "
-			"\"spack\": %lld, "
+			"\"erri\": %lld, "
+			"\"pcko\": %lld, "
 			"\"sbyte\": %lld, "
-			"\"serrs\": %lld, "
+			"\"erro\": %lld, "
 			"\"speed\": \"%ld\", "
 			"\"duplex\": %d}",
 			ss->intf.intf[i].name,
@@ -803,14 +803,14 @@ static void json_print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"ibname\": \"%.19s\", "
+		printf("{\"name\": \"%.19s\", "
 			"\"portnr\": \"%hd\", "
 			"\"lanes\": \"%hd\", "
 			"\"maxrate\": %lld, "
 			"\"rcvb\": %lld, "
 			"\"sndb\": %lld, "
-			"\"rcvp\": %lld, "
-			"\"sndp\": %lld}",
+			"\"pcki\": %lld, "
+			"\"pcko\": %lld}",
 			ss->ifb.ifb[i].ibname,
 			ss->ifb.ifb[i].portnr,
 			ss->ifb.ifb[i].lanes,
@@ -834,18 +834,18 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"numanr\": \"%d\", "
+		printf("{\"numanode\": \"%d\", "
 			"\"frag\": \"%f\", "
-			"\"totmem\": %lld, "
-			"\"freemem\": %lld, "
-			"\"active\": %lld, "
-			"\"inactive\": %lld, "
-			"\"filepage\": %lld, "
-			"\"dirtymem\": %lld, "
-			"\"slabmem\": %lld, "
-			"\"slabreclaim\": %lld, "
+			"\"tot\": %lld, "
+			"\"free\": %lld, "
+			"\"activ\": %lld, "
+			"\"inact\": %lld, "
+			"\"file\": %lld, "
+			"\"dirty\": %lld, "
+			"\"slab\": %lld, "
+			"\"slrec\": %lld, "
 			"\"shmem\": %lld, "
-			"\"tothp\": %lld}",
+			"\"hptot\": %lld}",
 			ss->memnuma.numa[i].numanr,
 			ss->memnuma.numa[i].frag * 100.0,
 			ss->memnuma.numa[i].totmem * pagesize,
@@ -873,14 +873,14 @@ static void json_print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"numanr\": \"%d\", "
-			"\"stime\": %lld, "
-			"\"utime\": %lld, "
-			"\"ntime\": %lld, "
-			"\"itime\": %lld, "
-			"\"wtime\": %lld, "
-			"\"Itime\": %lld, "
-			"\"Stime\": %lld, "
+		printf("{\"numcpu\": \"%d\", "
+			"\"sys\": %lld, "
+			"\"user\": %lld, "
+			"\"nice\": %lld, "
+			"\"idle\": %lld, "
+			"\"wait\": %lld, "
+			"\"irq\": %lld, "
+			"\"sirq\": %lld, "
 			"\"steal\": %lld, "
 			"\"guest\": %lld}",
 			ss->cpunuma.numa[i].numanr,
@@ -910,8 +910,8 @@ static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		}
 		printf("{\"LLC\": \"%3d\", "
 			"\"occupancy\": \"%3.1f%%\", "
-			"\"mbm_total\": \"%lld\", "
-			"\"mbm_local\": %lld}",
+			"\"tot\": \"%lld\", "
+			"\"loc\": %lld}",
 			ss->llc.perllc[i].id,
 			ss->llc.perllc[i].occupancy * 100,
 			ss->llc.perllc[i].mbm_total,
