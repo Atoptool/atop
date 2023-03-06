@@ -46,6 +46,7 @@
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <limits.h>
+#include <sys/vfs.h>
 
 #define SCALINGMAXCPU	8	// threshold for scaling info per CPU
 
@@ -74,6 +75,10 @@
 #define	DSKTYPE	1
 #define	MDDTYPE	2
 #define	LVMTYPE	3
+
+/* According to https://man7.org/linux/man-pages/man2/statfs.2.html */
+#define CGROUP_FTYPE_V1	16914836	/* TMPFS_MAGIC 0x01021994 */
+#define CGROUP_FTYPE_V2	1667723888	/* CGROUP2_SUPER_MAGIC 0x63677270 */
 
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
@@ -291,6 +296,8 @@ photosyst(struct sstat *si)
 #if	HTTPSTATS
 	static int	wwwvalid = 1;
 #endif
+	static int	cgroupVersion = 0;
+	struct statfs	statfscgrp;
 
 	memset(si, 0, sizeof(struct sstat));
 
@@ -844,6 +851,27 @@ photosyst(struct sstat *si)
 		}
 
 		fclose(fp);
+	}
+
+	/*
+	** Identify the cgroup version on Linux Nodes: `stat -fc %T /sys/fs/cgroup/`.
+	** For cgroup v2, the output is cgroup2fs.
+	** For cgroup v1, the output is tmpfs.
+	*/
+	if ( !cgroupVersion )
+	{
+		if ( statfs("/sys/fs/cgroup/", &statfscgrp) == 0 )
+		{
+			if ( statfscgrp.f_type == CGROUP_FTYPE_V2 )
+			{
+				cgroupVersion = 2;
+				supportflags |= CGROUPV2;
+			}
+			else if ( statfscgrp.f_type == CGROUP_FTYPE_V1 )
+				cgroupVersion = 1;
+			else
+				cgroupVersion = 0;
+		}
 	}
 
 	/*
