@@ -272,20 +272,12 @@ main(int argc, char *argv[])
 	}
 
 	/*
- 	** prepare cleanup signal handler
-	*/
-	memset(&sigcleanup, 0, sizeof sigcleanup);
-	sigcleanup.sa_handler	= cleanup;
-	sigemptyset(&sigcleanup.sa_mask);
-
-	/*
 	** daemonize this process
 	** i.e. be sure that the daemon is no session leader (any more)
 	** and get rid of a possible bad context that might have been
 	** inherited from ancestors
 	*/
 	parentpid = getpid();		// to be killed when initialized
-	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
 	if ( fork() )			// implicitly switch to background
    	{
@@ -303,6 +295,15 @@ main(int argc, char *argv[])
 
 	if ( fork() )			// finish parent; continue in child
 		exit(0);		// --> no session leader, no ctty
+	
+	/*
+ 	** prepare cleanup signal handler
+	*/
+	memset(&sigcleanup, 0, sizeof sigcleanup);
+	sigcleanup.sa_handler	= cleanup;
+	sigemptyset(&sigcleanup.sa_mask);
+	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
+
 
 	getrlimit(RLIMIT_NOFILE, &rlim);
 
