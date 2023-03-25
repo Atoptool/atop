@@ -560,7 +560,7 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nrsect\": %lld, "
 			"\"nwrite\": %lld, "
 			"\"nwsect\": %lld, "
-			"\"avque\": %lld}, "
+			"\"avque\": %lld, "
 			"\"inflight\": %lld}",
 			ss->dsk.lvm[i].name,
 			ss->dsk.lvm[i].io_ms,
