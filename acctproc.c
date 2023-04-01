@@ -63,6 +63,7 @@ static count_t 	acctexp (comp_t  ct);
 static int	acctvers(int);
 static void	acctrestarttrial(void);
 static void	switchshadow(void);
+static int	atopacctd(int);
 
 /*
 ** possible process accounting files used by (ps)acct package
@@ -120,11 +121,12 @@ struct sembuf	semreglock[] = {{0, -1, SEM_UNDO|IPC_NOWAIT},
 int
 acctswon(void)
 {
-	int			i, j, sematopid, sempacctpubid;
+	int			i, j, sematopid;
 	static ushort 		vals[] = {1, ATOPACCTTOT};
 	union {ushort *array;}	arg = {vals};
 	struct stat		statbuf;
 	char			*ep;
+	int			ret;
 
 	/*
 	** when a particular environment variable is present, atop should
@@ -171,105 +173,8 @@ acctswon(void)
  	** when the atopacctd daemon is active on this system,
 	** it should be the preferred way to read the accounting records
 	*/
-	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
-	{
-		FILE 			*cfp;
-		char    		shadowpath[128];
-        	struct flock            flock;
-		struct timespec		maxsemwait = {3, 0};
-
-		if (! droprootprivs() )
-			mcleanstop(42, "failed to drop root privs\n");
-
-		if (semtimedop(sempacctpubid, semreglock, 2, &maxsemwait) == -1)
-		{
-			acctfd = -1;
-			regainrootprivs();
-			return 3;
-		}
-
-		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
-					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
-
-		if ( (cfp = fopen(shadowpath, "r")) )
-		{
-			if (fscanf(cfp, "%ld/%ld",
-					&curshadowseq, &maxshadowrec) == 2)
-			{
-				fclose(cfp);
-
-				snprintf(shadowpath, sizeof shadowpath,
-						PACCTSHADOWF, pacctdir,
-						PACCTSHADOWD, curshadowseq);
-
-				if ( (acctfd = open(shadowpath, O_RDONLY))!=-1)
-				{
-					if ( !acctvers(acctfd) )
-					{
-						int maxcnt = 40;
-
-						if ( fork() == 0 )
-							exit(0);
-
-						(void) wait((int *) 0);
-
-						while ( !acctvers(acctfd) &&
-								      --maxcnt)
-							usleep(50000);
-						
-						if (!acctversion)
-						{
-							(void) close(acctfd);
-							acctfd = -1;
-	
-							semop(sempacctpubid,
-								&semrelse, 1);
-							semop(sempacctpubid,
-								&semunlock, 1);
-
-							regainrootprivs();
-							return 1;
-						}
-					}
-
-					/*
-					** set read lock on current shadow file
-					*/
-        				flock.l_type    = F_RDLCK;
-        				flock.l_whence  = SEEK_SET;
-        				flock.l_start   = 0;
-        				flock.l_len     = 1;
-
-                			if ( fcntl(acctfd, F_SETLK, &flock)
-									!= -1)
-                			{
-						supportflags |= ACCTACTIVE;
-						regainrootprivs();
-						semop(sempacctpubid,
-								&semunlock, 1);
-						return 0;
-                			}
-
-                       			(void) close(acctfd);
-				}
-				else
-				{
-					perror("open shadowpath");
-					abort();
-				}
-			}
-			else
-			{
-				fprintf(stderr,
-					"fscanf failed on shadow currency\n");
-				fclose(cfp);
-				maxshadowrec = 0;
-			}
-		}
-
-		(void) semop(sempacctpubid, &semrelse, 1);
-		(void) semop(sempacctpubid, &semunlock, 1);
-	}
+	if ( (ret = atopacctd(1)) >= 0 )
+		return ret;
 
 	/*
 	** check if process accounting is already switched on 
@@ -351,9 +256,9 @@ acctswon(void)
 	*/
 	(void) semop(sematopid, &semclaim, 1);
 
-   	/*
-   	** are we the first to use the accounting-mechanism ?
-   	*/
+	/*
+	** are we the first to use the accounting-mechanism ?
+	*/
 	if (semctl(sematopid, 1, GETVAL, 0) == ATOPACCTTOT)
 	{
 		/*
@@ -461,6 +366,138 @@ acctswon(void)
 
 	supportflags |= ACCTACTIVE;
 	return 0;
+}
+
+/*
+** try to use process accounting via the atopacctd daemon
+** swon:	1 - initial switch on
+**		0 - switch on again after the atopacct service has been down
+*/
+static int
+atopacctd(int swon)
+{
+	int sempacctpubid;
+
+	acctfd = -1;	// reset to not being open
+
+	/*
+ 	** open semaphore group that has been initialized by atopacctd
+	** semaphore 0: 100 counting down to reflect number of users of atopacctd
+	** semaphore 1: value 0 is locked and value 1 is unlocked (binary semaphore)
+	*/
+	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
+	{
+		FILE			*cfp;
+		char			shadowpath[128];
+		struct flock		flock;
+		struct timespec		maxsemwait = {3, 0};
+
+		if (! droprootprivs() )
+			mcleanstop(42, "failed to drop root privs\n");
+
+		/*
+		** lock binary semaphore and decrement semaphore 0 (extra user)
+		*/
+		if (semtimedop(sempacctpubid, semreglock, 2, &maxsemwait) == -1)
+		{
+			regainrootprivs();
+			return 3;
+		}
+
+		/*
+		** open the 'current' file, containing the current
+		** shadow sequence number and maximum number of records
+		** per shadow file
+		*/
+		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
+					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
+
+		if ( (cfp = fopen(shadowpath, "r")) )
+		{
+			if (fscanf(cfp, "%ld/%ld",
+					&curshadowseq, &maxshadowrec) == 2)
+			{
+				fclose(cfp);
+
+				/*
+				** open the current shadow file
+				*/
+				snprintf(shadowpath, sizeof shadowpath,
+						PACCTSHADOWF, pacctdir,
+						PACCTSHADOWD, curshadowseq);
+
+				if ( (acctfd = open(shadowpath, O_RDONLY))!=-1)
+				{
+					if ( swon && !acctvers(acctfd) )
+					{
+
+						int maxcnt = 40;
+
+						if ( fork() == 0 )
+							exit(0);
+
+						(void) wait((int *) 0);
+
+						while ( !acctvers(acctfd) &&
+								      --maxcnt)
+							usleep(50000);
+
+						if (!acctversion)
+						{
+							(void) close(acctfd);
+							acctfd = -1;
+
+							semop(sempacctpubid,
+								&semrelse, 1);
+							semop(sempacctpubid,
+								&semunlock, 1);
+
+							regainrootprivs();
+							return 1;
+						}
+					}
+
+					/*
+					** set read lock on current shadow file
+					*/
+					flock.l_type    = F_RDLCK;
+					flock.l_whence  = SEEK_SET;
+					flock.l_start   = 0;
+					flock.l_len     = 1;
+
+					if ( fcntl(acctfd, F_SETLK, &flock)
+									!= -1)
+					{
+						supportflags |= ACCTACTIVE;
+						regainrootprivs();
+						semop(sempacctpubid,
+								&semunlock, 1);
+						return 0;
+					}
+
+					(void) close(acctfd);
+					acctfd = -1;
+				}
+				else
+				{
+					perror("open shadowpath");
+					abort();
+				}
+			}
+			else
+			{
+				fprintf(stderr,
+					"fscanf failed on shadow currency\n");
+				fclose(cfp);
+				maxshadowrec = 0;
+			}
+		}
+
+		(void) semop(sempacctpubid, &semrelse, 1);
+		(void) semop(sempacctpubid, &semunlock, 1);
+	}
+
+	return -1;	// try another accounting mechanism
 }
 
 /*
@@ -599,27 +636,35 @@ acctprocnt(void)
 	struct stat	statacc;
 
 	/*
-	** if accounting not supported, skip call
-	*/
-	if (acctfd == -1)
-		return 0;
-
-	/*
-	** determine the current size of the accounting file
-	*/
-	if (fstat(acctfd, &statacc) == -1)
-		return 0;
-
-	/*
  	** handle atopacctd-based process accounting on bases of
 	** fixed-chunk shadow files
 	*/
-	if (maxshadowrec)
+	if (maxshadowrec)	// atopacctd has been detected before?
 	{
 		unsigned long	numrecs = 0;
 		long		newseq;
 		char		shadowpath[128];
 		FILE		*cfp;
+
+		/*
+		** determine the current size of the current shadow file
+		** (fails if acctfd == -1) and determine if the file
+		** has not been deleted by stopping the atopacct service
+		*/
+		if (fstat(acctfd, &statacc) == -1 || statacc.st_nlink == 0)
+		{
+			/* close the previous obsolete shadow file */
+			(void) close(acctfd);
+	
+			acctsize = 0;
+	
+			/* reacquire the current real acctfd */
+			if (atopacctd(0))
+				return 0;	// reaqcuire failed
+
+			if (fstat(acctfd, &statacc) == -1)
+				return 0;
+		}
 
 		/*
 		** verify how many new processes are added to the current
@@ -668,10 +713,25 @@ acctprocnt(void)
 		** determine the size of newest shadow file
 		*/
 		if (stat(shadowpath, &statacc) == -1)
+		{
+			fprintf(stderr, "failed to stat the size of newest shadow file\n");
 			return numrecs;
+		}
 
-		numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
-		           (statacc.st_size / acctrecsz);
+		/*
+		** Check cases like statacc.st_size / acctrecsz > maxshadowrec,
+		** and atopacctd restarts at the same time, now newseq is zero.
+		** Omit this interval's statistics by returning zero.
+		*/
+		if (newseq > curshadowseq)
+		{
+			numrecs += ((newseq - curshadowseq - 1) * maxshadowrec) +
+				   (statacc.st_size / acctrecsz);
+		}
+		else
+		{
+			numrecs = 0;
+		}
 
 		return numrecs;
 	}
@@ -681,6 +741,12 @@ acctprocnt(void)
 	** process accounting file
 	*/
 	{
+		/*
+ 		** determine size of current process accounting file
+		*/
+		if (acctfd == -1 || fstat(acctfd, &statacc) == -1)
+			return 0;
+
 		/*
  		** accounting reset?
 		*/
@@ -810,6 +876,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	struct acct 		acctrec;
 	struct acct_v3 		acctrec_v3;
 	struct stat		statacc;
+	int			filled;
 
 	/*
 	** if accounting not supported, skip call
@@ -826,8 +893,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	/*
 	** check all exited processes in accounting file
 	*/
-	for  (nrexit=0, api=accproc; nrexit < nrprocs;
-				nrexit++, api++, acctsize += acctrecsz)
+	for  (nrexit=0, api=accproc; nrexit < nrprocs; )
 	{
 		/*
 		** in case of shadow accounting files, we might have to
@@ -909,6 +975,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
 
 		   case 3:
@@ -937,7 +1004,16 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 
 			strncpy(api->gen.name, acctrec_v3.ac_comm, PNAMLEN);
 			api->gen.name[PNAMLEN] = '\0';
+			filled = 1;
 			break;
+		}
+
+		if (filled == 1) {
+			nrexit++;
+			api++;
+			acctsize += acctrecsz;
+
+			filled = 0;
 		}
 	}
 
