@@ -63,7 +63,7 @@ static count_t 	acctexp (comp_t  ct);
 static int	acctvers(int);
 static void	acctrestarttrial(void);
 static void	switchshadow(void);
-int		atopacctd(int);
+static int	atopacctd(int);
 
 /*
 ** possible process accounting files used by (ps)acct package
@@ -368,9 +368,23 @@ acctswon(void)
 	return 0;
 }
 
-int atopacctd(int swon) {
+/*
+** try to use process accounting via the atopacctd daemon
+** swon:	1 - initial switch on
+**		0 - switch on again after the atopacct service has been down
+*/
+static int
+atopacctd(int swon)
+{
 	int sempacctpubid;
 
+	acctfd = -1;	// reset to not being open
+
+	/*
+ 	** open semaphore group that has been initialized by atopacctd
+	** semaphore 0: 100 counting down to reflect number of users of atopacctd
+	** semaphore 1: value 0 is locked and value 1 is unlocked (binary semaphore)
+	*/
 	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
 	{
 		FILE			*cfp;
@@ -381,13 +395,20 @@ int atopacctd(int swon) {
 		if (! droprootprivs() )
 			mcleanstop(42, "failed to drop root privs\n");
 
+		/*
+		** lock binary semaphore and decrement semaphore 0 (extra user)
+		*/
 		if (semtimedop(sempacctpubid, semreglock, 2, &maxsemwait) == -1)
 		{
-			acctfd = -1;
 			regainrootprivs();
 			return 3;
 		}
 
+		/*
+		** open the 'current' file, containing the current
+		** shadow sequence number and maximum number of records
+		** per shadow file
+		*/
 		snprintf(shadowpath, sizeof shadowpath, "%s/%s/%s",
 					pacctdir, PACCTSHADOWD, PACCTSHADOWC);
 
@@ -398,6 +419,9 @@ int atopacctd(int swon) {
 			{
 				fclose(cfp);
 
+				/*
+				** open the current shadow file
+				*/
 				snprintf(shadowpath, sizeof shadowpath,
 						PACCTSHADOWF, pacctdir,
 						PACCTSHADOWD, curshadowseq);
@@ -452,6 +476,7 @@ int atopacctd(int swon) {
 					}
 
 					(void) close(acctfd);
+					acctfd = -1;
 				}
 				else
 				{
@@ -472,7 +497,7 @@ int atopacctd(int swon) {
 		(void) semop(sempacctpubid, &semunlock, 1);
 	}
 
-	return -1;
+	return -1;	// try another accounting mechanism
 }
 
 /*
@@ -611,22 +636,10 @@ acctprocnt(void)
 	struct stat	statacc;
 
 	/*
-	** if accounting not supported, skip call
-	*/
-	if (acctfd == -1)
-		return 0;
-
-	/*
-	** determine the current size of the accounting file
-	*/
-	if (fstat(acctfd, &statacc) == -1)
-		return 0;
-
-	/*
  	** handle atopacctd-based process accounting on bases of
 	** fixed-chunk shadow files
 	*/
-	if (maxshadowrec)
+	if (maxshadowrec)	// atopacctd has been detected before?
 	{
 		unsigned long	numrecs = 0;
 		long		newseq;
@@ -634,18 +647,30 @@ acctprocnt(void)
 		FILE		*cfp;
 
 		/*
+		** determine the current size of the current shadow file
+		** (fails if acctfd == -1) and determine if the file
+		** has not been deleted by stopping the atopacct service
+		*/
+		if (fstat(acctfd, &statacc) == -1 || statacc.st_nlink == 0)
+		{
+			/* close the previous obsolete shadow file */
+			(void) close(acctfd);
+	
+			acctsize = 0;
+	
+			/* reacquire the current real acctfd */
+			if (atopacctd(0))
+				return 0;	// reaqcuire failed
+
+			if (fstat(acctfd, &statacc) == -1)
+				return 0;
+		}
+
+		/*
 		** verify how many new processes are added to the current
 		** shadow file
 		*/
 		numrecs = (statacc.st_size - acctsize) / acctrecsz;
-		if (statacc.st_nlink == 0) /* shadow file is 'deleted' */
-		{
-			/* In case a new acct(), close the previous obsolete shadow file */
-			(void) close(acctfd);
-			atopacctd(0); /* reacquire the current real acctfd */
-			acctsize = 0;
-			return 0;
-		}
 
 		/*
 		** verify if subsequent shadow files are involved
@@ -687,7 +712,8 @@ acctprocnt(void)
 		/*
 		** determine the size of newest shadow file
 		*/
-		if (stat(shadowpath, &statacc) == -1) {
+		if (stat(shadowpath, &statacc) == -1)
+		{
 			fprintf(stderr, "failed to stat the size of newest shadow file\n");
 			return numrecs;
 		}
@@ -715,6 +741,12 @@ acctprocnt(void)
 	** process accounting file
 	*/
 	{
+		/*
+ 		** determine size of current process accounting file
+		*/
+		if (acctfd == -1 || fstat(acctfd, &statacc) == -1)
+			return 0;
+
 		/*
  		** accounting reset?
 		*/
