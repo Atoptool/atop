@@ -434,7 +434,9 @@ getphysprop(struct ifprop *p)
 		}
 	}
 
+#ifdef ETHTOOL_GLINKSETTINGS
 	free(ethlink);
+#endif
 	close(sockfd);
 
 	return 1;
