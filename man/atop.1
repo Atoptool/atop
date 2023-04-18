@@ -1775,7 +1775,9 @@ the standard process accounting record.
 The name of the process.
 This name can be surrounded by "less/greater than" 
 signs ('<name>') which means that the process has finished during the last
-interval.
+interval. Since Linux 2.6.10, a single accounting record is written for the
+entire process on termination of the last thread in the process. When the
+main thread exits, the process name is changed to the thread name.
 .br
 Behind the abbreviation 'CMD' in the header line, the current page number and
 the total number of pages of the process/thread list are shown.
