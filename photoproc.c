@@ -334,7 +334,6 @@ photoproc(struct tstat *tasklist, int maxtask)
 	   		   		   case 'S':
 						curtask->gen.nthrslpi += 1;
 						break;
-	   		   		   case 'I':
 	   		   		   case 'D':
 						curtask->gen.nthrslpu += 1;
 						break;
@@ -533,7 +532,6 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
   	   case 'S':
 		curtask->gen.nthrslpi = 1;
 		break;
-	   case 'I':
   	   case 'D':
 		curtask->gen.nthrslpu = 1;
 		break;
