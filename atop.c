@@ -168,7 +168,10 @@ char		threadview = 0;	 /* boolean: show individual threads     */
 char      	calcpss    = 0;  /* boolean: read/calculate process PSS  */
 char      	getwchan   = 0;  /* boolean: obtain wchan string         */
 char      	rmspaces   = 0;  /* boolean: remove spaces from command  */
-		                 /* name in case of parseable output     */
+		                 /* name in case of parsable output      */
+
+char            displaymode = 'T';      /* 'T' = text, 'D' = draw        */
+char            barmono     = 0; /* boolean: bar without categories?     */
 
 unsigned short	hertz;
 unsigned int	pidwidth;
@@ -345,6 +348,14 @@ main(int argc, char *argv[])
 				vis.show_samp = rawwrite;
 				break;
 
+			   case 'B':		/* bar graphs ?               */
+				displaymode = 'D';
+				break;
+
+			   case 'H':		/* bar graphs ?               */
+				barmono = 1;
+				break;
+
 			   case 'r':		/* reading of raw data ?      */
 				if (optind < argc)
 				{
@@ -382,7 +393,7 @@ main(int argc, char *argv[])
 					prusage(argv[0]);
 				break;
 
-                           case 'P':		/* parseable output?          */
+                           case 'P':		/* parsable output?          */
 				if ( !parsedef(optarg) )
 					prusage(argv[0]);
 
@@ -889,15 +900,17 @@ prusage(char *myname)
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
+	printf("\t  -%c  show bar graphs for system statistics\n", MBARGRAPH);
+	printf("\t  -%c  show bar graphs without categories\n", MBARMONO);
 	printf("\t  -%c  show version information\n", MVERSION);
 	printf("\t  -%c  show or log all processes (i.s.o. active processes "
 	                "only)\n", MALLPROC);
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
-	printf("\t  -P  generate parseable output for specified label(s)\n");
+	printf("\t  -P  generate parsable output for specified label(s)\n");
 	printf("\t  -J  generate JSON output for specified label(s)\n");
-	printf("\t  -%c  no spaces in parseable output for command (line)\n",
+	printf("\t  -%c  no spaces in parsable output for command (line)\n",
 			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
@@ -1070,7 +1083,7 @@ readrc(char *path, int syslevel)
 			{
 				fprintf(stderr,
 					"%s: warning at line %2d "
-					"- tag name %s not valid\n",
+					"- tag name %s not recognized\n",
 					path, line, tagname);
 
 				errorcnt++;

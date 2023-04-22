@@ -72,7 +72,7 @@ static int  cgroupv2max(int, int);
 
 /*
 ** table with possible labels and the corresponding
-** print-function for parseable output
+** print-function for parsable output
 */
 struct labeldef {
 	char	*label;
@@ -185,7 +185,7 @@ parsedef(char *pd)
 }
 
 /*
-** produce parseable output for an interval
+** produce parsable output for an interval
 */
 char
 parseout(time_t curtime, int numsecs,

@@ -97,6 +97,9 @@ extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];
 extern struct visualize vis;
 
+extern char		displaymode;
+extern char		barmono;
+
 extern int      	osrel;
 extern int		osvers;
 extern int      	ossub;

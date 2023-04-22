@@ -70,7 +70,7 @@ int   cpubadness = 90;        /* percentage           */
 int   gpubadness = 100;       /* percentage           */
 int   membadness = 90;        /* percentage           */
 int   swpbadness = 80;        /* percentage           */
-int   dskbadness = 70;        /* percentage           */
+int   dskbadness = 90;        /* percentage           */
 int   netbadness = 90;        /* percentage           */
 int   pagbadness = 10;        /* number per second    */
 
