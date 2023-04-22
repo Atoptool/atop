@@ -24,7 +24,7 @@ CFLAGS  += -O2 -I. -Wall -Wno-stringop-truncation -Wmissing-prototypes -Wmissing
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
-OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
+OBJMOD3  = showgeneric.o drawbar.o   showlinux.o  showsys.o showprocs.o
 OBJMOD4  = atopsar.o  netatopif.o gpucom.o     json.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
@@ -197,6 +197,7 @@ showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
 showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
+drawbar.o:	atop.h	            photosyst.h  showgeneric.h
 version.o:	version.c version.h versdate.h
 gpucom.o:	atop.h	photoproc.h photosyst.h
 

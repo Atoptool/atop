@@ -456,7 +456,7 @@ showprocline(proc_printpair* elemptr, struct tstat *curstat,
 	{
 		if (usecolors && !curstat->gen.isproc)
 		{
-			attron(COLOR_PAIR(COLORTHR));
+			attron(COLOR_PAIR(FGCOLORTHR));
 		}
 		else
 		{
@@ -502,7 +502,7 @@ showprocline(proc_printpair* elemptr, struct tstat *curstat,
 	{
 		if (usecolors && !curstat->gen.isproc)
 		{
-			attroff(COLOR_PAIR(COLORTHR));
+			attroff(COLOR_PAIR(FGCOLORTHR));
 		}
 		else
 		{
