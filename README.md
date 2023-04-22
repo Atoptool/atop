@@ -24,6 +24,11 @@ it also shows GPU activity on system level and process level.
 
 The command atop has some major advantages compared to other performance monitoring tools:
 
+* __Text mode for details and bar graph mode for global overview.__
+In *text mode* details are shown about the utilization of system resources and the resource consumption by processes.
+In *bar graph mode* a (character-based) graphical overview is given about the utilization of the processors, disks,
+network interfaces and memory on system level.
+
 * __Resource consumption by *all* processes.__
 It shows the resource consumption by all processes that were active during the interval, so also the resource consumption by those processes that have finished during the interval.
 
