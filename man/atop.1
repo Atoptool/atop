@@ -69,7 +69,7 @@ By default,
 .I atop
 starts in text mode unless the
 .I -B 
-flag is used or 'B' has been configured as a default flag in the
+flag is used or unless 'B' has been configured as a default flag in the
 .I .atoprc
 file (for further information about default flags, refer to the
 .B atoprc
@@ -143,6 +143,12 @@ When there is enough vertical space in the memory window, event counters
 are shown about the number of memory pages being swapped in,
 the number of memory pages paged out to block devices and
 the number of memory pages paged in from block devices.
+
+Memory and swap space consumption will preferably be shown in a
+character-based window that vertically uses the entire screen for
+optimal granularity. However, when there are a lot of disks and/or
+network interfaces the memory and swap space consumption will be shown
+in a character-based window that only uses the upper half of the screen.
 .TP 5
 .B Disks
 For each disk the busy percentage is shown as a bar.
