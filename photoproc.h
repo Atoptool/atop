@@ -109,7 +109,10 @@ struct tstat {
 		count_t	vexec;		/* virtmem execfile (Kb)        */
 		count_t	vmem;		/* virtual  memory  (Kb)	*/
 		count_t	rmem;		/* resident memory  (Kb)	*/
-		count_t	pmem;		/* resident memory  (Kb)	*/
+		count_t	pmem;		/* proportional memory  (Kb)	*/
+		count_t	panon;		/* proportional shares of anonymous pages (Kb)	*/
+		count_t	pfile;		/* proportional shares of file pages (Kb)	*/
+		count_t	pshmem;		/* proportional shares of shmem pages (Kb)	*/
 		count_t vgrow;		/* virtual  growth  (Kb)    	*/
 		count_t rgrow;		/* resident growth  (Kb)     	*/
 		count_t vdata;		/* virtmem data     (Kb)     	*/

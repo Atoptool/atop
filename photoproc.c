@@ -885,7 +885,7 @@ procsmaps(struct tstat *curtask)
 {
 	FILE	*fp;
 	char	line[4096];
-	count_t	pssval;
+	count_t	pssval, panon, pfile, pshmem;
 	static int procsmaps_firstcall = 1;
 	static char *smapsfile = "smaps";
 
@@ -908,16 +908,41 @@ procsmaps(struct tstat *curtask)
 
 	if ( (fp = fopen(smapsfile, "r")) )
 	{
-		curtask->mem.pmem = 0;
+		curtask->mem.pmem   = 0;
+		curtask->mem.panon  = 0;
+		curtask->mem.pfile  = 0;
+		curtask->mem.pshmem = 0;
 
 		while (fgets(line, sizeof line, fp))
 		{
-			if (memcmp(line, "Pss:", 4) != 0)
+			if (memcmp(line, "Pss:", 4) == 0)
+			{
+				// PSS line found to be accumulated
+				sscanf(line, "Pss: %llu", &pssval);
+				curtask->mem.pmem += pssval;
 				continue;
-
-			// PSS line found to be accumulated
-			sscanf(line, "Pss: %llu", &pssval);
-			curtask->mem.pmem += pssval;
+			}
+			if (memcmp(line, "Pss_Anon:", 9) == 0)
+			{
+				// proportional shares of anonymous pages
+				sscanf(line, "Pss_Anon: %llu", &panon);
+				curtask->mem.panon += panon;
+				continue;
+			}
+			if (memcmp(line, "Pss_File:", 9) == 0)
+			{
+				// proportional shares of file pages
+				sscanf(line, "Pss_File: %llu", &pfile);
+				curtask->mem.pfile += pfile;
+				continue;
+			}
+			if (memcmp(line, "Pss_Shmem:", 10) == 0)
+			{
+				// proportional shares of shmem pages
+				sscanf(line, "Pss_Shmem: %llu", &pshmem);
+				curtask->mem.pshmem += pshmem;
+				continue;
+			}
 		}
 
 		/*
@@ -930,7 +955,10 @@ procsmaps(struct tstat *curtask)
 	}
 	else
 	{
-		curtask->mem.pmem = (unsigned long long)-1LL;
+		curtask->mem.pmem   = (unsigned long long)-1LL;
+		curtask->mem.panon  = (unsigned long long)-1LL;
+		curtask->mem.pfile  = (unsigned long long)-1LL;
+		curtask->mem.pshmem = (unsigned long long)-1LL;
 	}
 
 	if (! droprootprivs())
