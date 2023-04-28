@@ -48,7 +48,7 @@ atopcat:	atopcat.o
 		$(CC) atopcat.o -o atopcat $(LDFLAGS)
 
 clean:
-		rm -f *.o atop atopsar atopacctd atopconvert atopcat
+		rm -f *.o atop atopsar atopacctd atopconvert atopcat versdate.h
 
 distr:
 		rm -f *.o atop
