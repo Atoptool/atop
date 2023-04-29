@@ -219,7 +219,7 @@ static int	drawvertbars(struct perwindow *, float, float,
 static int	drawnetbars(struct perwindow *, int, struct netval *,
 						int, char *,char *);
 
-static int	drawmemory(struct perwindow *w, struct sstat *, int, time_t);
+static int	drawmemory(struct perwindow *w, struct sstat *, int, time_t, char);
 
 static int	drawmemlines(struct perwindow *, int, int, int, int,
 			int, char *, char *);
@@ -310,7 +310,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 
 		// show memory graph
 		//
-		drawmemory(&winmem, sstat, nsecs, curtime);
+		drawmemory(&winmem, sstat, nsecs, curtime, flag);
 
 		// reset label initialization
 		//
@@ -1730,7 +1730,8 @@ drawnetbars(struct perwindow *w, int numbars, struct netval *nvp,
 // draw specific window with memory management info
 /////////////////////////////////////////////////////
 static int
-drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs, time_t curtime)
+drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
+					time_t curtime, char flag)
 {
 	static time_t	lastoomkills;
 
@@ -1787,7 +1788,11 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs, time_t curtime)
 	else				// new oomkills during last interval
 	{
 		killseverity = 'c';
-		lastoomkills = curtime;
+
+		if (flag&RRBOOT)
+			lastoomkills = curtime - nsecs;
+		else
+			lastoomkills = curtime;
 	}
 
 	// calculate effective number of lines for bar graph
