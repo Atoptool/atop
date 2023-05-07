@@ -1510,12 +1510,13 @@ overlapping user mode.
 Paging frequency.
 .br
 This line contains the number of scanned pages ('scan') due to the fact
-that free memory drops below a particular threshold, the number
-times that the kernel tries to reclaim pages due to an urgent need ('stall'),
-the number of process stalls to run memory compaction to allocate
-huge pages ('compact'), the number of NUMA pages migrated ('numamig'), and
-the total number of memory pages migrated successfully e.g. between
-NUMA nodes or for compaction ('migrate') are shown.
+that free memory drops below a particular threshold, the number of
+reclaimed pages('steal') due to the fact that free memory drops below
+a particular threshold, the number times that the kernel tries to reclaim
+pages due to an urgent need ('stall'),the number of process stalls to run
+memory compaction to allocate huge pages ('compact'), the number of NUMA
+pages migrated ('numamig'), and the total number of memory pages migrated
+successfully e.g. between NUMA nodes or for compaction ('migrate') are shown.
 .br
 Also the number of memory pages the system read from block devices ('pgin'),
 the number of memory pages the system wrote to block devices ('pgout'),
