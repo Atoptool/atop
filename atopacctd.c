@@ -120,7 +120,8 @@ static int	pass2shadow(int, char *, int);
 static void	gcshadows(unsigned long *, unsigned long);
 static void	setcurrent(long);
 static int	acctsize(struct acct *);
-static void	cleanup(int);
+static void	parent_cleanup(int);
+static void	child_cleanup(int);
 
 
 int
@@ -272,19 +273,19 @@ main(int argc, char *argv[])
 	}
 
 	/*
- 	** prepare cleanup signal handler
-	*/
-	memset(&sigcleanup, 0, sizeof sigcleanup);
-	sigcleanup.sa_handler	= cleanup;
-	sigemptyset(&sigcleanup.sa_mask);
-
-	/*
 	** daemonize this process
 	** i.e. be sure that the daemon is no session leader (any more)
 	** and get rid of a possible bad context that might have been
 	** inherited from ancestors
 	*/
 	parentpid = getpid();		// to be killed when initialized
+
+	/*
+ 	** prepare cleanup signal handler
+	*/
+	memset(&sigcleanup, 0, sizeof sigcleanup);
+	sigemptyset(&sigcleanup.sa_mask);
+	sigcleanup.sa_handler	= parent_cleanup;
 	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
 	if ( fork() )			// implicitly switch to background
@@ -303,6 +304,9 @@ main(int argc, char *argv[])
 
 	if ( fork() )			// finish parent; continue in child
 		exit(0);		// --> no session leader, no ctty
+
+	sigcleanup.sa_handler	= child_cleanup;
+	(void) sigaction(SIGTERM, &sigcleanup, (struct sigaction *)0);
 
 	getrlimit(RLIMIT_NOFILE, &rlim);
 
@@ -1110,11 +1114,17 @@ getstrvers(void)
 }
 
 /*
-** signal catcher:
+** signal catchers:
 **    set flag to be verified in main loop to cleanup and terminate
 */
 void
-cleanup(int sig)
+child_cleanup(int sig)
 {
 	cleanup_and_go = sig;
+}
+
+void
+parent_cleanup(int sig)
+{
+	exit(0);
 }
