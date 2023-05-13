@@ -82,6 +82,10 @@
 #include "prev/photosyst_28.h"
 #include "prev/photoproc_28.h"
 
+#include "prev/photosyst_29.h"
+#include "prev/photoproc_29.h"
+
+
 void	justcopy(void *, void *, count_t, count_t);
 
 void	scpu_to_21(void *, void *, count_t, count_t);
@@ -505,6 +509,7 @@ struct sstat_25		sstat_25;
 struct sstat_26		sstat_26;
 struct sstat_27		sstat_27;
 struct sstat_28		sstat_28;
+struct sstat_29		sstat_29;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -516,6 +521,7 @@ struct tstat_25		tstat_25;
 struct tstat_26		tstat_26;
 struct tstat_27		tstat_27;
 struct tstat_28		tstat_28;
+struct tstat_29		tstat_29;
 struct tstat		tstat;
 
 struct convertall {
@@ -843,6 +849,39 @@ struct convertall {
 			STROFFSET(&tstat_28.net, &tstat_28),	justcopy},
 		{sizeof(struct gpu_28),
 			STROFFSET(&tstat_28.gpu, &tstat_28),	justcopy},
+	},
+
+	{SETVERSION(2,9), // 2.8 --> 2.9
+		 sizeof(struct sstat_29),	&sstat_29,
+		 sizeof(struct tstat_29), 	NULL,
+
+		{sizeof(struct cpustat_29),  	&sstat_29.cpu,	   justcopy},
+		{sizeof(struct memstat_29),  	&sstat_29.mem,	   justcopy},
+		{sizeof(struct netstat_29),  	&sstat_29.net,	   justcopy},
+		{sizeof(struct intfstat_29), 	&sstat_29.intf,	   justcopy},
+		{sizeof(struct dskstat_29),  	&sstat_29.dsk,	   justcopy},
+		{sizeof(struct nfsstat_29),  	&sstat_29.nfs,	   justcopy},
+		{sizeof(struct contstat_29), 	&sstat_29.cfs,	   justcopy},
+		{sizeof(struct wwwstat_29),  	&sstat_29.www,	   justcopy},
+		{sizeof(struct pressure_29),  	&sstat_29.psi,	   justcopy},
+		{sizeof(struct gpustat_29),  	&sstat_29.gpu,	   justcopy},
+		{sizeof(struct ifbstat_29),  	&sstat_29.ifb,	   justcopy},
+		{sizeof(struct memnuma_29), 	&sstat_29.memnuma, justcopy},
+		{sizeof(struct cpunuma_29),  	&sstat_29.cpunuma, justcopy},
+		{sizeof(struct llcstat_29),  	&sstat_29.llc,	   justcopy},
+
+		{sizeof(struct gen_29),
+			STROFFSET(&tstat_29.gen, &tstat_29),	justcopy},
+		{sizeof(struct cpu_29),
+			STROFFSET(&tstat_29.cpu, &tstat_29),	justcopy},
+		{sizeof(struct dsk_29),
+			STROFFSET(&tstat_29.dsk, &tstat_29),	justcopy},
+		{sizeof(struct mem_29),
+			STROFFSET(&tstat_29.mem, &tstat_29),	justcopy},
+		{sizeof(struct net_29),
+			STROFFSET(&tstat_29.net, &tstat_29),	justcopy},
+		{sizeof(struct gpu_29),
+			STROFFSET(&tstat_29.gpu, &tstat_29),	justcopy},
 	},
 };
 
