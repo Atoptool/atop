@@ -2073,7 +2073,7 @@ psiformatavg(struct psi *p, char *head, char *buf, int bufsize)
 		snprintf(tmpbuf, sizeof tmpbuf, formats, avg10, avg60, avg300);
 	}
 
-	snprintf(buf, bufsize, "%s %9s", head, tmpbuf);
+	snprintf(buf, bufsize, "%s %9.9s", head, tmpbuf);
 }
 
 static char *
