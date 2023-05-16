@@ -160,6 +160,7 @@ sys_printdef *memsyspdefs1[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_PAGETABS,
 	&syspdef_BLANKBOX,
+	&syspdef_ANONHUP,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
         0
@@ -935,7 +936,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "RECSLAB:3 "
 	                "BLANKBOX:0 "
 	                "PAGETABS:4 "
-	                "BLANKBOX:0 "
+                        "ANONHUP:5 "
 	                "HUPTOT:5 "
 	                "HUPUSE:2 ",
 			memsyspdefs1, "builtin memline1",

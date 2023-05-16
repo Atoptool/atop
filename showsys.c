@@ -1317,6 +1317,24 @@ sysprt_SHMSWP(struct sstat *sstat, extraparam *notused, int badness, int *color)
 sys_printdef syspdef_SHMSWP = {"SHMSWP", sysprt_SHMSWP, NULL};
 /*******************************************************************/
 static char *
+sysprt_ANONHUP(struct sstat *sstat, extraparam *notused, int badness, int *color)
+{
+        static char buf[16]="anonhp  ";
+
+	*color = -1;
+        val2memstr(sstat->mem.anonhugepage, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+static int
+sysval_ANONHUP(struct sstat *sstat)
+{
+	return sstat->mem.anonhugepage;
+}
+
+sys_printdef syspdef_ANONHUP = {"ANONHUP", sysprt_ANONHUP, sysval_ANONHUP};
+/*******************************************************************/
+static char *
 sysprt_HUPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="hptot  ";

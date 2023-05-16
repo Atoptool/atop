@@ -71,7 +71,7 @@ struct	memstat {
 	count_t	shmswp;		// swapped shared memory (pages)
 
 	count_t	slabreclaim;	// reclaimable slab (pages)
-
+	count_t anonhugepage;   // anonymous transparent huge pages (bytes)
 	count_t	tothugepage;	// total huge pages (huge pages)
 	count_t	freehugepage;	// free  huge pages (huge pages)
 	count_t	hugepagesz;	// huge page size (bytes)
@@ -90,7 +90,7 @@ struct	memstat {
 	count_t	pgouts;		// total number of pages written to block device
 	count_t	pgins;		// total number of pages read from block device
 	count_t	pagetables;	// page tables of processes (pages)
-	count_t	cfuture[4];	// reserved for future use
+	count_t	cfuture[3];	// reserved for future use
 };
 
 /************************************************************************/

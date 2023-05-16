@@ -717,6 +717,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.shmrss		= cur->mem.shmrss;
 	dev->mem.shmswp		= cur->mem.shmswp;
 
+	dev->mem.anonhugepage	= cur->mem.anonhugepage;
 	dev->mem.tothugepage	= cur->mem.tothugepage;
 	dev->mem.freehugepage	= cur->mem.freehugepage;
 	dev->mem.hugepagesz	= cur->mem.hugepagesz;
