@@ -253,6 +253,9 @@ generic_samp(time_t curtime, int nsecs,
 			   case MPROCARG:	// switch to text mode: arguments
 				showtype  = MPROCARG;
 
+				displaymode = 'T';
+				break;
+
   			   default:
 				return retval;
 			}
