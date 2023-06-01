@@ -455,6 +455,7 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->cpu.cgcpuweight = curstat->cpu.cgcpuweight;
 	devstat->cpu.cgcpumax    = curstat->cpu.cgcpumax;
 	devstat->cpu.cgcpumaxr   = curstat->cpu.cgcpumaxr;
+	devstat->cpu.nropen      = curstat->cpu.nropen;
 
 	if (curstat->cpu.wchan[0])
 		strcpy(devstat->cpu.wchan, curstat->cpu.wchan);

@@ -423,6 +423,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_STTIME,
 	&procprt_ENDATE,
 	&procprt_ENTIME,
+	&procprt_NROPEN,
 	&procprt_THR,
 	&procprt_TRUN,
 	&procprt_TSLPI,
@@ -1300,7 +1301,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
                         "STDATE:7 STTIME:7 ENDATE:5 ENTIME:5 "
-			"ST:6 EXC:6 S:6 SORTITEM:10 CMD:10", 
+			"NROPEN:5 ST:6 EXC:6 S:6 SORTITEM:10 CMD:10",
                         "built-in varprocs");
 
                 make_proc_prints(cmdprocs, MAXITEMS,

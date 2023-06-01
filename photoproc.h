@@ -82,7 +82,8 @@ struct tstat {
 		int	cgcpuweight;	/* cgroup cpu.weight            */
 		int	cgcpumax;	/* cgroup cpu.max percentage    */
 		int	cgcpumaxr;	/* restrictive percentage       */
-		int	ifuture[3];	/* reserved for future use	*/
+		int	nropen;		/* number of opened files       */
+		int	ifuture[2];	/* reserved for future use	*/
 		char	wchan[16];	/* wait channel string    	*/
 		count_t	rundelay;	/* schedstat rundelay (nanosec)	*/
 		count_t	blkdelay;	/* blkio delay (ticks)		*/
