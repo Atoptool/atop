@@ -2055,7 +2055,7 @@ drawevent(struct perwindow *w, int line, int column, int color,
 
 	line -= 1;
        	wattron(w->win, A_BOLD);
-	mvwprintw(w->win, line, column, text);
+	mvwprintw(w->win, line, column, "%s", text);
        	wattroff(w->win, A_BOLD);
 
 	colorswoff(w->win, color);
@@ -2105,7 +2105,7 @@ headergetch(time_t curtime, int nsecs, char *statusmsg, int statuscol)
 	{
         	colorswon(headwin, statuscol);
 		wattron(headwin, A_REVERSE);
-		mvwprintw(headwin, 0, statcol, statusmsg);
+		mvwprintw(headwin, 0, statcol, "%s", statusmsg);
 		wattroff(headwin, A_REVERSE);
         	colorswoff(headwin, statuscol);
 	}
@@ -2328,7 +2328,7 @@ getwininput(char *prompt, char *answer, int maxanswer, char numerical)
 
 	// show the prompt
 	//
-	mvwprintw(mywin, 1, 1, prompt);
+	mvwprintw(mywin, 1, 1, "%s", prompt);
 
 	// prepare reading input
 	//
