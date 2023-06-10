@@ -235,6 +235,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 			curtask->gen.nthrrun  = 0;
 			curtask->gen.nthrslpi = 0;
 			curtask->gen.nthrslpu = 0;
+			curtask->gen.nthridle = 0;
 
 			/*
  			** rundelay and blkdelay on process level only
@@ -334,9 +335,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 	   		   		   case 'S':
 						curtask->gen.nthrslpi += 1;
 						break;
-	   		   		   case 'I':
 	   		   		   case 'D':
 						curtask->gen.nthrslpu += 1;
+						break;
+	   		   		   case 'I':
+						curtask->gen.nthridle += 1;
 						break;
 					}
 
@@ -533,9 +536,11 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
   	   case 'S':
 		curtask->gen.nthrslpi = 1;
 		break;
-	   case 'I':
   	   case 'D':
 		curtask->gen.nthrslpu = 1;
+		break;
+	   case 'I':
+		curtask->gen.nthridle = 1;
 		break;
 	}
 

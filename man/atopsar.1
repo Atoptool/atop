@@ -420,16 +420,21 @@ Total number of processes present in the system.
 .B curzomb
 Number of zombie processes present in the system.
 .TP 12
-.B thrrun
+.B trun
 Total number of threads present in the system in state 'running'.
 .TP 12
-.B thrslpi
+.B tslpi
 Total number of threads present in the system in
 state 'interruptible sleeping'.
 .TP 12
-.B thrslpu
+.B tslpu
 Total number of threads present in the system in
 state 'uninterruptible sleeping'.
+.TP 12
+.B tidle
+Total number of threads present in the system in
+state 'idle' (uninterruptible sleeping but not counted
+in the load average).
 .PP
 The output for the flag
 .B -m

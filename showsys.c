@@ -357,6 +357,16 @@ sysprt_PRCNDSLEEPING(struct sstat *notused, extraparam *as, int badness, int *co
 sys_printdef syspdef_PRCNDSLEEPING = {"PRCNDSLEEPING", sysprt_PRCNDSLEEPING, NULL};
 /*******************************************************************/
 static char *
+sysprt_PRCNIDLE(struct sstat *notused, extraparam *as, int badness, int *color) 
+{
+        static char buf[15]="#tidle    ";
+        val2valstr(as->ntidle, buf+8, 4, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_PRCNIDLE = {"PRCNIDLE", sysprt_PRCNIDLE, NULL};
+/*******************************************************************/
+static char *
 sysprt_PRCNZOMBIE(struct sstat *notused, extraparam *as, int badness, int *color) 
 {
         static char buf[15]="#zombie   ";

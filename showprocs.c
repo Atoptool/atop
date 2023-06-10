@@ -123,6 +123,8 @@ char *procprt_TSLPI_a(struct tstat *, int, int);
 char *procprt_TSLPI_e(struct tstat *, int, int);
 char *procprt_TSLPU_a(struct tstat *, int, int);
 char *procprt_TSLPU_e(struct tstat *, int, int);
+char *procprt_TIDLE_a(struct tstat *, int, int);
+char *procprt_TIDLE_e(struct tstat *, int, int);
 char *procprt_POLI_a(struct tstat *, int, int);
 char *procprt_POLI_e(struct tstat *, int, int);
 char *procprt_NICE_a(struct tstat *, int, int);
@@ -1305,6 +1307,24 @@ procprt_TSLPU_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_TSLPU = 
    { "TSLPU", "TSLPU", procprt_TSLPU_a, procprt_TSLPU_e, 5 };
+/***************************************************************/
+char *
+procprt_TIDLE_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[15];
+
+        sprintf(buf, "%5d", curstat->gen.nthridle);
+        return buf;
+}
+
+char *
+procprt_TIDLE_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    0";
+}
+
+proc_printdef procprt_TIDLE = 
+   { "TIDLE", "TIDLE", procprt_TIDLE_a, procprt_TIDLE_e, 5 };
 /***************************************************************/
 #define SCHED_NORMAL	0
 #define SCHED_FIFO	1

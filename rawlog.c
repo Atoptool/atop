@@ -133,6 +133,7 @@ rawwrite(time_t curtime, int numsecs,
 	rr.totrun	= devtstat->totrun;
 	rr.totslpi	= devtstat->totslpi;
 	rr.totslpu	= devtstat->totslpu;
+	rr.totidle	= devtstat->totidle;
 	rr.totzomb	= devtstat->totzombie;
 	rr.scomplen	= scomplen;
 	rr.pcomplen	= pcomplen;
@@ -729,6 +730,7 @@ rawread(void)
  			devtstat.totrun		= rr.totrun;
  			devtstat.totslpi	= rr.totslpi;
  			devtstat.totslpu	= rr.totslpu;
+ 			devtstat.totidle	= rr.totidle;
  			devtstat.totzombie	= rr.totzomb;
 
 			/*

@@ -86,6 +86,7 @@ sys_printdef *prcsyspdefs[] = {
         &syspdef_PRCNRUNNING,
         &syspdef_PRCNSLEEPING,
         &syspdef_PRCNDSLEEPING,
+        &syspdef_PRCNIDLE,
 	&syspdef_PRCNZOMBIE,
 	&syspdef_PRCCLONES,
 	&syspdef_PRCNNEXIT,
@@ -427,6 +428,7 @@ proc_printdef *allprocpdefs[]=
 	&procprt_TRUN,
 	&procprt_TSLPI,
 	&procprt_TSLPU,
+	&procprt_TIDLE,
 	&procprt_POLI,
 	&procprt_NICE,
 	&procprt_PRI,
@@ -820,6 +822,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	extra.ntrun	= devtstat->totrun;
 	extra.ntslpi	= devtstat->totslpi;
 	extra.ntslpu	= devtstat->totslpu;
+	extra.ntidle	= devtstat->totidle;
         extra.nzomb	= devtstat->totzombie;
         extra.nexit	= nexit;
         extra.noverflow	= noverflow;
@@ -841,8 +844,9 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "PRCNRUNNING:5 "
                         "PRCNSLEEPING:5 "
                         "PRCNDSLEEPING:5 "
-                        "PRCNZOMBIE:5 "
-                        "PRCCLONES:4 "
+                        "PRCNIDLE:5 "
+                        "PRCNZOMBIE:4 "
+                        "PRCCLONES:3 "
 	                "BLANKBOX:0 "
                         "PRCNNEXIT:6",
 			prcsyspdefs, "builtin sysprcline",
@@ -1271,8 +1275,8 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 
                 make_proc_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:4 VPID:3 CTID:3 TRUN:7 TSLPI:7 "
-			"TSLPU:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 ST:8 "
-			"EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 "
+			"TSLPU:7 TIDLE:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 "
+			"ST:8 EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 "
 			"NVCSW:7 NIVCSW:7 SORTITEM:10 CMD:10",
                         "built-in schedprocs");
 

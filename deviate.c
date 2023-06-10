@@ -133,6 +133,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 				devtstat->totrun   += curstat->gen.nthrrun;
 				devtstat->totslpi  += curstat->gen.nthrslpi;
 				devtstat->totslpu  += curstat->gen.nthrslpu;
+				devtstat->totidle  += curstat->gen.nthridle;
 			}
 		}
 

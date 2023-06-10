@@ -59,6 +59,7 @@ struct tstat {
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */
+		int	nthridle;	/* # threads in state 'I'	*/
 
 		int	ctid;		/* OpenVZ container ID		*/
 		int	vpid;		/* OpenVZ virtual PID		*/
@@ -179,7 +180,7 @@ struct devtstat {
 	unsigned long	nprocall;
 	unsigned long	nprocactive;
 
-        unsigned long   totrun, totslpi, totslpu, totzombie;
+        unsigned long   totrun, totslpi, totslpu, totidle, totzombie;
 };
 
 /*

@@ -91,7 +91,8 @@ struct rawrecord {
 	unsigned int	totzomb;	/* number of zombie processes   */
 	unsigned int	nexit;		/* number of exited processes   */
 	unsigned int	noverflow;	/* number of overflow processes */
-	unsigned int	ifuture[6];	/* future use                   */
+	unsigned int    totidle;	/* number of idle     threads(I)*/
+	unsigned int	ifuture[5];	/* future use                   */
 };
 
 #endif

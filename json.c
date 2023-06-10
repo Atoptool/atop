@@ -976,6 +976,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nthrrun\": %d, "
 			"\"nthrslpi\": %d, "
 			"\"nthrslpu\": %d, "
+			"\"nthridle\": %d, "
 			"\"euid\": %d, "
 			"\"egid\": %d, "
 			"\"elaps\": \"%ld\", "
@@ -996,6 +997,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.nthrrun,
 			ps->gen.nthrslpi,
 			ps->gen.nthrslpu,
+			ps->gen.nthridle,
 			ps->gen.euid,
 			ps->gen.egid,
 			ps->gen.elaps,

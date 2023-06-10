@@ -643,6 +643,7 @@ process-id,
 number of threads in state 'running' (R),
 number of threads in state 'interruptible sleeping' (S),
 number of threads in state 'uninterruptible sleeping' (D),
+number of threads in state 'idle' (I),
 scheduling policy (normal timesharing, realtime round-robin, realtime fifo),
 nice value, priority, realtime priority, current processor,
 status, exit code, state, the occupation percentage for the chosen
@@ -1262,7 +1263,8 @@ This line contains the total CPU time consumed
 in system mode ('sys') and in user mode ('user'),
 the total number of processes present at this moment ('#proc'),
 the total number of threads present at this moment in state 'running'
-('#trun'), 'sleeping interruptible' ('#tslpi') and 'sleeping uninterruptible' ('#tslpu'),
+('#trun'), 'sleeping interruptible' ('#tslpi'), 'sleeping uninterruptible'
+('#tslpu') and 'idle' ('#tidle'),
 the number of zombie processes ('#zombie'),
 the number of clone system calls ('clones'), and
 the number of processes that ended during the interval
@@ -2206,6 +2208,11 @@ different TID. This value is shown for individual threads in
 multi-threaded processes (when using the key 'y').
 .PP
 .TP 9
+.B TIDLE
+Number of threads within this process that are in the state 'idle' (I),
+i.e. uninterruptible sleeping threads that do not count for the load average.
+.PP
+.TP 9
 .B TRUN
 Number of threads within this process that are in the state 'running' (R).
 .PP
@@ -2650,8 +2657,9 @@ filesystem uid, filesystem gid, elapsed time of terminated process (hertz),
 is_process (y/n), OpenVZ  virtual pid (VPID), OpenVZ container id (CTID),
 Docker container id (CID),
 indication if the task is newly started during this interval ('N'),
-cgroup v2 path name (between parenthesis or underscores for spaces), and
-end time (epoch or 0 if still active).
+cgroup v2 path name (between parenthesis or underscores for spaces),
+end time (epoch or 0 if still active), and
+number of threads in state 'idle' (I).
 .TP 9
 .B PRC
 For every process one line is shown.
