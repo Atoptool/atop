@@ -369,8 +369,9 @@ atopsar(int argc, char *argv[])
 	*/
 	rlim.rlim_cur	= RLIM_INFINITY;
 	rlim.rlim_max	= RLIM_INFINITY;
-	(void) setrlimit(RLIMIT_MEMLOCK, &rlim);
-	(void) mlockall(MCL_CURRENT|MCL_FUTURE);
+
+	if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
+		(void) mlockall(MCL_CURRENT|MCL_FUTURE);
 
 	/*
 	** increment CPU scheduling-priority to get reliable samples (also
