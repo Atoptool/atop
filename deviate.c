@@ -346,7 +346,15 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		/*
 		** try to match the network counters of netatop
 		*/
-		if (supportflags & NETATOPD)
+		if (supportflags & NETATOPBPF)
+		{
+			unsigned long	val = (hashtype == 'p' ?
+						curstat->gen.pid :
+						curstat->gen.btime);
+
+			netatop_bpf_exitfind(val, devstat, &prestat);
+		}
+		else if (supportflags & NETATOPD)
 		{
 			unsigned long	val = (hashtype == 'p' ?
 						curstat->gen.pid :
