@@ -202,7 +202,7 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   case MPROCNET:	// switch to text mode: network
-				if (supportflags & NETATOP)
+				if (supportflags & NETATOP || supportflags & NETATOPBPF)
 				{
 					showtype  = MPROCNET;
 
@@ -1200,7 +1200,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MSORTNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF))
 				{
-					statmsg = "Kernel module 'netatop' not "
+					statmsg = "'netatop' not "
 					          "active or no root privs; "
 					          "request ignored!";
 					break;

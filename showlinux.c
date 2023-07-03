@@ -1345,7 +1345,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 		prev_supportflags = supportflags;
 		prev_threadview   = threadview;
 
-		if (*showtype == MPROCNET && !(supportflags&NETATOP) )
+		if (*showtype == MPROCNET && !(supportflags&NETATOP||supportflags&NETATOPBPF) )
 		{
 			*showtype  = MPROCGEN;
 			*showorder = MSORTCPU;
@@ -1466,7 +1466,7 @@ make_proc_dynamicgen()
 		p += sizeof FORMDSK -1;
 	}
 
-	if (supportflags & NETATOP)
+	if (supportflags & NETATOP || supportflags & NETATOPBPF)
 	{
 		memcpy(p, FORMNET, sizeof FORMNET -1);
 		p += sizeof FORMNET -1;
@@ -2261,7 +2261,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         else
                                 badness = 0;
 
-                        if (highbadness < badness && (supportflags & NETATOP) )
+                        if (highbadness < badness && (supportflags & NETATOP || supportflags & NETATOPBPF) )
                         {
                                 highbadness = badness;
                                 *highorderp = MSORTNET;
