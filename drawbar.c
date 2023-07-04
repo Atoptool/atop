@@ -551,10 +551,10 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 		labellen = snprintf(buf, sizeof buf, "%d", numcpus);
 
 		vertvals = malloc(numlabs * sizeof(struct vertval));
-		ptrverify(vertvals, "Malloc failed for %ld vertval structs failed\n", numlabs);
+		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numlabs);
 
 		labarea = malloc(numlabs * (labellen+1));
-		ptrverify(labarea, "Malloc failed for %ld CPU labels failed\n", numlabs);
+		ptrverify(labarea, "Malloc failed for %d CPU labels\n", numlabs);
 
 		// create new X axis labels
 		//
@@ -734,10 +734,10 @@ do_dskbars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 		numdisks = sstat->dsk.ndsk;
 
 		vertvals = malloc(numdisks * sizeof(struct vertval));
-		ptrverify(vertvals, "Malloc failed for %ld vertval structs failed\n", numdisks);
+		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numdisks);
 
 		labarea = malloc(numdisks * (MAXLABLEN+1));
-		ptrverify(labarea, "Malloc failed for %ld disk labels failed\n", numdisks);
+		ptrverify(labarea, "Malloc failed for %d disk labels\n", numdisks);
 
 		// create new X axis labels
 		//
@@ -931,10 +931,10 @@ addifscale(char *interface, int scale)
 		hash += *p;
 
 	isp = malloc(sizeof(struct ifscale));
-	ptrverify(isp, "Malloc failed for ifscale struct failed\n");
+	ptrverify(isp, "Malloc failed for ifscale struct\n");
 
 	isp->interface 	= malloc(len+1);
-	ptrverify(isp->interface, "Malloc failed for ifscale name failed\n");
+	ptrverify(isp->interface, "Malloc failed for ifscale name\n");
 	strcpy(isp->interface, interface);
 
 	isp->next 	= ishash[hash&(ISNUM-1)];
@@ -1011,10 +1011,10 @@ do_netbars(struct sstat *sstat, int nsecs, char initlabels, char lower)
 		// create new label space
 		//
 		netvals = malloc(numints * sizeof(struct netval));
-		ptrverify(netvals, "Malloc failed for %ld netvals structs failed\n", numints);
+		ptrverify(netvals, "Malloc failed for %ld netvals structs\n", numints);
 
 		labarea = malloc(numints * (MAXLABLEN+1));
-		ptrverify(labarea, "Malloc failed for %ld interface labels failed\n", numints);
+		ptrverify(labarea, "Malloc failed for %ld interface labels\n", numints);
 
 		// create new X axis labels
 		//
