@@ -2586,6 +2586,14 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 					curstat->gpu.nrgpus++;
 			}
 		}
+	} else {
+		if (curproc->gen.excode & 0xff)
+		{
+			if (curproc->gen.excode & 0x80)
+				curstat->gen.nthrslpi++;	// coredump
+			else if ((curproc->gen.excode & 0x7f) == 9 )
+				curstat->gen.nthrslpu++;	// sigkill
+		}
 	}
 }
 

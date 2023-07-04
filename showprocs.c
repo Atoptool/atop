@@ -186,6 +186,8 @@ char *procprt_CGRSWPMAX_e(struct tstat *, int, int);
 char *procprt_CGRSWPMAXR_a(struct tstat *, int, int);
 char *procprt_CGRSWPMAXR_e(struct tstat *, int, int);
 char *procprt_SORTITEM_ae(struct tstat *, int, int);
+char *procprt_NRSIGKILL_ae(struct tstat *, int, int);
+char *procprt_NRCORE_ae(struct tstat *, int, int);
 
 
 static char     *columnhead[] = {
@@ -2528,3 +2530,27 @@ procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_SORTITEM =   // width is dynamically defined!
    { 0, "SORTITEM", procprt_SORTITEM_ae, procprt_SORTITEM_ae, 4};
+/***************************************************************/
+char *
+procprt_NRSIGKILL_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+       static char buf[10];
+
+        val2valstr(curstat->gen.nthrslpu, buf, 6, 0, 0); // pid abused as proc counter
+        return buf;
+}
+
+proc_printdef procprt_NRSIGKILL =   // width is dynamically defined!
+   {"NRSIGKILL", "NRSIGKILL", procprt_NRSIGKILL_ae, procprt_NRSIGKILL_ae, 4};
+/***************************************************************/
+char *
+procprt_NRCORE_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+       static char buf[10];
+
+        val2valstr(curstat->gen.nthrslpi, buf, 6, 0, 0); // pid abused as proc counter
+        return buf;
+}
+
+proc_printdef procprt_NRCORE =   // width is dynamically defined!
+   {"NRCORE", "NRCORE", procprt_NRCORE_ae, procprt_NRCORE_ae, 4};

@@ -312,6 +312,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			devstat->gen.excode |= ~(INT_MAX);
 
 		strcpy(devstat->gen.cmdline, prestat.gen.cmdline);
+		strcpy(devstat->gen.container, prestat.gen.container);
 
 		devstat->cpu.curcpu = -1;
 
