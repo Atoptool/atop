@@ -103,22 +103,6 @@ photoproc(struct tstat *tasklist, int maxtask)
 			fclose(fp);
 		}
 
-		/*
-		** check if this kernel offers cgroups version 2
-		*/
-		if ( (fp = fopen("/proc/1/cgroup", "r")) )
-		{
-			char line[128];
-
-			if (fgets(line, sizeof line, fp))
-			{
-				if (memcmp(line, "0::", 3) == 0) // equal?
-					supportflags |= CGROUPV2;
-			}
-
-			fclose(fp);
-		}
-
 		if (! droprootprivs())
 			mcleanstop(42, "failed to drop root privs\n");
 

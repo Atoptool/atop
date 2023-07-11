@@ -2058,6 +2058,126 @@ sysprt_NUMLLC(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 sys_printdef syspdef_NUMLLC = {"NUMLLC", sysprt_NUMLLC, NULL};
 /*******************************************************************/
+static char *
+sysprt_K8SFILE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "file  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.file * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SFILE = {"K8SFILE", sysprt_K8SFILE, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SANON(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "anon  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.anon * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SANON = {"K8SANON", sysprt_K8SANON, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SSHMEM(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "shmem  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.shmem * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SSHMEM = {"K8SSHMEM", sysprt_K8SSHMEM, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SFILEMAPPED(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "fmap  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.filemapped * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SFILEMAPPED = {"K8SFILEMAPPED", sysprt_K8SFILEMAPPED, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SACTIVEANON(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "actan  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.activeanon * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SACTIVEANON = {"K8SACTIVEANON", sysprt_K8SACTIVEANON, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SINACTIVEANON(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "inan  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.inactiveanon * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SINACTIVEANON = {"K8SINACTIVEANON", sysprt_K8SINACTIVEANON, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SACTIVEFILE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "actfl  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.activefile * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SACTIVEFILE = {"K8SACTIVEFILE", sysprt_K8SACTIVEFILE, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SINACTIVEFILE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "infl  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.inactivefile * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SINACTIVEFILE = {"K8SINACTIVEFILE", sysprt_K8SINACTIVEFILE, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SUSAGEFILE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "usage  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.usagefile * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SUSAGEFILE = {"K8SUSAGEFILE", sysprt_K8SUSAGEFILE, NULL};
+/*******************************************************************/
+static char *
+sysprt_K8SWORKINGSET(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16] = "wkset  ";
+
+	*color = -1;
+	val2memstr(sstat->k8smem.workingset * pagesize, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_K8SWORKINGSET = {"K8SWORKINGSET", sysprt_K8SWORKINGSET, NULL};
+/*******************************************************************/
 // general formatting of PSI field in avg10/avg60/avg300
 static void
 psiformatavg(struct psi *p, char *head, char *buf, int bufsize)

@@ -1527,6 +1527,23 @@ the number of memory pages the system wrote to swap space ('swout'), and
 the number of out-of-memory kills ('oomkill').
 .PP
 .TP 5
+.B K8S
+K8S global /sys/fs/cgroup/[memory/]kubepods/memory.stat.
+.br
+This line shows the number of file pages for k8s global memcg (`file'),
+the number of mapped anonymous pages for k8s global memcg (`anon'),
+the number of shmem pages (included tmpfs/GEM pages) for k8s global
+memcg (`shmem'), the number of pagecache pages mapped into pagetables
+for k8s global memcg (`fmap'), the number of lru inactive anon pages
+for k8s global memcg (`inan'), the number of lru active anon pages
+for k8s global memcg (`actan'), the number of lru inactive file pages
+for k8s global memcg (`infl'), the number of lru active file pages
+for k8s global memcg (`actfl'), the number of current usage file
+for k8s global memcg, including usermem and kmem (`usage'), the
+number of workingset file pages (from k8s vision: number of current
+usage pages minus inactivefile pages) for k8s global memcg (`wkset').
+.PP
+.TP 5
 .B PSI
 Pressure Stall Information.
 .br

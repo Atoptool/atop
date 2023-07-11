@@ -46,6 +46,7 @@
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <limits.h>
+#include <sys/vfs.h>
 
 #define SCALINGMAXCPU	8	// threshold for scaling info per CPU
 
@@ -75,8 +76,20 @@
 #define	MDDTYPE	2
 #define	LVMTYPE	3
 
+/* According to https://man7.org/linux/man-pages/man2/statfs.2.html */
+#define CGROUP_FTYPE_V1	16914836	/* TMPFS_MAGIC 0x01021994 */
+#define CGROUP_FTYPE_V2	1667723888	/* CGROUP2_SUPER_MAGIC 0x63677270 */
+
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
+
+/* recognize k8s global memory.stat and memory current usage */
+#define K8S_MEMDIR_CGV1	"/sys/fs/cgroup/memory/kubepods"
+#define K8S_MEMDIR_CGV2	"/sys/fs/cgroup/kubepods"
+#define K8S_SYSTEMD_CM		".slice"
+#define K8S_MEM_STAT		"/memory.stat"
+#define K8S_MEM_CGV1_USAGE	"/memory.usage_in_bytes"
+#define K8S_MEM_CGV2_USAGE	"/memory.current"
 
 /* recognize LLC monitor data */
 #define LLCDIR	"/sys/fs/resctrl/mon_data"
@@ -291,6 +304,8 @@ photosyst(struct sstat *si)
 #if	HTTPSTATS
 	static int	wwwvalid = 1;
 #endif
+	static int	cgroupVersion = 0;
+	struct statfs	statfscgrp;
 
 	memset(si, 0, sizeof(struct sstat));
 
@@ -868,6 +883,172 @@ photosyst(struct sstat *si)
 		}
 
 		fclose(fp);
+	}
+
+	/*
+	** Identify the cgroup version on Linux Nodes: `stat -fc %T /sys/fs/cgroup/`.
+	** For cgroup v2, the output is cgroup2fs.
+	** For cgroup v1, the output is tmpfs.
+	*/
+	if ( !cgroupVersion )
+	{
+		if ( statfs("/sys/fs/cgroup/", &statfscgrp) == 0 )
+		{
+			if ( statfscgrp.f_type == CGROUP_FTYPE_V2 )
+			{
+				cgroupVersion = 2;
+				supportflags |= CGROUPV2;
+			}
+			else if ( statfscgrp.f_type == CGROUP_FTYPE_V1 )
+				cgroupVersion = 1;
+			else
+				cgroupVersion = 0;
+		}
+	}
+
+	if ( supportflags & CGROUPV2 )
+	{
+		if ( (fp = fopen(K8S_MEMDIR_CGV2 K8S_MEM_STAT, "r")) != NULL ||
+		     (fp = fopen(K8S_MEMDIR_CGV2 K8S_SYSTEMD_CM K8S_MEM_STAT, "r")) != NULL )
+		{
+			/* for cgroup v2 */
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(linebuf, "%s %lld\n", nam, &cnts[0]);
+
+				if ( strcmp("file", nam) == EQ )
+				{
+					si->k8smem.file = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("anon", nam) == EQ )
+				{
+					si->k8smem.anon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("shmem", nam) == EQ )
+				{
+					si->k8smem.shmem = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("file_mapped", nam) == EQ )
+				{
+					si->k8smem.filemapped = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("inactive_anon", nam) == EQ )
+				{
+					si->k8smem.inactiveanon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("active_anon", nam) == EQ )
+				{
+					si->k8smem.activeanon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("inactive_file", nam) == EQ )
+				{
+					si->k8smem.inactivefile = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("active_file", nam) == EQ )
+				{
+					si->k8smem.activefile = cnts[0]/pagesize;
+					continue;
+				}
+			}
+
+			fclose(fp);
+		}
+
+		if ( (fp = fopen(K8S_MEMDIR_CGV2 K8S_MEM_CGV2_USAGE, "r")) != NULL ||
+		     (fp = fopen(K8S_MEMDIR_CGV2 K8S_SYSTEMD_CM K8S_MEM_CGV2_USAGE, "r")) != NULL )
+		{
+			if ( fscanf(fp, "%lld", &cnts[0]) == 1 )
+			{
+				/*
+				** Refer to https://github.com/kubernetes/kubernetes/issues/43916,
+				** memory.available := node.status.capacity[memory] - node.stats.memory.workingSet
+				** && workingSet := $cgroupfs/memory.current - inactive_file
+				*/
+				si->k8smem.usagefile  = cnts[0]/pagesize;
+				si->k8smem.workingset = si->k8smem.usagefile - si->k8smem.inactivefile;
+			}
+
+			fclose(fp);
+		}
+	}
+	else
+	{
+		if ( (fp = fopen(K8S_MEMDIR_CGV1 K8S_MEM_STAT, "r")) != NULL ||
+		     (fp = fopen(K8S_MEMDIR_CGV1 K8S_SYSTEMD_CM K8S_MEM_STAT, "r")) != NULL )
+		{
+			/* for cgroup v1 */
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
+			{
+				nr = sscanf(linebuf, "%s %lld\n", nam, &cnts[0]);
+
+				if ( strcmp("total_cache", nam) == EQ )
+				{
+					si->k8smem.file = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_rss", nam) == EQ)
+				{
+					si->k8smem.anon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_shmem", nam) == EQ)
+				{
+					si->k8smem.shmem = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_mapped_file", nam) == EQ)
+				{
+					si->k8smem.filemapped = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_inactive_anon", nam) == EQ)
+				{
+					si->k8smem.inactiveanon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_active_anon", nam) == EQ)
+				{
+					si->k8smem.activeanon = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_inactive_file", nam) == EQ)
+				{
+					si->k8smem.inactivefile = cnts[0]/pagesize;
+					continue;
+				}
+				if ( strcmp("total_active_file", nam) == EQ)
+				{
+					si->k8smem.activefile = cnts[0]/pagesize;
+					continue;
+				}
+			}
+
+			fclose(fp);
+		}
+
+		if ( (fp = fopen(K8S_MEMDIR_CGV1 K8S_MEM_CGV1_USAGE, "r")) != NULL ||
+		     (fp = fopen(K8S_MEMDIR_CGV1 K8S_SYSTEMD_CM K8S_MEM_CGV1_USAGE, "r")) != NULL )
+		{
+			if ( fscanf(fp, "%lld", &cnts[0]) == 1 )
+			{
+				/*
+				** Refer to https://github.com/kubernetes/kubernetes/issues/43916,
+				** memory.available := node.status.capacity[memory] - node.stats.memory.workingSet
+				** && workingSet := $cgroupfs/memory.usage_in_bytes - total_inactive_file
+				*/
+				si->k8smem.usagefile  = cnts[0]/pagesize;
+				si->k8smem.workingset = si->k8smem.usagefile - si->k8smem.inactivefile;
+			}
+
+			fclose(fp);
+		}
 	}
 
 	/*

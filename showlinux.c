@@ -245,6 +245,19 @@ sys_printdef *llcsyspdefs[] = {
 	&syspdef_BLANKBOX,
         0
 };
+sys_printdef *k8smemsyspdefs[] = {
+	&syspdef_K8SFILE,
+	&syspdef_K8SANON,
+	&syspdef_K8SSHMEM,
+	&syspdef_K8SFILEMAPPED,
+	&syspdef_K8SINACTIVEANON,
+	&syspdef_K8SACTIVEANON,
+	&syspdef_K8SINACTIVEFILE,
+	&syspdef_K8SACTIVEFILE,
+	&syspdef_K8SUSAGEFILE,
+	&syspdef_K8SWORKINGSET,
+	0
+};
 sys_printdef *psisyspdefs[] = {
 	&syspdef_PSICPUSTOT,
 	&syspdef_PSIMEMSTOT,
@@ -522,6 +535,7 @@ sys_printpair swpline[MAXITEMS];
 sys_printpair memnumaline[MAXITEMS];
 sys_printpair cpunumaline[MAXITEMS];
 sys_printpair llcline[MAXITEMS];
+sys_printpair k8smemline[MAXITEMS];
 sys_printpair pagline[MAXITEMS];
 sys_printpair psiline[MAXITEMS];
 sys_printpair contline[MAXITEMS];
@@ -1030,6 +1044,23 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 			llcsyspdefs, "builtin llcline",
 			sstat, &extra);
                 }
+
+		if (k8smemline[0].f == 0)
+		{
+		    make_sys_prints(k8smemline, MAXITEMS,
+			"K8SFILE:1 "
+			"K8SANON:1 "
+			"K8SSHMEM:1 "
+			"K8SFILEMAPPED:2 "
+			"K8SACTIVEANON:2 "
+			"K8SINACTIVEANON:2 "
+			"K8SACTIVEFILE:2 "
+			"K8SINACTIVEFILE:1 "
+			"K8SUSAGEFILE:1 "
+			"K8SWORKINGSET:1 ",
+			k8smemsyspdefs, "builtin k8smemline",
+			sstat, &extra);
+		}
 
                 if (pagline[0].f == 0)
                 {
@@ -2014,6 +2045,28 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 		}
 	}
 
+	/*
+	** k8s global memory.stat statistics
+	*/
+	if (fixedhead			||
+	    sstat->k8smem.file		||
+	    sstat->k8smem.anon		||
+	    sstat->k8smem.shmem		||
+	    sstat->k8smem.filemapped	||
+	    sstat->k8smem.inactiveanon	||
+	    sstat->k8smem.activeanon	||
+	    sstat->k8smem.inactivefile	||
+	    sstat->k8smem.activefile	||
+	    sstat->k8smem.usagefile	||
+	    sstat->k8smem.workingset	)
+	{
+		if (screen)
+			move(curline, 0);
+
+		showsysline(k8smemline, sstat, &extra, "K8S", 0);
+		curline++;
+	}
+
         /*
         ** PAGING statistics
         */
@@ -2979,6 +3032,13 @@ void
 do_ownllcline(char *name, char *val)
 {
         make_sys_prints(llcline, MAXITEMS, val, llcsyspdefs, name,
+					NULL, NULL);
+}
+
+void
+do_ownk8smemline(char *name, char *val)
+{
+	make_sys_prints(k8smemline, MAXITEMS, val, k8smemsyspdefs, name,
 					NULL, NULL);
 }
 
