@@ -402,8 +402,8 @@ static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			printf(", ");
 		}
 		printf("{\"gpuid\": %d, "
-			"\"busid\": \"%.19s\", "
-			"\"type\": \"%.19s\", "
+			"\"busid\": \"%s\", "
+			"\"type\": \"%s\", "
 			"\"gpupercnow\": %d, "
 			"\"mempercnow\": %d, "
 			"\"memtotnow\": %lld, "
@@ -554,7 +554,7 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"lvmname\": \"%.19s\", "
+		printf("{\"lvmname\": \"%s\", "
 			"\"io_ms\": %lld, "
 			"\"nread\": %lld, "
 			"\"nrsect\": %lld, "
@@ -585,7 +585,7 @@ static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"mddname\": \"%.19s\", "
+		printf("{\"mddname\": \"%s\", "
 			"\"io_ms\": %lld, "
 			"\"nread\": %lld, "
 			"\"nrsect\": %lld, "
@@ -616,7 +616,7 @@ static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"dskname\": \"%.19s\", "
+		printf("{\"dskname\": \"%s\", "
 			"\"io_ms\": %lld, "
 			"\"nread\": %lld, "
 			"\"nrsect\": %lld, "
@@ -649,7 +649,7 @@ static void json_print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"mountdev\": \"%.19s\", "
+		printf("{\"mountdev\": \"%s\", "
 			"\"bytestotread\": %lld, "
 			"\"bytestotwrite\": %lld, "
 			"\"bytesread\": %lld, "
@@ -770,7 +770,7 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"name\": \"%.19s\", "
+		printf("{\"name\": \"%s\", "
 			"\"rpack\": %lld, "
 			"\"rbyte\": %lld, "
 			"\"rerrs\": %lld, "
@@ -803,7 +803,7 @@ static void json_print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"ibname\": \"%.19s\", "
+		printf("{\"ibname\": \"%s\", "
 			"\"portnr\": \"%hd\", "
 			"\"lanes\": \"%hd\", "
 			"\"maxrate\": %lld, "
@@ -962,7 +962,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 
 		/* using getpwuid() & getpwuid to convert ruid & euid to string seems better, but the two functions take a long time */
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"name\": \"%s\", "
 			"\"state\": \"%c\", "
 			"\"ruid\": %d, "
 			"\"rgid\": %d, "
@@ -971,7 +971,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"st\": \"%s\", "
 			"\"exitcode\": %d, "
 			"\"btime\": \"%ld\", "
-			"\"cmdline\": \"(%.130s)\", "
+			"\"cmdline\": \"%s\", "
 			"\"ppid\": %d, "
 			"\"nthrrun\": %d, "
 			"\"nthrslpi\": %d, "
@@ -981,7 +981,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"egid\": %d, "
 			"\"elaps\": \"%ld\", "
 			"\"isproc\": %d, "
-			"\"cid\": \"%.19s\"}",
+			"\"cid\": \"%s\"}",
 			ps->gen.pid,
 			ps->gen.name,
 			ps->gen.state,
