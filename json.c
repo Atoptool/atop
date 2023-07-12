@@ -777,7 +777,7 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"spack\": %lld, "
 			"\"sbyte\": %lld, "
 			"\"serrs\": %lld, "
-			"\"speed\": \"%ld\", "
+			"\"speed\": %ld, "
 			"\"duplex\": %d}",
 			ss->intf.intf[i].name,
 			ss->intf.intf[i].rpack,
@@ -804,8 +804,8 @@ static void json_print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			printf(", ");
 		}
 		printf("{\"ibname\": \"%s\", "
-			"\"portnr\": \"%hd\", "
-			"\"lanes\": \"%hd\", "
+			"\"portnr\": %hd, "
+			"\"lanes\": %hd, "
 			"\"maxrate\": %lld, "
 			"\"rcvb\": %lld, "
 			"\"sndb\": %lld, "
@@ -834,8 +834,8 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"numanr\": \"%d\", "
-			"\"frag\": \"%f\", "
+		printf("{\"numanr\": %d, "
+			"\"frag\": %f, "
 			"\"totmem\": %lld, "
 			"\"freemem\": %lld, "
 			"\"active\": %lld, "
@@ -873,7 +873,7 @@ static void json_print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"numanr\": \"%d\", "
+		printf("{\"numanr\": %d, "
 			"\"stime\": %lld, "
 			"\"utime\": %lld, "
 			"\"ntime\": %lld, "
@@ -908,9 +908,9 @@ static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		if (i > 0) {
 			printf(", ");
 		}
-		printf("{\"LLC\": \"%3d\", "
-			"\"occupancy\": \"%3.1f%%\", "
-			"\"mbm_total\": \"%lld\", "
+		printf("{\"LLC\": %3d, "
+			"\"occupancy\": %3.1f, "
+			"\"mbm_total\": %lld, "
 			"\"mbm_local\": %lld}",
 			ss->llc.perllc[i].id,
 			ss->llc.perllc[i].occupancy * 100,
@@ -970,7 +970,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nthr\": %d, "
 			"\"st\": \"%s\", "
 			"\"exitcode\": %d, "
-			"\"btime\": \"%ld\", "
+			"\"btime\": %ld, "
 			"\"cmdline\": \"%s\", "
 			"\"ppid\": %d, "
 			"\"nthrrun\": %d, "
@@ -979,7 +979,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"nthridle\": %d, "
 			"\"euid\": %d, "
 			"\"egid\": %d, "
-			"\"elaps\": \"%ld\", "
+			"\"elaps\": %ld, "
 			"\"isproc\": %d, "
 			"\"cid\": \"%s\"}",
 			ps->gen.pid,
@@ -1139,14 +1139,14 @@ static void json_print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
-			"\"tcpsnd\": \"%lld\", "
-			"\"tcpssz\": \"%lld\", "
-			"\"tcprcv\": \"%lld\", "
-			"\"tcprsz\": \"%lld\", "
-			"\"udpsnd\": \"%lld\", "
-			"\"udpssz\": \"%lld\", "
-			"\"udprcv\": \"%lld\", "
-			"\"udprsz\": \"%lld\"}",
+			"\"tcpsnd\": %lld, "
+			"\"tcpssz\": %lld, "
+			"\"tcprcv\": %lld, "
+			"\"tcprsz\": %lld, "
+			"\"udpsnd\": %lld, "
+			"\"udpssz\": %lld, "
+			"\"udprcv\": %lld, "
+			"\"udprsz\": %lld}",
 			ps->gen.pid,
 			ps->net.tcpsnd, ps->net.tcpssz,
 			ps->net.tcprcv, ps->net.tcprsz,
