@@ -510,7 +510,7 @@ static void json_print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		return;
 
 	printf(", %s: {"
-		"\"psi\": \"%c\", "
+		"\"psi\": %s, "
 		"\"cs10\": %.1f, "
 		"\"cs60\": %.1f, "
 		"\"cs300\": %.1f, "
@@ -531,7 +531,7 @@ static void json_print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		"\"iof60\": %.1f, "
 		"\"iof300\": %.1f, "
 		"\"ioftot\": %llu}",
-		hp, ss->psi.present ? 'y' : 'n',
+		hp, ss->psi.present ? "true" : "false",
 		ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
 		ss->psi.cpusome.avg300, ss->psi.cpusome.total,
 		ss->psi.memsome.avg10, ss->psi.memsome.avg60,
@@ -778,7 +778,7 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"sbyte\": %lld, "
 			"\"serrs\": %lld, "
 			"\"speed\": %ld, "
-			"\"duplex\": %d}",
+			"\"duplex\": %s}",
 			ss->intf.intf[i].name,
 			ss->intf.intf[i].rpack,
 			ss->intf.intf[i].rbyte,
@@ -787,7 +787,7 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->intf.intf[i].sbyte,
 			ss->intf.intf[i].serrs,
 			ss->intf.intf[i].speed,
-			ss->intf.intf[i].duplex);
+			ss->intf.intf[i].duplex == 1 ? "true" : "false");
 	}
 
 	printf("]");
@@ -980,7 +980,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"euid\": %d, "
 			"\"egid\": %d, "
 			"\"elaps\": %ld, "
-			"\"isproc\": %d, "
+			"\"isproc\": %s, "
 			"\"cid\": \"%s\"}",
 			ps->gen.pid,
 			ps->gen.name,
@@ -1001,7 +1001,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.euid,
 			ps->gen.egid,
 			ps->gen.elaps,
-			!!ps->gen.isproc, /* convert to boolean */
+			!!ps->gen.isproc == 1 ? "true" : "false",
 			ps->gen.container[0] ? ps->gen.container:"-");
 	}
 
@@ -1027,7 +1027,7 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"prio\": %d, "
 			"\"curcpu\": %d, "
 			"\"tgid\": %d, "
-			"\"isproc\": %d, "
+			"\"isproc\": %s, "
 			"\"rundelay\": %lld, "
 			"\"blkdelay\": %lld, "
 			"\"nvcsw\": %llu, "
@@ -1040,7 +1040,7 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->cpu.prio,
 			ps->cpu.curcpu,
 			ps->gen.tgid,
-			!!ps->gen.isproc,
+			!!ps->gen.isproc == 1 ? "true" : "false",
 			ps->cpu.rundelay/1000000,
 			ps->cpu.blkdelay*1000/hertz,
 			ps->cpu.nvcsw,
