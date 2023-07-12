@@ -58,7 +58,7 @@
 
 int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
 
-static struct pselection procsel = {"", {USERSTUB, }, {0,},
+static struct pselection procsel = {"", {USERSTUB, }, {0,}, {-1,},
                                     "", 0, { 0, },  "", 0, { 0, }, "", "" };
 static struct sselection syssel;
 
@@ -786,63 +786,93 @@ text_samp(time_t curtime, int nsecs,
 			break;
 
 		   default:
-			threadallowed = 1;
-
-			if (deviatonly && showtype  != MPROCMEM &&
-			                  showorder != MSORTMEM   )
+			if (procsel.curcpu[0] != -1)
 			{
-				curlist   = devtstat->procactive;
-				ncurlist  = devtstat->nprocactive;
-			}
+				
+				ncurlist = devtstat->ntaskall;
+				
+				if (tsklist)
+					free(tsklist);	// remove current
+
+				tsklist = malloc(sizeof(struct tstat *)
+								* ncurlist);
+				struct tstat *tall = devtstat->taskall;
+
+				int i,j;
+				for (i=0, j=0; i < ncurlist; i++)
+				{
+					if ((tall+i)->gen.state != 'E' && !(procsuppress(tall+i, &procsel)))
+					{
+						tsklist[j++] = tall+i;
+					}
+				}
+				
+				curlist = tsklist;
+				ncurlist = j;
+				tlastorder = 0; /* new sort and zip normal view */
+				slastorder = 0;	/* new sort and zip now         */
+				lastsortp = &tlastorder;
+			} 
 			else
 			{
-				curlist   = devtstat->procall;
-				ncurlist  = devtstat->nprocall;
+				threadallowed = 1;
+
+				if (deviatonly && showtype  != MPROCMEM &&
+								showorder != MSORTMEM   )
+				{
+					curlist   = devtstat->procactive;
+					ncurlist  = devtstat->nprocactive;
+				}
+				else
+				{
+					curlist   = devtstat->procall;
+					ncurlist  = devtstat->nprocall;
+				}
+
+				lastsortp = &tlastorder;
+
+				if ( procsel.userid[0] == USERSTUB &&
+					!procsel.prognamesz            &&
+					!procsel.container[0]          &&
+					!procsel.states[0]             &&
+					!procsel.argnamesz             &&
+					!procsel.pid[0]                &&
+					!suppressexit                    )
+					/* no selection wanted */
+					break;
+
+				/*
+				** selection specified for tasks:
+				** create new (worst case) pointer list if needed
+				*/
+				if (sellist)	// remove previous list if needed
+					free(sellist);
+
+				sellist = malloc(sizeof(struct tstat *) * ncurlist);
+
+				ptrverify(sellist,
+					"Malloc failed for %d select ptrs\n", ncurlist);
+
+				for (i=nsel=0; i < ncurlist; i++)
+				{
+					if (procsuppress(*(curlist+i), &procsel))
+						continue;
+
+					if (curlist[i]->gen.state == 'E' &&
+						suppressexit                   )
+						continue;
+
+					sellist[nsel++] = curlist[i]; 
+				}
+
+				curlist    = sellist;
+				ncurlist   = nsel;
+				tlastorder = 0; /* new sort and zip normal view */
+				slastorder = 0;	/* new sort and zip now         */
+				lastsortp  = &slastorder;
 			}
-
-			lastsortp = &tlastorder;
-
-			if ( procsel.userid[0] == USERSTUB &&
-			    !procsel.prognamesz            &&
-			    !procsel.container[0]          &&
-			    !procsel.states[0]             &&
-			    !procsel.argnamesz             &&
-			    !procsel.pid[0]                &&
-			    !suppressexit                    )
-				/* no selection wanted */
-				break;
-
-			/*
-			** selection specified for tasks:
-			** create new (worst case) pointer list if needed
-			*/
-			if (sellist)	// remove previous list if needed
-				free(sellist);
-
-			sellist = malloc(sizeof(struct tstat *) * ncurlist);
-
-			ptrverify(sellist,
-			       "Malloc failed for %d select ptrs\n", ncurlist);
-
-			for (i=nsel=0; i < ncurlist; i++)
-			{
-				if (procsuppress(*(curlist+i), &procsel))
-					continue;
-
-				if (curlist[i]->gen.state == 'E' &&
-				    suppressexit                   )
-					continue;
-
-				sellist[nsel++] = curlist[i]; 
-			}
-
-			curlist    = sellist;
-			ncurlist   = nsel;
-			tlastorder = 0; /* new sort and zip normal view */
-			slastorder = 0;	/* new sort and zip now         */
-			lastsortp  = &slastorder;
 		}
-
+		
 		/*
 		** sort the list in required order 
 		** (default CPU-consumption) and print the list
@@ -1750,6 +1780,73 @@ text_samp(time_t curtime, int nsecs,
 
 				firstproc = 0;
 				break;
+			   
+			   /*
+			   ** focus on specific PIDs
+			   */
+			   case MSELCPU:
+				alarm(0);	/* stop the clock */
+				echo();
+
+				move(statline, 0);
+				clrtoeol();
+				printw("CPU Number "
+ 				       "(enter=no selection): ");
+
+				scanw("%79s\n", genline);
+
+				int  id_t = 0;
+
+				char *cpup = strtok(genline, ",");
+
+				while (cpup)
+				{
+					char *ep;
+
+					if (id_t >= MAXPID)
+					{
+						procsel.curcpu[id_t] = -1;	// stub
+
+						statmsg = "Maximum number of"
+						          "CPU reached!";
+						beep();
+						break;
+					}
+
+					procsel.curcpu[id_t] = strtol(cpup, &ep, 10);
+
+					if (procsel.curcpu[id_t] >= sstat->cpu.nrcpu)
+					{
+						procsel.curcpu[id_t] = -1;	// stub
+
+						statmsg = "CPU number is too big!";
+						beep();
+						break;
+					}
+
+					if (*ep)
+					{
+						statmsg = "Non-numerical Pid_t!";
+						beep();
+						procsel.curcpu[0]  = -1;  // stub
+						break;
+					}
+
+					id_t++;
+					cpup = strtok(NULL, ",");
+				}
+
+				procsel.curcpu[id_t] = -1;	// stub
+
+				noecho();
+
+				move(statline, 0);
+
+				if (interval && !paused && !rawreadflag)
+					alarm(3);  /* set short timer */
+
+				firstproc = 0;
+				break;
 
 			   /*
 			   ** focus on specific process/thread state
@@ -2632,6 +2729,25 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 		}
 
 		if (sel->pid[i] != curstat->gen.pid)
+			return 1;
+	}
+
+	/*
+	** check if only processes with particular PIDs
+	** should be shown
+	*/
+	if (sel->curcpu[0] != -1)
+	{
+		int i = 0;
+
+		while (sel->curcpu[i] != -1)
+		{
+			if (sel->curcpu[i] == curstat->cpu.curcpu)
+				break;
+			i++;
+		}
+
+		if (sel->curcpu[i] != curstat->cpu.curcpu)
 			return 1;
 	}
 
