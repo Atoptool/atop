@@ -1,0 +1,60 @@
+.TH ATOPHIDE 1 "July 2023" "Linux"
+.SH NAME
+.B atophide
+- partly copy raw log file and/or anonymize raw log
+.SH SYNOPSIS
+.P
+.B atophide
+[-a]
+[\-b
+.I YYYYMMDDhhmm
+]
+[\-e
+.I YYYYMMDDhhmm
+] rawinput rawoutput
+.P
+.SH DESCRIPTION
+The program
+.I atophide
+can be used to make an extraction from an input raw log to an output raw log,
+specifying a begin time with the
+.B -b
+and/or an end time with the
+.B -e
+flag.
+
+With the
+.B -a
+flag the output rawlog will be anonymized: 
+.PP
+.TP 5
+.B Host name
+The host name in the header line will be replaced by 'anonymized'.
+.PP
+.TP 5
+.B Command names
+Command names will be replaced by place holders, except the names of
+the standard commands and the names of kernel processes.
+.PP
+.TP 5
+.B Command arguments
+The command line arguments of
+.I all
+commands will be wiped.
+.PP
+.TP 5
+.B Logical volumes
+Logical volume names will be replaced by place holders.
+.PP
+.TP 5
+.B NFS shares
+NFS mounted shared volume names will be replaced by place holders.
+.SH SEE ALSO
+.B atop(1),
+.B atopsar(1),
+.B atopcat(1),
+.B atopconvert(1)
+.br
+.B https://www.atoptool.nl
+.SH AUTHOR
+Gerlof Langeveld (gerlof.langeveld@atoptool.nl)

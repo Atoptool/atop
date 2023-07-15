@@ -30,7 +30,7 @@ ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')
 
-all: 		atop atopsar atopacctd atopconvert atopcat
+all: 		atop atopsar atopacctd atopconvert atopcat atophide
 
 atop:		atop.o    $(ALLMODS) Makefile
 		$(CC) atop.o $(ALLMODS) -o atop -lncursesw -lz -lm -lrt $(LDFLAGS)
@@ -46,6 +46,9 @@ atopconvert:	atopconvert.o
 
 atopcat:	atopcat.o
 		$(CC) atopcat.o -o atopcat $(LDFLAGS)
+
+atophide:	atophide.o
+		$(CC) atophide.o -o atophide -lz $(LDFLAGS)
 
 clean:
 		rm -f *.o atop atopsar atopacctd atopconvert atopcat versdate.h
