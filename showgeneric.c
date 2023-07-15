@@ -2528,6 +2528,8 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 	curstat->cpu.stime  += curproc->cpu.stime;
 	curstat->cpu.nvcsw  += curproc->cpu.nvcsw;
 	curstat->cpu.nivcsw += curproc->cpu.nivcsw;
+	curstat->cpu.rundelay += curproc->cpu.rundelay;
+	curstat->cpu.blkdelay += curproc->cpu.blkdelay;
 
 	if (curproc->dsk.wsz > curproc->dsk.cwsz)
                	nett_wsz = curproc->dsk.wsz -curproc->dsk.cwsz;

@@ -1329,7 +1329,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "built-in totprocs");
 
                 make_proc_prints(totconts, MAXITEMS, 
-                        "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
+                        "NPROCS:10 SYSCPU:9 USRCPU:9 RDELAY:8 BDELAY:7 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 SORTITEM:10 CID:10", 
                         "built-in totconts");
