@@ -40,9 +40,11 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdlib.h>
+#include <glib.h>
 
 #include "atop.h"
 #include "photoproc.h"
+#include "netatop.h"
 
 #define	SCANSTAT 	"%c   %d   %*d  %*d  %*d %*d  "	\
 			"%*d  %lld %*d  %lld %*d %lld "	\
@@ -72,6 +74,8 @@ static struct cgroupv2vals *
 void		fillcgroupv2(struct cgroupv2vals *, char *, char *, int);
 int 		readcgroupv2(char *, char *, char *, int, long []);
 static void	wipecgroupv2(void);
+
+extern GHashTable *ghash_net;
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -136,7 +140,27 @@ photoproc(struct tstat *tasklist, int maxtask)
 	*/
 	regainrootprivs();
 
-	netatop_probe();
+	/* 
+	** if kernel module is  not active on this system, 
+	** netatop-bpf will try tp run;
+	*/
+	if (!(supportflags & NETATOPD)) {
+		netatop_bpf_probe();
+	}
+	/* 
+	** if netatop-bpf is  not active on this system, 
+	** kernel module will try to run;
+	*/
+	if (!(supportflags & NETATOPBPF)) {
+		netatop_probe();
+	} 
+
+	/*
+	** if netatop-bpf is active on this system, skip call
+	*/
+	if (supportflags & NETATOPBPF) {
+		netatop_bpf_gettask();
+	}
 
 	if (supportflags & CGROUPV2)
 		wipecgroupv2();
@@ -217,9 +241,25 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
                 if (getwchan)
                 	procwchan(curtask);
+		
+		if (supportflags & NETATOPBPF) {
+			struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
+			if (tc) {
+				// printf("%d %d %d %d %d\n",curtask->gen.tgid, tc->tcpsndpacks,  tc->tcprcvpacks, tc->udpsndpacks, tc->udprcvpacks);
+				curtask->net.tcpsnd = tc->tcpsndpacks;
+				curtask->net.tcprcv = tc->tcprcvpacks;
+				curtask->net.tcpssz = tc->tcpsndbytes;
+				curtask->net.tcprsz = tc->tcprcvbytes;
 
-		// read network stats from netatop
-		netatop_gettask(curtask->gen.tgid, 'g', curtask);
+				curtask->net.udpsnd = tc->udpsndpacks;
+				curtask->net.udprcv = tc->udprcvpacks;
+				curtask->net.udpssz = tc->udpsndbytes;
+				curtask->net.udprsz = tc->udprcvbytes;
+			}
+		} else {
+			// read network stats from netatop
+			netatop_gettask(curtask->gen.tgid, 'g', curtask);
+		}
 
 		tval++;		/* increment for process-level info */
 
@@ -345,10 +385,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					curthr->gen.nthr = 1;
 
-					// read network stats from netatop
-					netatop_gettask(curthr->gen.pid, 't',
-								curthr);
-
+					// try to read network stats from netatop's module
+					if (!(supportflags & NETATOPBPF)) {
+						netatop_gettask(curthr->gen.pid, 't',
+										curthr);
+					}
 					// all stats read now
 					tval++;	    /* increment thread-level */
 					cur_nth++;  /* increment # threads    */

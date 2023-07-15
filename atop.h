@@ -129,6 +129,8 @@ extern int		almostcrit;
 #define	DOCKSTAT	0x00000040
 #define	GPUSTAT		0x00000080
 #define	CGROUPV2	0x00000100
+#define	NETATOPBPF	0x00001000
+
 
 /*
 ** in rawlog file, the four least significant bits 
@@ -211,6 +213,12 @@ unsigned int	netatop_exitstore(void);
 void		netatop_exiterase(void);
 void		netatop_exithash(char);
 void		netatop_exitfind(unsigned long, struct tstat *, struct tstat *);
+
+void		netatop_bpf_ipopen(void);
+void		netatop_bpf_probe(void);
+void		netatop_bpf_gettask(void);
+void		netatop_bpf_exitfind(unsigned long, struct tstat *, struct tstat *);
+
 void		set_oom_score_adj(void);
 int		run_in_guest(void);
 

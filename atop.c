@@ -131,6 +131,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <regex.h>
+#include <glib.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -142,6 +143,7 @@
 #include "parseable.h"
 #include "json.h"
 #include "gpucom.h"
+#include "netatop.h"
 
 #define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
@@ -180,6 +182,8 @@ unsigned int	nrgpus;
 int 		osrel;
 int 		osvers;
 int 		ossub;
+
+extern GHashTable *ghash_net;
 
 int		supportflags;	/* supported features             	*/
 char		**argvp;
@@ -545,7 +549,7 @@ main(int argc, char *argv[])
 	initifprop();
 
 	/*
- 	** open socket to the IP layer to issue getsockopt() calls later on
+	** open socket to the IP layer to issue getsockopt() calls later on
 	*/
 	netatop_ipopen();
 
@@ -846,6 +850,11 @@ engine(void)
 		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
 		                      &devtstat, devsstat);
 
+		if (supportflags & NETATOPBPF) {
+			g_hash_table_destroy(ghash_net);
+			ghash_net = NULL;
+		}
+
 		/*
 		** activate the installed print-function to visualize
 		** the deviations
@@ -863,8 +872,9 @@ engine(void)
 
 		free(curtpres);
 
-		if (nprocexitnet > 0)
-			netatop_exiterase();
+		if ((supportflags & NETATOPD) && (nprocexitnet > 0)) {
+				netatop_exiterase();
+		}
 
 		if (gp)
 			 free(gp);
