@@ -2,7 +2,7 @@ COPYRIGHT NOTICE
 ----------------
 For all files that are not marked differently:
 
-Copyright Gerlof Langeveld 2007-2022 and licensed under the GPL v2 (or any later version).
+Copyright Gerlof Langeveld 2007-2023 and licensed under the GPL v2 (or any later version).
 
 
 DEPENDENCIES
@@ -13,6 +13,7 @@ can be different depending on the Linux distro):
 
 * zlib-devel    or libz-dev or zlib1g-dev
 * ncurses-devel or libncurses5-dev/libncursesw5-dev
+* glib2-devel   or libglib2.0-dev
 
 
 Install the following packages to be able to execute atop (package name
@@ -20,6 +21,7 @@ can be different depending on the Linux distro):
 
 * zlib    or zlib1g
 * ncurses or libncurses5/libncursesw5
+* glib2   or libglib2.0
 
 
 INSTALLING AND USING ATOP
