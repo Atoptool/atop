@@ -1449,54 +1449,29 @@ sysprt_SWPCACHE(struct sstat *sstat, extraparam *notused, int badness, int *colo
 sys_printdef syspdef_SWPCACHE = {"SWPCACHE", sysprt_SWPCACHE, NULL};
 /*******************************************************************/
 static char *
-sysprt_ZSWTOTAL(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+sysprt_ZSWPOOL(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
-        static char buf[16]="zpool ";
+        static char buf[16]="zswap ";
 
 	*color = -1;
-        val2memstr(sstat->mem.zswtotpool * pagesize, buf+6, MBFORMAT, 0, 0);
+        val2memstr(sstat->mem.zswap * pagesize, buf+6, MBFORMAT, 0, 0);
         return buf;
 }
 
-static int
-sysval_ZSWTOTAL(struct sstat *sstat)
-{
-	if (sstat->mem.zswtotpool == -1)
-		return 0;
-	else
-		return 1;
-}
-
-sys_printdef syspdef_ZSWTOTAL = {"ZSWTOTAL", sysprt_ZSWTOTAL, sysval_ZSWTOTAL};
+sys_printdef syspdef_ZSWPOOL = {"ZSWPOOL", sysprt_ZSWPOOL, NULL};
 /*******************************************************************/
 static char *
 sysprt_ZSWSTORED(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="zstor ";
 
-	if (sstat->mem.zswstored == -1)
-	{
-        	val2memstr(0, buf+6, MBFORMAT, 0, 0);
-	}
-	else
-	{
-		*color = -1;
-        	val2memstr(sstat->mem.zswstored * pagesize, buf+6, MBFORMAT, 0, 0);
-	}
+	*color = -1;
+        val2memstr(sstat->mem.zswapped * pagesize, buf+6, MBFORMAT, 0, 0);
 
         return buf;
 }
 
-static int
-sysval_ZSWSTORED(struct sstat *sstat)
-{
-	if (sstat->mem.zswstored == -1)
-		return 0;
-	else
-		return 1;
-}
-
-sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED, sysval_ZSWSTORED};
+sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED, NULL};
 /*******************************************************************/
 static char *
 sysprt_TCPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)
@@ -1718,6 +1693,54 @@ sysprt_PAGSWOUT(struct sstat *sstat, extraparam *as, int badness, int *color)
 }
 
 sys_printdef syspdef_PAGSWOUT = {"PAGSWOUT", sysprt_PAGSWOUT, NULL};
+/*******************************************************************/
+static char *
+sysprt_PAGZSWIN(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+        static char buf[16]="zswin   ";
+        val2valstr(sstat->mem.zswins, buf+6, 6, as->avgval, as->nsecs);
+        return buf;
+}
+
+
+static int
+sysval_ZSWAP(struct sstat *sstat)
+{
+	FILE *fp;
+	char  state;
+
+	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) != 0)
+	{
+		if (fscanf(fp, "%c", &state) == 1)
+		{
+			if (state != 'Y')
+			{
+				fclose(fp);
+				return 0; 	// zswap not enabled
+			}
+		}
+
+		fclose(fp);
+		return 1;			// zswap enabled
+	}
+	else
+	{
+		return 0;			// zswap not existing
+	}
+}
+
+sys_printdef syspdef_PAGZSWIN = {"PAGZSWIN", sysprt_PAGZSWIN, sysval_ZSWAP};
+/*******************************************************************/
+static char *
+sysprt_PAGZSWOUT(struct sstat *sstat, extraparam *as, int badness, int *color) 
+{
+        static char buf[16]="zswout  ";
+	*color = -1;
+        val2valstr(sstat->mem.zswouts, buf+7, 5, as->avgval, as->nsecs);
+        return buf;
+}
+
+sys_printdef syspdef_PAGZSWOUT = {"PAGZSWOUT", sysprt_PAGZSWOUT, sysval_ZSWAP};
 /*******************************************************************/
 static char *
 sysprt_OOMKILLS(struct sstat *sstat, extraparam *as, int badness, int *color) 

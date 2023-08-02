@@ -1453,8 +1453,8 @@ Swap occupation and overcommit info.
 This line contains the total amount of swap space on disk ('tot'),
 the amount of free swap space ('free'),
 the size of the swap cache ('swcac'),
-the total size of compressed storage in zswap ('zpool'),
-the total size of the compressed pages stored in zswap ('zstor'),
+the size of compressed storage used for zswap ('zswap'),
+the real (decompressed) size of the pages stored in zswap ('zstor'),
 the total size of the memory used for KSM ('ksuse', i.e. shared), and
 the total size of the memory saved (deduped) by KSM ('kssav', i.e. sharing).
 .br
@@ -1522,6 +1522,8 @@ successfully e.g. between NUMA nodes or for compaction ('migrate') are shown.
 .br
 Also the number of memory pages the system read from block devices ('pgin'),
 the number of memory pages the system wrote to block devices ('pgout'),
+the number of memory pages swapped in from zswap ('zswin'),
+the number of memory pages swapped out to zswap ('zswout'),
 the number of memory pages the system read from swap space ('swin'),
 the number of memory pages the system wrote to swap space ('swout'), and
 the number of out-of-memory kills ('oomkill').
@@ -2476,8 +2478,9 @@ size of swap cache (pages),
 size of committed space (pages), 
 limit for committed space (pages),
 size of the swap cache (pages),
-size of compressed pages stored in zswap (pages), and
-total size of compressed pool in zswap (pages).
+the real (decompressed) size of the pages stored
+in zswap (pages), and
+the size of compressed storage used for zswap (pages).
 .TP 9
 .B LLC
 Subsequent fields:
@@ -2497,8 +2500,10 @@ number of oomkills (-1 when counter not present),
 number of process stalls to run memory compaction,
 number of pages successfully migrated in total,
 number of NUMA pages migrated,
-number of pages read from block devices, and
-number of pages written to block devices.
+number of pages read from block devices,
+number of pages written to block devices,
+number of swapins from zswap, and
+number of swapouts to zswap.
 .TP 9
 .B PSI
 Subsequent fields:

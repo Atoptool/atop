@@ -100,7 +100,6 @@ static void	getperfevents(struct cpustat *);
 
 static int	get_infiniband(struct ifbstat *);
 static int	get_ksm(struct sstat *);
-static int	get_zswap(struct sstat *);
 
 static int	isdisk(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
@@ -277,7 +276,6 @@ photosyst(struct sstat *si)
 	static char	part_stats = 1; /* per-partition statistics ? */
 	static char	ib_stats = 1; 	/* InfiniBand statistics ? */
 	static char	ksm_stats = 1; 	
-	static char	zswap_stats = 1;
 
 	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
@@ -661,6 +659,16 @@ photosyst(struct sstat *si)
 				si->mem.pgmigrate = cnts[0];
 				continue;
 			}
+
+			if ( strcmp("zswpout", nam) == EQ) {
+				si->mem.zswouts = cnts[0];
+				continue;
+			}
+
+			if ( strcmp("zswpin", nam) == EQ) {
+				si->mem.zswins = cnts[0];
+				continue;
+			}
 		}
 
 		fclose(fp);
@@ -812,6 +820,16 @@ photosyst(struct sstat *si)
 			else	if (strcmp("PageTables:", nam) == EQ)
 				{
 					si->mem.pagetables = cnts[0]*1024/
+								pagesize;
+				}
+			else	if (strcmp("Zswap:", nam) == EQ)
+				{
+					si->mem.zswap = cnts[0]*1024/
+								pagesize;
+				}
+			else	if (strcmp("Zswapped:", nam) == EQ)
+				{
+					si->mem.zswapped = cnts[0]*1024/
 								pagesize;
 				}
 		}
@@ -1928,12 +1946,6 @@ photosyst(struct sstat *si)
 		ksm_stats = get_ksm(si);
 
 	/*
-	** get counters related to zswap
-	*/
-	if (zswap_stats)
-		zswap_stats = get_zswap(si);
-
-	/*
  	** return to original directory
 	*/
 	if ( chdir(origdir) == -1)
@@ -2478,58 +2490,6 @@ get_ksm(struct sstat *si)
 
 		fclose(fp);
 	}
-
-	return 1;
-}
-
-/*
-** retrieve zswap values (if switched on)
-*/
-static int
-get_zswap(struct sstat *si)
-{
-	FILE *fp;
-	char  state;
-
-	si->mem.zswtotpool = -1;
-	si->mem.zswstored  = -1;
-
-	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) != 0)
-	{
-		if (fscanf(fp, "%c", &state) == 1)
-		{
-			if (state != 'Y')
-			{
-				fclose(fp);
-				return 0; // no more calling
-			}
-		}
-
-		fclose(fp);
-	}
-
-	regainrootprivs();
-
-	if ((fp=fopen("/sys/kernel/debug/zswap/pool_total_size", "r")) != 0)
-	{
-		if (fscanf(fp, "%llu", &(si->mem.zswtotpool)) != 1)
-			si->mem.zswtotpool = 0;
-		else
-			si->mem.zswtotpool /= pagesize;
-
-		fclose(fp);
-	}
-
-	if ((fp=fopen("/sys/kernel/debug/zswap/stored_pages", "r")) != 0)
-	{
-		if (fscanf(fp, "%llu", &(si->mem.zswstored)) != 1)
-			si->mem.zswstored = 0;
-
-		fclose(fp);
-	}
-
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
 
 	return 1;
 }

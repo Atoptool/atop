@@ -185,7 +185,7 @@ sys_printdef *swpsyspdefs[] = {
 	&syspdef_SWPFREE,
 	&syspdef_SWPCACHE,
 	&syspdef_BLANKBOX,
-	&syspdef_ZSWTOTAL,
+	&syspdef_ZSWPOOL,
 	&syspdef_ZSWSTORED,
 	&syspdef_KSMSHARING,
 	&syspdef_KSMSHARED,
@@ -204,6 +204,8 @@ sys_printdef *pagsyspdefs[] = {
 	&syspdef_NUMAMIGRATE,
 	&syspdef_PAGSWIN,
 	&syspdef_PAGSWOUT,
+	&syspdef_PAGZSWIN,
+	&syspdef_PAGZSWOUT,
 	&syspdef_OOMKILLS,
 	&syspdef_PAGPGIN,
 	&syspdef_PAGPGOUT,
@@ -972,7 +974,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "SWPFREE:6 "
 	                "SWPCACHE:4 "
 	                "BLANKBOX:0 "
-	                "ZSWTOTAL:3 "
+	                "ZSWPOOL:3 "
 	                "ZSWSTORED:3 "
 	                "BLANKBOX:0 "
 	                "KSMSHARED:2 "
@@ -1040,8 +1042,10 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "PAGCOMPACT:5 "
 			"NUMAMIGRATE:5"
 			"PGMIGRATE:6"
-	                "PAGPGIN:7 "
-	                "PAGPGOUT:7 "
+	                "PAGPGIN:6 "
+	                "PAGPGOUT:6 "
+	                "PAGZSWIN:4 "
+	                "PAGZSWOUT:7 "
 	                "PAGSWIN:5 "
 	                "PAGSWOUT:8 "
 			"OOMKILLS:9 ",

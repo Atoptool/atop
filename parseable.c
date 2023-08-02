@@ -426,14 +426,15 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.committed,
 			ss->mem.commitlim,
         		ss->mem.swapcached,
-        		ss->mem.zswstored != -1 ? ss->mem.zswstored : 0,
-        		ss->mem.zswtotpool != -1 ? ss->mem.zswtotpool : 0);
+        		ss->mem.zswapped,
+        		ss->mem.zswap);
 }
 
 void
 print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+	       "%lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.pgscans,
@@ -446,7 +447,9 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->mem.pgmigrate,
 			ss->mem.numamigrate,
 			ss->mem.pgins,
-			ss->mem.pgouts);
+			ss->mem.pgouts,
+			ss->mem.zswins,
+			ss->mem.zswouts);
 }
 
 void

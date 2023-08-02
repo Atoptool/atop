@@ -81,8 +81,8 @@ struct	memstat {
 	count_t swapcached;	// swap cache (pages)
 	count_t	ksmsharing;	// saved i.e. deduped memory (pages)
 	count_t	ksmshared;	// current size shared pages (pages)
-	count_t	zswstored;	// zswap stored pages (pages)
-	count_t	zswtotpool;	// total pool size (pages)
+	count_t	zswapped;	// zswap stored pages decompressed (pages)
+	count_t	zswap;		// zswap current pool size compressed (pages)
 	count_t	oomkills;	// number of oom killings
 	count_t	compactstall;	// counter for process stalls
 	count_t	pgmigrate;	// counter for migrated successfully (pages)
@@ -90,6 +90,8 @@ struct	memstat {
 	count_t	pgouts;		// total number of pages written to block device
 	count_t	pgins;		// total number of pages read from block device
 	count_t	pagetables;	// page tables of processes (pages)
+	count_t zswouts;	// number of pages swapped out to zswap
+	count_t zswins;		// number of pages swapped in from zswap
 	count_t	cfuture[4];	// reserved for future use
 };
 

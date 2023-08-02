@@ -722,6 +722,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.freeswap	= cur->mem.freeswap;
 	dev->mem.swapcached	= cur->mem.swapcached;
 	dev->mem.pagetables	= cur->mem.pagetables;
+	dev->mem.zswap		= cur->mem.zswap;
+	dev->mem.zswapped	= cur->mem.zswapped;
 
 	dev->mem.shmem		= cur->mem.shmem;
 	dev->mem.shmrss		= cur->mem.shmrss;
@@ -735,8 +737,6 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.zfsarcsize	= cur->mem.zfsarcsize;
 	dev->mem.ksmsharing	= cur->mem.ksmsharing;
 	dev->mem.ksmshared 	= cur->mem.ksmshared;
-	dev->mem.zswstored	= cur->mem.zswstored;
-	dev->mem.zswtotpool	= cur->mem.zswtotpool;
 
 	dev->mem.tcpsock	= cur->mem.tcpsock;
 	dev->mem.udpsock	= cur->mem.udpsock;
@@ -745,6 +745,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.pgins		= subcount(cur->mem.pgins,   pre->mem.pgins);
 	dev->mem.swouts		= subcount(cur->mem.swouts,  pre->mem.swouts);
 	dev->mem.swins		= subcount(cur->mem.swins,   pre->mem.swins);
+	dev->mem.zswouts	= subcount(cur->mem.zswouts,  pre->mem.zswouts);
+	dev->mem.zswins		= subcount(cur->mem.zswins,   pre->mem.zswins);
 	dev->mem.pgscans	= subcount(cur->mem.pgscans, pre->mem.pgscans);
 	dev->mem.pgsteal	= subcount(cur->mem.pgsteal, pre->mem.pgsteal);
 	dev->mem.allocstall	= subcount(cur->mem.allocstall,
@@ -1555,6 +1557,8 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.freeswap	 = new->mem.freeswap;
 		tot->mem.swapcached	 = new->mem.swapcached;
 		tot->mem.pagetables	 = new->mem.pagetables;
+		tot->mem.zswap		 = new->mem.zswap;
+		tot->mem.zswapped	 = new->mem.zswapped;
 
 		tot->mem.shmem		 = new->mem.shmem;
 		tot->mem.shmrss		 = new->mem.shmrss;
@@ -1567,6 +1571,8 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		tot->mem.pgins		+= new->mem.pgins;
 		tot->mem.swouts		+= new->mem.swouts;
 		tot->mem.swins		+= new->mem.swins;
+		tot->mem.zswouts	+= new->mem.zswouts;
+		tot->mem.zswins		+= new->mem.zswins;
 		tot->mem.pgscans	+= new->mem.pgscans;
 		tot->mem.allocstall	+= new->mem.allocstall;
 		tot->mem.compactstall	+= new->mem.compactstall;
