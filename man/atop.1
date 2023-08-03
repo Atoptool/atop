@@ -1429,9 +1429,11 @@ the total resident shared memory ('cache'), the amount of memory within the
 page cache that has to be flushed to disk ('dirty'), the amount
 of memory used for filesystem meta data ('buff'), the amount of
 memory being used for kernel mallocs ('slab'), the amount of
-slab memory that is reclaimable ('slrec'), the resident size of shared
-memory including tmpfs ('shmem'), the resident size of shared memory ('shrss')
-the amount of shared memory that is currently swapped ('shswp'),
+slab memory that is reclaimable ('slrec'),
+the resident size of SYSV shared memory including tmpfs
+but excluding static huge pages ('shmem'),
+the resident size of SYSV shared memory including static huge pages ('shrss'),
+the amount of SYSV shared memory that is currently swapped ('shswp'),
 the amount of memory that is currently used for page tables ('pgtab'),
 the number of NUMA nodes in this system ('numnode'),
 the amount of memory that is currently claimed by vmware's

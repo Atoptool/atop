@@ -1736,12 +1736,12 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	static time_t	lastoomkills;
 
 	long long	totalmem, cachemem, shmemrss, tmpfsmem,
-			slabmem, freemem;
+			slabmem, freemem, hugefree, hugeused, shmrssreal;
 	long long	totalswp, shmemswp, freeswp;
 	char		scanseverity, swapseverity, killseverity;
 	int 		curline=0, barlines, color;
 	int 		usedlines, freelines, cachelines, tmpfslines,
-			slablines, shmemlines;
+			slablines, shmemlines, hugelines;
 	int		memorycol = 1,
 			swapcol   = memorycol + MEMORYBARSZ + 1,
 			eventcol  = swapcol   + SWAPBARSZ   + 2;
@@ -1749,21 +1749,46 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	char		formatbuf[16];
 
 	// calculate all memory values, keeping in mind:
+	//
+	// - shmem		resident System V shared memory
+	// 				including resident tmpfs (POSIX shamem)
+	// 				excluding static huge pages
+	//
 	// - shmrss		resident System V shared memory
-	// - shmem		resident System V shared memory + resident tmpfs
+	// 				including static huge pages
+	//
 	// - cachemem		page cache including shmem
 	//
 	totalmem	=  sstat->mem.physmem * pagesize;
+
 	cachemem	= (sstat->mem.cachemem + sstat->mem.buffermem -
 			   sstat->mem.shmem)  * pagesize;
+
 	shmemrss	=  sstat->mem.shmrss  * pagesize;
-	tmpfsmem	= (sstat->mem.shmem - sstat->mem.shmrss) * pagesize;
+
 	slabmem		=  sstat->mem.slabmem * pagesize;
+
 	freemem		=  sstat->mem.freemem * pagesize;
 
+	hugefree	=  sstat->mem.freehugepage * sstat->mem.hugepagesz;
+
+
 	totalswp	=  sstat->mem.totswap * pagesize;
+
 	shmemswp	=  sstat->mem.shmswp  * pagesize;
+
 	freeswp		=  sstat->mem.freeswap* pagesize;
+
+	// assumption:	most of static huge pages use for SYSV shared memory,
+	// 		although static hige pages can also be used for mmap()
+	//
+	hugeused	= (sstat->mem.tothugepage - sstat->mem.freehugepage) * sstat->mem.hugepagesz;
+	shmrssreal	= (sstat->mem.shmrss * pagesize) - hugeused;
+
+	if (shmrssreal < 0)	// (partly) wrong assumption about static huge pages
+		shmrssreal = 0;
+
+	tmpfsmem	= (sstat->mem.shmem - sstat->mem.shmswp) * pagesize - shmrssreal;
 
 	// determine severity for pagescans, swapouts and oomkills
 	// 'n' - normal,
@@ -1814,7 +1839,8 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	tmpfslines = (tmpfsmem + valperunit/2) / valperunit;
 	slablines  = (slabmem  + valperunit/2) / valperunit;
 	cachelines = (cachemem + valperunit/2) / valperunit;
-	usedlines  =  barlines - freelines - shmemlines -
+	hugelines  = (hugefree + valperunit/2) / valperunit;
+	usedlines  =  barlines - freelines - shmemlines - hugelines -
 	              tmpfslines - slablines - cachelines;
 
 	// wipe window contents
@@ -1830,6 +1856,13 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	//
 	curline += drawmemlines(w, curline, memorycol, cachelines,
 			MEMORYBARSZ, COLORMEMCACH, "pagecache", NULL);
+
+	// draw lines for free static huge pages memory
+	// (occupied static huge pages are already part of processes
+	// or shared memory)
+	//
+	curline += drawmemlines(w, curline, memorycol, hugelines,
+			MEMORYBARSZ, COLORMEMHUGE, "free huge", "pages");
 
 	// draw lines for tmpfs memory
 	//
