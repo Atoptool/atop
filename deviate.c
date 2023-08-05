@@ -729,9 +729,13 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.shmrss		= cur->mem.shmrss;
 	dev->mem.shmswp		= cur->mem.shmswp;
 
-	dev->mem.tothugepage	= cur->mem.tothugepage;
-	dev->mem.freehugepage	= cur->mem.freehugepage;
-	dev->mem.hugepagesz	= cur->mem.hugepagesz;
+	dev->mem.stothugepage	= cur->mem.stothugepage;
+	dev->mem.sfreehugepage	= cur->mem.sfreehugepage;
+	dev->mem.shugepagesz	= cur->mem.shugepagesz;
+
+	dev->mem.ltothugepage	= cur->mem.ltothugepage;
+	dev->mem.lfreehugepage	= cur->mem.lfreehugepage;
+	dev->mem.lhugepagesz	= cur->mem.lhugepagesz;
 
 	dev->mem.vmwballoon	= cur->mem.vmwballoon;
 	dev->mem.zfsarcsize	= cur->mem.zfsarcsize;

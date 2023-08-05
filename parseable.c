@@ -389,7 +389,7 @@ void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-   		"%lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+   		"%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -403,15 +403,18 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.shmem,
         		ss->mem.shmrss,
         		ss->mem.shmswp,
-        		ss->mem.hugepagesz,
-        		ss->mem.tothugepage,
-        		ss->mem.freehugepage,
+        		ss->mem.shugepagesz,
+        		ss->mem.stothugepage,
+        		ss->mem.sfreehugepage,
         		ss->mem.zfsarcsize != -1 ? ss->mem.zfsarcsize : 0,
         		ss->mem.ksmsharing != -1 ? ss->mem.ksmsharing : 0,
         		ss->mem.ksmshared  != -1 ? ss->mem.ksmshared  : 0,
 			ss->mem.tcpsock,
 			ss->mem.udpsock,
-   			ss->mem.pagetables);
+   			ss->mem.pagetables,
+        		ss->mem.lhugepagesz,
+        		ss->mem.ltothugepage,
+        		ss->mem.lfreehugepage);
 }
 
 void

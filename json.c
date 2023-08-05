@@ -444,7 +444,10 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		"\"shmswp\": %lld, "
 		"\"hugepagesz\": %lld, "
 		"\"tothugepage\": %lld, "
-		"\"freehugepage\": %lld}",
+		"\"freehugepage\": %lld, "
+		"\"lhugepagesz\": %lld, "
+		"\"ltothugepage\": %lld, "
+		"\"lfreehugepage\": %lld}",
 		hp,
 		ss->mem.physmem * pagesize,
 		ss->mem.freemem * pagesize,
@@ -457,9 +460,12 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->mem.shmem * pagesize,
 		ss->mem.shmrss * pagesize,
 		ss->mem.shmswp * pagesize,
-		ss->mem.hugepagesz,
-		ss->mem.tothugepage,
-		ss->mem.freehugepage);
+		ss->mem.shugepagesz,
+		ss->mem.stothugepage,
+		ss->mem.sfreehugepage,
+		ss->mem.lhugepagesz,
+		ss->mem.ltothugepage,
+		ss->mem.lfreehugepage);
 }
 
 static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
@@ -857,7 +863,7 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->memnuma.numa[i].slabmem * pagesize,
 			ss->memnuma.numa[i].slabreclaim * pagesize,
 			ss->memnuma.numa[i].shmem * pagesize,
-			ss->memnuma.numa[i].tothp * ss->mem.hugepagesz);
+			ss->memnuma.numa[i].tothp * ss->mem.shugepagesz);
 	}
 
 	printf("]");

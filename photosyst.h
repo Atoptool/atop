@@ -72,9 +72,9 @@ struct	memstat {
 
 	count_t	slabreclaim;	// reclaimable slab (pages)
 
-	count_t	tothugepage;	// total huge pages (huge pages)
-	count_t	freehugepage;	// free  huge pages (huge pages)
-	count_t	hugepagesz;	// huge page size (bytes)
+	count_t	stothugepage;	// total huge pages (huge pages) - small
+	count_t	sfreehugepage;	// free  huge pages (huge pages) - small
+	count_t	shugepagesz;	// huge page size (bytes) - small
 
 	count_t	vmwballoon;	// vmware claimed balloon pages
 	count_t	zfsarcsize;	// zfsonlinux ARC size (pages)
@@ -90,8 +90,14 @@ struct	memstat {
 	count_t	pgouts;		// total number of pages written to block device
 	count_t	pgins;		// total number of pages read from block device
 	count_t	pagetables;	// page tables of processes (pages)
+
 	count_t zswouts;	// number of pages swapped out to zswap
 	count_t zswins;		// number of pages swapped in from zswap
+
+	count_t	ltothugepage;	// total huge pages (huge pages) - large
+	count_t	lfreehugepage;	// free  huge pages (huge pages) - large
+	count_t	lhugepagesz;	// huge page size (bytes) - large
+
 	count_t	cfuture[4];	// reserved for future use
 };
 

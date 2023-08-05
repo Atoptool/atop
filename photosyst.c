@@ -78,6 +78,9 @@
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
 
+/* recognize large huge pages */
+#define	HUGEPAGEDIR	"/sys/kernel/mm/hugepages"
+
 /* recognize LLC monitor data */
 #define LLCDIR	"/sys/fs/resctrl/mon_data"
 #define L3SIZE	"/sys/devices/system/cpu/cpu0/cache/index3/size"
@@ -276,6 +279,13 @@ photosyst(struct sstat *si)
 	static char	part_stats = 1; /* per-partition statistics ? */
 	static char	ib_stats = 1; 	/* InfiniBand statistics ? */
 	static char	ksm_stats = 1; 	
+
+	static char	*lhugepagetot;	/* name of large hugepage dir total */
+					/* might be -1 if not applicable    */
+	static char	*lhugepagefree;	/* name of large hugepage dir free  */
+					/* might be -1 if not applicable    */
+	static unsigned int hpsize;
+
 
 	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
@@ -807,15 +817,15 @@ photosyst(struct sstat *si)
 				}
 			else	if (strcmp("HugePages_Total:", nam) == EQ)
 				{
-					si->mem.tothugepage = cnts[0];
+					si->mem.stothugepage = cnts[0];
 				}
 			else	if (strcmp("HugePages_Free:", nam) == EQ)
 				{
-					si->mem.freehugepage = cnts[0];
+					si->mem.sfreehugepage = cnts[0];
 				}
 			else	if (strcmp("Hugepagesize:", nam) == EQ)
 				{
-					si->mem.hugepagesz = cnts[0]*1024;
+					si->mem.shugepagesz = cnts[0]*1024;
 				}
 			else	if (strcmp("PageTables:", nam) == EQ)
 				{
@@ -836,6 +846,100 @@ photosyst(struct sstat *si)
 
 		fclose(fp);
 	}
+
+	/*
+ 	** gather values of larger huge pages that are not provided
+	** by /proc/meminfo
+	**
+	** all required hugepage info can be found in:
+	**
+	**    /sys/kernel/mm/hugepages/hugepages-1048576kB
+	**                                                /free_hugepages
+	**                                                /nr_hugepages
+	**
+	**    /sys/kernel/mm/hugepages/hugepages-2048kB
+	**                                                /free_hugepages
+	**                                                /nr_hugepages
+	**
+	** the info about the smaller hugepages (2M) is already
+	** read from /proc/memory
+	** 
+	** first time initialization:
+	**   find out if there is a large hugepage directory
+	*/
+	if (!lhugepagetot)
+	{
+		lhugepagetot  = (char *) -1;	// should be overwritten
+		lhugepagefree = (char *) -1;	// should be overwritten
+
+		dirp = opendir(HUGEPAGEDIR);
+
+		if (dirp)
+		{
+			/*
+			** read directory entries that start with "hugepages-"
+			*/
+			while ( (dentry = readdir(dirp)) )
+			{
+				if (strncmp(dentry->d_name, "hugepages-", 10))
+					continue;
+
+				hpsize = strtoul(dentry->d_name+10, NULL, 0) * 1024;
+
+				if (hpsize == si->mem.shugepagesz)
+					continue;	// values already known
+
+				/*
+ 				** directory name of larger hugepages found:
+				** store for use in subsequent intervals
+				*/
+				lhugepagetot = malloc(sizeof HUGEPAGEDIR + 1 +
+							strlen(dentry->d_name) + 1 +
+							sizeof "nr_hugepages" + 1);
+
+				ptrverify(lhugepagetot,
+					"Malloc failed for huge page total");
+
+				sprintf(lhugepagetot, "%s/%s/nr_hugepages",
+							HUGEPAGEDIR, dentry->d_name);
+
+
+				lhugepagefree = malloc(sizeof HUGEPAGEDIR + 1 +
+							strlen(dentry->d_name) + 1 +
+							sizeof "free_hugepages" + 1);
+
+				ptrverify(lhugepagefree,
+					"Malloc failed for huge page free");
+
+				sprintf(lhugepagefree, "%s/%s/free_hugepages",
+							HUGEPAGEDIR, dentry->d_name);
+
+				break;
+			}
+
+			closedir(dirp);
+		}
+	}
+
+	// large hugepages for each interval:
+	//
+	if ( lhugepagetot != (char *)-1 && (fp = fopen(lhugepagetot, "r")) != NULL)
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			nr = sscanf(linebuf, "%lld", &si->mem.ltothugepage);
+
+		fclose(fp);
+	}
+
+	if ( lhugepagefree != (char *)-1 && (fp = fopen(lhugepagefree, "r")) != NULL)
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			nr = sscanf(linebuf, "%lld", &si->mem.lfreehugepage);
+
+		fclose(fp);
+	}
+
+	si->mem.lhugepagesz = hpsize;
 
 	/*
 	** gather vmware-related statistics from /sys/kernel/debug/vmmemctl

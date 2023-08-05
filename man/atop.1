@@ -115,7 +115,7 @@ Memory is presented as a column in which the
 specific categories of memory consumption are shown. These categories
 are (code, data and  stack of) processes/kernel, slab caches
 (i.e. dynamically allocated kernel memory), shared memory, tmpfs,
-page cache and free memory.
+static huge pages, page cache and free memory.
 .br
 Swap space (if present) is also presented as a column in which the
 categories processes/tmpfs, shared memory and free space are shown.
@@ -2461,15 +2461,18 @@ total size of vmware's balloon pages (pages),
 total size of shared memory (pages),
 size of resident shared memory (pages),
 size of swapped shared memory (pages),
-huge page size (in bytes),
-total size of huge pages (huge pages),
-size of free huge pages (huge pages),
+smaller huge page size (in bytes),
+total size of smaller huge pages (huge pages),
+size of free smaller huge pages (huge pages),
 size of ARC (cache) of ZFSonlinux (pages),
 size of sharing pages for KSM (pages),
 size of shared pages for KSM (pages),
 size of memory used for TCP sockets (pages),
-size of memory used for UDP sockets (pages), and
-size of pagetables (pages).
+size of memory used for UDP sockets (pages),
+size of pagetables (pages),
+larger huge page size (in bytes),
+total size of larger huge pages (huge pages), and
+size of free larger huge pages (huge pages).
 .TP 9
 .B SWP
 Subsequent fields:

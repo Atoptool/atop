@@ -1332,7 +1332,8 @@ sysprt_HUPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color)
         static char buf[16]="hptot  ";
 
 	*color = -1;
-        val2memstr(sstat->mem.tothugepage * sstat->mem.hugepagesz,
+        val2memstr(sstat->mem.stothugepage * sstat->mem.shugepagesz + 
+                   sstat->mem.ltothugepage * sstat->mem.lhugepagesz,
 						buf+6, MBFORMAT, 0, 0);
         return buf;
 }
@@ -1340,7 +1341,7 @@ sysprt_HUPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color)
 static int
 sysval_HUPTOT(struct sstat *sstat)
 {
-	return sstat->mem.tothugepage;
+	return sstat->mem.stothugepage + sstat->mem.ltothugepage;
 }
 
 sys_printdef syspdef_HUPTOT = {"HUPTOT", sysprt_HUPTOT, sysval_HUPTOT};
@@ -1351,15 +1352,18 @@ sysprt_HUPUSE(struct sstat *sstat, extraparam *notused, int badness, int *color)
         static char buf[16]="hpuse  ";
 
 	*color = -1;
-        val2memstr( (sstat->mem.tothugepage - sstat->mem.freehugepage) *
-				sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
+        val2memstr( (sstat->mem.stothugepage - sstat->mem.sfreehugepage) *
+							sstat->mem.shugepagesz +
+                    (sstat->mem.ltothugepage - sstat->mem.lfreehugepage) *
+							sstat->mem.lhugepagesz,
+						buf+6, MBFORMAT, 0, 0);
         return buf;
 }
 
 static int
 sysval_HUPUSE(struct sstat *sstat)
 {
-	return sstat->mem.tothugepage;
+	return sstat->mem.stothugepage + sstat->mem.ltothugepage;
 }
 
 sys_printdef syspdef_HUPUSE = {"HUPUSE", sysprt_HUPUSE, sysval_HUPUSE};
@@ -1893,11 +1897,11 @@ static char *
 sysprt_NUMAHUPTOT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16]="hptot  ";
-	if (sstat->mem.tothugepage == 0)
+	if (sstat->mem.stothugepage == 0)
 		return NULL;
 
 	*color = -1;
-	val2memstr(sstat->memnuma.numa[as->index].tothp * sstat->mem.hugepagesz,
+	val2memstr(sstat->memnuma.numa[as->index].tothp * sstat->mem.shugepagesz,
 						buf+6, MBFORMAT, 0, 0);
 	return buf;
 }

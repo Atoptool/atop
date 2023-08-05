@@ -1770,8 +1770,8 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 
 	freemem		=  sstat->mem.freemem * pagesize;
 
-	hugefree	=  sstat->mem.freehugepage * sstat->mem.hugepagesz;
-
+	hugefree	=  sstat->mem.sfreehugepage * sstat->mem.shugepagesz +
+			   sstat->mem.lfreehugepage * sstat->mem.lhugepagesz;
 
 	totalswp	=  sstat->mem.totswap * pagesize;
 
@@ -1782,7 +1782,11 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// assumption:	most of static huge pages use for SYSV shared memory,
 	// 		although static hige pages can also be used for mmap()
 	//
-	hugeused	= (sstat->mem.tothugepage - sstat->mem.freehugepage) * sstat->mem.hugepagesz;
+	hugeused	= (sstat->mem.stothugepage - sstat->mem.sfreehugepage)
+							* sstat->mem.shugepagesz +
+			  (sstat->mem.ltothugepage - sstat->mem.lfreehugepage)
+							* sstat->mem.lhugepagesz;
+							
 	shmrssreal	= (sstat->mem.shmrss * pagesize) - hugeused;
 
 	if (shmrssreal < 0)	// (partly) wrong assumption about static huge pages
