@@ -441,6 +441,8 @@ proc_printdef *allprocpdefs[]=
 	&procprt_S,
 	&procprt_COMMAND_LINE,
 	&procprt_NPROCS,
+	&procprt_NRSIGKILL,
+	&procprt_NRCORE,
 	&procprt_RDDSK,
 	&procprt_WRDSK,
 	&procprt_CWRDSK,
@@ -1335,7 +1337,7 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                 make_proc_prints(totconts, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 RDELAY:8 BDELAY:7 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
-			"RNET:6 SNET:6 SORTITEM:10 CID:10", 
+			"RNET:6 SNET:6 NRSIGKILL:8 NRCORE:8 SORTITEM:10 CID:10",
                         "built-in totconts");
         }
 

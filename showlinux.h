@@ -472,6 +472,8 @@ extern proc_printdef procprt_CGRMEMMAX;
 extern proc_printdef procprt_CGRMEMMAXR;
 extern proc_printdef procprt_CGRSWPMAX;
 extern proc_printdef procprt_CGRSWPMAXR;
+extern proc_printdef procprt_NRSIGKILL;
+extern proc_printdef procprt_NRCORE;
 
 
 //extern char *procprt_NRDDSK_ae(struct tstat *, int, int);
