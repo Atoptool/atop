@@ -814,7 +814,7 @@ void
 set_oom_score_adj(void)
 {
 	int fd;
-	char val[] = "-1000";	/* suggested by Gerlof, always set -1000 */
+	char val[] = "-999";	/* suggested by Gerlof, always set -999 */
 
 	/*
 	 ** set OOM score adj to avoid to lost necessary log of system.
