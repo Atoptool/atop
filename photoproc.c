@@ -40,6 +40,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdlib.h>
+#include <regex.h>
 #include <glib.h>
 
 #include "atop.h"
@@ -76,6 +77,10 @@ int 		readcgroupv2(char *, char *, char *, int, long []);
 static void	wipecgroupv2(void);
 
 extern GHashTable *ghash_net;
+
+extern char	prependenv;
+extern regex_t  envregex;
+
 
 unsigned long
 photoproc(struct tstat *tasklist, int maxtask)
@@ -783,28 +788,56 @@ procio(struct tstat *curtask)
 static void
 proccmd(struct tstat *curtask)
 {
-	FILE		*fp;
+	FILE		*fp, *fpe;
 	register int 	i, nr;
+	ssize_t		env_len = 0;
+	register char	*pc = curtask->gen.cmdline;
 
-	memset(curtask->gen.cmdline, 0, CMDLEN+1);
+	memset(curtask->gen.cmdline, 0, CMDLEN+1); // initialize command line
+
+	if ( prependenv && (fpe = fopen("environ", "r")) != NULL)
+	{
+		char *line = NULL;
+		ssize_t nread;
+		size_t len = 0;
+
+		while ((nread = getdelim(&line, &len, '\0', fpe)) != -1)
+		{
+			if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
+			{
+				if (env_len + nread >= CMDLEN)
+					break;
+
+				env_len += nread;
+
+				*(line+nread-1) = ' ';	// modify NULL byte to space
+
+				strcpy(pc, line);
+				pc += nread;
+			}
+		}
+
+		/* line has been (re)allocated within the first call to getdelim */
+                /* even if the call fails, see getline(3) */
+		free(line);
+		fclose(fpe);
+	}
 
 	if ( (fp = fopen("cmdline", "r")) != NULL)
 	{
-		register char *p = curtask->gen.cmdline;
-
-		nr = fread(p, 1, CMDLEN, fp);
+		nr = fread(pc, 1, CMDLEN-env_len, fp);
 		fclose(fp);
 
-		if (nr >= 0)	/* anything read ? */
+		if (nr > 0)	/* anything read? */
 		{
-			for (i=0; i < nr-1; i++, p++)
+			for (i=0; i < nr-1; i++, pc++)
 			{
-				switch (*p)
+				switch (*pc)
 				{
 				   case '\0':
 				   case '\n':
 				   case '\t':
-					*p = ' ';
+					*pc = ' ';
 				}
 			}
 		}
