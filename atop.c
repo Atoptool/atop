@@ -145,7 +145,7 @@
 #include "gpucom.h"
 #include "netatop.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
+#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz:1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		64      /* maximum number of command-line flags  */
 
 /*
@@ -174,6 +174,11 @@ char      	rmspaces   = 0;  /* boolean: remove spaces from command  */
 
 char            displaymode = 'T';      /* 'T' = text, 'D' = draw        */
 char            barmono     = 0; /* boolean: bar without categories?     */
+		                 /* name in case of parseable output     */
+
+char		prependenv = 0;  /* boolean: prepend selected            */
+				 /* environment variables to cmdline     */
+regex_t		envregex;
 
 unsigned short	hertz;
 unsigned int	pidwidth;
@@ -432,6 +437,15 @@ main(int argc, char *argv[])
 
                            case MRMSPACES:	/* remove spaces from command */
 				rmspaces = 1;
+				break;
+
+			   case 'z':            /* prepend regex matching environment variables */
+				if (regcomp(&envregex, optarg, REG_NOSUB|REG_EXTENDED))
+				{
+					fprintf(stderr, "Invalid environment regular expression!");
+					prusage(argv[0]);
+				}
+				prependenv = 1;
 				break;
 
 			   default:		/* gather other flags */
@@ -924,6 +938,8 @@ prusage(char *myname)
 			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "
 			"non-screen output\n");
+	printf("\t  -z  prepend regex matching environment variables to "
+                        "command line\n");
 
 	if (vis.show_usage)
 		(*vis.show_usage)();
