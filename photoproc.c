@@ -779,12 +779,19 @@ procio(struct tstat *curtask)
 }
 
 /*
-** store the full command line; the command-line may contain:
+** store the full command line
+**
+** the command-line may contain:
 **    - null-bytes as a separator between the arguments
 **    - newlines (e.g. arguments for awk or sed)
 **    - tabs (e.g. arguments for awk or sed)
 ** these special bytes will be converted to spaces
+**
+** the command line may be prepended by environmentvariables
 */
+
+#define	ABBENVLEN	16
+
 static void
 proccmd(struct tstat *curtask)
 {
@@ -795,6 +802,8 @@ proccmd(struct tstat *curtask)
 
 	memset(curtask->gen.cmdline, 0, CMDLEN+1); // initialize command line
 
+	// prepend by environment variables (if required)
+	//
 	if ( prependenv && (fpe = fopen("environ", "r")) != NULL)
 	{
 		char *line = NULL;
@@ -806,7 +815,23 @@ proccmd(struct tstat *curtask)
 			if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
 			{
 				if (env_len + nread >= CMDLEN)
-					break;
+				{
+					// try to add abbreviated env string
+					//
+					if (env_len + ABBENVLEN + 1 >= CMDLEN)
+					{
+						break;
+					}
+					else
+					{
+						line[ABBENVLEN-4] = '.';
+						line[ABBENVLEN-3] = '.';
+						line[ABBENVLEN-2] = '.';
+						line[ABBENVLEN-1] = '\0';
+						line[ABBENVLEN]   = '\0';
+						nread = ABBENVLEN;
+					}
+				}
 
 				env_len += nread;
 
@@ -823,6 +848,8 @@ proccmd(struct tstat *curtask)
 		fclose(fpe);
 	}
 
+	// add command line and parameters
+	//
 	if ( (fp = fopen("cmdline", "r")) != NULL)
 	{
 		nr = fread(pc, 1, CMDLEN-env_len, fp);
@@ -840,6 +867,14 @@ proccmd(struct tstat *curtask)
 					*pc = ' ';
 				}
 			}
+		}
+		else
+		{
+			// nothing read (usually for kernel processes)
+			// wipe prepended environment vars not to disturb
+			// checks on an empty command line in other places
+			//
+			curtask->gen.cmdline[0] = '\0';
 		}
 	}
 }
