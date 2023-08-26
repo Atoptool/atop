@@ -51,6 +51,7 @@ struct pselection {
 	uid_t	userid[MAXUSERSEL];
 
 	pid_t	pid[MAXPID];
+	int	curcpu[MAXPID];
 
 	char	progname[64];
 	int	prognamesz;
@@ -201,6 +202,7 @@ struct sselection {
 #define	MSELARG		'/'
 #define	MSELSTATE	'Q'
 #define	MSELSYS		'S'
+#define	MSELCPU		'O'
 
 #define	MALLPROC	'a'
 #define	MKILLPROC	'k'
