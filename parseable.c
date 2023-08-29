@@ -774,7 +774,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.isproc ? 'y':'n',
 			ps->gen.vpid,
 			ps->gen.ctid,
-			ps->gen.container[0] ? ps->gen.container:"-",
+			ps->gen.utsname[0] ? ps->gen.utsname:"-",
         		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
 			spaceformat(ps->gen.cgpath, pathout),
 			ps->gen.state == 'E' ?

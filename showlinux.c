@@ -1446,7 +1446,7 @@ make_proc_dynamicgen()
 		p += sizeof FORMTID -1;
 	}
 
-	if (supportflags & DOCKSTAT)
+	if (supportflags & CONTAINERSTAT)
 	{
 		memcpy(p, FORMCID, sizeof FORMCID -1);
 		p += sizeof FORMCID -1;
@@ -2567,10 +2567,10 @@ compnam(const void *a, const void *b)
 int
 compcon(const void *a, const void *b)
 {
-        register char *containera = (*(struct tstat **)a)->gen.container;
-        register char *containerb = (*(struct tstat **)b)->gen.container;
+        register char *utsa = (*(struct tstat **)a)->gen.utsname;
+        register char *utsb = (*(struct tstat **)b)->gen.utsname;
 
-       return strcmp(containera, containerb);
+       return strcmp(utsa, utsb);
 }
 
 /*

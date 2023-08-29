@@ -48,6 +48,7 @@
 #include <sys/uio.h>
 
 #include "atop.h"
+#include "photoproc.h"
 #include "showgeneric.h"
 #include "photoproc.h"
 #include "photosyst.h"
@@ -156,8 +157,8 @@ rawwrite(time_t curtime, int numsecs,
 	if (supportflags & CGROUPV2)
 		rr.flags |= RRCGRSTAT;
 
-	if (supportflags & DOCKSTAT)
-		rr.flags |= RRDOCKSTAT;
+	if (supportflags & CONTAINERSTAT)
+		rr.flags |= RRCONTAINERSTAT;
 
 	if (supportflags & GPUSTAT)
 		rr.flags |= RRGPUSTAT;
@@ -767,10 +768,10 @@ rawread(void)
 			else
 				supportflags &= ~CGROUPV2;
 
-			if (rr.flags & RRDOCKSTAT)
-				supportflags |=  DOCKSTAT;
+			if (rr.flags & RRCONTAINERSTAT)
+				supportflags |=  CONTAINERSTAT;
 			else
-				supportflags &= ~DOCKSTAT;
+				supportflags &= ~CONTAINERSTAT;
 
 			if (rr.flags & RRGPUSTAT)
 				supportflags |=  GPUSTAT;

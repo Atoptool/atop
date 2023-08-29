@@ -4,7 +4,7 @@
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** 
-** This source-file contains function for bar graph representation of
+** This source-file contains functions for bar graph representation of
 ** system-level statistics about processors, memory, disks and network
 ** interfaces.
 ** ==========================================================================
@@ -112,6 +112,7 @@
 #include <sys/utsname.h>
 
 #include "atop.h"
+#include "photoproc.h"
 #include "showgeneric.h"
 #include "photosyst.h"
 

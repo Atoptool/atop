@@ -272,8 +272,6 @@ text_samp(time_t curtime, int nsecs,
            struct devtstat *devtstat, struct sstat *sstat, 
            int nexit, unsigned int noverflow, char flag)
 {
-	char		*p;
-
 	register int	i, curline, statline, nproc;
 	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
 	int		lastchar;
@@ -311,7 +309,7 @@ text_samp(time_t curtime, int nsecs,
 	int		nucum      = 0;
 	char		ulastorder = 0;
 
-	struct tstat	*tccumlist = 0;		// per container accumulation
+	struct tstat	*tccumlist = 0;		// per container/pod accumulation
 	struct tstat	**ccumlist = 0;
 	int		nccum      = 0;
 	char		clastorder = 0;
@@ -332,7 +330,7 @@ text_samp(time_t curtime, int nsecs,
 	/*
 	** sellist contains the pointers to the structs in tstat
 	** that are currently selected on basis of a particular
-	** username (regexp), program name (regexp), container name
+	** username (regexp), program name (regexp), container/pod name
 	** or suppressed exited procs
 	**
 	** this list will be allocated 'lazy'
@@ -459,7 +457,7 @@ text_samp(time_t curtime, int nsecs,
 			suppressexit 		      ? MSUPEXITS  : '-',
 			procsel.userid[0] != USERSTUB ? MSELUSER   : '-',
 			procsel.prognamesz	      ? MSELPROC   : '-',
-			procsel.container[0]	      ? MSELCONT   : '-',
+			procsel.utsname[0]	      ? MSELCONT   : '-',
 			procsel.pid[0] != 0	      ? MSELPID    : '-',
 			procsel.argnamesz	      ? MSELARG    : '-',
 			procsel.states[0]	      ? MSELSTATE  : '-',
@@ -804,7 +802,7 @@ text_samp(time_t curtime, int nsecs,
 
 			if ( procsel.userid[0] == USERSTUB &&
 			    !procsel.prognamesz            &&
-			    !procsel.container[0]          &&
+			    !procsel.utsname[0]            &&
 			    !procsel.states[0]             &&
 			    !procsel.argnamesz             &&
 			    !procsel.pid[0]                &&
@@ -1399,10 +1397,10 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** accumulated resource consumption per container
+			   ** accumulated resource consumption per container/pod
 			   */
 			   case MCUMCONT:
-				statmsg = "Consumption per container; use 'a' to "
+				statmsg = "Consumption per container/pod; use 'a' to "
 				          "toggle between all/active processes";
 
 				showtype  = MCUMCONT;
@@ -1640,7 +1638,7 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** focus on specific container id
+			   ** focus on specific container/pod id
 			   */
 			   case MSELCONT:
 				alarm(0);	/* stop the clock */
@@ -1648,49 +1646,25 @@ text_samp(time_t curtime, int nsecs,
 
 				move(statline, 0);
 				clrtoeol();
-				printw("Containerid 12 postitions "
- 				       "(enter=all, "
+				printw("Container or pod name (enter=all, "
 				       "'host'=host processes): ");
 
-				procsel.container[0]  = '\0';
-				scanw("%15s", procsel.container);
-				procsel.container[12] = '\0';
+				procsel.utsname[0]  = '\0';
+				scanw("%15s", procsel.utsname);
+				procsel.utsname[UTSLEN] = '\0';
 
-				switch (strlen(procsel.container))
+				switch (strlen(procsel.utsname))
 				{
                                    case 0:
 					break;	// enter key pressed
 
 				   case 4:	// host?
-					if (strcmp(procsel.container, "host"))
+					if (strcmp(procsel.utsname, "host") == 0)
 					{
-						statmsg="Invalid containerid!";
-						beep();
-						procsel.container[0] = '\0';
-					}
-					else
-					{
-						procsel.container[0] = 'H';
-						procsel.container[1] = '\0';
+						procsel.utsname[0] = 'H';
+						procsel.utsname[1] = '\0';
 					}
 					break;
-
-				   case 12:	// container id
-					(void)strtol(procsel.container, &p, 16);
-
-					if (*p)
-					{
-						statmsg ="Containerid not hex!";
-						beep();
-						procsel.container[0] = '\0';
-					}
-					break;
-
-				   default:
-					statmsg = "Invalid containerid!";
-					beep();
-
-					procsel.container[0] = '\0';
 				}
 
 				noecho();
@@ -2466,7 +2440,7 @@ cumprogs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 }
 
 /*
-** accumulate all processes per container in new list
+** accumulate all processes per container/pod in new list
 */
 static int
 cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
@@ -2474,12 +2448,12 @@ cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
 	register int	i, numconts;
 
 	/*
-	** sort list of active processes in order of container (increasing)
+	** sort list of active processes in order of container/pod (increasing)
 	*/
 	qsort(curprocs, numprocs, sizeof(struct tstat *), compcon);
 
 	/*
-	** accumulate all processes per container in the new list
+	** accumulate all processes per container/pod in the new list
 	*/
 	for (numconts=i=0; i < numprocs; i++, curprocs++)
 	{
@@ -2489,16 +2463,16 @@ cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
 		if ((*curprocs)->gen.state == 'E' && suppressexit)
 			continue;
  
-		if ( strcmp(curconts->gen.container,
-                         (*curprocs)->gen.container) != 0)
+		if ( strcmp(curconts->gen.utsname,
+                         (*curprocs)->gen.utsname) != 0)
 		{
 			if (curconts->gen.pid)
 			{
 				numconts++;
 				curconts++;
 			}
-			strcpy(curconts->gen.container,
-			    (*curprocs)->gen.container);
+			strcpy(curconts->gen.utsname,
+			    (*curprocs)->gen.utsname);
 		}
 
 		accumulate(*curprocs, curconts);
@@ -2676,19 +2650,19 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 	}
 
 	/*
-	** check if only processes related to a particular container
-	** should be shown (container 'H' stands for native host processes)
+	** check if only processes related to a particular container/pod
+	** should be shown (container/pod 'H' stands for native host processes)
 	*/
-	if (sel->container[0])
+	if (sel->utsname[0])
 	{
-		if (sel->container[0] == 'H')	// only host processes
+		if (sel->utsname[0] == 'H')	// only host processes
 		{
-			if (curstat->gen.container[0])
+			if (curstat->gen.utsname[0])
 				return 1;
 		}
 		else
 		{
-			if (memcmp(sel->container, curstat->gen.container, 12))
+			if (memcmp(sel->utsname, curstat->gen.utsname, 12))
 				return 1;
 		}
 	}
@@ -3160,14 +3134,14 @@ static struct helptext {
 	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
 	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
-	{"\t'%c'  - total resource consumption per container\n",MCUMCONT},
+	{"\t'%c'  - total resource consumption per container/pod\n",MCUMCONT},
 	{"\n",							' '},
 	{"Process selections (keys shown in header line):\n",	' '},
 	{"\t'%c'  - focus on specific user name           "
 	                              "(regular expression)\n", MSELUSER},
 	{"\t'%c'  - focus on specific program name        "
 	                              "(regular expression)\n", MSELPROC},
-	{"\t'%c'  - focus on specific container id (CID)\n",    MSELCONT},
+	{"\t'%c'  - focus on specific container/pod name\n",    MSELCONT},
 	{"\t'%c'  - focus on specific command line string "
 	                              "(regular expression)\n", MSELARG},
 	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID},
@@ -3376,7 +3350,7 @@ generic_usage(void)
 	printf("\t  -%c  show cumulated process-info per program "
 	                "(i.e. same name)\n",
 			MCUMPROC);
-	printf("\t  -%c  show cumulated process-info per container\n\n",
+	printf("\t  -%c  show cumulated process-info per container/pod\n\n",
 			MCUMCONT);
 	printf("\t  -%c  sort processes in order of cpu consumption "
 	                "(default)\n",

@@ -29,6 +29,7 @@
 #define	PNAMLEN		15
 #define	CMDLEN		255
 #define	CGRLEN		64
+#define	UTSLEN		15
 
 /* 
 ** structure containing only relevant process-info extracted 
@@ -66,7 +67,7 @@ struct tstat {
 
 		int	wasinactive;	/* boolean: task inactive	*/
 
-		char	container[16];	/* Docker container id (12 pos)	*/
+		char	utsname[UTSLEN+1];/* UTS name container or pod  */
 		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
 	} gen;
 

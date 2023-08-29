@@ -1008,7 +1008,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.egid,
 			ps->gen.elaps,
 			!!ps->gen.isproc, /* convert to boolean */
-			ps->gen.container[0] ? ps->gen.container:"-");
+			ps->gen.utsname[0] ? ps->gen.utsname:"-");
 	}
 
 	printf("]");

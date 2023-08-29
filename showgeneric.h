@@ -60,7 +60,7 @@ struct pselection {
 	int	argnamesz;
 	regex_t	argregex;
 
-	char 	container[16];
+	char 	utsname[UTSLEN+1];
 
 	char	states[16];
 };

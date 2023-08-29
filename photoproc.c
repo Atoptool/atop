@@ -62,7 +62,6 @@
 static int	procstat(struct tstat *, unsigned long long, char);
 static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
-static int	proccont(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
 static void	procwchan(struct tstat *);
@@ -221,9 +220,9 @@ photoproc(struct tstat *tasklist, int maxtask)
 			continue;
 		}
 
-		procschedstat(curtask);		/* from /proc/pid/schedstat */
-		proccmd(curtask);		/* from /proc/pid/cmdline */
-		dockstat += proccont(curtask);	/* from /proc/pid/cpuset  */
+		procschedstat(curtask);			/* from /proc/pid/schedstat */
+		proccmd(curtask);			/* from /proc/pid/cmdline */
+		dockstat += getutsname(curtask);	/* retrieve container/pod name */
 
 		/*
  		** cgroups v2: determine cgroup for process and register most
@@ -369,8 +368,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 						curthr->cpu.nivcsw;
 
 					// continue gathering
-					strcpy(curthr->gen.container,
-						curtask->gen.container);
+					strcpy(curthr->gen.utsname,
+						curtask->gen.utsname);
 
 					switch (curthr->gen.state)
 					{
@@ -419,9 +418,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 		mcleanstop(55, "cannot change to %s\n", origdir);
 
 	if (dockstat)
-		supportflags |= DOCKSTAT;
+		supportflags |= CONTAINERSTAT;
 	else
-		supportflags &= ~DOCKSTAT;
+		supportflags &= ~CONTAINERSTAT;
+
+	resetutsname();		// reassociate atop with own UTS namespace
 
 	return tval;
 }
@@ -902,89 +903,6 @@ procwchan(struct tstat *curtask)
         }
 
         curtask->cpu.wchan[nr] = 0;
-}
-
-
-/*
-** store the container ID, retrieved from the 'cpuset'
-** that might look like this:
-**
-** In case of Docker:
-**    /system.slice/docker-af78216c2a230f1aa5dce56cbf[SNAP].scope (e.g. CentOS)
-**    /docker/af78216c2a230f1aa5dce56cbf[SNAP]   (e.g. openSUSE and Ubuntu))
-**
-** In case of Docker created by K8s:
-**    /kubepods/burstable/pod07dbb922-[SNAP]/223dc5e15b[SNAP]
-**
-** In case of podman:
-**    /machine.slice/libpod-0b5836e9ea98aefd89481123bi[SNAP].scope
-**
-** In general:
-** - search for last '/' (basename)
-** - check if '/' followed by 'docker-': then skip 'docker-'
-** - check if '/' followed by 'libpod-': then skip 'libpod-'
-** - take 12 positions for the container ID
-**
-** Return value:
-**	0 - no container
-**	1 - container
-*/
-#define	CIDSIZE		12
-#define	SHA256SIZE	64
-#define	DOCKPREFIX	"docker-"
-#define	PODMANPREFIX	"libpod-"
-
-static int
-proccont(struct tstat *curtask)
-{
-	FILE	*fp;
-	char	line[256];
-
-	if ( (fp = fopen("cpuset", "r")) != NULL)
-	{
-		register char *p;
-
-		if ( fgets(line, sizeof line, fp) )
-		{
-			fclose(fp);
-
-			// fast check for processes not using cpuset
-			// i.e. anyhow not container
-			if (memcmp(line, "/\n", 3) == 0)
-				return 0;
-
-			// possibly container: find basename in path and
-			// verify that its minimum length is the size of SHA256
-			if ( (p = strrchr(line, '/')) != NULL &&
-			                    strlen(p) >= SHA256SIZE)
-			{
-				p++;
-
-				if (memcmp(p, DOCKPREFIX,
-						sizeof(DOCKPREFIX)-1) == 0)
-				{
-					p += sizeof(DOCKPREFIX)-1;
-				}
-				else
-				{
-					if (memcmp(p, PODMANPREFIX,
-						sizeof(PODMANPREFIX)-1) == 0)
-					{
-						p += sizeof(PODMANPREFIX)-1;
-					}
-				}
-
-				memcpy(curtask->gen.container, p, CIDSIZE);
-				return 1;
-			}
-		}
-		else
-		{
-			fclose(fp);
-		}
-	}
-
-	return 0;
 }
 
 

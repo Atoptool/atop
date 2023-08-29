@@ -26,7 +26,7 @@ OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
 OBJMOD3  = showgeneric.o drawbar.o   showlinux.o  showsys.o showprocs.o
-OBJMOD4  = atopsar.o  netatopif.o netatopbpfif.o gpucom.o     json.o
+OBJMOD4  = atopsar.o  netatopif.o netatopbpfif.o gpucom.o  json.o utsnames.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
 VERS     = $(shell ./atop -V 2>/dev/null| sed -e 's/^[^ ]* //' -e 's/ .*//')

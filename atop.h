@@ -60,7 +60,7 @@ struct netpertask;
 #define RRNETATOPD	0x0008
 #define RRACCTACTIVE	0x0010
 #define RRIOSTAT	0x0020
-#define RRDOCKSTAT	0x0040
+#define RRCONTAINERSTAT	0x0040
 #define RRGPUSTAT	0x0080
 #define RRCGRSTAT	0x0100
 
@@ -126,7 +126,7 @@ extern int		almostcrit;
 #define	IOSTAT		0x00000004
 #define	NETATOP		0x00000010
 #define	NETATOPD	0x00000020
-#define	DOCKSTAT	0x00000040
+#define	CONTAINERSTAT	0x00000040
 #define	GPUSTAT		0x00000080
 #define	CGROUPV2	0x00000100
 #define	NETATOPBPF	0x00001000
@@ -228,5 +228,8 @@ void		do_atopsarflags(char *, char *);
 
 int		netlink_open(void);
 int		netlink_recv(int, int);
+
+int		getutsname(struct tstat *);
+void		resetutsname(void);
 
 #endif
