@@ -155,8 +155,10 @@ getutsname(struct tstat *curtask)
 	// check if the hostname is the same as the hostname of
 	// systemd (PID 1), because some systemd-related processes have
 	// their own UTS namespace with the same hostname
+	// also the hostname 'localhost' might be used by various daemons
+	// and will be skipped as well
 	//
-	if ( strcmp(tmphost, basehost) == 0)
+	if ( strcmp(tmphost, basehost) == 0 || strcmp(tmphost, "localhost") == 0)
 		goto drop_and_return;
 
 	// this process really seems to be container/pod related
