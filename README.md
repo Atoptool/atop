@@ -64,12 +64,13 @@ For each interval, it is able to accumulate the resource consumption for all pro
 For each interval, it is able to accumulate the resource consumption for all processes within the same container.
 
 * __Network activity per process.__
-In combination with the optional kernel module netatop, it shows process-level counters concerning the number of TCP and UDP packets transferred, and the consumed network bandwidth per process.
+In combination with the optional kernel module [netatop](https://www.atoptool.nl/downloadnetatop.php) or the BPF module [netatop-bpf](https://github.com/bytedance/netatop-bpf), it shows process-level counters concerning the number of TCP and UDP packets transferred, and the consumed network bandwidth per process.
 
 * __GPU activity on system level and per process.__
 In combination with the optional daemon atopgpud, it shows system-level and process-level counters concerning the load and memory utilization per GPU.
 
 ## Links
 
-* [A Web interface for atop](https://github.com/pizhenwei/atophttpd)
+* A [BPF implementation](https://github.com/bytedance/netatop-bpf) to gather network statistics per process/thread (alternative for the 'netatop' kernel module)
+* A [Web interface](https://github.com/pizhenwei/atophttpd) for atop
 * [Graphical representation of system resource utilization]( https://codeberg.org/mgellner/atopsar-plot)

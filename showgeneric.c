@@ -1208,7 +1208,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MSORTNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF))
 				{
-					statmsg = "'netatop' not "
+					statmsg = "Module 'netatop' or 'netatop-bpf' not "
 					          "active or no root privs; "
 					          "request ignored!";
 					break;
@@ -1280,7 +1280,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
 				{
-					statmsg = "Kernel module 'netatop' not "
+					statmsg = "Module 'netatop' or 'netatop-bpf' not "
 					          "active or no root privs; "
 					          "request ignored!";
 					break;
@@ -2857,8 +2857,8 @@ generic_init(void)
 		   case MPROCNET:
 			if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
 			{
-				fprintf(stderr, "Kernel module 'netatop' not "
-					          "active; request ignored!\n");
+				fprintf(stderr, "Module 'netatop' or 'netatop-bpf' not "
+					          "active; request ignored!");
 				sleep(3);
 				break;
 			}

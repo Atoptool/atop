@@ -39,10 +39,17 @@ For interactive use, it is sufficient to install ATOP with the command
 For automatic logging in compressed binary format, see the
 description in the manual-page.
 
+
+NETWORK-RELATED COUNTERS PER PROCESS/THREAD
+-------------------------------------------
+
 The kernel module 'netatop' can be downloaded and installed separately
 from www.atoptool.nl/downloadnetatop.php
 This module is optional and can be used to gather network statistics
 per process/thread as described in www.atoptool.nl/netatop.php
+
+Alternatively, the BPF implementation 'netatop-bpf' can be downloaded
+and installed from https://github.com/bytedance/netatop-bpf
 
 
 PROCESS ACCOUNTING WITH PSACCT/ACCT PACKAGE

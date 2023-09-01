@@ -53,7 +53,9 @@ information is gathered about the processes (or threads) that
 are responsible for the utilization of the CPUs, memory and disks.
 Network load per process is shown only when the
 .I netatop
-kernel module has been installed.
+kernel module or the
+.I netatop-bpf
+BPF module has been installed.
 .SH BAR GRAPH MODE
 When running
 .I atop
@@ -482,17 +484,19 @@ man page).
 .PP
 With the key 'x' (or flag \-x), the use of colors can be suppressed
 in text mode. The use of colors is however mandatory in case of bar graph mode.
-.SH NETATOP MODULE
+.SH NETATOP OR NETATOP-BPF MODULE
 Per-process and per-thread network activity can be measured by the
 .I netatop
-kernel module. You can download this kernel module from the website
-(mentioned at the end of this manual page) and install it on your
-system.
+kernel module or the
+.I netatop-bpf
+BPF module that can be separately installed.
 .br
 When
 .I atop
 gathers counters for a new interval, it verifies if the
 .I netatop
+or 
+.I netatop-bpf
 module is currently active. If so,
 .I atop
 obtains the relevant network counters from this module and shows
@@ -502,7 +506,9 @@ pressing the 'n' key.
 .br
 When the
 .I netatopd
-daemon is running as well,
+daemon is running in combination with the
+.I netatop
+module,
 .I atop
 also reads the network counters of exited processes that are logged
 by this daemon (comparable with process accounting).
@@ -579,7 +585,11 @@ when
 .I atop
 runs with root privileges.
 .br
-When the kernel module 'netatop' is loaded, the data transfer for send/receive
+When the optional module
+.I netatop
+or
+.I netatop-bpf
+is loaded, the data transfer for send/receive
 of network packets is shown for each process.
 .br
 The last columns contain the state, the occupation percentage for the
@@ -629,7 +639,11 @@ number of received UDP packets with the average size per packet (in bytes),
 number of sent UDP packets with the average size per packet (in bytes),
 the network occupation percentage and process name.
 .br
-This information can only be shown when kernel module 'netatop' is installed.
+This information can only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 
 When more than 80 positions are available, other information is added.
 .PP
@@ -753,7 +767,11 @@ When
 .I atop
 runs with root privileges,
 the accumulated read and write throughput on disk is shown.
-When the kernel module 'netatop' has been installed,
+When the optional module
+.I netatop
+or
+.I netatop-bpf
+has been installed,
 the accumulated number of received and sent network packets is shown.
 .br
 The last columns contain the accumulated occupation percentage for the
@@ -773,7 +791,11 @@ When
 .I atop
 runs with root privileges,
 the accumulated read and write throughput on disk is shown.
-When the kernel module 'netatop' has been installed,
+When the optional module
+.I netatop
+or
+.I netatop-bpf
+has been installed,
 the accumulated number of received and sent network packets is shown.
 .br
 The last columns contain the accumulated occupation percentage for the
@@ -794,7 +816,11 @@ When
 .I atop
 runs with root privileges,
 the accumulated read and write throughput on disk is shown.
-When the kernel module 'netatop' has been installed,
+When the optional module
+.I netatop
+or
+.I netatop-bpf
+has been installed,
 the accumulated number of received and sent network packets is shown.
 .br
 The last columns contain the accumulated occupation percentage for the
@@ -849,7 +875,10 @@ A sorting order for disk is only possible when
 .I atop
 runs with root privileges.
 .br
-A sorting order for network is only possible when the kernel module 'netatop'
+A sorting order for network is only possible when the optional module
+.I netatop
+or
+.I netatop-bpf
 is loaded.
 .PP
 Miscellaneous interactive commands:
@@ -1748,7 +1777,10 @@ Total bandwidth for received TCP and UDP packets consumed by this process
 This value can be compared with the value 'si'
 on interface level (used bandwidth per interface).
 .br
-This information will only be shown when the kernel module 'netatop'
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
 is loaded.
 .PP
 .TP 9
@@ -1758,7 +1790,10 @@ Total bandwidth for sent TCP and UDP packets consumed by this process
 This value can be compared with the value 'so'
 on interface level (used bandwidth per interface).
 .br
-This information will only be shown when the kernel module 'netatop'
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
 is loaded.
 .PP
 .TP 9
@@ -1967,7 +2002,11 @@ The occupation percentage of this process related to the total load that
 is produced by all processes (i.e. consumed network bandwidth
 of all processes during the last interval).
 .br
-This information will only be shown when kernel module 'netatop' is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is loaded.
 .PP
 .TP 9
 .B NICE
@@ -2079,7 +2118,11 @@ process accounting record.
 .TP 9
 .B RNET 
 The number of TCP- and UDP packets received by this process.
-This information will only be shown when kernel module 'netatop' is installed.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .br
 If a process has finished during the last interval, no value is shown
 since network counters are not part of the standard process accounting record.
@@ -2122,8 +2165,11 @@ The saved group-id of the process.
 .TP 9
 .B SNET 
 The number of TCP and UDP packets transmitted by this process.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B ST
@@ -2187,26 +2233,38 @@ due to system call handling.
 .TP 9
 .B TCPRASZ
 The average size of a received TCP buffer in bytes. 
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B TCPRCV
 The number of TCP packets received for this process.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B TCPSASZ
 The average size of a transmitted TCP buffer in bytes.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B TCPSND
 The number of TCP packets transmitted for this process.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B THR
@@ -2250,26 +2308,38 @@ state 'uninterruptible sleeping' (D).
 .TP 9
 .B UDPRASZ
 The average size of a received UDP packet in bytes.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B UDPRCV
 The number of UDP packets received by this process.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B UDPSASZ
 The average size of a transmitted UDP packets in bytes.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B UDPSND
 The number of UDP packets transmitted by this process.
-This information will only be shown when the kernel module 'netatop'
-is loaded.
+This information will only be shown when the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed.
 .PP
 .TP 9
 .B USRCPU
@@ -2368,7 +2438,11 @@ that can be found in the interactive output:
 For process-level statistics special labels are available:
 "PRG" (general), "PRC" (CPU), "PRE" (GPU), "PRM" (memory), "PRD"
 (disk, only if "storage accounting" is active) and "PRN" (network, only if
-the kernel module 'netatop' has been installed). 
+the optional module
+.I netatop
+or
+.I netatop-bpf
+is installed).
 .br
 With the label "ALL", all system and process level statistics are shown.
 .PP
@@ -2772,7 +2846,11 @@ For every process one line is shown.
 .br
 Subsequent fields:
 PID, name (between parenthesis or underscores for spaces), state,
-kernel module 'netatop' loaded ('y' or 'n'),
+kernel module
+.I netatop
+or
+.I netatop-bpf
+installed ('y' or 'n'),
 number of TCP-packets transmitted,
 cumulative size of TCP-packets transmitted,
 number of TCP-packets received,
@@ -2929,7 +3007,9 @@ in compressed format.
 File that contains the netpertask structs containing the network
 counters of exited processes. These structs are written by the
 .I netatopd
-daemon and read by
+daemon (which is related to the
+.I netatop
+module) and read by
 .I atop
 after reading the standard process accounting records.
 .SH SEE ALSO
