@@ -27,18 +27,17 @@ Write raw log files:
 Analyze raw log files in bar graph mode:
 .PP
 .TP 5
-.B \  atop \-B[H]r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm] [\-e [YYYYMMDD]hhmm]
+.B \  atop \-B[H]r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]]
 .PP
 Analyze raw log files in text mode:
 .PP
 .TP 5
-.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm] [\-e [YYYYMMDD]hhmm] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR]
+.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR]
 .PP
 Generate parsable output from raw log files (white-space separated or JSON):
 .PP
 .TP 5
-.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm] [\-e [YYYYMMDD]hhmm] [\-Plabel[,label]... [-Z]] [\-Jlabel[,label]...]
-
+.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-Plabel[,label]... [-Z]] [\-Jlabel[,label]...]
 .SH DESCRIPTION
 The program
 .I atop
@@ -1215,7 +1214,7 @@ With the flag
 .B -b
 (begin time) and/or
 .B -e
-(end time) followed by a time argument of the form [YYYYMMDD]hhmm,
+(end time) followed by a time argument of the form [YYYYMMDD]hhmm[ss],
 a certain time period within the raw file can be selected.
 .PP
 Every day at midnight
