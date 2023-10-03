@@ -446,6 +446,7 @@ atopacctd(int swon)
 						{
 							(void) close(acctfd);
 							acctfd = -1;
+							maxshadowrec = 0;
 
 							semop(sempacctpubid,
 								&semrelse, 1);
@@ -453,7 +454,7 @@ atopacctd(int swon)
 								&semunlock, 1);
 
 							regainrootprivs();
-							return 1;
+							return -1;
 						}
 					}
 
