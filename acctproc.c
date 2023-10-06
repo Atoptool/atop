@@ -430,7 +430,6 @@ atopacctd(int swon)
 				{
 					if ( swon && !acctvers(acctfd) )
 					{
-
 						int maxcnt = 40;
 
 						if ( fork() == 0 )
@@ -453,7 +452,8 @@ atopacctd(int swon)
 								&semunlock, 1);
 
 							regainrootprivs();
-							return 1;
+							maxshadowrec = 0;
+							return -1;  // try other
 						}
 					}
 
