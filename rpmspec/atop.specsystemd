@@ -69,9 +69,9 @@ mv /var/log/atop/atop_`date +%Y%m%d` /var/log/atop/atop_`date +%Y%m%d`.save \
 					2> /dev/null || :
 
 /bin/systemctl daemon-reload
-/bin/systemctl enable --now atopacct
-/bin/systemctl enable --now atop
-/bin/systemctl enable --now atop-rotate.timer
+/bin/systemctl enable atopacct
+/bin/systemctl enable atop
+/bin/systemctl enable atop-rotate.timer
 
 %preun
 if [ $1 -eq 0 ]
