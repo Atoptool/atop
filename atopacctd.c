@@ -24,7 +24,7 @@
 **   any more. As soon as at least one client is activated again, the
 **   atopacctd daemon start writing shadow files again.
 **
-** The directory /var/run is used as the default top-directory. An
+** The directory /run is used as the default top-directory. An
 ** alternative top-directory can be specified as command line argument
 ** (in that case, also modify /etc/atoprc to inform atop as a client).
 ** Below this top-directory the source file pacct_source is created and

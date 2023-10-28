@@ -77,6 +77,6 @@ struct netpertask {
 // get counters for thread:  input is 'id' (tid)
 #define NETATOP_GETCNT_PID 	(NETATOP_BASE_CTL+5)
 
-#define NETATOPBPF_SOCKET "/var/run/netatop-bpf-socket"
+#define NETATOPBPF_SOCKET "/run/netatop-bpf-socket"
 
 #endif

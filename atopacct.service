@@ -6,7 +6,7 @@ Before=atop.service
 
 [Service]
 Type=forking
-PIDFile=/var/run/atopacctd.pid
+PIDFile=/run/atopacctd.pid
 ExecStartPre=/bin/sh -c 'if systemctl -q is-active acct psacct; then echo "Process accounting already in use by (ps)acct"; exit 1; fi'
 ExecStart=/usr/sbin/atopacctd
 

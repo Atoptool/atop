@@ -52,7 +52,7 @@ case "$1" in
 		:
 	else
 		# Start atopacctd
-		rm -rf /var/run/pacct_shadow.d 2> /dev/null
+		rm -rf /run/pacct_shadow.d 2> /dev/null
 		/usr/sbin/atopacctd
 	fi
 
