@@ -2304,9 +2304,12 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         ival    = sstat->ifb.ifb[extra.index].rcvb/125/nsecs;
                         oval    = sstat->ifb.ifb[extra.index].sndb/125/nsecs;
 
-			busy = (ival > oval ? ival : oval) *
+			if (sstat->ifb.ifb[extra.index].rate)
+				busy = (ival > oval ? ival : oval) *
 			                 sstat->ifb.ifb[extra.index].lanes /
 					(sstat->ifb.ifb[extra.index].rate * 10);
+			else
+				busy = 0;
 
                         if (netbadness)
                                 badness = busy * 100 / netbadness;
