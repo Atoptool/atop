@@ -475,6 +475,9 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->mem.vmem   = curstat->mem.vmem;
 	devstat->mem.rmem   = curstat->mem.rmem;
 	devstat->mem.pmem   = curstat->mem.pmem;
+	devstat->mem.panon  = curstat->mem.panon;
+	devstat->mem.pfile  = curstat->mem.pfile;
+	devstat->mem.pshmem = curstat->mem.pshmem;
 	devstat->mem.vdata  = curstat->mem.vdata;
 	devstat->mem.vstack = curstat->mem.vstack;
 	devstat->mem.vlibs  = curstat->mem.vlibs;

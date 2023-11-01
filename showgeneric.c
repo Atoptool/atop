@@ -2531,9 +2531,19 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 		if (curstat->mem.pmem != -1)
 		{
 			if  (curproc->mem.pmem != -1)  // no errors?
-				curstat->mem.pmem += curproc->mem.pmem;
+			{
+				curstat->mem.pmem   += curproc->mem.pmem;
+				curstat->mem.panon  += curproc->mem.panon;
+				curstat->mem.pfile  += curproc->mem.pfile;
+				curstat->mem.pshmem += curproc->mem.pshmem;
+			}
 			else
-				curstat->mem.pmem  = -1;
+			{
+				curstat->mem.pmem   = -1;
+				curstat->mem.panon  = -1;
+				curstat->mem.pfile  = -1;
+				curstat->mem.pshmem = -1;
+			}
 		}
 
 		curstat->mem.vmem   += curproc->mem.vmem;

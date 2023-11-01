@@ -83,6 +83,12 @@ char *procprt_RSIZE_a(struct tstat *, int, int);
 char *procprt_RSIZE_e(struct tstat *, int, int);
 char *procprt_PSIZE_a(struct tstat *, int, int);
 char *procprt_PSIZE_e(struct tstat *, int, int);
+char *procprt_PANON_a(struct tstat *, int, int);
+char *procprt_PANON_e(struct tstat *, int, int);
+char *procprt_PFILE_a(struct tstat *, int, int);
+char *procprt_PFILE_e(struct tstat *, int, int);
+char *procprt_PSHMEM_a(struct tstat *, int, int);
+char *procprt_PSHMEM_e(struct tstat *, int, int);
 char *procprt_VSLIBS_a(struct tstat *, int, int);
 char *procprt_VSLIBS_e(struct tstat *, int, int);
 char *procprt_VDATA_a(struct tstat *, int, int);
@@ -836,6 +842,69 @@ procprt_PSIZE_e(struct tstat *curstat, int avgval, int nsecs)
 
 proc_printdef procprt_PSIZE = 
    { " PSIZE", "PSIZE", procprt_PSIZE_a, procprt_PSIZE_e, 6 };
+/***************************************************************/
+char *
+procprt_PANON_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+	if (curstat->mem.panon == (unsigned long long)-1LL)
+		return "    ?K";
+
+        val2memstr(curstat->mem.panon*1024, buf, BFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_PANON_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_PANON =
+   { " PANON", "PANON", procprt_PANON_a, procprt_PANON_e, 6 };
+/***************************************************************/
+char *
+procprt_PFILE_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+	if (curstat->mem.pfile == (unsigned long long)-1LL)
+		return "    ?K";
+
+        val2memstr(curstat->mem.pfile*1024, buf, BFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_PFILE_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_PFILE =
+   { " PFILE", "PFILE", procprt_PFILE_a, procprt_PFILE_e, 6 };
+/***************************************************************/
+char *
+procprt_PSHMEM_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+	if (curstat->mem.pshmem == (unsigned long long)-1LL)
+		return "    ?K";
+
+        val2memstr(curstat->mem.pshmem*1024, buf, BFORMAT, 0, 0);
+        return buf;
+}
+
+char *
+procprt_PSHMEM_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    0K";
+}
+
+proc_printdef procprt_PSHMEM =
+   { "PSHMEM", "PSHMEM", procprt_PSHMEM_a, procprt_PSHMEM_e, 6 };
 /***************************************************************/
 char *
 procprt_VSLIBS_a(struct tstat *curstat, int avgval, int nsecs)

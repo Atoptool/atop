@@ -827,7 +827,8 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 	for (i=0; i < nact; i++, ps++)
 	{
 		printf("%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %d %c %lld %lld %d %d %d %d\n",
+		       "%lld %lld %lld %lld %lld %d %c %lld %lld %lld "
+		       "%lld %lld %d %d %d %d\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -848,6 +849,12 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.isproc ? 'y':'n',
 			ps->mem.pmem == (unsigned long long)-1LL ?
 							0:ps->mem.pmem,
+			ps->mem.panon == (unsigned long long)-1LL ?
+							0:ps->mem.panon,
+			ps->mem.pfile == (unsigned long long)-1LL ?
+							0:ps->mem.pfile,
+			ps->mem.pshmem == (unsigned long long)-1LL ?
+							0:ps->mem.pshmem,
 			ps->mem.vlock,
 			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmax),
 			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmaxr),
