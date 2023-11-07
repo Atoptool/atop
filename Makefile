@@ -140,7 +140,7 @@ sysvinstall:	genericinstall
 		fi
 
 
-genericinstall:	atop atopacctd atopconvert atopcat
+genericinstall:	atop atopacctd atopconvert atopcat atophide
 		if [ ! -d $(DESTDIR)$(LOGPATH) ]; 		\
 		then	mkdir -p $(DESTDIR)$(LOGPATH); fi
 		if [ ! -d $(DESTDIR)$(DEFPATH) ]; 		\
@@ -172,10 +172,13 @@ genericinstall:	atop atopacctd atopconvert atopcat
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
 		cp atopcat 		$(DESTDIR)$(BINPATH)/atopcat
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopcat
+		cp atopcat 		$(DESTDIR)$(BINPATH)/atophide
+		chmod 0711 		$(DESTDIR)$(BINPATH)/atophide
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atopconvert.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atopcat.1 	$(DESTDIR)$(MAN1PATH)
+		cp man/atophide.1 	$(DESTDIR)$(MAN1PATH)
 		cp man/atoprc.5  	$(DESTDIR)$(MAN5PATH)
 		cp man/atopacctd.8  	$(DESTDIR)$(MAN8PATH)
 		cp man/atopgpud.8  	$(DESTDIR)$(MAN8PATH)
@@ -210,3 +213,4 @@ atopacctd.o:	atop.h  photoproc.h acctproc.h   atopacctd.h   version.h versdate.h
 
 atopconvert.o:	atop.h  photoproc.h photosyst.h  rawlog.h
 atopcat.o:	atop.h  rawlog.h
+atophide.o:	atop.h  photoproc.h photosyst.h  rawlog.h
