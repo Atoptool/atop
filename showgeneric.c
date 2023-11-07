@@ -103,6 +103,8 @@ static void	generic_init(void);
 static char	text_samp(time_t, int, struct devtstat *,
 			struct sstat *, int, unsigned int, char);
 
+static int	rootprivs(void);
+
 static int	(*procsort[])(const void *, const void *) = {
 			[MSORTCPU&0x1f]=compcpu, 
 			[MSORTMEM&0x1f]=compmem, 
@@ -585,18 +587,10 @@ text_samp(time_t curtime, int nsecs,
 				}
 				else
 				{
- 					uid_t ruid, euid, suid;
-
-					getresuid(&ruid, &euid, &suid);
-
-					if (suid == 0)
-					{
+					if (rootprivs())
 						viewmsg   = "Unrestricted view (privileged)";
-					}
 					else
-					{
 						viewmsg   = "Restricted view (unprivileged)";
-					}
 				}
 
 				if (screen)
@@ -1194,8 +1188,12 @@ text_samp(time_t curtime, int nsecs,
 			   case MSORTDSK:
 				if ( !(supportflags & IOSTAT) )
 				{
-					statmsg = "No disk-activity figures "
-					          "available; request ignored!";
+					if (rawreadflag)
+						statmsg = "No disk activity in "
+						          "raw file!";
+					else
+						statmsg = "No privileges to "
+						          "view disk activity!";
 					break;
 				}
 				showorder = MSORTDSK;
@@ -1261,8 +1259,12 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCDSK:
 				if ( !(supportflags & IOSTAT) )
 				{
-					statmsg = "No disk-activity figures "
-					          "available; request ignored!";
+					if (rawreadflag)
+						statmsg = "No disk activity in "
+						          "raw file!";
+					else
+						statmsg = "No privileges to "
+						          "view disk activity!";
 					break;
 				}
 
@@ -1400,6 +1402,13 @@ text_samp(time_t curtime, int nsecs,
 			   ** accumulated resource consumption per container/pod
 			   */
 			   case MCUMCONT:
+				if (!rawreadflag && !rootprivs())
+				{
+					statmsg = "No privileges to get "
+					          "container/pod identity!";
+					break;
+				}
+
 				statmsg = "Consumption per container/pod; use 'a' to "
 				          "toggle between all/active processes";
 
@@ -1641,6 +1650,14 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific container/pod id
 			   */
 			   case MSELCONT:
+				if (!rawreadflag && !rootprivs())
+				{
+					statmsg = "No privileges to get "
+					          "container/pod identity!";
+					beep();
+					break;
+				}
+
 				alarm(0);	/* stop the clock */
 				echo();
 
@@ -2843,9 +2860,14 @@ generic_init(void)
 		   case MPROCDSK:
 			if ( !(supportflags & IOSTAT) )
 			{
-				fprintf(stderr,
-					"No disk-activity figures "
-				        "available; request ignored\n");
+				if (rawreadflag)
+					fprintf(stderr,
+						"No disk activity in "
+						"raw file!\n");
+				else
+					fprintf(stderr,
+						"No privileges to view "
+						"disk activity!\n");
 				sleep(3);
 				break;
 			}
@@ -2907,6 +2929,14 @@ generic_init(void)
 			break;
 
 		   case MCUMCONT:
+			if (!rawreadflag && !rootprivs())
+			{
+				fprintf(stderr, "No privileges to get "
+				                "container/pod identity!\n");
+				sleep(3);
+				break;
+			}
+
 			showtype  = MCUMCONT;
 			break;
 
@@ -3283,6 +3313,20 @@ showhelp(int helpline)
 	wprintw(helpwin, "End of help - press 'q' to leave help...");
         while (wgetch(helpwin) != 'q');
 	delwin(helpwin);
+}
+
+/*
+** function to determine if we are running with root privileges
+** returns: boolean
+*/
+static int
+rootprivs(void)
+{
+	uid_t ruid, euid, suid;
+
+	getresuid(&ruid, &euid, &suid);
+
+	return !suid;
 }
 
 /*
