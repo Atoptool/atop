@@ -201,6 +201,7 @@ void		cleanstop(int);
 int		getpidwidth(void);
 void		prusage(char *);
 
+int		rootprivs(void);
 int		droprootprivs(void);
 void		regainrootprivs(void);
 FILE 		*fopen_tryroot(const char *, const char *);

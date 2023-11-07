@@ -38,7 +38,6 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -46,10 +45,12 @@
 #include <string.h>
 #include <fcntl.h>
 #include <wait.h>
+#include <unistd.h>
 
 #include "atop.h"
 #include "acctproc.h"
 
+int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
 
 static unsigned long long getbootlinux(long);
 
@@ -842,6 +843,20 @@ cleanstop(int exitcode)
 	(vis.show_end)();
 
 	exit(exitcode);
+}
+
+/*
+** determine if we are running with root privileges
+** returns: boolean
+*/
+int
+rootprivs(void)
+{
+        uid_t ruid, euid, suid;
+
+        getresuid(&ruid, &euid, &suid);
+
+        return !suid;
 }
 
 /*

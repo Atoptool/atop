@@ -428,7 +428,24 @@ main(int argc, char *argv[])
 				break;
 
                            case MCALCPSS:	/* calculate PSS per sample ? */
-				calcpss = 1;
+				if (rawreadflag)
+				{
+					fprintf(stderr,
+					        "PSIZE gathering depends on rawfile\n");
+					sleep(3);
+					break;
+				}
+
+                                calcpss    = 1;
+
+				if (!rootprivs())
+				{
+					fprintf(stderr,
+						"PSIZE gathering only for own "
+						"processes\n");
+					sleep(3);
+				}
+
 				break;
 
                            case MGETWCHAN:	/* obtain wchan string?       */

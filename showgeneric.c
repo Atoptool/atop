@@ -56,8 +56,6 @@
 #include "showgeneric.h"
 #include "showlinux.h"
 
-int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
-
 static struct pselection procsel = {"", {USERSTUB, }, {0,},
                                     "", 0, { 0, },  "", 0, { 0, }, "", "" };
 static struct sselection syssel;
@@ -102,8 +100,6 @@ static long	getnumval(char *, long, int);
 static void	generic_init(void);
 static char	text_samp(time_t, int, struct devtstat *,
 			struct sstat *, int, unsigned int, char);
-
-static int	rootprivs(void);
 
 static int	(*procsort[])(const void *, const void *) = {
 			[MSORTCPU&0x1f]=compcpu, 
@@ -2099,6 +2095,13 @@ text_samp(time_t curtime, int nsecs,
 			   ** per-process PSS calculation wanted 
 			   */
 			   case MCALCPSS:
+				if (rawreadflag)
+				{
+					statmsg = "PSIZE gathering depends "
+					          "on rawfile";
+					break;
+				}
+
 				if (calcpss)
 				{
 					calcpss    = 0;
@@ -2107,7 +2110,12 @@ text_samp(time_t curtime, int nsecs,
 				else
 				{
 					calcpss    = 1;
-					statmsg    = "PSIZE gathering enabled";
+
+					if (rootprivs())
+						statmsg    = "PSIZE gathering enabled";
+					else
+						statmsg    = "PSIZE gathering only "
+						             "for own processes";
 				}
 				break;
 
@@ -2545,13 +2553,8 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 
 	if (curproc->gen.state != 'E')
 	{
-		if (curstat->mem.pmem != -1)
-		{
-			if  (curproc->mem.pmem != -1)  // no errors?
-				curstat->mem.pmem += curproc->mem.pmem;
-			else
-				curstat->mem.pmem  = -1;
-		}
+		if  (curproc->mem.pmem != -1)  // no errors?
+			curstat->mem.pmem += curproc->mem.pmem;
 
 		curstat->mem.vmem   += curproc->mem.vmem;
 		curstat->mem.rmem   += curproc->mem.rmem;
@@ -2969,10 +2972,29 @@ generic_init(void)
 			break;
 
 		   case MCALCPSS:
+			if (rawreadflag)
+			{
+				fprintf(stderr,
+				        "PSIZE gathering depends on rawfile\n");
+				sleep(3);
+				break;
+			}
 			if (calcpss)
-				calcpss = 0;
+			{
+				calcpss    = 0;
+			}
 			else
-				calcpss = 1;
+			{
+				calcpss    = 1;
+
+				if (!rootprivs())
+				{
+					fprintf(stderr,
+				 	        "PSIZE gathering only for own "
+					        "processes\n");
+					sleep(3);
+				}
+			}
 			break;
 
 		   case MGETWCHAN:
@@ -3313,20 +3335,6 @@ showhelp(int helpline)
 	wprintw(helpwin, "End of help - press 'q' to leave help...");
         while (wgetch(helpwin) != 'q');
 	delwin(helpwin);
-}
-
-/*
-** function to determine if we are running with root privileges
-** returns: boolean
-*/
-static int
-rootprivs(void)
-{
-	uid_t ruid, euid, suid;
-
-	getresuid(&ruid, &euid, &suid);
-
-	return !suid;
 }
 
 /*
