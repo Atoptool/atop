@@ -1228,6 +1228,17 @@ sysprt_MEMFREE(struct sstat *sstat, extraparam *notused, int badness, int *color
 sys_printdef syspdef_MEMFREE = {"MEMFREE", sysprt_MEMFREE, NULL};
 /*******************************************************************/
 static char *
+sysprt_MEMAVAIL(struct sstat *sstat, extraparam *notused, int badness, int *color) 
+{
+        static char buf[16]="avail ";
+	*color = -1;
+        val2memstr(sstat->mem.memavailable * pagesize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_MEMAVAIL = {"MEMAVAIL", sysprt_MEMAVAIL, NULL};
+/*******************************************************************/
+static char *
 sysprt_MEMCACHE(struct sstat *sstat, extraparam *notused, int badness, int *color) 
 {
         static char buf[16]="cache ";

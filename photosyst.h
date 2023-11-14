@@ -98,6 +98,8 @@ struct	memstat {
 	count_t	lfreehugepage;	// free  huge pages (huge pages) - large
 	count_t	lhugepagesz;	// huge page size (bytes) - large
 
+	count_t memavailable;	// available memory (pages)
+
 	count_t	cfuture[4];	// reserved for future use
 };
 

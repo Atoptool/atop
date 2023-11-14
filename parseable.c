@@ -389,7 +389,8 @@ void
 print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-   		"%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+   		"%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+		"%lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.physmem,
@@ -414,7 +415,8 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
    			ss->mem.pagetables,
         		ss->mem.lhugepagesz,
         		ss->mem.ltothugepage,
-        		ss->mem.lfreehugepage);
+        		ss->mem.lfreehugepage,
+			ss->mem.memavailable);
 }
 
 void

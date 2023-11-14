@@ -151,6 +151,7 @@ sys_printdef *gpusyspdefs[] = {
 sys_printdef *memsyspdefs1[] = {
 	&syspdef_MEMTOT,
 	&syspdef_MEMFREE,
+	&syspdef_MEMAVAIL,
 	&syspdef_BLANKBOX,
 	&syspdef_MEMCACHE,
 	&syspdef_MEMDIRTY,
@@ -158,8 +159,6 @@ sys_printdef *memsyspdefs1[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_MEMSLAB,
 	&syspdef_RECSLAB,
-	&syspdef_BLANKBOX,
-	&syspdef_PAGETABS,
 	&syspdef_BLANKBOX,
 	&syspdef_HUPTOT,
 	&syspdef_HUPUSE,
@@ -174,6 +173,8 @@ sys_printdef *memsyspdefs2[] = {
 	&syspdef_SHMEM,
 	&syspdef_SHMRSS,
 	&syspdef_SHMSWP,
+	&syspdef_BLANKBOX,
+	&syspdef_PAGETABS,
 	&syspdef_BLANKBOX,
 	&syspdef_VMWBAL,
 	&syspdef_BLANKBOX,
@@ -932,18 +933,17 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                     make_sys_prints(memline1, MAXITEMS,
 	                "MEMTOT:8 "
 	                "MEMFREE:9 "
+	                "MEMAVAIL:7 "
 	                "BLANKBOX:0 "
-	                "MEMCACHE:8 "
-	                "MEMDIRTY:6 "
-	                "MEMBUFFER:7 "
+	                "MEMCACHE:7 "
+	                "MEMDIRTY:5 "
+	                "MEMBUFFER:6 "
 	                "BLANKBOX:0 "
-	                "MEMSLAB:7 "
-	                "RECSLAB:3 "
+	                "MEMSLAB:6 "
+	                "RECSLAB:2 "
 	                "BLANKBOX:0 "
-	                "PAGETABS:4 "
-	                "BLANKBOX:0 "
-	                "HUPTOT:5 "
-	                "HUPUSE:2 ",
+	                "HUPTOT:4 "
+	                "HUPUSE:1 ",
 			memsyspdefs1, "builtin memline1",
 			sstat, &extra);
                 }
@@ -951,14 +951,16 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (memline2[0].f == 0)
                 {
                     make_sys_prints(memline2, MAXITEMS,
-	                "NUMNUMA:6 "
+	                "NUMNUMA:8 "
 	                "BLANKBOX:1 "
-	                "SHMEM:3 "
-	                "SHMRSS:3 "
-	                "SHMSWP:2 "
+	                "SHMEM:6 "
+	                "SHMRSS:4 "
+	                "SHMSWP:4 "
 	                "BLANKBOX:0 "
-	                "TCPSOCK:5 "
+	                "TCPSOCK:3 "
 	                "UDPSOCK:2 "
+	                "BLANKBOX:0 "
+	                "PAGETABS:5 "
 	                "BLANKBOX:0 "
 	                "VMWBAL:4 "
 	                "BLANKBOX:0 "

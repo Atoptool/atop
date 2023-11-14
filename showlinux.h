@@ -220,6 +220,7 @@ extern sys_printdef syspdef_GPUMEMUSE;
 extern sys_printdef syspdef_GPUMEMAVG;
 extern sys_printdef syspdef_MEMTOT;
 extern sys_printdef syspdef_MEMFREE;
+extern sys_printdef syspdef_MEMAVAIL;
 extern sys_printdef syspdef_MEMCACHE;
 extern sys_printdef syspdef_MEMDIRTY;
 extern sys_printdef syspdef_MEMBUFFER;

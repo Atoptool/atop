@@ -763,6 +763,11 @@ photosyst(struct sstat *si)
 							cnts[0]*1024/pagesize;
 					}
 				}
+			else	if (strcmp("MemAvailable:", nam) == EQ)
+				{
+					si->mem.memavailable  =
+							cnts[0]*1024/pagesize;
+				}
 			else	if (strcmp("Buffers:", nam) == EQ)
 				{
 					if (si->mem.buffermem  == (count_t)-1)

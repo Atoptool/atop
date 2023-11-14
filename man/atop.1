@@ -1455,6 +1455,8 @@ Memory occupation (two lines).
 .br
 These lines contain the total amount of physical memory
 ('tot'), the amount of memory which is currently free ('free'),
+the amount of memory that is available for new workloads
+without pushing the system into swap ('avail'),
 the amount of memory in use as page cache including
 the total resident shared memory ('cache'), the amount of memory within the
 page cache that has to be flushed to disk ('dirty'), the amount
@@ -2561,8 +2563,9 @@ size of memory used for TCP sockets (pages),
 size of memory used for UDP sockets (pages),
 size of pagetables (pages),
 larger huge page size (in bytes),
-total size of larger huge pages (huge pages), and
-size of free larger huge pages (huge pages).
+total size of larger huge pages (huge pages),
+size of free larger huge pages (huge pages), and
+size of available memory for new workloads without swapping.
 .TP 9
 .B SWP
 Subsequent fields:

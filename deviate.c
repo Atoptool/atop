@@ -711,6 +711,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 
 	dev->mem.physmem	= cur->mem.physmem;
 	dev->mem.freemem	= cur->mem.freemem;
+	dev->mem.memavailable	= cur->mem.memavailable;
 	dev->mem.buffermem	= cur->mem.buffermem;
 	dev->mem.slabmem	= cur->mem.slabmem;
 	dev->mem.slabreclaim	= cur->mem.slabreclaim;
