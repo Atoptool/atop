@@ -416,7 +416,7 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
         		ss->mem.lhugepagesz,
         		ss->mem.ltothugepage,
         		ss->mem.lfreehugepage,
-			ss->mem.memavailable);
+			ss->mem.availablemem);
 }
 
 void

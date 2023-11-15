@@ -765,7 +765,7 @@ photosyst(struct sstat *si)
 				}
 			else	if (strcmp("MemAvailable:", nam) == EQ)
 				{
-					si->mem.memavailable  =
+					si->mem.availablemem  =
 							cnts[0]*1024/pagesize;
 				}
 			else	if (strcmp("Buffers:", nam) == EQ)
