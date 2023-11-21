@@ -122,8 +122,8 @@ int
 acctswon(void)
 {
 	int			i, j, sematopid;
-	static ushort 		vals[] = {1, ATOPACCTTOT};
-	union {ushort *array;}	arg = {vals};
+	static unsigned short 		vals[] = {1, ATOPACCTTOT};
+	union {unsigned short *array;}	arg = {vals};
 	struct stat		statbuf;
 	char			*ep;
 	int			ret;
