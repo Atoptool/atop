@@ -1,9 +1,9 @@
 /*
-** ATOP - System & Process Monitor 
-** 
+** ATOP - System & Process Monitor
+**
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-/thread-level.
-** 
+**
 ** This source-file contains functions to read the process-administration
 ** of every running process from kernel-space and extract the required
 ** activity-counters.
@@ -118,10 +118,12 @@ photoproc(struct tstat *tasklist, int maxtask)
 		{
 			char line[128];
 
-			if (fgets(line, sizeof line, fp))
+			while (fgets(line, sizeof line, fp))
 			{
-				if (memcmp(line, "0::", 3) == 0) // equal?
+				if (memcmp(line, "0::", 3) == 0) { // equal?
 					supportflags |= CGROUPV2;
+					break;
+				}
 			}
 
 			fclose(fp);
@@ -144,20 +146,20 @@ photoproc(struct tstat *tasklist, int maxtask)
 	*/
 	regainrootprivs();
 
-	/* 
-	** if kernel module is  not active on this system, 
+	/*
+	** if kernel module is  not active on this system,
 	** netatop-bpf will try tp run;
 	*/
 	if (!(supportflags & NETATOPD)) {
 		netatop_bpf_probe();
 	}
-	/* 
-	** if netatop-bpf is  not active on this system, 
+	/*
+	** if netatop-bpf is  not active on this system,
 	** kernel module will try to run;
 	*/
 	if (!(supportflags & NETATOPBPF)) {
 		netatop_probe();
-	} 
+	}
 
 	/*
 	** if netatop-bpf is active on this system, skip call
@@ -245,7 +247,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		*/
                 if (getwchan)
                 	procwchan(curtask);
-		
+
 		if (supportflags & NETATOPBPF) {
 			struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
 			if (tc) {
@@ -288,7 +290,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 			*/
 			curtask->cpu.rundelay = 0;
 			curtask->cpu.blkdelay = 0;
-			
+
 			/*
  			** nvcsw and nivcsw on process level only
 			** concerns the delays of the main thread;
@@ -305,15 +307,15 @@ photoproc(struct tstat *tasklist, int maxtask)
 				unsigned long cur_nth = 0;
 
 				dirtask = opendir(".");
-	
+
 				/*
 				** due to race condition, opendir() might
 				** have failed (leave task and process-level
 				** directories)
 				*/
-				if( dirtask == NULL )		
+				if( dirtask == NULL )
 				{
-					if(chdir("../..") == -1); 
+					if(chdir("../..") == -1);
 					continue;
 				}
 
@@ -333,7 +335,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 						if ( chdir("..") == -1);
 						continue;
 					}
-			
+
 					if ( !procstatus(curthr) )
 					{
 						if ( chdir("..") == -1);
@@ -442,7 +444,7 @@ counttasks(void)
 	char            origdir[1024];
 
 	/*
-	** determine total number of threads 
+	** determine total number of threads
 	*/
 	if ( (fp = fopen("/proc/loadavg", "r")) != NULL)
 	{
@@ -461,7 +463,7 @@ counttasks(void)
 
 
 	/*
-	** add total number of processes 
+	** add total number of processes
 	*/
 	if ( getcwd(origdir, sizeof origdir) == NULL)
 		mcleanstop(53, "cannot determine cwd\n");
@@ -983,7 +985,7 @@ procschedstat(struct tstat *curtask)
 	static char *schedstatfile = "schedstat";
 
 	/*
- 	** open the schedstat file 
+ 	** open the schedstat file
 	*/
 	if ( (fp = fopen(schedstatfile, "r")) )
 	{
@@ -1054,6 +1056,7 @@ proccgroupv2(struct tstat *curtask)
 	int			hash, pathlen, restlen, nslash;
 	struct cgroupv2vals 	*pvals = NULL, *ptarget;
 	char			*p, *slashes[MAXSLASH];
+	int ret;
 
 	/*
  	** open the cgroup file of the current process and
@@ -1061,24 +1064,25 @@ proccgroupv2(struct tstat *curtask)
 	*/
 	if ( (fp = fopen("cgroup", "r")) )
 	{
-		if (fgets(line, sizeof line, fp))
+		while (fgets(line, sizeof line, fp))
 		{
-			if ( memcmp(line, "0::", 3) )	// unequal?
+			if ( memcmp(line, "0::", 3) == 0) // equal?
 			{
-				fclose(fp);
-				curtask->gen.cgpath[0] = '\0';
-				return 0;		// no cgroupv2 support
+				ret = 1;
+				line[ strlen(line)-1 ] = '\0';	// remove newline
+
+				relpath = line+3;
+
+				strncpy(curtask->gen.cgpath, relpath,
+						sizeof curtask->gen.cgpath);
+				curtask->gen.cgpath[sizeof curtask->gen.cgpath -1] = '\0';
 			}
 		}
+
+		if (ret != 1)
+			curtask->gen.cgpath[0] = '\0';
+
 		fclose(fp);
-
-		line[ strlen(line)-1 ] = '\0';	// remove newline
-
-		relpath = line+3;
-
-		strncpy(curtask->gen.cgpath, relpath,
-					sizeof curtask->gen.cgpath);
-		curtask->gen.cgpath[sizeof curtask->gen.cgpath -1] = '\0';
 	}
 	else	// open failed; no permission
 	{
@@ -1088,7 +1092,7 @@ proccgroupv2(struct tstat *curtask)
 
 	/*
 	** cgroup v2 pathname of this process is known;
-	** prepare absolute pathname of cgroup 
+	** prepare absolute pathname of cgroup
 	*/
 	pathlen = snprintf(abspath, sizeof abspath, "%s%s/",
 						CGROUPROOT, relpath);
@@ -1293,7 +1297,7 @@ fillcgroupv2(struct cgroupv2vals *pvals, char *abspath, char *extpath,
 **
 ** return value:	number of entries in retvals filled
 */
-int 
+int
 readcgroupv2(char *abspath, char *extpath, char *fname, int restlen,
 							long retvals[])
 {
@@ -1343,7 +1347,7 @@ readcgroupv2(char *abspath, char *extpath, char *fname, int restlen,
 */
 static struct cgroupv2vals *
 findhashcgroupv2(char *relpath, int *phash)
-{ 
+{
 	struct cgroupv2vals 	*p;
 	char 			*s;
 	int  			hash = 0;
