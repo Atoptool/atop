@@ -989,7 +989,8 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"egid\": %d, "
 			"\"elaps\": \"%ld\", "
 			"\"isproc\": %d, "
-			"\"cid\": \"%.19s\"}",
+			"\"cid\": \"%.19s\", "
+			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
 			ps->gen.name,
 			ps->gen.state,
@@ -1010,7 +1011,8 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.egid,
 			ps->gen.elaps,
 			!!ps->gen.isproc, /* convert to boolean */
-			ps->gen.utsname[0] ? ps->gen.utsname:"-");
+			ps->gen.utsname[0] ? ps->gen.utsname:"-",
+			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
 	}
 
 	printf("]");
