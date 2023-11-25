@@ -24,6 +24,8 @@
 #ifndef __ATOP__
 #define __ATOP__
 
+#include <time.h>
+
 #define	EQ		0
 #define SECONDSINDAY	86400
 #define RAWNAMESZ	256
