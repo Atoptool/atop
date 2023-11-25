@@ -820,6 +820,11 @@ photosyst(struct sstat *si)
 					si->mem.commitlim = cnts[0]*1024/
 								pagesize;
 				}
+			else	if (strcmp("AnonHugePages:", nam) == EQ)
+				{
+					si->mem.anonhugepage = cnts[0]*1024/
+								pagesize;
+				}
 			else	if (strcmp("HugePages_Total:", nam) == EQ)
 				{
 					si->mem.stothugepage = cnts[0];

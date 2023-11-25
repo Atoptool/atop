@@ -738,6 +738,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.lfreehugepage	= cur->mem.lfreehugepage;
 	dev->mem.lhugepagesz	= cur->mem.lhugepagesz;
 
+	dev->mem.anonhugepage	= cur->mem.anonhugepage;
+
 	dev->mem.vmwballoon	= cur->mem.vmwballoon;
 	dev->mem.zfsarcsize	= cur->mem.zfsarcsize;
 	dev->mem.ksmsharing	= cur->mem.ksmsharing;
