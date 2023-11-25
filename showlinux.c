@@ -176,6 +176,7 @@ sys_printdef *memsyspdefs2[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_PAGETABS,
 	&syspdef_BLANKBOX,
+	&syspdef_ANONTHP,
 	&syspdef_VMWBAL,
 	&syspdef_BLANKBOX,
 	&syspdef_ZFSARC,
@@ -962,6 +963,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "BLANKBOX:0 "
 	                "PAGETABS:5 "
 	                "BLANKBOX:0 "
+                        "ANONTHP:4 "
 	                "VMWBAL:4 "
 	                "BLANKBOX:0 "
 	                "ZFSARC:5 ",

@@ -100,6 +100,9 @@ struct	memstat {
 
 	count_t availablemem;	// available memory (pages)
 
+	count_t anonhugepage;   // anonymous transparent huge pages
+				// (in units of 'normal' pages)
+
 	count_t	cfuture[4];	// reserved for future use
 };
 
