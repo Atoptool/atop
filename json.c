@@ -448,7 +448,8 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		"\"lhugepagesz\": %lld, "
 		"\"ltothugepage\": %lld, "
 		"\"lfreehugepage\": %lld, "
-		"\"availablemem\": %lld}",
+		"\"availablemem\": %lld, "
+		"\"anonhugepage\": %lld}",
 		hp,
 		ss->mem.physmem * pagesize,
 		ss->mem.freemem * pagesize,
@@ -467,7 +468,8 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->mem.lhugepagesz,
 		ss->mem.ltothugepage,
 		ss->mem.lfreehugepage,
-		ss->mem.availablemem);
+		ss->mem.availablemem * pagesize,
+		ss->mem.anonhugepage * pagesize);
 }
 
 static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
