@@ -339,6 +339,7 @@ sys_printdef *nettranssyspdefs[] = {
 	&syspdef_NETTCPRETRANS,
 	&syspdef_NETTCPINERR,
 	&syspdef_NETTCPORESET,
+	&syspdef_NETTCPCSUMERR,
 	&syspdef_NETUDPNOPORT,
 	&syspdef_NETUDPINERR,
 	&syspdef_BLANKBOX,
@@ -1184,6 +1185,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                         "NETTCPRETRANS:4 "
                         "NETTCPINERR:3 "
                         "NETTCPORESET:2 "
+                        "NETTCPCSUMERR:2 "
                         "NETUDPNOPORT:1 "
                         "NETUDPINERR:3",
 			nettranssyspdefs, "builtin nettransportline",

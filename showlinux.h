@@ -320,6 +320,7 @@ extern sys_printdef syspdef_NETTCPPASVOPEN;
 extern sys_printdef syspdef_NETTCPRETRANS;
 extern sys_printdef syspdef_NETTCPINERR;
 extern sys_printdef syspdef_NETTCPORESET;
+extern sys_printdef syspdef_NETTCPCSUMERR;
 extern sys_printdef syspdef_NETUDPNOPORT;
 extern sys_printdef syspdef_NETUDPINERR;
 extern sys_printdef syspdef_NETUDPI;
