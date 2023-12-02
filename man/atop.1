@@ -1668,6 +1668,7 @@ For the transport layer,
 counters are shown concerning the number of received TCP segments
 including those received in error ('tcpi'),
 the number of transmitted TCP segments excluding
+<<<<<<< HEAD
 those containing only retransmitted octets ('tcpo'),
 the number of UDP datagrams received ('udpi'),
 the number of UDP datagrams transmitted ('udpo'),
@@ -1676,8 +1677,9 @@ the number of passive TCP opens ('tcppo'),
 the number of TCP output retransmissions ('tcprs'),
 the number of TCP input errors ('tcpie'),
 the number of TCP output resets ('tcpor'),
-the number of UDP no ports ('udpnp'), and
-the number of UDP input errors ('udpie').
+the number of UDP no ports ('udpnp'),
+the number of UDP input errors ('udpie'), and
+the number of TCP incorrect checksums ('csumie').
 .br
 If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
@@ -2692,8 +2694,9 @@ number of passive opens (TCP),
 number of passive opens (TCP),
 number of established connections at this moment (TCP),
 number of retransmitted segments (TCP),
-number of input errors (TCP), and
-number of output resets (TCP).
+number of input errors (TCP),
+number of output resets (TCP), and
+number of checksum errors on received packets (TCP).
 
 Next, one line is shown for every interface.
 .br
