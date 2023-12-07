@@ -1059,6 +1059,8 @@ photosyst(struct sstat *si)
 						si->memnuma.numa[j].slabreclaim = cnts[1]*1024/pagesize;
 					else if ( strcmp("HugePages_Total:", nam) == EQ)
 						si->memnuma.numa[j].tothp = cnts[1];
+					else if ( strcmp("HugePages_Free:", nam) == EQ)
+						si->memnuma.numa[j].freehp = cnts[1];
 				}
 				fclose(fp);
 			}

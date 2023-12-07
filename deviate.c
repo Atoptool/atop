@@ -784,6 +784,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		dev->memnuma.numa[i].slabmem     = cur->memnuma.numa[i].slabmem;
 		dev->memnuma.numa[i].slabreclaim = cur->memnuma.numa[i].slabreclaim;
 		dev->memnuma.numa[i].tothp       = cur->memnuma.numa[i].tothp;
+		dev->memnuma.numa[i].freehp       = cur->memnuma.numa[i].freehp;
 		dev->memnuma.numa[i].frag        = cur->memnuma.numa[i].frag;
 	}
 
