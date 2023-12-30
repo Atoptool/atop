@@ -1937,6 +1937,21 @@ sysprt_NUMAHUPTOT(struct sstat *sstat, extraparam *as, int badness, int *color)
 sys_printdef syspdef_NUMAHUPTOT = {"NUMAHUPTOT", sysprt_NUMAHUPTOT, sysval_HUPTOT};
 /*******************************************************************/
 static char *
+sysprt_NUMAHUPUSE(struct sstat *sstat, extraparam *as, int badness, int *color)
+{
+	static char buf[16]="hpuse  ";
+	if (sstat->mem.tothugepage == 0)
+		return NULL;
+
+	*color = -1;
+	val2memstr( (sstat->memnuma.numa[as->index].tothp - sstat->memnuma.numa[as->index].freehp)
+                                                  * sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
+	return buf;
+}
+
+sys_printdef syspdef_NUMAHUPUSE = {"NUMAHUPUSE", sysprt_NUMAHUPUSE, sysval_HUPUSE};
+/*******************************************************************/
+static char *
 sysprt_NUMANUMCPU(struct sstat *sstat, extraparam *as, int badness, int *color) 
 {
         static char buf[16]="numcpu ";

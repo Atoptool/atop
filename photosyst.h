@@ -123,6 +123,7 @@ struct	mempernuma {
 
 	count_t	shmem;		// tot shmem incl. tmpfs (pages) for this numa
 	count_t	tothp;		// total huge pages (huge pages) for this numa
+	count_t	freehp;		// total free pages (huge pages) for this numa
 };
 
 struct	memnuma {

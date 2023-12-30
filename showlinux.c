@@ -227,6 +227,7 @@ sys_printdef *memnumasyspdefs[] = {
 	&syspdef_NUMASHMEM,
 	&syspdef_NUMAFRAG,
 	&syspdef_NUMAHUPTOT,
+	&syspdef_NUMAHUPUSE,
         0
 };
 sys_printdef *cpunumasyspdefs[] = {
@@ -1005,7 +1006,8 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 	                "NUMASLABRECLAIM:4 "
 	                "NUMASHMEM:4 "
 	                "NUMAFRAG:6 "
-	                "NUMAHUPTOT:3 ",
+	                "NUMAHUPTOT:4 "
+	                "NUMAHUPUSE:3 ",
 			memnumasyspdefs, "builtin memnumaline",
 			sstat, &extra);
                 }
