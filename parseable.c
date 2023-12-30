@@ -679,7 +679,7 @@ print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 
 	for (i=0; i < ss->memnuma.nrnuma; i++)
 	{
-		printf(	"%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+		printf(	"%s %d %u %.0f %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp, ss->memnuma.numa[i].numanr,
 			pagesize,
 			ss->memnuma.numa[i].frag * 100.0,
@@ -692,7 +692,8 @@ print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ss->memnuma.numa[i].slabmem,
 			ss->memnuma.numa[i].slabreclaim,
 			ss->memnuma.numa[i].shmem,
-			ss->memnuma.numa[i].tothp);
+			ss->memnuma.numa[i].tothp,
+			ss->memnuma.numa[i].freehp);
 	}
 }
 

@@ -855,7 +855,8 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"slabmem\": %lld, "
 			"\"slabreclaim\": %lld, "
 			"\"shmem\": %lld, "
-			"\"tothp\": %lld}",
+			"\"tothp\": %lld, "
+			"\"freehp\": %lld}",
 			ss->memnuma.numa[i].numanr,
 			ss->memnuma.numa[i].frag * 100.0,
 			ss->memnuma.numa[i].totmem * pagesize,
@@ -867,7 +868,8 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ss->memnuma.numa[i].slabmem * pagesize,
 			ss->memnuma.numa[i].slabreclaim * pagesize,
 			ss->memnuma.numa[i].shmem * pagesize,
-			ss->memnuma.numa[i].tothp * ss->mem.shugepagesz);
+			ss->memnuma.numa[i].tothp * ss->mem.shugepagesz,
+			ss->memnuma.numa[i].freehp * ss->mem.shugepagesz);
 	}
 
 	printf("]");
