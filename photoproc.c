@@ -120,7 +120,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 			while (fgets(line, sizeof line, fp))
 			{
-				if (memcmp(line, "0::", 3) == 0) { // equal?
+				if (memcmp(line, "0::", 3) == 0) // equal?
+				{
 					supportflags |= CGROUPV2;
 					break;
 				}
@@ -1056,37 +1057,39 @@ proccgroupv2(struct tstat *curtask)
 	int			hash, pathlen, restlen, nslash;
 	struct cgroupv2vals 	*pvals = NULL, *ptarget;
 	char			*p, *slashes[MAXSLASH];
-	int ret;
 
 	/*
  	** open the cgroup file of the current process and
-	** read one line that should start with '0::' for cgroup v2
+	** read the line that starts with '0::' for cgroup v2
 	*/
+	curtask->gen.cgpath[0] = '\0';
+
 	if ( (fp = fopen("cgroup", "r")) )
 	{
 		while (fgets(line, sizeof line, fp))
 		{
 			if ( memcmp(line, "0::", 3) == 0) // equal?
 			{
-				ret = 1;
 				line[ strlen(line)-1 ] = '\0';	// remove newline
 
 				relpath = line+3;
 
 				strncpy(curtask->gen.cgpath, relpath,
 						sizeof curtask->gen.cgpath);
+
 				curtask->gen.cgpath[sizeof curtask->gen.cgpath -1] = '\0';
+
+				break;
 			}
 		}
 
-		if (ret != 1)
-			curtask->gen.cgpath[0] = '\0';
-
 		fclose(fp);
+
+		if (curtask->gen.cgpath[0] == '\0')
+			return 0;		// no cgroupv2 support
 	}
 	else	// open failed; no permission
 	{
-		curtask->gen.cgpath[0] = '\0';
 		return 2;
 	}
 
