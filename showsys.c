@@ -1940,12 +1940,12 @@ static char *
 sysprt_NUMAHUPUSE(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
 	static char buf[16]="hpuse  ";
-	if (sstat->mem.tothugepage == 0)
+	if (sstat->mem.stothugepage == 0)
 		return NULL;
 
 	*color = -1;
 	val2memstr( (sstat->memnuma.numa[as->index].tothp - sstat->memnuma.numa[as->index].freehp)
-                                                  * sstat->mem.hugepagesz, buf+6, MBFORMAT, 0, 0);
+                                                  * sstat->mem.shugepagesz, buf+6, MBFORMAT, 0, 0);
 	return buf;
 }
 
