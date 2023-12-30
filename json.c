@@ -993,7 +993,8 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"egid\": %d, "
 			"\"elaps\": \"%ld\", "
 			"\"isproc\": %d, "
-			"\"cid\": \"%.19s\"}",
+			"\"cid\": \"%.19s\", "
+			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
 			ps->gen.name,
 			ps->gen.state,
@@ -1014,7 +1015,8 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.egid,
 			ps->gen.elaps,
 			!!ps->gen.isproc, /* convert to boolean */
-			ps->gen.utsname[0] ? ps->gen.utsname:"-");
+			ps->gen.utsname[0] ? ps->gen.utsname:"-",
+			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
 	}
 
 	printf("]");
@@ -1044,7 +1046,8 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"blkdelay\": %lld, "
 			"\"nvcsw\": %llu, "
 			"\"nivcsw\": %llu, "
-			"\"sleepavg\": %d}",
+			"\"sleepavg\": %d, "
+			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
 			ps->cpu.utime,
 			ps->cpu.stime,
@@ -1057,7 +1060,8 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->cpu.blkdelay*1000/hertz,
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw,
-			ps->cpu.sleepavg);
+			ps->cpu.sleepavg,
+			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
 	}
 
 	printf("]");
@@ -1088,7 +1092,8 @@ static void json_print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			"\"vstack\": %lld, "
 			"\"vlock\": %lld, "
 			"\"vswap\": %lld, "
-			"\"pmem\": %lld}",
+			"\"pmem\": %lld, "
+			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
 			ps->mem.vmem,
 			ps->mem.rmem,
@@ -1103,7 +1108,8 @@ static void json_print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->mem.vlock,
 			ps->mem.vswap,
 			ps->mem.pmem == (unsigned long long)-1LL ?
-			0:ps->mem.pmem);
+			0:ps->mem.pmem,
+			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
 	}
 
 	printf("]");
