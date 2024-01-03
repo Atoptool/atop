@@ -103,6 +103,7 @@
 // the other.
 /////////////////////////////////////////////////////////////////////////////
 
+#include <sys/types.h>
 #include <curses.h>
 #include <locale.h>
 #include <string.h>

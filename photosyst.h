@@ -433,7 +433,7 @@ struct perllc {
 };
 
 struct llcstat {
-	unsigned char	nrllcs;	        // total number of LLC
+	int		nrllcs;	        // total number of LLC
 	struct perllc   perllc[MAXLLC];
 };
 

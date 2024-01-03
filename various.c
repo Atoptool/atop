@@ -44,7 +44,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <fcntl.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "atop.h"

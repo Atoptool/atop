@@ -193,7 +193,8 @@ resetutsname(void)
 
 		regainrootprivs();
 
-		if (setns(mypidfd, CLONE_NEWUTS) == -1);
+		if (setns(mypidfd, CLONE_NEWUTS) == -1)
+			;
 
 		if (! droprootprivs())
 			mcleanstop(42, "failed to drop root privs\n");

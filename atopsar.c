@@ -85,7 +85,7 @@ struct pridef {
 	char    wanted;         /* selected option (boolean)              */
 	char    *cntcat;        /* used categories of counters            */
 	char    flag;           /* flag on command line                   */
-	void    (*prihead)();   /* print header of list                   */
+	void    (*prihead)(int, int, int);   /* print header of list      */
 	int     (*priline)(struct sstat *, struct tstat *, struct tstat **,
 		           int, time_t, time_t, time_t,
 		           int, int, int, char *,

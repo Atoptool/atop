@@ -207,19 +207,22 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
 		{
-			if ( chdir("..") == -1);
+			if ( chdir("..") == -1)
+				;
 			continue;
 		}
 
 		if ( !procstatus(curtask) )	/* from /proc/pid/status  */
 		{
-			if ( chdir("..") == -1);
+			if ( chdir("..") == -1)
+				;
 			continue;
 		}
 
 		if ( !procio(curtask) )		/* from /proc/pid/io      */
 		{
-			if ( chdir("..") == -1);
+			if ( chdir("..") == -1)
+				;
 			continue;
 		}
 
@@ -316,7 +319,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 				*/
 				if( dirtask == NULL )
 				{
-					if(chdir("../..") == -1);
+					if(chdir("../..") == -1)
+						;
 					continue;
 				}
 
@@ -333,19 +337,22 @@ photoproc(struct tstat *tasklist, int maxtask)
 
 					if ( !procstat(curthr, bootepoch, 0))
 					{
-						if ( chdir("..") == -1);
+						if ( chdir("..") == -1)
+							;
 						continue;
 					}
 
 					if ( !procstatus(curthr) )
 					{
-						if ( chdir("..") == -1);
+						if ( chdir("..") == -1)
+							;
 						continue;
 					}
 
 					if ( !procio(curthr) )
 					{
-						if ( chdir("..") == -1);
+						if ( chdir("..") == -1)
+							;
 						continue;
 					}
 
@@ -401,18 +408,21 @@ photoproc(struct tstat *tasklist, int maxtask)
 					tval++;	    /* increment thread-level */
 					cur_nth++;  /* increment # threads    */
 
-					if ( chdir("..") == -1); /* thread */
+					if ( chdir("..") == -1)
+						; /* thread */
 				}
 
 				closedir(dirtask);
-				if ( chdir("..") == -1); /* leave task */
+				if ( chdir("..") == -1)
+					; /* leave task */
 
 				// calibrate number of threads
 				curtask->gen.nthr = cur_nth;
 			}
 		}
 
-		if ( chdir("..") == -1); /* leave process-level directry */
+		if ( chdir("..") == -1)
+			; /* leave process-level directry */
 	}
 
 	closedir(dirp);
