@@ -119,7 +119,7 @@ struct	netstat_28 {
 	struct icmpv6_stats	icmpv6;
 	struct udpv6_stats	udpv6;
 
-	struct tcp_stats	tcp;
+	struct tcp_stats_without_InCsumErrors	tcp;
 };
 
 /************************************************************************/

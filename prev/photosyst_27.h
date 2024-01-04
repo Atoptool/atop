@@ -104,14 +104,14 @@ struct	cpunuma_27 {
 
 struct	netstat_27 {
 	struct ipv4_stats	ipv4;
-	struct icmpv4_stats_wrong	icmpv4;
+	struct icmpv4_stats_without_InCsumErrors	icmpv4;
 	struct udpv4_stats	udpv4;
 
 	struct ipv6_stats	ipv6;
 	struct icmpv6_stats	icmpv6;
 	struct udpv6_stats	udpv6;
 
-	struct tcp_stats	tcp;
+	struct tcp_stats_without_InCsumErrors	tcp;
 };
 
 /************************************************************************/

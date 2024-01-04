@@ -172,7 +172,7 @@ genericinstall:	atop atopacctd atopconvert atopcat atophide
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopconvert
 		cp atopcat 		$(DESTDIR)$(BINPATH)/atopcat
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atopcat
-		cp atopcat 		$(DESTDIR)$(BINPATH)/atophide
+		cp atophide 		$(DESTDIR)$(BINPATH)/atophide
 		chmod 0711 		$(DESTDIR)$(BINPATH)/atophide
 		cp man/atop.1    	$(DESTDIR)$(MAN1PATH)
 		cp man/atopsar.1 	$(DESTDIR)$(MAN1PATH)

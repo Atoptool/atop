@@ -119,7 +119,7 @@ struct	netstat_29 {
 	struct icmpv6_stats	icmpv6;
 	struct udpv6_stats	udpv6;
 
-	struct tcp_stats	tcp;
+	struct tcp_stats_without_InCsumErrors	tcp;
 };
 
 /************************************************************************/
@@ -280,7 +280,7 @@ struct nfsstat_29 {
 
 	struct {
         	int             	nrmounts;
-       		struct pernfsmount	nfsmnt[MAXNFSMOUNT_29];
+       		struct pernfsmount_29	nfsmnt[MAXNFSMOUNT_29];
 	} nfsmounts;
 };
 

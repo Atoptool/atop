@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 **
 ** This program converts a raw logfile created by a particular version
@@ -11,7 +11,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Initial:     July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2018-2022 Gerlof Langeveld
+** Copyright (C) 2018-2024 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -85,26 +85,40 @@
 #include "prev/photosyst_29.h"
 #include "prev/photoproc_29.h"
 
+#include "prev/photosyst_210.h"
+#include "prev/photoproc_210.h"
+
 
 void	justcopy(void *, void *, count_t, count_t);
 
 void	scpu_to_21(void *, void *, count_t, count_t);
 void	sdsk_to_21(void *, void *, count_t, count_t);
+
 void	sint_to_22(void *, void *, count_t, count_t);
+
 void	scpu_to_27(void *, void *, count_t, count_t);
 void	smem_to_27(void *, void *, count_t, count_t);
 void	sdsk_to_27(void *, void *, count_t, count_t);
+
 void	smem_to_28(void *, void *, count_t, count_t);
 void	sdsk_to_28(void *, void *, count_t, count_t);
 void	smnu_to_28(void *, void *, count_t, count_t);
 void	scnu_to_28(void *, void *, count_t, count_t);
+
+void	sllc_to_210(void *, void *, count_t, count_t);
+
 void	tgen_to_21(void *, void *, count_t, count_t);
 void	tmem_to_21(void *, void *, count_t, count_t);
+
 void	tgen_to_22(void *, void *, count_t, count_t);
+
 void	tcpu_to_26(void *, void *, count_t, count_t);
 void	tmem_to_26(void *, void *, count_t, count_t);
+
 void	tcpu_to_28(void *, void *, count_t, count_t);
 void	tmem_to_28(void *, void *, count_t, count_t);
+
+void	tgen_to_210(void *, void *, count_t, count_t);
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions
@@ -190,7 +204,7 @@ sint_to_22(void *old, void *new, count_t oldsize, count_t newsize)
 					sizeof(struct perintf_21));
 
 		// correct last members by refilling
-		// 
+		//
 		i22->intf[i].type 	= '?';
 		i22->intf[i].speed	= i21->intf[i].speed;
 		i22->intf[i].speedp	= i21->intf[i].speed;
@@ -330,7 +344,7 @@ smnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
         	n28->numa[i].inactive		= n27->numa[i].inactive;
         	n28->numa[i].shmem		= n27->numa[i].shmem;
         	n28->numa[i].tothp		= n27->numa[i].tothp;
-	} 
+	}
 }
 
 void
@@ -355,9 +369,26 @@ scnu_to_28(void *old, void *new, count_t oldsize, count_t newsize)
         	n28->numa[i].Stime	= n27->numa[i].Stime;
         	n28->numa[i].steal	= n27->numa[i].steal;
         	n28->numa[i].guest	= n27->numa[i].guest;
-	} 
+	}
 }
 
+void
+sllc_to_210(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct llcstat_29	*l29  = old;
+	struct llcstat_210	*l210 = new;
+	int			i;
+
+	l210->nrllcs = l29->nrllcs;
+
+	for (i=0; i < l210->nrllcs; i++)
+	{
+		l210->perllc[i].id 		= l29->perllc[i].id;
+		l210->perllc[i].occupancy 	= l29->perllc[i].occupancy;
+		l210->perllc[i].mbm_local 	= l29->perllc[i].mbm_local;
+		l210->perllc[i].mbm_total 	= l29->perllc[i].mbm_total;
+	}
+}
 
 // /////////////////////////////////////////////////////////////////
 // Specific functions that convert an old tstat sub-structure to
@@ -482,6 +513,25 @@ tmem_to_28(void *old, void *new, count_t oldsize, count_t newsize)
 	memset(m28->cfuture, 0, sizeof m28->cfuture);
 }
 
+void
+tgen_to_210(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// member 'nthridle' inserted, everything from member 'ctid' must shift
+	//
+	struct gen_29	*g29 = old;
+	struct gen_210	*g210 = new;
+
+	memcpy(g210, g29, (char *)&g29->ctid - (char *)g29);	// copy base values
+
+	g210->nthridle 		= 0;
+	g210->ctid 		= g29->ctid;
+	g210->vpid 		= g29->vpid;
+	g210->wasinactive 	= g29->wasinactive;
+
+	memcpy(g210->utsname, g29->container, sizeof(g210->utsname));
+	memcpy(g210->cgpath,  g29->cgpath,    sizeof(g210->cgpath));
+}
+
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
 //
@@ -510,6 +560,7 @@ struct sstat_26		sstat_26;
 struct sstat_27		sstat_27;
 struct sstat_28		sstat_28;
 struct sstat_29		sstat_29;
+struct sstat_210	sstat_210;
 struct sstat		sstat;
 
 struct tstat_20		tstat_20;
@@ -522,6 +573,7 @@ struct tstat_26		tstat_26;
 struct tstat_27		tstat_27;
 struct tstat_28		tstat_28;
 struct tstat_29		tstat_29;
+struct tstat_210	tstat_210;
 struct tstat		tstat;
 
 struct convertall {
@@ -556,7 +608,7 @@ struct convertall {
 	struct tconvstruct 	tmem;
 	struct tconvstruct 	tnet;
 	struct tconvstruct 	tgpu;
-} convs[] = 
+} convs[] =
 {
 	{SETVERSION(2,0),
 		 sizeof(struct sstat_20), 	&sstat_20,
@@ -577,11 +629,11 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 
-		{sizeof(struct gen_20),  
+		{sizeof(struct gen_20),
 			STROFFSET(&tstat_20.gen, &tstat_20),	NULL},
 		{sizeof(struct cpu_20),
 			STROFFSET(&tstat_20.cpu, &tstat_20),	NULL},
-		{sizeof(struct dsk_20), 
+		{sizeof(struct dsk_20),
 			STROFFSET(&tstat_20.dsk, &tstat_20),	NULL},
 		{sizeof(struct mem_20),
 			STROFFSET(&tstat_20.mem, &tstat_20),	NULL},
@@ -613,7 +665,7 @@ struct convertall {
 			STROFFSET(&tstat_21.gen, &tstat_21),	tgen_to_21},
 		{sizeof(struct cpu_21),
 			STROFFSET(&tstat_21.cpu, &tstat_21),	justcopy},
-		{sizeof(struct dsk_21), 
+		{sizeof(struct dsk_21),
 			STROFFSET(&tstat_21.dsk, &tstat_21),	justcopy},
 		{sizeof(struct mem_21),
 			STROFFSET(&tstat_21.mem, &tstat_21),	tmem_to_21},
@@ -641,7 +693,7 @@ struct convertall {
 		{0,  				NULL,		NULL},
 		{0,  				NULL,		NULL},
 
-		{sizeof(struct gen_22), 
+		{sizeof(struct gen_22),
 			STROFFSET(&tstat_22.gen, &tstat_22),	tgen_to_22},
 		{sizeof(struct cpu_22),
 			STROFFSET(&tstat_22.cpu, &tstat_22),	justcopy},
@@ -679,7 +731,7 @@ struct convertall {
 			STROFFSET(&tstat_23.cpu, &tstat_23),	justcopy},
 		{sizeof(struct dsk_23),
 			STROFFSET(&tstat_23.dsk, &tstat_23),	justcopy},
-		{sizeof(struct mem_23), 
+		{sizeof(struct mem_23),
 			STROFFSET(&tstat_23.mem, &tstat_23),	justcopy},
 		{sizeof(struct net_23),
 			STROFFSET(&tstat_23.net, &tstat_23),	justcopy},
@@ -883,6 +935,39 @@ struct convertall {
 		{sizeof(struct gpu_29),
 			STROFFSET(&tstat_29.gpu, &tstat_29),	justcopy},
 	},
+
+	{SETVERSION(2,10), // 2.9 --> 2.10
+		 sizeof(struct sstat_210),	&sstat_210,
+		 sizeof(struct tstat_210), 	NULL,
+
+		{sizeof(struct cpustat_210),  	&sstat_210.cpu,	   justcopy},
+		{sizeof(struct memstat_210),  	&sstat_210.mem,	   justcopy},
+		{sizeof(struct netstat_210),  	&sstat_210.net,	   justcopy},
+		{sizeof(struct intfstat_210), 	&sstat_210.intf,   justcopy},
+		{sizeof(struct dskstat_210),  	&sstat_210.dsk,	   justcopy},
+		{sizeof(struct nfsstat_210),  	&sstat_210.nfs,	   justcopy},
+		{sizeof(struct contstat_210), 	&sstat_210.cfs,	   justcopy},
+		{sizeof(struct wwwstat_210),  	&sstat_210.www,	   justcopy},
+		{sizeof(struct pressure_210),  	&sstat_210.psi,	   justcopy},
+		{sizeof(struct gpustat_210),  	&sstat_210.gpu,	   justcopy},
+		{sizeof(struct ifbstat_210),  	&sstat_210.ifb,	   justcopy},
+		{sizeof(struct memnuma_210), 	&sstat_210.memnuma, justcopy},
+		{sizeof(struct cpunuma_210),  	&sstat_210.cpunuma, justcopy},
+		{sizeof(struct llcstat_210),  	&sstat_210.llc,	   sllc_to_210},
+
+		{sizeof(struct gen_210),
+			STROFFSET(&tstat_210.gen, &tstat_210),	tgen_to_210},
+		{sizeof(struct cpu_210),
+			STROFFSET(&tstat_210.cpu, &tstat_210),	justcopy},
+		{sizeof(struct dsk_210),
+			STROFFSET(&tstat_210.dsk, &tstat_210),	justcopy},
+		{sizeof(struct mem_210),
+			STROFFSET(&tstat_210.mem, &tstat_210),	justcopy},
+		{sizeof(struct net_210),
+			STROFFSET(&tstat_210.net, &tstat_210),	justcopy},
+		{sizeof(struct gpu_210),
+			STROFFSET(&tstat_210.gpu, &tstat_210),	justcopy},
+	},
 };
 
 int	numconvs = sizeof convs / sizeof(struct convertall);
@@ -1046,7 +1131,7 @@ main(int argc, char *argv[])
  		exit(11);
 	}
 
-	// handle the output file 
+	// handle the output file
 	//
 	if (optind >= argc)
 		exit(0);
@@ -1060,7 +1145,7 @@ main(int argc, char *argv[])
 		exit(12);
 	}
 
-	// open the output file 
+	// open the output file
 	//
 	if ( (ofd = openout(outfile)) == -1)
 	{
@@ -1075,6 +1160,9 @@ main(int argc, char *argv[])
 	orh.aversion	= convs[targetix].version | 0x8000;
 	orh.sstatlen	= convs[targetix].sstatlen;
 	orh.tstatlen	= convs[targetix].tstatlen;
+
+	if (orh.pidwidth == 0)	// no pid width know in old raw log?
+		orh.pidwidth = getpidwidth();
 
 	writeout(ofd, &orh, sizeof orh);
 
@@ -1127,7 +1215,7 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 			exit(7);
 
 		// STEP-BY-STEP CONVERSION FROM OLD VERSION TO NEW VERSION
-		// 
+		//
 		for (i=ivix; i < ovix; i++)
 		{
 			// convert system-level statistics to newer version
@@ -1161,32 +1249,32 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 			for (t=0; t < irr.ndeviat; t++)	// for every task
 			{
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tgen), &(convs[i+1].tgen));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tcpu), &(convs[i+1].tcpu));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tdsk), &(convs[i+1].tdsk));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tmem), &(convs[i+1].tmem));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tnet), &(convs[i+1].tnet));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen), 
+				    convs[i].tstat  +(t*convs[i].tstatlen),
 				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
 				    &(convs[i].tgpu), &(convs[i+1].tgpu));
 			}
@@ -1203,7 +1291,7 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 		                     irr.ndeviat);
 
 		// cleanup
-		// 
+		//
 		free(convs[ovix].tstat);
 	}
 
@@ -1524,7 +1612,7 @@ testcompval(int rv, char *func)
 		exit(7);
 
    	   case Z_DATA_ERROR:
-		fprintf(stderr, 
+		fprintf(stderr,
 		        "%s: failed due to corrupted/incomplete data\n", func);
 		exit(7);
 
@@ -1550,4 +1638,29 @@ ptrverify(const void *ptr, const char *errormsg, ...)
 
                 exit(13);
         }
+}
+
+
+/*
+** return maximum number of digits for PID/TID
+** from the current system
+*/
+int
+getpidwidth(void)
+{
+	FILE 	*fp;
+	char	linebuf[64];
+	int	numdigits = 5;
+
+        if ( (fp = fopen("/proc/sys/kernel/pid_max", "r")) != NULL)
+        {
+                if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+                {
+                        numdigits = strlen(linebuf) - 1;
+                }
+
+                fclose(fp);
+        }
+
+	return numdigits;
 }

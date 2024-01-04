@@ -1,4 +1,21 @@
-struct icmpv4_stats_wrong {
+struct tcp_stats_without_InCsumErrors {
+        count_t RtoAlgorithm;
+        count_t RtoMin;
+        count_t RtoMax;
+        count_t MaxConn;
+        count_t ActiveOpens;
+        count_t PassiveOpens;
+        count_t AttemptFails;
+        count_t EstabResets;
+        count_t CurrEstab;
+        count_t InSegs;
+        count_t OutSegs;
+        count_t RetransSegs;
+        count_t InErrs;
+        count_t OutRsts;
+};
+
+struct icmpv4_stats_without_InCsumErrors {
 	count_t InMsgs;
 	count_t InErrors;
 	count_t InDestUnreachs;
