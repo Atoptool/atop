@@ -54,7 +54,7 @@ static	int		mypidfd, foreignuts;
 // To avoid too many namespace switches, atop only reassociates with its own
 // UTS namespace when the resetutsname() function is called.
 //
-// Reurn value:
+// Return value:
 // 	0 -	no container/pod detected
 // 	1 -	container/pod detected
 //

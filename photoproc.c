@@ -801,7 +801,7 @@ procio(struct tstat *curtask)
 **    - tabs (e.g. arguments for awk or sed)
 ** these special bytes will be converted to spaces
 **
-** the command line may be prepended by environmentvariables
+** the command line may be prepended by environment variables
 */
 
 #define	ABBENVLEN	16
