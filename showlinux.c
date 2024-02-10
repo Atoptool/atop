@@ -52,6 +52,7 @@
 #include <regex.h>
 
 #include "atop.h"
+#include "cgroups.h"
 #include "photoproc.h"
 #include "photosyst.h"
 #include "showgeneric.h"
@@ -59,7 +60,7 @@
 
 static void	make_proc_dynamicgen(void);
 static int	get_perc(char *, char *);
-static void	make_proc_prints(proc_printpair *, int, const char *, 
+static void	make_detail_prints(detail_printpair *, int, const char *, 
 					const char *);
 
 /*
@@ -387,9 +388,9 @@ sys_printdef *infinisyspdefs[] = {
 };
 
 /*
- * table with all proc_printdefs
+ * table with all detail_printdefs
  */
-proc_printdef *allprocpdefs[]= 
+detail_printdef *alldetaildefs[]= 
 {
 	&procprt_PID,
 	&procprt_TID,
@@ -466,51 +467,57 @@ proc_printdef *allprocpdefs[]=
 	&procprt_GPUMEMAVG,
 	&procprt_GPUGPUBUSY,
 	&procprt_GPUMEMBUSY,
-	&procprt_CGROUP_PATH,
-	&procprt_CGRCPUWGT,
-	&procprt_CGRCPUMAX,
-	&procprt_CGRCPUMAXR,
-	&procprt_CGRMEMMAX,
-	&procprt_CGRMEMMAXR,
-	&procprt_CGRSWPMAX,
-	&procprt_CGRSWPMAXR,
 	&procprt_SORTITEM,
+
+	&cgroupprt_CGROUP_PATH,
+	&cgroupprt_CGRNPROCS,
+	&cgroupprt_CGRNPROCSB,
+	&cgroupprt_CGRCPUBUSY,
+	&cgroupprt_CGRCPUMAX,
+	&cgroupprt_CGRCPUWGT,
+	&cgroupprt_CGRMEMORY,
+	&cgroupprt_CGRMEMMAX,
+	&cgroupprt_CGRSWPMAX,
+	&cgroupprt_CGRPID,
+	&cgroupprt_CGRCMD,
         0
 };
 
 /*
- * table with all proc_printdefs with PID/TID width to be initialized
+ * table with all detail_printdefs with PID/TID width to be initialized
  */
-proc_printdef *idprocpdefs[]= 
+detail_printdef *idprocpdefs[]= 
 {
 	&procprt_PID,
 	&procprt_TID,
 	&procprt_PPID,
 	&procprt_VPID,
+	&cgroupprt_CGRPID,
 	0
 };
 
 
 /***************************************************************/
 /*
- * output definitions for process data
+ * output definitions for process and cgroups data
  * these should be user configurable
  */
-proc_printpair userprocs[MAXITEMS];
-proc_printpair memprocs[MAXITEMS];
-proc_printpair schedprocs[MAXITEMS];
-proc_printpair genprocs[MAXITEMS];
-proc_printpair dskprocs[MAXITEMS];
-proc_printpair netprocs[MAXITEMS];
-proc_printpair gpuprocs[MAXITEMS];
-proc_printpair varprocs[MAXITEMS];
-proc_printpair cmdprocs[MAXITEMS];
-proc_printpair cgrprocs[MAXITEMS];
-proc_printpair ownprocs[MAXITEMS];
-proc_printpair totusers[MAXITEMS];
-proc_printpair totprocs[MAXITEMS];
-proc_printpair totconts[MAXITEMS];
+detail_printpair userprocs[MAXITEMS];
+detail_printpair memprocs[MAXITEMS];
+detail_printpair schedprocs[MAXITEMS];
+detail_printpair genprocs[MAXITEMS];
+detail_printpair dskprocs[MAXITEMS];
+detail_printpair netprocs[MAXITEMS];
+detail_printpair gpuprocs[MAXITEMS];
+detail_printpair varprocs[MAXITEMS];
+detail_printpair cmdprocs[MAXITEMS];
+detail_printpair ownprocs[MAXITEMS];
+detail_printpair totusers[MAXITEMS];
+detail_printpair totprocs[MAXITEMS];
+detail_printpair totconts[MAXITEMS];
 
+detail_printpair gencgroups[MAXITEMS];	// cgroups data
+detail_printpair gencgrprocs[MAXITEMS];	// cgroups process data
 
 /*****************************************************************/
 /*
@@ -708,11 +715,11 @@ init_proc_prints(count_t numcpu)
 }
 
 /*
-** make_proc_prints: make array of proc_printpairs
-** input: string, proc_printpair array, maxentries
+** make_detail_prints: make array of detail_printpairs
+** input: string, detail_printpair array, maxentries
 */
 static void 
-make_proc_prints(proc_printpair *ar, int maxn, const char *pairs, 
+make_detail_prints(detail_printpair *ar, int maxn, const char *pairs, 
 					const char *linename)
 {
         name_prio items[MAXITEMS];
@@ -728,23 +735,25 @@ make_proc_prints(proc_printpair *ar, int maxn, const char *pairs,
         {
                 const char *name=items[i].name;
                 int j;
-                for (j=0; allprocpdefs[j] != 0; ++j)
+
+                for (j=0; alldetaildefs[j] != 0; ++j)
                 {
-                        if (strcmp(allprocpdefs[j]->configname, name)==0)
+                        if (strcmp(alldetaildefs[j]->configname, name)==0)
                         {
-                                ar[i].f=allprocpdefs[j];
-                                ar[i].prio=items[i].prio;
+                                ar[i].pf = alldetaildefs[j];
+                                ar[i].prio = items[i].prio;
                                 break;
                         }
                 }
-                if (allprocpdefs[j]==0)
+                if (alldetaildefs[j]==0)
                 {
                         mcleanstop(1,
 				"atoprc - ownprocline: item %s invalid!\n",
 				name);
                 }
         }
-        ar[i].f=0;
+
+        ar[i].pf=0;
         ar[i].prio=0;
 }
 
@@ -1261,10 +1270,10 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 }
 
 /*
-** print the header for the process list
+** print the header for the process/cgroups list
 */
 void
-priphead(int curlist, int totlist, char *showtype, char *showorder,
+prihead(int curlist, int totlist, char *showtype, char *showorder,
 					char autosort, count_t numcpu)
 {
         static int      firsttime=1;
@@ -1278,27 +1287,27 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
         {
 		init_proc_prints(numcpu);
 
-                make_proc_prints(memprocs, MAXITEMS, 
+                make_detail_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
 			"VDATA:4 VSTACK:4 LOCKSZ:3 VSIZE:6 RSIZE:7 PSIZE:5 "
                         "VGROW:7 RGROW:8 SWAPSZ:5 RUID:1 EUID:0 "
                         "SORTITEM:9 CMD:10", 
                         "built-in memprocs");
 
-                make_proc_prints(schedprocs, MAXITEMS, 
+                make_detail_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:4 VPID:3 CTID:3 TRUN:7 TSLPI:7 "
 			"TSLPU:7 TIDLE:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 "
 			"ST:8 EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 "
 			"NVCSW:7 NIVCSW:7 SORTITEM:10 CMD:10",
                         "built-in schedprocs");
 
-                make_proc_prints(dskprocs, MAXITEMS, 
+                make_detail_prints(dskprocs, MAXITEMS, 
                         "PID:10 TID:4 RDDSK:9 "
                         "WRDSK:9 WCANCL:8 "
                         "SORTITEM:10 CMD:10", 
                         "built-in dskprocs");
 
-                make_proc_prints(netprocs, MAXITEMS, 
+                make_detail_prints(netprocs, MAXITEMS, 
                         "PID:10 TID:6 "
 			"TCPRCV:9 TCPRASZ:4 TCPSND:9 TCPSASZ:4 "
 			"UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
@@ -1306,12 +1315,12 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
                         "SORTITEM:10 CMD:10", 
                         "built-in netprocs");
 
-                make_proc_prints(gpuprocs, MAXITEMS, 
+                make_detail_prints(gpuprocs, MAXITEMS, 
                         "PID:10 TID:5 CID:4 GPULIST:8 GPUGPUBUSY:8 GPUMEMBUSY:8 "
 			"GPUMEM:7 GPUMEMAVG:6 S:8 SORTITEM:10 CMD:10", 
                         "built-in gpuprocs");
 
-                make_proc_prints(varprocs, MAXITEMS,
+                make_detail_prints(varprocs, MAXITEMS,
                         "PID:10 TID:4 PPID:9 CID:2 VPID:1 CTID:1 "
 			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
@@ -1319,32 +1328,35 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
 			"ST:6 EXC:6 S:6 SORTITEM:10 CMD:10", 
                         "built-in varprocs");
 
-                make_proc_prints(cmdprocs, MAXITEMS,
+                make_detail_prints(cmdprocs, MAXITEMS,
                         "PID:10 TID:4 S:8 SORTITEM:10 COMMAND-LINE:10", 
                         "built-in cmdprocs");
 
-                make_proc_prints(cgrprocs, MAXITEMS, 
-                        "PID:10 CPUWGT:9 CPUMAX:9 CPUMAXR:9 MEMMAX:8 MMMAXR:8 "
-			"SWPMAX:7 SWMAXR:7 SORTITEM:6 CMD:9 CGROUP-PATH:10", 
-                        "built-in cgrprocs");
-
-                make_proc_prints(totusers, MAXITEMS, 
+                make_detail_prints(totusers, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 SORTITEM:10 RUID:10", 
                         "built-in totusers");
 
-                make_proc_prints(totprocs, MAXITEMS, 
+                make_detail_prints(totprocs, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 SORTITEM:10 CMD:10", 
                         "built-in totprocs");
 
-                make_proc_prints(totconts, MAXITEMS, 
+                make_detail_prints(totconts, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 RDELAY:8 BDELAY:7 VSIZE:6 "
                         "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
 			"RNET:6 SNET:6 SORTITEM:10 CID:10", 
                         "built-in totconts");
+
+		// meant to show cgroups
+		//
+                make_detail_prints(gencgroups, MAXITEMS, 
+                        "CGRPATH:10 CGRNPROCS:9 CGRNPROCSB:8 CGRCPUBUSY:7 "
+			"CGRCPUMAX:4 CGRCPUWGT:3 CGRMEMORY:7 CGRMEMMAX:4 "
+			"CGRSWPMAX:2 CGRPID:6 CGRCMD:6", 
+                        "built-in gencgroups");
         }
 
 	/*
@@ -1370,55 +1382,55 @@ priphead(int curlist, int totlist, char *showtype, char *showorder,
         switch (*showtype)
         {
            case MPROCGEN:
-                showhdrline(genprocs, curlist, totlist, *showorder, autosort);
+                showprochead(genprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCMEM:
-                showhdrline(memprocs, curlist, totlist, *showorder, autosort);
+                showprochead(memprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCDSK:
-                showhdrline(dskprocs, curlist, totlist, *showorder, autosort);
+                showprochead(dskprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCNET:
-                showhdrline(netprocs, curlist, totlist, *showorder, autosort);
+                showprochead(netprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCGPU:
-                showhdrline(gpuprocs, curlist, totlist, *showorder, autosort);
+                showprochead(gpuprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCVAR:
-                showhdrline(varprocs, curlist, totlist, *showorder, autosort);
+                showprochead(varprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCARG:
-                showhdrline(cmdprocs, curlist, totlist, *showorder, autosort);
-                break;
-
-           case MPROCCGR:
-                showhdrline(cgrprocs, curlist, totlist, *showorder, autosort);
+                showprochead(cmdprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCOWN:
-                showhdrline(ownprocs, curlist, totlist, *showorder, autosort);
+                showprochead(ownprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MPROCSCH:
-                showhdrline(schedprocs, curlist, totlist, *showorder, autosort);
+                showprochead(schedprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MCUMUSER:
-                showhdrline(totusers, curlist, totlist, *showorder, autosort);
+                showprochead(totusers, curlist, totlist, *showorder, autosort);
                 break;
 
            case MCUMPROC:
-                showhdrline(totprocs, curlist, totlist, *showorder, autosort);
+                showprochead(totprocs, curlist, totlist, *showorder, autosort);
                 break;
 
            case MCUMCONT:
-                showhdrline(totconts, curlist, totlist, *showorder, autosort);
+                showprochead(totconts, curlist, totlist, *showorder, autosort);
+                break;
+
+           case MCGROUPS:
+                showcgrouphead(gencgroups, curlist, totlist, *showorder);
                 break;
         }
 }
@@ -1490,11 +1502,50 @@ make_proc_dynamicgen()
 	memcpy(p, FORMEND, sizeof FORMEND);
 	p += sizeof FORMEND;
 
-	make_proc_prints(genprocs, MAXITEMS, format, "built-in genprocs");
+	make_detail_prints(genprocs, MAXITEMS, format, "built-in genprocs");
 }
 
+
 /*
-** print the list of processes from the deviation-list
+** print the list of cgroups (and processes) from the deviation list
+*/
+int
+pricgroup(struct cglinesel *itemlist, int firstitem, int lastitem,
+	int curline, int curlist, int totlist, struct syscap *sb,
+	int nsecs, int avgval)
+{
+        int i;
+
+        /*
+        ** print info per cgroup
+        */
+        for (i=firstitem; i < lastitem; i++)
+        {
+		/*
+		** screen filled entirely ?
+		*/
+                if (screen && curline >= LINES)
+                        break;
+
+                if (screen)
+                       	move(curline,0);
+	
+		/*
+		** print information for next line
+		*/
+       		showcgroupline(gencgroups,
+				(itemlist+i)->cgp, (itemlist+i)->tsp,
+				nsecs, avgval, sb->availcpu, sb->nrcpu);
+
+               	curline++;
+        }
+
+	return curline;
+}
+
+
+/*
+** print the list of processes from the deviation list
 */
 int
 priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
@@ -1645,10 +1696,6 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
                    case MPROCARG:
                         showprocline(cmdprocs, curstat, perc, nsecs, avgval);
-                        break;
-
-                   case MPROCCGR:
-                        showprocline(cgrprocs, curstat, perc, nsecs, avgval);
                         break;
 
                    case MPROCOWN:
@@ -3035,5 +3082,5 @@ do_owninfinibandline(char *name, char *val)
 void
 do_ownprocline(char *name, char *val)
 {
-	make_proc_prints(ownprocs, MAXITEMS, val, name);
+	make_detail_prints(ownprocs, MAXITEMS, val, name);
 }

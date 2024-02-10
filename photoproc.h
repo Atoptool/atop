@@ -68,7 +68,7 @@ struct tstat {
 		int	wasinactive;	/* boolean: task inactive	*/
 
 		char	utsname[UTSLEN+1];/* UTS name container or pod  */
-		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
+//		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
 	} gen;
 
 	/* CPU STATISTICS						*/
@@ -81,10 +81,7 @@ struct tstat {
 		int	policy;		/* scheduling policy            */
 		int	curcpu;		/* current processor            */
 		int	sleepavg;       /* sleep average percentage     */
-		int	cgcpuweight;	/* cgroup cpu.weight            */
-		int	cgcpumax;	/* cgroup cpu.max percentage    */
-		int	cgcpumaxr;	/* restrictive percentage       */
-		int	ifuture[3];	/* reserved for future use	*/
+		int	ifuture[6];	/* reserved for future use	*/
 		char	wchan[16];	/* wait channel string    	*/
 		count_t	rundelay;	/* schedstat rundelay (nanosec)	*/
 		count_t	blkdelay;	/* blkio delay (ticks)		*/
@@ -119,11 +116,7 @@ struct tstat {
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
 		count_t	vlock;		/* virtual locked   (Kb) 	*/
-		count_t	cgmemmax;	/* cgroup memory.max (Kb)	*/
-		count_t	cgmemmaxr;	/* restrictive memory.max (Kb)	*/
-		count_t	cgswpmax;	/* cgroup memory.swap.max (Kb)	*/
-		count_t	cgswpmaxr;	/* restrictive swap.max (Kb)	*/
-		count_t	cfuture[3];	/* reserved for future use	*/
+		count_t	cfuture[7];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/
@@ -172,9 +165,9 @@ struct pinfo {
 ** structure to maintains all deviation info related to one sample
 */
 struct devtstat {
-        struct tstat     *taskall;
-        struct tstat    **procall;
-        struct tstat    **procactive;
+        struct tstat     *taskall;	// all processes (also exited) and threads
+        struct tstat    **procall;	// all processes (also exited)
+        struct tstat    **procactive;	// all processes (also exited) being active
 
 	unsigned long	ntaskall;
         unsigned long	ntaskactive;

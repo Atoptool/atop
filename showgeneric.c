@@ -53,6 +53,7 @@
 #include "atop.h"
 #include "photoproc.h"
 #include "photosyst.h"
+#include "cgroups.h"
 #include "showgeneric.h"
 #include "showlinux.h"
 
@@ -87,7 +88,8 @@ static short	coloralmost = COLOR_CYAN;
 static short	colorcrit   = COLOR_RED;
 static short	colorthread = COLOR_YELLOW;
 
-int		paused;    	/* boolean: currently in pause-mode     */
+int		paused;    		// boolean: currently in pause-mode
+int		cgroupdepth = 7;	// default: cgroups without processes
 
 static int	cumusers(struct tstat **, struct tstat *, int);
 static int	cumprogs(struct tstat **, struct tstat *, int);
@@ -98,8 +100,8 @@ static int	procsuppress(struct tstat *, struct pselection *);
 static void	limitedlines(void);
 static long	getnumval(char *, long, int);
 static void	generic_init(void);
-static char	text_samp(time_t, int, struct devtstat *,
-			struct sstat *, int, unsigned int, char);
+static char	text_samp(time_t, int, struct devtstat *, struct sstat *,
+	   		struct cgchainer *, int, int, unsigned int, char);
 
 static int	(*procsort[])(const void *, const void *) = {
 			[MSORTCPU&0x1f]=compcpu, 
@@ -109,7 +111,7 @@ static int	(*procsort[])(const void *, const void *) = {
 			[MSORTGPU&0x1f]=compgpu, 
 };
 
-extern proc_printpair ownprocs[];
+extern detail_printpair ownprocs[];
 
 /*
 ** global: incremented by -> key and decremented by <- key
@@ -122,7 +124,8 @@ int	startoffset;
 */
 char
 generic_samp(time_t curtime, int nsecs,
-           struct devtstat *devtstat, struct sstat *sstat, 
+           struct devtstat *devtstat, struct sstat *sstat,
+	   struct cgchainer *cstats, int ncgroups,
            int nexit, unsigned int noverflow, char flag)
 {
 	static char	firstcall = 1;
@@ -141,7 +144,8 @@ generic_samp(time_t curtime, int nsecs,
 			// show sample and wait for input or timer expiration
 			//
 			switch (retval = text_samp(curtime, nsecs,
-				devtstat, sstat, nexit, noverflow, flag))
+				devtstat, sstat, cstats, ncgroups,
+				nexit, noverflow, flag))
 			{
 			   case MBARGRAPH:
 				displaymode = 'D';
@@ -161,6 +165,16 @@ generic_samp(time_t curtime, int nsecs,
 			switch (retval = draw_samp(curtime, nsecs, sstat, flag, sorted))
 			{
 			   case MBARGRAPH:	// just switch to text mode
+				displaymode = 'T';
+				break;
+
+			   case MCGROUPS:	// switch to text mode: cgroups
+				if (supportflags & CGROUPV2)
+					showtype  = MCGROUPS;
+				else
+					showtype  = MPROCGEN;
+
+
 				displaymode = 'T';
 				break;
 
@@ -262,16 +276,17 @@ generic_samp(time_t curtime, int nsecs,
 }
 
 /*
-** print the deviation-counters on process- and system-level
-** in text mode
+** print the deviation-counters on process level, cgroups level and
+** system level in text mode
 */
 static char
 text_samp(time_t curtime, int nsecs,
            struct devtstat *devtstat, struct sstat *sstat, 
+	   struct cgchainer *cgchainers, int ncgroups,
            int nexit, unsigned int noverflow, char flag)
 {
 	register int	i, curline, statline, nproc;
-	int		firstproc = 0, plistsz, alistsz, killpid, killsig;
+	int		firstitem=0, slistsz, alistsz, killpid, killsig;
 	int		lastchar;
 	char		format1[16], format2[16], branchtime[32];
 	char		*statmsg = NULL, statbuf[80], genline[80];
@@ -281,15 +296,36 @@ text_samp(time_t curtime, int nsecs,
 	struct syscap	syscap;
 
 	/*
-	** curlist points to the active list of tstat-pointers that
+	** number of entries in the active list of cgroups/tasks
+	** to be displayed
+	*/
+	int ncurlist = 0;
+
+	/*
+	** cgroupsel points to the merged list of cgchainer pointers (to cgroups)
+	** and tstat pointers (to processes), representing the cgroups information
+	** to be displayed (for cgroups visualization);
+	** ncurlist indicates the number of entries in this list
+	** 
+	** this list will only be allocated 'lazy' only when
+	** cgroups visualization is requested
+	**
+	** cgroupsort refers to a list with cgchainer pointers in
+	** sorted order according to the current showorder
+	*/
+	struct cglinesel *cgroupsel   = 0;
+	struct cgchainer **cgroupsort = 0;
+	char             cstatdeviate = ' ', cstatdepth = ' ', cstatorder = ' ';
+
+	/*
+	** curlist points to the active list of tstat pointers that
 	** should be displayed; ncurlist indicates the number of entries in
 	** this list
 	*/
 	struct tstat	**curlist;
-	int		ncurlist;
 
 	/*
-	** tXcumlist is a list of tstat-structs holding one entry
+	** tXcumlist is a list of tstat structs holding one entry
 	** per accumulated (per user or per program) group of processes
 	**
 	** Xcumlist contains the pointers to all structs in tXcumlist
@@ -435,19 +471,19 @@ text_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						52 - seclen - utsnodenamelen;
+						53 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%"
-		       "*s%s elapsed", 
+		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"
+		       "%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, len1, "",
 			threadview                    ? MTHREAD    : '-',
 			threadsort                    ? MTHRSORT   : '-',
 			fixedhead  		      ? MSYSFIXED  : '-',
 			sysnosort  		      ? MSYSNOSORT : '-',
-			deviatonly 		      ? '-'        : MALLPROC,
+			deviatonly 		      ? '-'        : MALLACTIVE,
 			usecolors  		      ? '-'        : MCOLORS,
 			avgval     		      ? MAVGVAL    : '-',
 			calcpss     		      ? MCALCPSS   : '-',
@@ -462,6 +498,7 @@ text_samp(time_t curtime, int nsecs,
 			syssel.lvmnamesz +
 			syssel.dsknamesz +
 			syssel.itfnamesz	      ? MSELSYS    : '-',
+			cgroupdepth+0x30,
 			len2, "", buf);
 
 		if (screen)
@@ -636,355 +673,464 @@ text_samp(time_t curtime, int nsecs,
 			}
 		}
 
-		/*
-		** select the required list with tasks to be shown
-		**
-		** if cumulative figures required, accumulate resource
-		** consumption of all processes in the current list
-		*/
-		switch (showtype)
+		if (showtype != MCGROUPS)
 		{
-		   case MCUMUSER:
-			threadallowed = 0;
-
-			if (ucumlist)	/* previous list still available? */
-			{
-                                free(ucumlist);
-                                free(tucumlist);
-				ulastorder = 0;
-			}
-
-			if (deviatonly)
-				nproc = devtstat->nprocactive;
-			else
-				nproc = devtstat->nprocall;
-
 			/*
-			** allocate space for new (temporary) list with
-			** one entry per user (list has worst-case size)
+			** select the required list with tasks to be shown
+			**
+			** if cumulative figures required, accumulate resource
+			** consumption of all processes in the current list
 			*/
-			tucumlist = calloc(sizeof(struct tstat),    nproc);
-			ucumlist  = malloc(sizeof(struct tstat *) * nproc);
-
-			ptrverify(tucumlist,
-			        "Malloc failed for %d ucum procs\n", nproc);
-			ptrverify(ucumlist,
-			        "Malloc failed for %d ucum ptrs\n",  nproc);
-
-			for (i=0; i < nproc; i++)
+			switch (showtype)
 			{
-				/* fill pointers */
-				ucumlist[i] = tucumlist+i;
-			}
-
-			nucum = cumusers(deviatonly ?
-						devtstat->procactive :
-						devtstat->procall,
-						tucumlist, nproc);
-
-			curlist   = ucumlist;
-			ncurlist  = nucum;
-			lastsortp = &ulastorder;
-			break;
-
-		   case MCUMPROC:
-			threadallowed = 0;
-
-			if (pcumlist)	/* previous list still available? */
-			{
-                                free(pcumlist);
-                                free(tpcumlist);
-				plastorder = 0;
-			}
-
-			if (deviatonly)
-				nproc = devtstat->nprocactive;
-			else
-				nproc = devtstat->nprocall;
-
-			/*
-			** allocate space for new (temporary) list with
-			** one entry per program (list has worst-case size)
-			*/
-			tpcumlist = calloc(sizeof(struct tstat),    nproc);
-			pcumlist  = malloc(sizeof(struct tstat *) * nproc);
-
-			ptrverify(tpcumlist,
-			        "Malloc failed for %d pcum procs\n", nproc);
-			ptrverify(pcumlist,
-			        "Malloc failed for %d pcum ptrs\n",  nproc);
-
-			for (i=0; i < nproc; i++)
-			{	
-				/* fill pointers */
-				pcumlist[i] = tpcumlist+i;
-			}
-
-			npcum = cumprogs(deviatonly ?
-						devtstat->procactive :
-						devtstat->procall,
-						tpcumlist, nproc);
-
-			curlist   = pcumlist;
-			ncurlist  = npcum;
-			lastsortp = &plastorder;
-			break;
-
-		   case MCUMCONT:
-			threadallowed = 0;
-
-			if (ccumlist)	/* previous list still available? */
-			{
-                                free(ccumlist);
-                                free(tccumlist);
-				clastorder = 0;
-			}
-
-			if (deviatonly)
-				nproc = devtstat->nprocactive;
-			else
-				nproc = devtstat->nprocall;
-
-			/*
-			** allocate space for new (temporary) list with
-			** one entry per user (list has worst-case size)
-			*/
-			tccumlist = calloc(sizeof(struct tstat),    nproc);
-			ccumlist  = malloc(sizeof(struct tstat *) * nproc);
-
-			ptrverify(tccumlist,
-			        "Malloc failed for %d ccum procs\n", nproc);
-			ptrverify(ccumlist,
-			        "Malloc failed for %d ccum ptrs\n",  nproc);
-
-			for (i=0; i < nproc; i++)
-			{
-				/* fill pointers */
-				ccumlist[i] = tccumlist+i;
-			}
-
-			nccum = cumconts(deviatonly ?
-						devtstat->procactive :
-						devtstat->procall,
-						tccumlist, nproc);
-
-			curlist   = ccumlist;
-			ncurlist  = nccum;
-			lastsortp = &clastorder;
-			break;
-
-		   default:
-			threadallowed = 1;
-
-			if (deviatonly && showtype  != MPROCMEM &&
-			                  showorder != MSORTMEM   )
-			{
-				curlist   = devtstat->procactive;
-				ncurlist  = devtstat->nprocactive;
-			}
-			else
-			{
-				curlist   = devtstat->procall;
-				ncurlist  = devtstat->nprocall;
-			}
-
-			lastsortp = &tlastorder;
-
-			if ( procsel.userid[0] == USERSTUB &&
-			    !procsel.prognamesz            &&
-			    !procsel.utsname[0]            &&
-			    !procsel.states[0]             &&
-			    !procsel.argnamesz             &&
-			    !procsel.pid[0]                &&
-			    !suppressexit                    )
-				/* no selection wanted */
+			   case MCUMUSER:
+				threadallowed = 0;
+	
+				if (ucumlist)	/* previous list still available? */
+				{
+					free(ucumlist);
+					free(tucumlist);
+					ulastorder = 0;
+				}
+	
+				if (deviatonly)
+					nproc = devtstat->nprocactive;
+				else
+					nproc = devtstat->nprocall;
+	
+				/*
+				** allocate space for new (temporary) list with
+				** one entry per user (list has worst-case size)
+				*/
+				tucumlist = calloc(sizeof(struct tstat),    nproc);
+				ucumlist  = malloc(sizeof(struct tstat *) * nproc);
+	
+				ptrverify(tucumlist,
+				        "Malloc failed for %d ucum procs\n", nproc);
+				ptrverify(ucumlist,
+				        "Malloc failed for %d ucum ptrs\n",  nproc);
+	
+				for (i=0; i < nproc; i++)
+				{
+					/* fill pointers */
+					ucumlist[i] = tucumlist+i;
+				}
+	
+				nucum = cumusers(deviatonly ?
+							devtstat->procactive :
+							devtstat->procall,
+							tucumlist, nproc);
+	
+				curlist   = ucumlist;
+				ncurlist  = nucum;
+				lastsortp = &ulastorder;
 				break;
-
-			/*
-			** selection specified for tasks:
-			** create new (worst case) pointer list if needed
-			*/
-			if (sellist)	// remove previous list if needed
-				free(sellist);
-
-			sellist = malloc(sizeof(struct tstat *) * ncurlist);
-
-			ptrverify(sellist,
-			       "Malloc failed for %d select ptrs\n", ncurlist);
-
-			for (i=nsel=0; i < ncurlist; i++)
-			{
-				if (procsuppress(*(curlist+i), &procsel))
-					continue;
-
-				if (curlist[i]->gen.state == 'E' &&
-				    suppressexit                   )
-					continue;
-
-				sellist[nsel++] = curlist[i]; 
-			}
-
-			curlist    = sellist;
-			ncurlist   = nsel;
-			tlastorder = 0; /* new sort and zip normal view */
-			slastorder = 0;	/* new sort and zip now         */
-			lastsortp  = &slastorder;
-		}
-
-		/*
-		** sort the list in required order 
-		** (default CPU-consumption) and print the list
-		*/
-		if (showorder == MSORTAUTO)
-			curorder = autoorder;
-		else
-			curorder = showorder;
-
-		/*
- 		** determine size of list to be displayed
-		*/
-		if (screen)
-			plistsz = LINES-curline-2;
-		else
-			if (threadview && threadallowed)
-				plistsz = devtstat->ntaskactive;
-			else
-				plistsz = ncurlist;
-
-
-		if (ncurlist > 0 && plistsz > 0)
-		{
-			/*
- 			** if sorting order is changed, sort again
- 			*/
-			if (*lastsortp != curorder)
-			{
-				qsort(curlist, ncurlist,
-				        sizeof(struct tstat *),
-				        procsort[(int)curorder&0x1f]);
-
-				*lastsortp = curorder;
-
-				zipagain = 1;
-			}
-
-			if (threadview && threadallowed)
-			{
-				int ntotal, j, t;
-
+	
+			   case MCUMPROC:
+				threadallowed = 0;
+	
+				if (pcumlist)	/* previous list still available? */
+				{
+					free(pcumlist);
+					free(tpcumlist);
+					plastorder = 0;
+				}
+	
+				if (deviatonly)
+					nproc = devtstat->nprocactive;
+				else
+					nproc = devtstat->nprocall;
+	
+				/*
+				** allocate space for new (temporary) list with
+				** one entry per program (list has worst-case size)
+				*/
+				tpcumlist = calloc(sizeof(struct tstat),    nproc);
+				pcumlist  = malloc(sizeof(struct tstat *) * nproc);
+	
+				ptrverify(tpcumlist,
+				        "Malloc failed for %d pcum procs\n", nproc);
+				ptrverify(pcumlist,
+				        "Malloc failed for %d pcum ptrs\n",  nproc);
+	
+				for (i=0; i < nproc; i++)
+				{	
+					/* fill pointers */
+					pcumlist[i] = tpcumlist+i;
+				}
+	
+				npcum = cumprogs(deviatonly ?
+							devtstat->procactive :
+							devtstat->procall,
+							tpcumlist, nproc);
+	
+				curlist   = pcumlist;
+				ncurlist  = npcum;
+				lastsortp = &plastorder;
+				break;
+	
+			   case MCUMCONT:
+				threadallowed = 0;
+	
+				if (ccumlist)	/* previous list still available? */
+				{
+					free(ccumlist);
+					free(tccumlist);
+					clastorder = 0;
+				}
+	
+				if (deviatonly)
+					nproc = devtstat->nprocactive;
+				else
+					nproc = devtstat->nprocall;
+	
+				/*
+				** allocate space for new (temporary) list with
+				** one entry per user (list has worst-case size)
+				*/
+				tccumlist = calloc(sizeof(struct tstat),    nproc);
+				ccumlist  = malloc(sizeof(struct tstat *) * nproc);
+	
+				ptrverify(tccumlist,
+				        "Malloc failed for %d ccum procs\n", nproc);
+				ptrverify(ccumlist,
+				        "Malloc failed for %d ccum ptrs\n",  nproc);
+	
+				for (i=0; i < nproc; i++)
+				{
+					/* fill pointers */
+					ccumlist[i] = tccumlist+i;
+				}
+	
+				nccum = cumconts(deviatonly ?
+							devtstat->procactive :
+							devtstat->procall,
+							tccumlist, nproc);
+	
+				curlist   = ccumlist;
+				ncurlist  = nccum;
+				lastsortp = &clastorder;
+				break;
+	
+			   default:
+				threadallowed = 1;
+	
 				if (deviatonly && showtype  != MPROCMEM &&
-			      	                  showorder != MSORTMEM   )
-					ntotal = devtstat->ntaskactive;
-				else
-					ntotal = devtstat->ntaskall;
-
-				/*
-  				** check if existing pointer list still usable
-				** if not, allocate new pointer list to be able
-				** to zip process list with references to threads
-				*/
-				if (!tsklist || ntsk != ntotal ||
-							tdeviate != deviatonly)
+				                  showorder != MSORTMEM   )
 				{
-					if (tsklist)
-						free(tsklist);	// remove current
-
-					tsklist = malloc(sizeof(struct tstat *)
-								    * ntotal);
-
-					ptrverify(tsklist,
-				             "Malloc failed for %d taskptrs\n",
-				             ntotal);
-
-					ntsk     = ntotal;
-					tdeviate = deviatonly;
-
-					zipagain = 1;
+					curlist   = devtstat->procactive;
+					ncurlist  = devtstat->nprocactive;
 				}
 				else
-					j = ntotal;
-
-				/*
- 				** zip process list with thread list
-				*/
-				if (zipagain)
 				{
-					struct tstat *tall = devtstat->taskall;
-					struct tstat *pcur;
-					long int     n;
-
-					for (i=j=0; i < ncurlist; i++)
-					{
-					    pcur = curlist[i];
-
-					    tsklist[j++] = pcur; // take process
-
-					    n = j; // start index of threads
-
-					    for (t = pcur - tall + 1;
-					         t < devtstat->ntaskall &&
-						 pcur->gen.tgid		&&
-					         pcur->gen.tgid == 
-					            (tall+t)->gen.tgid;
-					         t++)
-					    {
-						if (deviatonly &&
-							showtype  != MPROCMEM &&
-						        showorder != MSORTMEM   )
-						{
-						  if (!(tall+t)->gen.wasinactive)
-						  {
-							tsklist[j++] = tall+t;
-						  }
- 						}
-						else
-							tsklist[j++] = tall+t;
-					    }
-
-				            if (threadsort && j-n > 0 &&
-							curorder != MSORTMEM)
-					    {
-						qsort(&tsklist[n], j-n,
-				                  sizeof(struct tstat *),
-				                  procsort[(int)curorder&0x1f]);
-					    }
-					}
-
-					zipagain = 0;
+					curlist   = devtstat->procall;
+					ncurlist  = devtstat->nprocall;
 				}
-
-				curlist  = tsklist;
-				ncurlist = j;
+	
+				lastsortp = &tlastorder;
+	
+				if ( procsel.userid[0] == USERSTUB &&
+				    !procsel.prognamesz            &&
+				    !procsel.utsname[0]            &&
+				    !procsel.states[0]             &&
+				    !procsel.argnamesz             &&
+				    !procsel.pid[0]                &&
+				    !suppressexit                    )
+					/* no selection wanted */
+					break;
+	
+				/*
+				** selection specified for tasks:
+				** create new (worst case) pointer list if needed
+				*/
+				if (sellist)	// remove previous list if needed
+					free(sellist);
+	
+				sellist = malloc(sizeof(struct tstat *) * ncurlist);
+	
+				ptrverify(sellist,
+				       "Malloc failed for %d select ptrs\n", ncurlist);
+	
+				for (i=nsel=0; i < ncurlist; i++)
+				{
+					if (procsuppress(*(curlist+i), &procsel))
+						continue;
+	
+					if (curlist[i]->gen.state == 'E' &&
+					    suppressexit                   )
+						continue;
+	
+					sellist[nsel++] = curlist[i]; 
+				}
+	
+				curlist    = sellist;
+				ncurlist   = nsel;
+				tlastorder = 0; /* new sort and zip normal view */
+				slastorder = 0;	/* new sort and zip now         */
+				lastsortp  = &slastorder;
 			}
-
+	
 			/*
-			** print the header
-			** first determine the column-header for the current
-			** sorting order of processes
+			** sort the list in required order 
+			** (default CPU-consumption) and print the list
+			*/
+			if (showorder == MSORTAUTO)
+				curorder = autoorder;
+			else
+				curorder = showorder;
+	
+			/*
+ 			** determine size of list to be displayed
 			*/
 			if (screen)
-			{
-				attron(A_REVERSE);
-                                move(curline+1, 0);
-                        }
+				slistsz = LINES-curline-2;
+			else
+				if (threadview && threadallowed)
+					slistsz = devtstat->ntaskactive;
+				else
+					slistsz = ncurlist;
 
-			priphead(firstproc/plistsz+1, (ncurlist-1)/plistsz+1,
+			if (ncurlist > 0 && slistsz > 0)
+			{
+				/*
+ 				** if sorting order is changed, sort again
+ 				*/
+				if (*lastsortp != curorder)
+				{
+					qsort(curlist, ncurlist,
+					        sizeof(struct tstat *),
+					        procsort[(int)curorder&0x1f]);
+	
+					*lastsortp = curorder;
+	
+					zipagain = 1;
+				}
+	
+				if (threadview && threadallowed)
+				{
+					int ntotal, j, t;
+	
+					if (deviatonly && showtype  != MPROCMEM &&
+				      	                  showorder != MSORTMEM   )
+						ntotal = devtstat->ntaskactive;
+					else
+						ntotal = devtstat->ntaskall;
+	
+					/*
+  					** check if existing pointer list still usable
+					** if not, allocate new pointer list to be able
+					** to zip process list with references to threads
+					*/
+					if (!tsklist || ntsk != ntotal ||
+								tdeviate != deviatonly)
+					{
+						if (tsklist)
+							free(tsklist);	// remove current
+	
+						tsklist = malloc(sizeof(struct tstat *)
+									    * ntotal);
+	
+						ptrverify(tsklist,
+					             "Malloc failed for %d taskptrs\n",
+					             ntotal);
+	
+						ntsk     = ntotal;
+						tdeviate = deviatonly;
+	
+						zipagain = 1;
+					}
+					else
+						j = ntotal;
+	
+					/*
+ 					** zip process list with thread list
+					*/
+					if (zipagain)
+					{
+						struct tstat *tall = devtstat->taskall;
+						struct tstat *pcur;
+						long int     n;
+	
+						for (i=j=0; i < ncurlist; i++)
+						{
+						    pcur = curlist[i];
+	
+						    tsklist[j++] = pcur; // take process
+	
+						    n = j; // start index of threads
+	
+						    for (t = pcur - tall + 1;
+						         t < devtstat->ntaskall &&
+							 pcur->gen.tgid		&&
+						         pcur->gen.tgid == 
+						            (tall+t)->gen.tgid;
+						         t++)
+						    {
+							if (deviatonly &&
+								showtype  != MPROCMEM &&
+							        showorder != MSORTMEM   )
+							{
+							  if (!(tall+t)->gen.wasinactive)
+							  {
+								tsklist[j++] = tall+t;
+							  }
+ 							}
+							else
+								tsklist[j++] = tall+t;
+						    }
+	
+					            if (threadsort && j-n > 0 &&
+								curorder != MSORTMEM)
+						    {
+							qsort(&tsklist[n], j-n,
+					                  sizeof(struct tstat *),
+					                  procsort[(int)curorder&0x1f]);
+						    }
+						}
+	
+						zipagain = 0;
+					}
+	
+					curlist  = tsklist;
+					ncurlist = j;
+				}
+
+				/*
+				** print the header
+				** first determine the column-header for the current
+				** sorting order of processes
+				*/
+				if (screen)
+				{
+					attron(A_REVERSE);
+       		                         move(curline+1, 0);
+       		                }
+	
+				prihead(firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
 			       		&showtype, &curorder,
 					showorder == MSORTAUTO ? 1 : 0,
 					sstat->cpu.nrcpu);
 
-			if (screen)
+				if (screen)
+				{
+					attroff(A_REVERSE);
+					clrtobot();
+				}
+
+				/*
+				** print the list
+				*/
+				priproc(curlist, firstitem, ncurlist, curline+2,
+				        firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
+			        	showtype, curorder, &syscap, nsecs, avgval);
+			}
+		}
+		else	// MCGROUPS: print cgroups
+		{
+			/*
+			** sort the list in required order 
+			** (default CPU-consumption) and print the list
+			*/
+			if (showorder == MSORTAUTO)
+				curorder = autoorder;
+			else
+				curorder = showorder;
+
+			/*
+			** make new list with a selection (if needed) of cgroups
+			** merged with processes related to those cgroups
+			*/
+			if (cgroupsel == NULL           ||	// not created yet
+			    cstatdeviate != deviatonly  ||	// or not the right contents?
+			    cstatdepth   != cgroupdepth ||
+			    cstatorder   != curorder      )
 			{
-				attroff(A_REVERSE);
-				clrtobot();
+				struct tstat **tp;
+
+				/*
+				** get sorted list of pointers to the cgchainer structs
+				**
+				** when a list has been created already that is
+				** not suitable, first remove it
+				*/
+				if (cgroupsort)
+					free(cgroupsort);
+
+				cgroupsort = cgsort(cgchainers, ncgroups, curorder);
+
+				/*
+				** determine required list of processes (all or active)
+				** for memory usage even non-active processes are taken
+				*/
+				if (deviatonly && curorder != MSORTMEM)
+				{
+					nproc = devtstat->nprocactive;
+					tp    = devtstat->procactive;
+				}
+				else
+				{
+					nproc = devtstat->nprocall;
+					tp    = devtstat->procall;
+				}
+
+				/*
+				** when a selection list has been created
+				** already that is not suitable, first remove it
+				*/
+				if (cgroupsel)
+					free(cgroupsel);
+
+				/*
+				** create new merged list of cgroups and processes
+				*/
+				ncurlist = mergecgrouplist(&cgroupsel, cgroupdepth,
+						cgroupsort, ncgroups, tp, nproc, curorder);
+
+				/*
+				** preserve list characteristics
+				*/
+				cstatdeviate = deviatonly;
+				cstatdepth   = cgroupdepth;
+				cstatorder   = curorder;
 			}
 
 			/*
-			** print the list
+ 			** determine size of list to be displayed
 			*/
-			priproc(curlist, firstproc, ncurlist, curline+2,
-			        firstproc/plistsz+1, (ncurlist-1)/plistsz+1,
-			        showtype, curorder, &syscap, nsecs, avgval);
+			if (screen)
+				slistsz = LINES-curline-2;
+			else
+				slistsz = ncurlist;
+
+			if (ncurlist > 0 && slistsz > 0)
+			{
+				/*
+				** print the header
+				*/
+				if (screen)
+				{
+					attron(A_REVERSE);
+					move(curline+1, 0);
+       		        	}
+
+				prihead(firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
+			      		&showtype, &curorder,
+					curorder == MSORTAUTO ? 1 : 0,
+					sstat->cpu.nrcpu);
+
+				if (screen)
+				{
+					attroff(A_REVERSE);
+					clrtobot();
+				}
+
+				/*
+				** print the list of cgroups
+				*/
+				pricgroup(cgroupsel, firstitem, ncurlist, curline+2,
+			        	firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
+					&syscap, nsecs, avgval);
+			}
 		}
 
 		alistsz = ncurlist;	/* preserve size of active list */
@@ -1009,7 +1155,7 @@ text_samp(time_t curtime, int nsecs,
 			}
 
 			/*
-			** await input-character or interval-timer expiration
+			** await input character or interval timer expiration
 			*/
 			switch ( (lastchar = mvgetch(statline, 0)) )
 			{
@@ -1021,14 +1167,16 @@ text_samp(time_t curtime, int nsecs,
 				timeout(0);
 				(void) getch();
 				timeout(-1);
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
 				return lastchar;	
 
@@ -1048,14 +1196,16 @@ text_samp(time_t curtime, int nsecs,
 				erase();
 				refresh();
 
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
 				return lastchar;
 
@@ -1068,14 +1218,16 @@ text_samp(time_t curtime, int nsecs,
 
 				getalarm(0);
 
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
 				return lastchar;
 
@@ -1094,14 +1246,16 @@ text_samp(time_t curtime, int nsecs,
 				if (paused)
 					break;
 
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
 				return lastchar;
 
@@ -1142,14 +1296,16 @@ text_samp(time_t curtime, int nsecs,
                                         break;
                                 }
 
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
                                 return lastchar;
 
@@ -1159,7 +1315,7 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MSORTAUTO:
 				showorder = MSORTAUTO;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1167,7 +1323,7 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MSORTCPU:
 				showorder = MSORTCPU;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1175,7 +1331,7 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MSORTMEM:
 				showorder = MSORTMEM;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1193,7 +1349,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 				showorder = MSORTDSK;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1208,7 +1364,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 				showorder = MSORTNET;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1222,7 +1378,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 				showorder = MSORTGPU;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1234,7 +1390,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTCPU;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1246,7 +1402,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTMEM;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1269,7 +1425,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTDSK;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1289,7 +1445,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTNET;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1310,7 +1466,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTGPU;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1318,7 +1474,7 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MPROCVAR:
 				showtype  = MPROCVAR;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1326,29 +1482,41 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MPROCARG:
 				showtype  = MPROCARG;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
 			   ** cgroup v2 info per process
 			   */
-			   case MPROCCGR:
+			   case MCGROUPS:
 				if ( !(supportflags & CGROUPV2) )
 				{
-					statmsg = "No cgroup v2 figures "
+					statmsg = "No cgroup v2 metrics "
 					          "available; request ignored!";
 					break;
 				}
 
-				showtype  = MPROCCGR;
-				firstproc = 0;
+				showtype  = MCGROUPS;
+				firstitem = 0;
+				break;
+
+			   case '2':
+			   case '3':
+			   case '4':
+			   case '5':
+			   case '6':
+			   case '7':
+			   case '8':
+			   case '9':
+				cgroupdepth = lastchar - 0x30;
+				firstitem = 0;
 				break;
 
 			   /*
 			   ** own defined output per process
 			   */
 			   case MPROCOWN:
-				if (! ownprocs[0].f)
+				if (! ownprocs[0].pf)
 				{
 					statmsg = "Own process line is not "
 					          "configured in rc-file; "
@@ -1357,7 +1525,7 @@ text_samp(time_t curtime, int nsecs,
 				}
 
 				showtype  = MPROCOWN;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1369,7 +1537,7 @@ text_samp(time_t curtime, int nsecs,
 				if (showorder != MSORTAUTO)
 					showorder = MSORTCPU;
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1380,7 +1548,7 @@ text_samp(time_t curtime, int nsecs,
 				          "toggle between all/active processes";
 
 				showtype  = MCUMUSER;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1391,7 +1559,7 @@ text_samp(time_t curtime, int nsecs,
 				          "toggle between all/active processes";
 
 				showtype  = MCUMPROC;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1409,7 +1577,7 @@ text_samp(time_t curtime, int nsecs,
 				          "toggle between all/active processes";
 
 				showtype  = MCUMCONT;
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1430,7 +1598,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3); /* force new sample     */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1478,7 +1646,7 @@ text_samp(time_t curtime, int nsecs,
 				if (!paused)
 					alarm(3); /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1510,7 +1678,7 @@ text_samp(time_t curtime, int nsecs,
 					          "manual trigger ('t').....";
 				}
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1597,7 +1765,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1639,7 +1807,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1687,7 +1855,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1745,7 +1913,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1821,7 +1989,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1863,7 +2031,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1955,7 +2123,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -1982,24 +2150,25 @@ text_samp(time_t curtime, int nsecs,
 
 			   /*
 			   ** toggle between modified processes and
-			   ** all processes
+			   ** all processes, or between used cgroups and 
+			   ** all cgroups
 			   */
-			   case MALLPROC:
+			   case MALLACTIVE:
 				if (deviatonly)
 				{
 					deviatonly=0;
-					statmsg = "All processes/threads will be "
+					statmsg = "All processes/threads/cgroups will be "
 					          "shown/accumulated...";
 				}
 				else
 				{
 					deviatonly=1;
-					statmsg = "Only active processes/threads "
+					statmsg = "Only active processes/threads/cgroups "
 					          "will be shown/accumulated...";
 				}
 
 				tlastorder = 0;
-				firstproc  = 0;
+				firstitem  = 0;
 				break;
 
 			   /*
@@ -2030,7 +2199,7 @@ text_samp(time_t curtime, int nsecs,
 					  "system-resources will be shown.....";
 				}
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -2051,7 +2220,7 @@ text_samp(time_t curtime, int nsecs,
 					          "be sorted on utilization...";
 				}
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -2063,13 +2232,13 @@ text_samp(time_t curtime, int nsecs,
 				{
 					threadview = 0;
 					statmsg    = "Thread view disabled";
-					firstproc  = 0;
+					firstitem  = 0;
 				}
 				else
 				{
 					threadview = 1;
 					statmsg    = "Thread view enabled";
-					firstproc  = 0;
+					firstitem  = 0;
 				}
 				break;
 
@@ -2081,13 +2250,13 @@ text_samp(time_t curtime, int nsecs,
 				{
 					threadsort = 0;
 					statmsg    = "Thread sorting disabled for thread view";
-					firstproc  = 0;
+					firstitem  = 0;
 				}
 				else
 				{
 					threadsort = 1;
 					statmsg    = "Thread sorting enabled for thread view";
-					firstproc  = 0;
+					firstitem  = 0;
 				}
 				break;
 
@@ -2144,14 +2313,14 @@ text_samp(time_t curtime, int nsecs,
 					suppressexit = 0;
 					statmsg      = "Exited processes will "
 					               "be shown/accumulated";
-					firstproc    = 0;
+					firstitem    = 0;
 				}
 				else
 				{
 					suppressexit = 1;
 					statmsg      = "Exited processes will "
 					             "not be shown/accumulated";
-					firstproc    = 0;
+					firstitem    = 0;
 				}
 				break;
 
@@ -2179,7 +2348,7 @@ text_samp(time_t curtime, int nsecs,
 					}
 				}
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -2253,7 +2422,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval && !paused && !rawreadflag)
 					alarm(3);  /* set short timer */
 
-				firstproc = 0;
+				firstitem = 0;
 				break;
 
 			   /*
@@ -2263,14 +2432,16 @@ text_samp(time_t curtime, int nsecs,
 				getalarm(0);	/* restart the clock */
 				paused = 0;
 
-				if (tpcumlist) free(tpcumlist);
-				if (pcumlist)  free(pcumlist);
-				if (tucumlist) free(tucumlist);
-				if (ucumlist)  free(ucumlist);
-				if (tccumlist) free(tccumlist);
-				if (ccumlist)  free(ccumlist);
-				if (tsklist)   free(tsklist);
-				if (sellist)   free(sellist);
+				if (tpcumlist)  free(tpcumlist);
+				if (pcumlist)   free(pcumlist);
+				if (tucumlist)  free(tucumlist);
+				if (ucumlist)   free(ucumlist);
+				if (tccumlist)  free(tccumlist);
+				if (ccumlist)   free(ccumlist);
+				if (tsklist)    free(tsklist);
+				if (sellist)    free(sellist);
+				if (cgroupsort) free(cgroupsort);
+				if (cgroupsel)  free(cgroupsel);
 
 				return lastchar;
 
@@ -2307,16 +2478,16 @@ text_samp(time_t curtime, int nsecs,
 			   ** handle arrow down to go one line down
 			   */
 			   case KEY_DOWN:
-				if (firstproc < alistsz-1)
-					firstproc += 1;
+				if (firstitem < alistsz-1)
+					firstitem += 1;
 				break;
 
 			   /*
 			   ** handle arrow up to go one line up
 			   */
 			   case KEY_UP:	
-				if (firstproc > 0)
-					firstproc -= 1;
+				if (firstitem > 0)
+					firstitem -= 1;
 				break;
 
 			   /*
@@ -2324,8 +2495,8 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case KEY_NPAGE:
 			   case MLISTFW:
-				if (alistsz-firstproc > plistsz)
-					firstproc += plistsz;
+				if (alistsz-firstitem > slistsz)
+					firstitem += slistsz;
 				break;
 
 			   /*
@@ -2333,10 +2504,10 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case KEY_PPAGE:
 			   case MLISTBW:
-				if (firstproc >= plistsz)
-					firstproc -= plistsz;
+				if (firstitem >= slistsz)
+					firstitem -= slistsz;
 				else
-					firstproc = 0;
+					firstitem = 0;
 				break;
 
 			   /*
@@ -2362,14 +2533,16 @@ text_samp(time_t curtime, int nsecs,
 		}
 		else	/* no screen */
 		{
-			if (tpcumlist) free(tpcumlist);
-			if (pcumlist)  free(pcumlist);
-			if (tucumlist) free(tucumlist);
-			if (ucumlist)  free(ucumlist);
-			if (tccumlist) free(tccumlist);
-			if (ccumlist)  free(ccumlist);
-			if (tsklist)   free(tsklist);
-			if (sellist)   free(sellist);
+			if (tpcumlist)  free(tpcumlist);
+			if (pcumlist)   free(pcumlist);
+			if (tucumlist)  free(tucumlist);
+			if (ucumlist)   free(ucumlist);
+			if (tccumlist)  free(tccumlist);
+			if (ccumlist)   free(ccumlist);
+			if (tsklist)    free(tsklist);
+			if (sellist)    free(sellist);
+			if (cgroupsort) free(cgroupsort);
+			if (cgroupsel)  free(cgroupsel);
 
 			return '\0';
 		}
@@ -2797,7 +2970,7 @@ printg(const char *format, ...)
 	else
 		vprintf(format, args);
 
-	va_end  (args);
+	va_end(args);
 }
 
 /*
@@ -2900,16 +3073,16 @@ generic_init(void)
 			showtype  = MPROCARG;
 			break;
 
-		   case MPROCCGR:
+		   case MCGROUPS:
 			if ( !(supportflags & CGROUPV2) )
 			{
-				fprintf(stderr, "No cgroup v2 details "
+				fprintf(stderr, "No cgroup v2 metrics "
 				          "available; request ignored!\n");
 				sleep(3);
 				break;
 			}
 
-			showtype  = MPROCCGR;
+			showtype  = MCGROUPS;
 			break;
 
 		   case MPROCOWN:
@@ -3020,6 +3193,17 @@ generic_init(void)
 
 		   case MSYSLIMIT:
 			limitedlines();
+			break;
+
+		   case '2':
+		   case '3':
+		   case '4':
+		   case '5':
+		   case '6':
+		   case '7':
+		   case '8':
+		   case '9':
+			cgroupdepth = flaglist[i] - 0x30;
 			break;
 
 		   default:
@@ -3161,12 +3345,21 @@ static struct helptext {
 	{"\t'%c'  - show bar graphs for system utilization (toggle)\n",
 								MBARGRAPH},
 	{"\n",							' '},
-	{"Information in text mode for active processes:\n", 	' '},
+	{"Information in text mode about cgroups v2:\n", 	' '},
+	{"\t'%c'  - cgroups v2 metrics\n",			MCGROUPS},
+	{"\t 2-7 - cgroups tree level selection (default 7)\n", ' '},
+	{"\t 8   - cgroups with related processes, except kernel processes\n", ' '},
+	{"\t 9   - cgroups with related processes\n", ' '},
+	{"\t'%c'  - show all cgroups/processes i.s.o. only active ones (toggle)\n",
+								MALLACTIVE},
+	{"\t'%c'  - sort on cpu activity\n",			MSORTCPU},
+	{"\t'%c'  - sort on memory consumption\n",		MSORTMEM},
+	{"\n",							' '},
+	{"Information in text mode about processes:\n", 	' '},
 	{"\t'%c'  - generic info (default)\n",			MPROCGEN},
 	{"\t'%c'  - memory details\n",				MPROCMEM},
 	{"\t'%c'  - disk details\n",				MPROCDSK},
 	{"\t'%c'  - network details\n",				MPROCNET},
-	{"\t'%c'  - cgroups v2 details\n",			MPROCCGR},
 	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH},
 	{"\t'%c'  - GPU details\n",				MPROCGPU},
 	{"\t'%c'  - various info (ppid, user/group, date/time, status, "
@@ -3182,7 +3375,7 @@ static struct helptext {
 	{"\t'%c'  - GPU activity\n",				MSORTGPU},
 	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO},
 	{"\n",							' '},
-	{"Accumulated figures:\n",				' '},
+	{"Accumulated process figures:\n",			' '},
 	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
 	{"\t'%c'  - total resource consumption per program (i.e. same "
 	 "process name)\n",					MCUMPROC},
@@ -3218,8 +3411,8 @@ static struct helptext {
 		 						MTHREAD},
 	{"\t'%c'  - sort threads (when combined with thread view)  (toggle)\n",
 		 						MTHRSORT},
-	{"\t'%c'  - show all processes (default: active processes) (toggle)\n",
-								MALLPROC},
+	{"\t'%c'  - show all processes/threads (i.s.o. active)     (toggle)\n",
+								MALLACTIVE},
 	{"\t'%c'  - show fixed number of header lines              (toggle)\n",
 								MSYSFIXED},
 	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
@@ -3393,8 +3586,6 @@ generic_usage(void)
 	                 "date/time)\n", MPROCVAR);
 	printf("\t  -%c  show command line per process\n",
 			MPROCARG);
-	printf("\t  -%c  show cgroup v2 info per process\n",
-			MPROCCGR);
 	printf("\t  -%c  show own defined process-info\n",
 			MPROCOWN);
 	printf("\t  -%c  show cumulated process-info per user\n",
@@ -3709,10 +3900,6 @@ do_flags(char *name, char *val)
 			showtype  = MPROCARG;
 			break;
 
-		   case MPROCCGR:
-			showtype  = MPROCCGR;
-			break;
-
 		   case MPROCOWN:
 			showtype  = MPROCOWN;
 			break;
@@ -3729,7 +3916,11 @@ do_flags(char *name, char *val)
 			showtype  = MCUMCONT;
 			break;
 
-		   case MALLPROC:
+		   case MCGROUPS:
+			showtype  = MCGROUPS;
+			break;
+
+		   case MALLACTIVE:
 			deviatonly = 0;
 			break;
 
@@ -3767,6 +3958,17 @@ do_flags(char *name, char *val)
 
 		   case MSUPEXITS:
 			suppressexit = 1;
+			break;
+
+		   case '2':	// cgroup level
+		   case '3':
+		   case '4':
+		   case '5':
+		   case '6':
+		   case '7':
+		   case '8':
+		   case '9':
+			cgroupdepth = val[i] - 0x30;
 			break;
 		}
 	}

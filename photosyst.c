@@ -293,7 +293,7 @@ photosyst(struct sstat *si)
 	FILE 		*fp;
 	DIR		*dirp;
 	struct dirent	*dentry;
-	char		linebuf[1024], nam[64], origdir[1024];
+	char		linebuf[1024], nam[64], origdir[4096];
 	unsigned int	major, minor;
 	struct shm_info	shminfo;
 #if	HTTPSTATS

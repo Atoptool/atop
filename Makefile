@@ -24,8 +24,8 @@ CFLAGS  += -O2 -I. -Wall $(shell pkg-config --cflags glib-2.0)  -Wno-stringop-tr
 LDFLAGS  = $(shell pkg-config --libs glib-2.0)
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
-OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
-OBJMOD3  = showgeneric.o drawbar.o   showlinux.o  showsys.o showprocs.o
+OBJMOD2  = acctproc.o photoproc.o photosyst.o cgroups.o rawlog.o ifprop.o parseable.o
+OBJMOD3  = showgeneric.o drawbar.o showlinux.o  showsys.o showprocs.o
 OBJMOD4  = atopsar.o  netatopif.o netatopbpfif.o gpucom.o  json.o utsnames.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
 
@@ -193,7 +193,7 @@ atopsar.o:	atop.h	photoproc.h photosyst.h
 rawlog.o:	atop.h	photoproc.h photosyst.h  rawlog.h   showgeneric.h
 various.o:	atop.h                           acctproc.h
 ifprop.o:	atop.h	            photosyst.h             ifprop.h
-parseable.o:	atop.h	photoproc.h photosyst.h             parseable.h
+parseable.o:	atop.h	photoproc.h photosyst.h  cgroups.h  parseable.h
 deviate.o:	atop.h	photoproc.h photosyst.h
 procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h atopacctd.h  acctproc.h netatop.h
@@ -201,11 +201,12 @@ netatopif.o:	atop.h	photoproc.h              netatopd.h netatop.h
 netatopbpfif.o:	atop.h	photoproc.h              netatop.h
 photoproc.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
-showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
-showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
+cgroups.o:	atop.h	            cgroups.h
+showgeneric.o:	atop.h	photoproc.h photosyst.h  cgroups.h showgeneric.h showlinux.h
+showlinux.o:	atop.h	photoproc.h photosyst.h  cgroups.h showgeneric.h showlinux.h
 showsys.o:	atop.h  photoproc.h photosyst.h  showgeneric.h 
-showprocs.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
-drawbar.o:	atop.h	            photosyst.h  showgeneric.h
+showprocs.o:	atop.h	photoproc.h photosyst.h  cgroups.h showgeneric.h showlinux.h
+drawbar.o:	atop.h	            photosyst.h            showgeneric.h
 version.o:	version.c version.h versdate.h
 gpucom.o:	atop.h	photoproc.h photosyst.h
 

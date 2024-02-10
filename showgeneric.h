@@ -169,7 +169,7 @@ struct sselection {
 #define	MPROCSCH	's'
 #define	MPROCVAR	'v'
 #define	MPROCARG	'c'
-#define	MPROCCGR	'X'
+#define	MCGROUPS	'G'
 #define MPROCOWN	'o'
 
 #define	MCUMUSER	'u'
@@ -187,7 +187,7 @@ struct sselection {
 #define	MTHRSORT	'Y'
 #define	MCALCPSS	'R'
 #define	MGETWCHAN	'W'
-#define	MSUPEXITS	'G'
+#define	MSUPEXITS	'X'
 #define	MCOLORS		'x'
 #define	MSYSFIXED	'f'
 #define	MSYSNOSORT	'F'
@@ -202,7 +202,8 @@ struct sselection {
 #define	MSELSTATE	'Q'
 #define	MSELSYS		'S'
 
-#define	MALLPROC	'a'
+#define	MALLACTIVE	'a'
+
 #define	MKILLPROC	'k'
 #define	MLISTFW		0x06
 #define	MLISTBW		0x02
@@ -224,9 +225,10 @@ struct sselection {
 #define	MBARMONO	'H'
 
 /*
-** extern pause indication
+** extern values for globals
 */
 extern int paused;
+extern int cgroupdepth;
 
 /*
 ** general function prototypes
@@ -244,12 +246,18 @@ void	showschproc(struct tstat *, double, int, int);
 void	showtotproc(struct tstat *, double, int, int);
 void	showcmdproc(struct tstat *, double, int, int);
 
-void	printg     (const char *, ...);
+void	printg(const char *, ...);
 int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
 			char *, int, int, int, int, int, int, int, int, int, int, int);
+void	prihead(int, int, char *, char *, char, count_t);
+
+struct cglinesel;
+
+int	pricgroup(struct cglinesel *, int, int, int, int, int,
+	        struct syscap *, int, int);
+
 int	priproc(struct tstat  **, int, int, int, int, int, char, char,
 	        struct syscap *, int, int);
-void	priphead(int, int, char *, char *, char, count_t);
 
 char	draw_samp(time_t, int, struct sstat *, char, char);
 

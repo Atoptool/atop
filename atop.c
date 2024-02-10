@@ -17,7 +17,7 @@
 ** Linux-port:  June 2000
 ** Modified: 	May 2001 - Ported to kernel 2.4
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2018 Gerlof Langeveld
+** Copyright (C) 2000-2024 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -38,43 +38,43 @@
 ** For every cycle (so after another interval) the ENGINE calls various 
 ** functions as shown below:
 **
-** +---------------------------------------------------------------------+
-** |                           E  N  G  I  N  E                          |
-** |                                                                     |
-** |                                                                     |
-** |    _____________________await interval-timer_____________________   |
-** |   |                                                              ^  |
-** |   |      ________       ________      ________      ________     |  |
-** |   |     ^        |     ^        |    ^        |    ^        |    |  |
-** +---|-----|--------|-----|--------|----|--------|----|--------|----|--+
-**     |     |        |     |        |    |        |    |        |    |
-**  +--V-----|--+  +--V-----|--+  +--V----|--+  +--V----|--+  +--V----|-+  
-**  |           |  |           |  |          |  |          |  |         |
-**  | photosyst |  | photoproc |  |   acct   |  | deviate  |  |  print  |
-**  |           |  |           |  |photoproc |  |  ...syst |  |         |
-**  |           |  |           |  |          |  |  ...proc |  |         |
-**  +-----------+  +-----------+  +----------+  +----------+  +---------+  
-**        ^              ^             ^              ^            |
-**        |              |             |              |            |
-**        |              |             |              V            V 
-**      ______       _________     __________     ________     _________
-**     /      \     /         \   /          \   /        \   /         \
-**      /proc          /proc       accounting       task       screen or
-**                                    file        database        file
-**     \______/     \_________/   \__________/   \________/   \_________/
+** +------------------------------------------------------------------------+
+** |                           E  N  G  I  N  E                             |
+** |                                                                        |
+** |                                                                        |
+** |    _____________________await interval-timer________________________   |
+** |   |                                                                 ^  |
+** |   |    _______    _______    _______       ________      ________   |  |
+** |   |   ^       |  ^       |  ^       |     ^        |    ^        |  |  |
+** +---|---|-------|--|-------|--|-------|-----|--------|----|--------|--|--+
+**     |   |       |  |       |  |       |     |        |    |        |  |
+**  +--V-----+  +--V----+  +--V----+  +--V--------+  +--V-------+  +--V-----+  
+**  |        |  |       |  |       |  |           |  | deviate  |  |        |
+**  | photo  |  | photo |  | photo |  |   acct    |  | ..cgroup |  | print  |
+**  | cgroup |  | syst  |  | proc  |  | photoproc |  | ..syst   |  |        |
+**  |        |  |       |  |       |  |           |  | ..proc   |  |        |
+**  +--------+  +-------+  +-------+  +-----------+  +----------+  +--------+
+**      ^           ^          ^            ^              |            |
+**      |           |          |            |              |            |
+**      |           |          |            V              V            V
+**    _______     _____      _____      __________     ________     _________
+**   /       \   /     \    /     \    /          \   /        \   /         \
+**    /sys/fs     /proc      /proc      accounting       task       screen or
+**    /cgroup                              file        database        file
+**   \_______/   \_____/    \_____/    \__________/   \________/   \_________/
+**
+**    -	photocgroup()
+**	Takes a snapshot of the counters related to resource usage on
+** 	cgroup-level v2 (cpu, disk, memory).
 **
 **    -	photosyst()
 **	Takes a snapshot of the counters related to resource-usage on
 ** 	system-level (cpu, disk, memory, network).
-**	This code is UNIX-flavor dependent; in case of Linux the counters
-**	are retrieved from /proc.
 **
 **    -	photoproc()
 **	Takes a snapshot of the counters related to resource-usage of
 **	tasks which are currently active. For this purpose the whole
 **	task-list is read.
-**	This code is UNIX-flavor dependent; in case of Linux the counters
-**	are retrieved from /proc.
 **
 **    -	acctphotoproc()
 **	Takes a snapshot of the counters related to resource-usage of
@@ -82,11 +82,15 @@
 **	For this purpose all new records in the accounting-file are read.
 **
 ** When all counters have been gathered, functions are called to calculate
-** the difference between the current counter-values and the counter-values
-** of the previous cycle. These functions operate on the system-level
-** as well as on the task-level counters. 
-** These differences are stored in a new structure(-table). 
+** the difference between the current counter values and the counter values
+** of the previous cycle. These functions operate on cgroup level, system level
+** as well as on task level.
+** These differences are stored in a new structure (table). 
 **
+**    -	deviatcgroup()
+**	Calculates the differences between the current cgroup-level
+** 	counters and the corresponding counters of the previous cycle.
+
 **    -	deviatsyst()
 **	Calculates the differences between the current system-level
 ** 	counters and the corresponding counters of the previous cycle.
@@ -138,6 +142,7 @@
 #include "ifprop.h"
 #include "photoproc.h"
 #include "photosyst.h"
+#include "cgroups.h"
 #include "showgeneric.h"
 #include "showlinux.h"
 #include "parseable.h"
@@ -145,8 +150,8 @@
 #include "gpucom.h"
 #include "netatop.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz:1ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
-#define	MAXFL		64      /* maximum number of command-line flags  */
+#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz:123456789ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
+#define	MAXFL		84      /* maximum number of command-line flags  */
 
 /*
 ** declaration of global variables
@@ -423,7 +428,7 @@ main(int argc, char *argv[])
 				linelen = atoi(optarg);
 				break;
 
-                           case MALLPROC:	/* all processes per sample ? */
+                           case MALLACTIVE:	/* all processes/cgroups ? */
 				deviatonly = 0;
 				break;
 
@@ -593,6 +598,11 @@ main(int argc, char *argv[])
 		mcleanstop(42, "failed to drop root privs\n");
 
 	/*
+	** determine if cgroups v2 is supported
+	*/
+	cgroupv2support();
+
+	/*
 	** start the engine now .....
 	*/
 	engine();
@@ -610,6 +620,12 @@ engine(void)
 {
 	struct sigaction 	sigact;
 	static time_t		timelimit;
+
+	/*
+	** reserve space for cgroup-level statistics
+	*/
+	static struct cgchainer	*devcstat;
+	int			ncgroups = 0;
 
 	/*
 	** reserve space for system-level statistics
@@ -738,7 +754,14 @@ engine(void)
 			gpupending = gpud_statrequest();
 
 		/*
-		** take a snapshot of the current system-level statistics 
+		** take a snapshot of the current cgroup-level metrics 
+		** when cgroups v2 supported
+		*/
+		if ( (supportflags&CGROUPV2) )
+			photocgroup();
+
+		/*
+		** take a snapshot of the current system-level metrics 
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
 		*/
@@ -746,7 +769,7 @@ engine(void)
 		cursstat = presstat;
 		presstat = hlpsstat;
 
-		photosyst(cursstat);	/* obtain new counters      */
+		photosyst(cursstat);	/* obtain new system-level counters */
 
 		/*
 		** receive and parse response from atopgpud
@@ -789,6 +812,7 @@ engine(void)
 
 		deviatsyst(cursstat, presstat, devsstat,
 				curtime-pretime > 0 ? curtime-pretime : 1);
+
 
 		/*
 		** take a snapshot of the current task-level statistics 
@@ -876,23 +900,33 @@ engine(void)
 		 	             gp,       nrgpuproc);
 
 		/*
-		** calculate deviations
+		** calculate process-level deviations
 		*/
-		deviattask(curtpres,  ntaskpres, curpexit,  nprocexit,
-		                      &devtstat, devsstat);
+		deviattask(curtpres, ntaskpres, curpexit, nprocexit,
+		                     &devtstat, devsstat);
 
-		if (supportflags & NETATOPBPF) {
+		if (supportflags & NETATOPBPF)
+		{
 			g_hash_table_destroy(ghash_net);
 			ghash_net = NULL;
 		}
 
 		/*
-		** activate the installed print-function to visualize
+		** calculate cgroup-level v2 deviations
+		**
+		** allocation and deallocation of structs
+		** is arranged at a lower level
+		*/
+		if ( (supportflags&CGROUPV2) )
+			ncgroups = deviatcgroup(&devcstat);
+
+		/*
+		** activate the installed print function to visualize
 		** the deviations
 		*/
-		lastcmd = (vis.show_samp)( curtime,
+		lastcmd = (vis.show_samp)(curtime,
 				     curtime-pretime > 0 ? curtime-pretime : 1,
-		           	     &devtstat, devsstat, 
+		           	     &devtstat, devsstat, devcstat, ncgroups,
 		                     nprocexit, noverflow, sampcnt==0);
 
 		/*
@@ -903,12 +937,11 @@ engine(void)
 
 		free(curtpres);
 
-		if ((supportflags & NETATOPD) && (nprocexitnet > 0)) {
-				netatop_exiterase();
-		}
+		if ((supportflags & NETATOPD) && (nprocexitnet > 0))
+			netatop_exiterase();
 
 		if (gp)
-			 free(gp);
+			free(gp);
 
 		if (lastcmd == 'r')	/* reset requested ? */
 		{
@@ -936,16 +969,17 @@ prusage(char *myname)
 					myname);
 	printf("\t\tor\n");
 	printf("Usage: %s -w  file  [-S] [-%c] [interval [samples]]\n",
-					myname, MALLPROC);
+					myname, MALLACTIVE);
 	printf("       %s -r [file] [-b [YYYYMMDD]hhmm[ss]] [-e [YYYYMMDD]hhmm[ss]] [-flags]\n",
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
 	printf("\t  -%c  show bar graphs for system statistics\n", MBARGRAPH);
 	printf("\t  -%c  show bar graphs without categories\n", MBARMONO);
+	printf("\t  -%c  show cgroup v2 metrics\n", MCGROUPS);
 	printf("\t  -%c  show version information\n", MVERSION);
-	printf("\t  -%c  show or log all processes (i.s.o. active processes "
-	                "only)\n", MALLPROC);
+	printf("\t  -%c  show all processes and cgroups (i.s.o. active only)\n",
+			MALLACTIVE);
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);

@@ -198,6 +198,7 @@ int jsondef(char *pd)
 */
 char jsonout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
+	 struct cgchainer *devcstat, int ncgroups,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i, j, k;
@@ -1016,7 +1017,7 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->gen.elaps,
 			!!ps->gen.isproc, /* convert to boolean */
 			ps->gen.utsname[0] ? ps->gen.utsname:"-",
-			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
+			"-");	// was: cgroup path
 	}
 
 	printf("]");
@@ -1061,7 +1062,7 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw,
 			ps->cpu.sleepavg,
-			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
+			"-");	// was: cgroup path
 	}
 
 	printf("]");
@@ -1109,7 +1110,7 @@ static void json_print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 			ps->mem.vswap,
 			ps->mem.pmem == (unsigned long long)-1LL ?
 			0:ps->mem.pmem,
-			ps->gen.cgpath[0] ? ps->gen.cgpath:"-");
+			"-");	// was: cgroup path
 	}
 
 	printf("]");

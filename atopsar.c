@@ -51,6 +51,7 @@
 #include "ifprop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "cgroups.h"
 #include "gpucom.h"
 
 #define	MAXFL	64      /* maximum number of command-line flags  */
@@ -109,6 +110,7 @@ static void	pratopsaruse(char *);
 static void	reportlive(time_t, int, struct sstat *);
 static char     reportraw (time_t, int,
                             struct devtstat *, struct sstat *,
+			    struct cgchainer *, int,
                             int, unsigned int, char);
 
 static void	reportheader(struct utsname *, time_t);
@@ -721,6 +723,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 static char
 reportraw(time_t curtime, int numsecs,
          	struct devtstat *devtstat, struct sstat *sstat,
+		struct cgchainer *devcstat, int ncgroups,
 		int nexit, unsigned int noverflow, char flags)
 {
 	static char		firstcall = 1;

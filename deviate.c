@@ -416,7 +416,6 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 	ptrverify(devtstat->procactive, "Malloc failed for %d active procs\n",
                                   devtstat->nprocactive);
 
-
         for (c=0, thisproc=devstat=devtstat->taskall; c < devtstat->ntaskall;
 								c++, devstat++)
         {
@@ -462,9 +461,6 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->cpu.policy      = curstat->cpu.policy;
 	devstat->cpu.curcpu      = curstat->cpu.curcpu;
 	devstat->cpu.sleepavg    = curstat->cpu.sleepavg;
-	devstat->cpu.cgcpuweight = curstat->cpu.cgcpuweight;
-	devstat->cpu.cgcpumax    = curstat->cpu.cgcpumax;
-	devstat->cpu.cgcpumaxr   = curstat->cpu.cgcpumaxr;
 
 	if (curstat->cpu.wchan[0])
 		strcpy(devstat->cpu.wchan, curstat->cpu.wchan);
@@ -480,11 +476,6 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->mem.vlibs  = curstat->mem.vlibs;
 	devstat->mem.vswap  = curstat->mem.vswap;
 	devstat->mem.vlock  = curstat->mem.vlock;
-
-	devstat->mem.cgmemmax  = curstat->mem.cgmemmax;
-	devstat->mem.cgmemmaxr = curstat->mem.cgmemmaxr;
-	devstat->mem.cgswpmax  = curstat->mem.cgswpmax;
-	devstat->mem.cgswpmaxr = curstat->mem.cgswpmaxr;
 
 	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
 	{

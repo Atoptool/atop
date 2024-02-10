@@ -49,9 +49,9 @@
 
 #include "atop.h"
 #include "photoproc.h"
-#include "showgeneric.h"
-#include "photoproc.h"
 #include "photosyst.h"
+#include "cgroups.h"
+#include "showgeneric.h"
 #include "rawlog.h"
 
 #define	BASEPATH	"/var/log/atop"  
@@ -73,6 +73,7 @@ static void	try_other_version(int, int);
 char
 rawwrite(time_t curtime, int numsecs, 
          struct devtstat *devtstat, struct sstat *sstat,
+	 struct cgchainer *devcstat, int ncgroups,
          int nexit, unsigned int noverflow, char flag)
 {
 	static int		rawfd = -1;
@@ -305,10 +306,12 @@ int
 rawread(void)
 {
 	int			i, j, rawfd, len, isregular = 1;
+	int			ncgroups = 0;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
 	struct sstat		sstat;
+	struct cgchainer	*devcstat = 0;
 	static struct devtstat	devtstat;
 
 	struct stat		filestat;
@@ -796,7 +799,7 @@ rawread(void)
 			{
 				lastcmd = (vis.show_samp)(rr.curtime,
 				     rr.interval,
-			             &devtstat, &sstat,
+			             &devtstat, &sstat, devcstat, ncgroups,
 			             rr.nexit, rr.noverflow, flags);
 			}
 			while (!isregular &&

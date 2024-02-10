@@ -12,7 +12,7 @@ Live measurement in bar graph mode:
 Live measurement in text mode:
 .PP
 .TP 5
-.B \  atop [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR] [interval [samples]]
+.B \  atop [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR] [interval [samples]]
 .PP
 Live generation of parsable output (white-space separated or JSON):
 .PP
@@ -32,7 +32,7 @@ Analyze raw log files in bar graph mode:
 Analyze raw log files in text mode:
 .PP
 .TP 5
-.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFG1xR]
+.B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR]
 .PP
 Generate parsable output from raw log files (white-space separated or JSON):
 .PP
@@ -685,9 +685,10 @@ the occupation percentage for the chosen resource and the
 command line including arguments.
 .PP
 .TP 5
-.B X
+.B G
 Show cgroup v2 information.
 
+TODO TODO
 Per process the following fields are shown:
 process-id, 'cpu.weight' of the cgroup the process
 belongs to, 'cpu.max' value (recalculated as percentage) of the cgroup
@@ -1062,7 +1063,7 @@ showing/accumulating all processes.
 Whether this key is active or not can be seen in the header line.
 .PP
 .TP 5
-.B G
+.B X
 By default, 
 .I atop
 shows/accumulates the processes that are alive and the processes

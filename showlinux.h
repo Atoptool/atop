@@ -61,7 +61,7 @@ typedef struct {
 
 /***************************************************************
  *
- * structure for system print-list
+ * structure for system print list
  *
  * configname	name as used to identify this field when configuring
  * 		the print line
@@ -90,41 +90,39 @@ typedef struct
         int             prio;
 } sys_printpair;
 
-
-
-/*
-** structure for process print-list
-*/
-typedef struct 
-{
-        char *head;                      // column header
-        char *configname;                // name as used to config print line
-        char *(*doactiveconvert)(struct tstat *,int,int); 
-                                         // pointer to conv function
-                                         // for active process
-        char *(*doexitconvert)  (struct tstat *,int,int);   
-                                         // pointer to conv function
-                                         // for exited process
-        int  width;                      // required width
-        int  varwidth;                   // width may grow (eg cmd params)
-} proc_printdef;
-
-
-typedef struct 
-{
-        proc_printdef   *f;
-        int             prio;
-} proc_printpair;
-
 void showsysline(sys_printpair* elemptr, 
                  struct sstat* sstat, extraparam *extra,
                  char *labeltext, unsigned int badness);
 
 
-void showhdrline(proc_printpair* elemptr, int curlist, int totlist, 
-                  char showorder, char autosort);
-void showprocline(proc_printpair* elemptr, struct tstat *curstat, 
-                  double perc, int nsecs, int avgval);
+/*
+** structure for process and cgroup print list
+*/
+typedef struct 
+{
+        char *head;                      // column header
+        char *configname;                // name as used to config print line
+        char *(*doactiveconvert)();      // pointer to conv function
+                                         // for active process
+        char *(*doexitconvert)();        // pointer to conv function
+                                         // for exited process
+	char sortcrit;                   // sort criterion similar to showorder
+        int  width;                      // required width
+        int  varwidth;                   // width may grow (eg cmd params)
+} detail_printdef;
+
+typedef struct 
+{
+       	detail_printdef	*pf;
+        int 		prio;
+} detail_printpair;
+
+void showprochead(detail_printpair *, int, int, char, char);
+void showprocline(detail_printpair *, struct tstat *, double, int, int);
+
+void showcgrouphead(detail_printpair *, int, int, char);
+void showcgroupline(detail_printpair *, struct cgchainer *, struct tstat *,
+					int, int, count_t, int);
 
 void do_cpucritperc(char *, char *);
 void do_gpucritperc(char *, char *);
@@ -391,97 +389,96 @@ char *procprt_NOTAVAIL_5(struct tstat *curstat, int avgval, int nsecs);
 char *procprt_NOTAVAIL_6(struct tstat *curstat, int avgval, int nsecs);
 char *procprt_NOTAVAIL_7(struct tstat *curstat, int avgval, int nsecs);
 
-extern proc_printdef *allprocpdefs[];
-extern proc_printdef procprt_PID;
-extern proc_printdef procprt_TID;
-extern proc_printdef procprt_PPID;
-extern proc_printdef procprt_SYSCPU;
-extern proc_printdef procprt_USRCPU;
-extern proc_printdef procprt_VGROW;
-extern proc_printdef procprt_RGROW;
-extern proc_printdef procprt_MINFLT;
-extern proc_printdef procprt_MAJFLT;
-extern proc_printdef procprt_VSTEXT;
-extern proc_printdef procprt_VSIZE;
-extern proc_printdef procprt_RSIZE;
-extern proc_printdef procprt_PSIZE;
-extern proc_printdef procprt_VSLIBS;
-extern proc_printdef procprt_VDATA;
-extern proc_printdef procprt_VSTACK;
-extern proc_printdef procprt_SWAPSZ;
-extern proc_printdef procprt_LOCKSZ;
-extern proc_printdef procprt_CMD;
-extern proc_printdef procprt_RUID;
-extern proc_printdef procprt_EUID;
-extern proc_printdef procprt_SUID;
-extern proc_printdef procprt_FSUID;
-extern proc_printdef procprt_RGID;
-extern proc_printdef procprt_EGID;
-extern proc_printdef procprt_SGID;
-extern proc_printdef procprt_FSGID;
-extern proc_printdef procprt_CTID;
-extern proc_printdef procprt_VPID;
-extern proc_printdef procprt_CID;
-extern proc_printdef procprt_STDATE;
-extern proc_printdef procprt_STTIME;
-extern proc_printdef procprt_ENDATE;
-extern proc_printdef procprt_ENTIME;
-extern proc_printdef procprt_THR;
-extern proc_printdef procprt_TRUN;
-extern proc_printdef procprt_TSLPI;
-extern proc_printdef procprt_TSLPU;
-extern proc_printdef procprt_TIDLE;
-extern proc_printdef procprt_POLI;
-extern proc_printdef procprt_NICE;
-extern proc_printdef procprt_PRI;
-extern proc_printdef procprt_RTPR;
-extern proc_printdef procprt_CURCPU;
-extern proc_printdef procprt_ST;
-extern proc_printdef procprt_EXC;
-extern proc_printdef procprt_S;
-extern proc_printdef procprt_COMMAND_LINE;
-extern proc_printdef procprt_NPROCS;
-extern proc_printdef procprt_RDDSK;
-extern proc_printdef procprt_WRDSK;
-extern proc_printdef procprt_CWRDSK;
-extern proc_printdef procprt_WCANCEL;
-extern proc_printdef procprt_TCPRCV;
-extern proc_printdef procprt_TCPRASZ;
-extern proc_printdef procprt_TCPSND;
-extern proc_printdef procprt_TCPSASZ;
-extern proc_printdef procprt_UDPRCV;
-extern proc_printdef procprt_UDPRASZ;
-extern proc_printdef procprt_UDPSND;
-extern proc_printdef procprt_UDPSASZ;
-extern proc_printdef procprt_RNET;
-extern proc_printdef procprt_SNET;
-extern proc_printdef procprt_BANDWI;
-extern proc_printdef procprt_BANDWO;
-extern proc_printdef procprt_GPULIST;
-extern proc_printdef procprt_GPUMEMNOW;
-extern proc_printdef procprt_GPUMEMAVG;
-extern proc_printdef procprt_GPUGPUBUSY;
-extern proc_printdef procprt_GPUMEMBUSY;
-extern proc_printdef procprt_SORTITEM;
-extern proc_printdef procprt_RUNDELAY;
-extern proc_printdef procprt_BLKDELAY;
-extern proc_printdef procprt_WCHAN;
-extern proc_printdef procprt_NVCSW;
-extern proc_printdef procprt_NIVCSW;
-extern proc_printdef procprt_CGROUP_PATH;
-extern proc_printdef procprt_CGRCPUWGT;
-extern proc_printdef procprt_CGRCPUMAX;
-extern proc_printdef procprt_CGRCPUMAXR;
-extern proc_printdef procprt_CGRMEMMAX;
-extern proc_printdef procprt_CGRMEMMAXR;
-extern proc_printdef procprt_CGRSWPMAX;
-extern proc_printdef procprt_CGRSWPMAXR;
+extern detail_printdef *alldetaildefs[];
 
+extern detail_printdef procprt_PID;
+extern detail_printdef procprt_TID;
+extern detail_printdef procprt_PPID;
+extern detail_printdef procprt_SYSCPU;
+extern detail_printdef procprt_USRCPU;
+extern detail_printdef procprt_VGROW;
+extern detail_printdef procprt_RGROW;
+extern detail_printdef procprt_MINFLT;
+extern detail_printdef procprt_MAJFLT;
+extern detail_printdef procprt_VSTEXT;
+extern detail_printdef procprt_VSIZE;
+extern detail_printdef procprt_RSIZE;
+extern detail_printdef procprt_PSIZE;
+extern detail_printdef procprt_VSLIBS;
+extern detail_printdef procprt_VDATA;
+extern detail_printdef procprt_VSTACK;
+extern detail_printdef procprt_SWAPSZ;
+extern detail_printdef procprt_LOCKSZ;
+extern detail_printdef procprt_CMD;
+extern detail_printdef procprt_RUID;
+extern detail_printdef procprt_EUID;
+extern detail_printdef procprt_SUID;
+extern detail_printdef procprt_FSUID;
+extern detail_printdef procprt_RGID;
+extern detail_printdef procprt_EGID;
+extern detail_printdef procprt_SGID;
+extern detail_printdef procprt_FSGID;
+extern detail_printdef procprt_CTID;
+extern detail_printdef procprt_VPID;
+extern detail_printdef procprt_CID;
+extern detail_printdef procprt_STDATE;
+extern detail_printdef procprt_STTIME;
+extern detail_printdef procprt_ENDATE;
+extern detail_printdef procprt_ENTIME;
+extern detail_printdef procprt_THR;
+extern detail_printdef procprt_TRUN;
+extern detail_printdef procprt_TSLPI;
+extern detail_printdef procprt_TSLPU;
+extern detail_printdef procprt_TIDLE;
+extern detail_printdef procprt_POLI;
+extern detail_printdef procprt_NICE;
+extern detail_printdef procprt_PRI;
+extern detail_printdef procprt_RTPR;
+extern detail_printdef procprt_CURCPU;
+extern detail_printdef procprt_ST;
+extern detail_printdef procprt_EXC;
+extern detail_printdef procprt_S;
+extern detail_printdef procprt_COMMAND_LINE;
+extern detail_printdef procprt_NPROCS;
+extern detail_printdef procprt_RDDSK;
+extern detail_printdef procprt_WRDSK;
+extern detail_printdef procprt_CWRDSK;
+extern detail_printdef procprt_WCANCEL;
+extern detail_printdef procprt_TCPRCV;
+extern detail_printdef procprt_TCPRASZ;
+extern detail_printdef procprt_TCPSND;
+extern detail_printdef procprt_TCPSASZ;
+extern detail_printdef procprt_UDPRCV;
+extern detail_printdef procprt_UDPRASZ;
+extern detail_printdef procprt_UDPSND;
+extern detail_printdef procprt_UDPSASZ;
+extern detail_printdef procprt_RNET;
+extern detail_printdef procprt_SNET;
+extern detail_printdef procprt_BANDWI;
+extern detail_printdef procprt_BANDWO;
+extern detail_printdef procprt_GPULIST;
+extern detail_printdef procprt_GPUMEMNOW;
+extern detail_printdef procprt_GPUMEMAVG;
+extern detail_printdef procprt_GPUGPUBUSY;
+extern detail_printdef procprt_GPUMEMBUSY;
+extern detail_printdef procprt_SORTITEM;
+extern detail_printdef procprt_RUNDELAY;
+extern detail_printdef procprt_BLKDELAY;
+extern detail_printdef procprt_WCHAN;
+extern detail_printdef procprt_NVCSW;
+extern detail_printdef procprt_NIVCSW;
 
-//extern char *procprt_NRDDSK_ae(struct tstat *, int, int);
-//extern char *procprt_NWRDSK_a(struct tstat *, int, int);
-//extern char *procprt_NRDDSK_e(struct tstat *, int, int);
-//extern char *procprt_NWRDSK_e(struct tstat *, int, int);
+extern detail_printdef cgroupprt_CGROUP_PATH;
+extern detail_printdef cgroupprt_CGRNPROCS;
+extern detail_printdef cgroupprt_CGRNPROCSB;
+extern detail_printdef cgroupprt_CGRCPUBUSY;
+extern detail_printdef cgroupprt_CGRCPUWGT;
+extern detail_printdef cgroupprt_CGRCPUMAX;
+extern detail_printdef cgroupprt_CGRMEMORY;
+extern detail_printdef cgroupprt_CGRMEMMAX;
+extern detail_printdef cgroupprt_CGRSWPMAX;
+extern detail_printdef cgroupprt_CGRPID;
+extern detail_printdef cgroupprt_CGRCMD;
 
 extern char *procprt_SNET_a(struct tstat *, int, int);
 extern char *procprt_SNET_e(struct tstat *, int, int);

@@ -37,6 +37,7 @@
 #include "atop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "cgroups.h"
 #include "parseable.h"
 
 void 	print_CPU(char *, struct sstat *, struct tstat *, int);
@@ -68,7 +69,6 @@ void 	print_PRE(char *, struct sstat *, struct tstat *, int);
 
 static void calc_freqscale(count_t, count_t, count_t, count_t *, int *);
 static char *spaceformat(char *, char *);
-static int  cgroupv2max(int, int);
 
 /*
 ** table with possible labels and the corresponding
@@ -190,6 +190,7 @@ parsedef(char *pd)
 char
 parseout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
+         struct cgchainer *devcstat, int ncgroups,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i;
@@ -742,8 +743,7 @@ void
 print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 {
 	register int	i, exitcode;
-	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2],
-			pathout[CGRLEN+1];
+	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
@@ -781,7 +781,7 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->gen.ctid,
 			ps->gen.utsname[0] ? ps->gen.utsname:"-",
         		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
-			spaceformat(ps->gen.cgpath, pathout),
+			"",	// was: cgroup path
 			ps->gen.state == 'E' ?
 			    ps->gen.btime + ps->gen.elaps/hertz : 0,
 			ps->gen.nthridle);
@@ -816,8 +816,8 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->cpu.rundelay,
 			spaceformat(ps->cpu.wchan, wchanout),
 			ps->cpu.blkdelay,
-			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumax),
-			cgroupv2max(ps->gen.isproc, ps->cpu.cgcpumaxr),
+			-2,
+			-2,
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw);
 	}
@@ -854,10 +854,7 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 			ps->mem.pmem == (unsigned long long)-1LL ?
 							0:ps->mem.pmem,
 			ps->mem.vlock,
-			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmax),
-			cgroupv2max(ps->gen.isproc, ps->mem.cgmemmaxr),
-			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmax),
-			cgroupv2max(ps->gen.isproc, ps->mem.cgswpmaxr));
+			-2, -2, -2, -2);
 	}
 }
 
@@ -981,19 +978,4 @@ spaceformat(char *istr, char *ostr)
 	}
 
 	return ostr;
-}
-
-/*
-** return proper integer for cgroup v2 maximum values
-*/
-static int
-cgroupv2max(int isproc, int max)
-{
-	if (! (supportflags&CGROUPV2))
-		return -3;
-
-	if (! isproc)
-		return -2;
-
-	return max;
 }

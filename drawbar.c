@@ -352,6 +352,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 		   case 0:
 			return lastchar;
 
+		   case MCGROUPS:
 		   case MPROCGEN:
 		   case MPROCMEM:
 		   case MPROCDSK:
@@ -2446,6 +2447,8 @@ showhelp(void)
 	mvwprintw(helpwin, line++, 2, "Display mode:");
         mvwprintw(helpwin, line++, 2,
 		" '%c'  - text mode: keep same process info",	MBARGRAPH);
+        mvwprintw(helpwin, line++, 2,
+		" '%c'  - text mode: cgroups and related processes", MCGROUPS);
         mvwprintw(helpwin, line++, 2,
         	" '%c'  - text mode: generic info",             MPROCGEN);
         mvwprintw(helpwin, line++, 2,

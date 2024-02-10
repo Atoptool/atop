@@ -31,6 +31,7 @@
 int 	parsedef(char *);
 char	parseout(time_t, int,
 		struct devtstat *, struct sstat *,
+		struct cgchainer *, int,
 		int, unsigned int, char);
 
 #endif
