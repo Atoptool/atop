@@ -536,14 +536,26 @@ getmetrics(struct cstat *csp)
 
 	// gather memory metrics
 	//
-	csp->mem.anon   = -1;	// undefined
-	csp->mem.file   = -1;	// undefined
-	csp->mem.kernel = -1;	// undefined
+	csp->mem.current = -1;	// undefined
+
+	csp->mem.anon    = -1;	// undefined
+	csp->mem.file    = -1;	// undefined
+	csp->mem.kernel  = -1;	// undefined
+	csp->mem.shmem   = -1;	// undefined
+
 	cnt = 0;
+
+	if ( (fp = fopen("memory.current", "r")) )
+	{
+		if (fgets(line, sizeof line, fp) != NULL)
+			csp->mem.current = strtoll(line, NULL, 10) / pagesize;
+
+		fclose(fp);
+	}
 
 	if ( (fp = fopen("memory.stat", "r")) )
 	{
-		while (fgets(line, sizeof line, fp) && cnt < 3)
+		while (fgets(line, sizeof line, fp) && cnt < 4)
 		{
 			if (memcmp(line, "anon ", 5) == 0)
 			{
@@ -565,6 +577,14 @@ getmetrics(struct cstat *csp)
 			{
 				sscanf(line, "kernel %lld", &(csp->mem.kernel));
 				csp->mem.kernel /= pagesize;
+				cnt++;
+				continue;
+			}
+
+			if (memcmp(line, "shmem ", 6) == 0)
+			{
+				sscanf(line, "shmem %lld", &(csp->mem.shmem));
+				csp->mem.shmem /= pagesize;
 				cnt++;
 				continue;
 			}
@@ -1314,9 +1334,17 @@ sortlevel(int curlevel, struct cgsorter *cgparent,
 				               cgc->cstat->cpu.stime;
 				break;
 			   case MSORTMEM:
-				cgs->sortval = cgc->cstat->mem.anon +
-				               cgc->cstat->mem.file +
-				               cgc->cstat->mem.kernel;
+				if (cgc->cstat->mem.current > 0)
+				{
+					cgs->sortval = cgc->cstat->mem.current;
+				}
+				else
+				{
+					cgs->sortval = cgc->cstat->mem.anon +
+					               cgc->cstat->mem.file +
+					               cgc->cstat->mem.kernel +
+					               cgc->cstat->mem.shmem;
+				}
 				break;
 			   default:
 				cgs->sortval = 0;	// no sorting

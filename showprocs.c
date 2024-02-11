@@ -2664,12 +2664,20 @@ cgroup_CGRMEMORY(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 
 	if (!tstat)	// show cgroup info?
 	{
-		if (cstat->cstat->mem.anon == -1)	// undefined?
-			return "     -";
+		if (cstat->cstat->mem.current > 0)		// defined?
+		{
+			memusage = cstat->cstat->mem.current;
+		}
+		else
+		{
+			if (cstat->cstat->mem.anon == -1)	// undefined?
+				return "     -";
 
-		memusage = (cstat->cstat->mem.anon +
-		            cstat->cstat->mem.file +
-	                    cstat->cstat->mem.kernel);
+			memusage = (cstat->cstat->mem.anon +
+			            cstat->cstat->mem.file +
+		                    cstat->cstat->mem.kernel +
+		                    cstat->cstat->mem.shmem);
+		}
 
         	maxusage =  cstat->cstat->conf.memmax;
 

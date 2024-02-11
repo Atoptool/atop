@@ -60,9 +60,11 @@ struct cstat {
 
 	// MEMORY STATISTICS
 	struct cgmem {
+		count_t	current;	// current memory (pages) -1=undefined
 		count_t	anon;		// anonymous memory (pages) -1=undefined
 		count_t	file;		// file memory (pages)      -1=undefined
 		count_t	kernel;		// kernel memory (pages)    -1=undefined
+		count_t	shmem;		// shared memory (pages)    -1=undefined
 
 		count_t	pressure;	// total pressure (millisec)
 	} mem;
