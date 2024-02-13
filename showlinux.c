@@ -478,6 +478,8 @@ detail_printdef *alldetaildefs[]=
 	&cgroupprt_CGRMEMORY,
 	&cgroupprt_CGRMEMMAX,
 	&cgroupprt_CGRSWPMAX,
+	&cgroupprt_CGRDISKIO,
+	&cgroupprt_CGRDSKWGT,
 	&cgroupprt_CGRPID,
 	&cgroupprt_CGRCMD,
         0
@@ -1354,8 +1356,8 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 		//
                 make_detail_prints(gencgroups, MAXITEMS, 
                         "CGRPATH:10 CGRNPROCS:9 CGRNPROCSB:8 CGRCPUBUSY:7 "
-			"CGRCPUMAX:4 CGRCPUWGT:3 CGRMEMORY:7 CGRMEMMAX:4 "
-			"CGRSWPMAX:2 CGRPID:6 CGRCMD:6", 
+			"CGRCPUMAX:3 CGRCPUWGT:2 CGRMEMORY:7 CGRMEMMAX:3 "
+			"CGRSWPMAX:1 CGRDISKIO:6 CGRDSKWGT:2 CGRPID:5 CGRCMD:4", 
                         "built-in gencgroups");
         }
 

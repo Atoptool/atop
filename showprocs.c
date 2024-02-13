@@ -191,11 +191,15 @@ char *cgroup_CGRCPUWGT(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRCPUMAX(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
-char *cgroup_CGRMEMMAX(struct cgchainer *, struct tstat *,
-				int, int, count_t, int, int *);
 char *cgroup_CGRMEMORY(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
+char *cgroup_CGRMEMMAX(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
 char *cgroup_CGRSWPMAX(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
+char *cgroup_CGRDISKIO(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
+char *cgroup_CGRDSKWGT(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRPID(struct cgchainer *, struct tstat *, int,
 				int, count_t, int, int *);
@@ -1587,7 +1591,11 @@ char *
 procprt_RDDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        val2memstr(curstat->dsk.rsz*512, buf, BFORMAT, avgval, nsecs);
+
+	if (supportflags & IOSTAT)
+        	val2memstr(curstat->dsk.rsz*512, buf, BFORMAT, avgval, nsecs);
+	else
+		strcpy(buf, "nopriv");
 
         return buf;
 }
@@ -1606,7 +1614,10 @@ procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-        val2memstr(curstat->dsk.wsz*512, buf, BFORMAT, avgval, nsecs);
+	if (supportflags & IOSTAT)
+        	val2memstr(curstat->dsk.wsz*512, buf, BFORMAT, avgval, nsecs);
+	else
+		strcpy(buf, "nopriv");
 
         return buf;
 }
@@ -1643,7 +1654,11 @@ char *
 procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        val2memstr(curstat->dsk.cwsz*512, buf, BFORMAT, avgval, nsecs);
+
+	if (supportflags & IOSTAT)
+        	val2memstr(curstat->dsk.cwsz*512, buf, BFORMAT, avgval, nsecs);
+	else
+		strcpy(buf, "nopriv");
 
         return buf;
 }
@@ -2763,6 +2778,57 @@ cgroup_CGRSWPMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 
 detail_printdef cgroupprt_CGRSWPMAX =
    { "SWPMAX", "CGRSWPMAX", cgroup_CGRSWPMAX, NULL, ' ', 6};
+/***************************************************************/
+char *
+cgroup_CGRDISKIO(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+		count_t cputicks, int nrcpu, int *color)
+{
+        static char	buf[16];
+
+	if (!tstat)	// show cgroup info?
+	{
+		if (cstat->cstat->dsk.rbytes == -1)		// not defined?
+			return "     -";
+
+        	val2memstr(cstat->cstat->dsk.rbytes + cstat->cstat->dsk.wbytes, buf, BFORMAT, 0, 0);
+	}
+	else		// show process info
+	{
+		if (supportflags & IOSTAT)
+        		val2memstr((tstat->dsk.rsz+tstat->dsk.wsz)*512,
+							buf, BFORMAT, 0, 0);
+		else
+			strcpy(buf, "nopriv");
+	}
+
+       	return buf;
+}
+
+detail_printdef cgroupprt_CGRDISKIO =
+   { "IODISK", "CGRDISKIO", cgroup_CGRDISKIO, NULL, 'D', 6};
+/***************************************************************/
+char *
+cgroup_CGRDSKWGT(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+		count_t cputicks, int nrcpu, int *color)
+{
+        static char buf[16];
+
+	if (tstat)	// process info?
+		return "     ";
+
+	// cgroup info
+	switch (cstat->cstat->conf.dskweight)
+	{
+	   case -2:
+        	return "    -";
+	   default:
+		snprintf(buf, sizeof buf, "%5d", cstat->cstat->conf.dskweight);
+        	return buf;
+	}
+}
+
+detail_printdef cgroupprt_CGRDSKWGT =
+   { "IOWGT", "CGRDSKWGT", cgroup_CGRDSKWGT, NULL, ' ', 5};
 /***************************************************************/
 char *
 cgroup_CGRPID(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,

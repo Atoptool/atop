@@ -46,6 +46,8 @@ struct cstat {
 		int	cpuweight;	// -1=max, -2=undefined
 		int	cpumax;		// -1=max, -2=undefined (perc)
 
+		int	dskweight;	// -1=max, -2=undefined
+
 		count_t	memmax;		// -1=max, -2=undefined (pages)
 		count_t	swpmax;		// -1=max, -2=undefined (pages)
 	} conf;
@@ -71,6 +73,11 @@ struct cstat {
 
 	// DISK I/O STATISTICS
 	struct cgdsk {
+		count_t	rbytes;		// total bytes read on all physical disks
+		count_t	wbytes;		// total bytes written on all physical disks
+		count_t	rios;		// total read I/Os on all physical disks
+		count_t	wios;		// total write I/Os on all physical disks
+
 		count_t	pressure;	// total pressure (millisec)
 	} dsk;
 
@@ -108,6 +115,6 @@ void             photocgroup(void);
 int              deviatcgroup(struct cgchainer **);
 struct cgchainer **cgsort(struct cgchainer *, int, char);
 char             *cggetpath(struct cgchainer *);
-
+void             cgwipecur(void);
 
 #endif

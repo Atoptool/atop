@@ -464,4 +464,14 @@ void	photosyst (struct sstat *);
 void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
 void	do_perfevents(char *, char *);
+int     isdisk_major(unsigned int);
+
+/*
+** return value of isdisk_...()
+*/
+#define NONTYPE 0
+#define DSKTYPE 1
+#define MDDTYPE 2
+#define LVMTYPE 3
+
 #endif

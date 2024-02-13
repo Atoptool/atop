@@ -754,13 +754,6 @@ engine(void)
 			gpupending = gpud_statrequest();
 
 		/*
-		** take a snapshot of the current cgroup-level metrics 
-		** when cgroups v2 supported
-		*/
-		if ( (supportflags&CGROUPV2) )
-			photocgroup();
-
-		/*
 		** take a snapshot of the current system-level metrics 
 		** and calculate the deviations (i.e. calculate the activity
 		** during the last sample)
@@ -770,6 +763,13 @@ engine(void)
 		presstat = hlpsstat;
 
 		photosyst(cursstat);	/* obtain new system-level counters */
+
+		/*
+		** take a snapshot of the current cgroup-level metrics 
+		** when cgroups v2 supported
+		*/
+		if ( (supportflags&CGROUPV2) )
+			photocgroup();
 
 		/*
 		** receive and parse response from atopgpud
@@ -943,7 +943,7 @@ engine(void)
 		if (gp)
 			free(gp);
 
-		if (lastcmd == 'r')	/* reset requested ? */
+		if (lastcmd == MRESET)	/* reset requested ? */
 		{
 			sampcnt = -1;
 
@@ -955,6 +955,9 @@ engine(void)
 			/* remove all tasks in database */
 			pdb_makeresidue();
 			pdb_cleanresidue();
+
+			/* remove current cgroup info */
+			cgwipecur();
 		}
 	} /* end of main-loop */
 }

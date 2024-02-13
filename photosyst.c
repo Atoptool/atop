@@ -69,12 +69,6 @@
 
 #define	MAXCNT	64
 
-/* return value of isdisk() */
-#define	NONTYPE	0
-#define	DSKTYPE	1
-#define	MDDTYPE	2
-#define	LVMTYPE	3
-
 /* recognize numa node */
 #define	NUMADIR	"/sys/devices/system/node"
 
@@ -104,7 +98,7 @@ static void	getperfevents(struct cpustat *);
 static int	get_infiniband(struct ifbstat *);
 static int	get_ksm(struct sstat *);
 
-static int	isdisk(unsigned int, unsigned int,
+static int	isdisk_name(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
 
 static struct bitmask *numa_allocate_cpumask(void);
@@ -1443,7 +1437,7 @@ photosyst(struct sstat *si)
 			*/
 			if (nr == 8)	/* full stats-line ? */
 			{
-				if ( isdisk(0, 0, diskname,
+				if ( isdisk_name(0, 0, diskname,
 				                 &(si->dsk.dsk[i]),
 						 MAXDKNAM) != DSKTYPE)
 				       continue;
@@ -1506,7 +1500,7 @@ photosyst(struct sstat *si)
 				** or just one of the partitions of a disk (to be
 				** skipped)
 				*/
-				switch ( isdisk(major, minor, diskname,
+				switch ( isdisk_name(major, minor, diskname,
 							 &tmpdsk, MAXDKNAM) )
 				{
 				   case NONTYPE:
@@ -2214,7 +2208,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 }
 
 /*
-** this table is used in the function isdisk()
+** this table is used in the functions isdisk_name() and isdick_major()
 **
 ** table contains the names (in regexp format) of disks
 ** to be recognized, together with a function to modify
@@ -2227,32 +2221,33 @@ static struct {
 	regex_t	compreg;
 	void	(*modname)(unsigned int, unsigned int,
 				char *, struct perdsk *, int);
+	int	major;	// to be filled via isdisk_name()
 	int	retval;
 } validdisk[] = {
-	{ "^ram[0-9][0-9]*$",			{0},  (void *)0,   NONTYPE, },
-	{ "^loop[0-9][0-9]*$",			{0},  (void *)0,   NONTYPE, },
-	{ "^sd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
-	{ "^dm-[0-9][0-9]*$",			{0},  lvmmapname,  LVMTYPE, },
-	{ "^md[0-9][0-9]*$",			{0},  nullmodname, MDDTYPE, },
-	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$", {0}, nullmodname, DSKTYPE, },
-	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, DSKTYPE, },
-	{ "^hd[a-z]$",				{0},  nullmodname, DSKTYPE, },
-	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
-	{ "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
-	{ "^fio[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
-	{ "/host.*/bus.*/target.*/lun.*/disc",	{0},  abbrevname1, DSKTYPE, },
-	{ "^xvd[a-z][a-z]*[0-9]*$",		{0},  nullmodname, DSKTYPE, },
-	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, DSKTYPE, },
-	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, DSKTYPE, },
-	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, DSKTYPE, },
-	{ "^rbd[0-9][0-9]*$",			{0},  nullmodname, DSKTYPE, },
-	{ "^rbd[0-9][0-9]*p[0-9][0-9]*$",	{0},  nullmodname, DSKTYPE, },
+	{ "^ram[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
+	{ "^loop[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
+	{ "^sd[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
+	{ "^dm-[0-9][0-9]*$",			{0},  lvmmapname,  0, LVMTYPE, },
+	{ "^md[0-9][0-9]*$",			{0},  nullmodname, 0, MDDTYPE, },
+	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, 0, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$", {0}, nullmodname, 0, DSKTYPE, },
+	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, 0, DSKTYPE, },
+	{ "^hd[a-z]$",				{0},  nullmodname, 0, DSKTYPE, },
+	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
+	{ "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
+	{ "^fio[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
+	{ "/host.*/bus.*/target.*/lun.*/disc",	{0},  abbrevname1, 0, DSKTYPE, },
+	{ "^xvd[a-z][a-z]*[0-9]*$",		{0},  nullmodname, 0, DSKTYPE, },
+	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
+	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, 0, DSKTYPE, },
+	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, 0, DSKTYPE, },
+	{ "^rbd[0-9][0-9]*$",			{0},  nullmodname, 0, DSKTYPE, },
+	{ "^rbd[0-9][0-9]*p[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
 };
 
 static int
-isdisk(unsigned int major, unsigned int minor,
+isdisk_name(unsigned int major, unsigned int minor,
            char *curname, struct perdsk *px, int maxlen)
 {
 	static int	firstcall = 1;
@@ -2274,6 +2269,12 @@ isdisk(unsigned int major, unsigned int minor,
 		if (regexec(&validdisk[i].compreg, curname, 0, NULL, 0) == 0)
 		{
 			/*
+			** store major number of driver
+			*/
+			if (major)
+				validdisk[i].major = major;
+
+			/*
 			** name-string recognized; modify name-string
 			*/
 			if (validdisk[i].retval != NONTYPE)
@@ -2282,6 +2283,24 @@ isdisk(unsigned int major, unsigned int minor,
 
 			return validdisk[i].retval;
 		}
+	}
+
+	return NONTYPE;
+}
+
+
+int
+isdisk_major(unsigned int major)
+{
+	register int	i;
+
+	/*
+	** search for the major number of the disk
+	*/
+	for (i=0; i < sizeof validdisk/sizeof validdisk[0]; i++)
+	{
+		if (major == validdisk[i].major)
+			return validdisk[i].retval;
 	}
 
 	return NONTYPE;

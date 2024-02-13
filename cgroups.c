@@ -41,6 +41,7 @@
 
 #include "atop.h"
 #include "cgroups.h"
+#include "photosyst.h"
 #include "photoproc.h"
 #include "showgeneric.h"
 
@@ -419,6 +420,17 @@ getconfig(struct cstat *csp, struct cstat *csparent)
 		break;
 	}
 
+	// get io.bpf.weight 
+	//
+	csp->conf.dskweight = -2;		// initial value (undefined)
+
+	switch (readconfigval("io.bfq.weight", retvals))
+	{
+	   case 2:
+		csp->conf.dskweight = retvals[1];
+		break;
+	}
+
 	// get memory.max limitation
 	//
 	csp->conf.memmax = -2;			// initial value (undefined)
@@ -484,7 +496,6 @@ readconfigval(char *fname, count_t retvals[])
 				retvals[0] = -1;
 			else
 				retvals[0] = atol(firststr);
-
 			return n;
 		   default:
 			return 0;
@@ -597,6 +608,50 @@ getmetrics(struct cstat *csp)
 
 	// gather disk I/O metrics
 	//
+	//     253:2 rbytes=2544128 wbytes=2192896 rios=313 wios=22 dbytes=0 dios=0
+	//     253:1 rbytes=143278080 wbytes=3843604480 rios=34222 wios=853554 ...
+	//     253:0 rbytes=19492288000 wbytes=105266814976 rios=386493 wios=1691322
+	//     11:0
+	//     8:0 rbytes=328956266496 wbytes=109243312640 rios=764129 wios=1415575
+	//
+	csp->dsk.rbytes = 0;
+	csp->dsk.wbytes = 0;
+	csp->dsk.rios   = 0;
+	csp->dsk.wios   = 0;
+
+	if ( (fp = fopen("io.stat", "r")) )
+	{
+		int	major, minor;
+		count_t	rbytes, wbytes, rios, wios;
+
+		while (fgets(line, sizeof line, fp))
+		{
+			if (sscanf(line,
+				"%d:%d rbytes=%lld wbytes=%lld rios=%lld wios=%lld",
+					&major, &minor,
+					&rbytes, &wbytes, &rios, &wios) == 6)
+			{
+				if (isdisk_major(major) == DSKTYPE)
+				{
+					csp->dsk.rbytes += rbytes;
+					csp->dsk.wbytes += wbytes;
+
+					csp->dsk.rios   += rios;
+					csp->dsk.wios   += wios;
+				}
+			}
+		}
+
+		fclose(fp);
+	}
+	else
+	{
+		csp->dsk.rbytes = -1;	// undefined
+		csp->dsk.wbytes = -1;	// undefined
+		csp->dsk.rios   = -1;	// undefined
+		csp->dsk.wios   = -1;	// undefined
+	}
+
 	csp->dsk.pressure = gettotpressure("io.pressure");
 }
 
@@ -716,7 +771,16 @@ cgcalcdeviate(void)
 			if (dp->cstat->mem.pressure != -1)	// defined?
 				dp->cstat->mem.pressure	-= pp->cstat->mem.pressure;
 
-			if (dp->cstat->mem.pressure != -1)	// defined?
+
+			if (dp->cstat->dsk.rbytes != -1)	// defined?
+			{
+				dp->cstat->dsk.rbytes	-= pp->cstat->dsk.rbytes;
+				dp->cstat->dsk.wbytes	-= pp->cstat->dsk.wbytes;
+				dp->cstat->dsk.rios	-= pp->cstat->dsk.rios;
+				dp->cstat->dsk.wios	-= pp->cstat->dsk.wios;
+			}
+
+			if (dp->cstat->dsk.pressure != -1)	// defined?
 				dp->cstat->dsk.pressure	-= pp->cstat->dsk.pressure;
 		}
 	}
@@ -745,6 +809,16 @@ cgnext(struct cgchainer **first, struct cgchainer **cursor)
 	else
 		return NULL;
 }
+
+
+// Wipe current cgroup chain 
+//
+void
+cgwipecur(void)
+{
+	cgwipe(&cgcurfirst, &cgcurlast, &cgcurcursor, NULL);
+}
+
 
 // Wipe all struct's from cgroup admi
 //
@@ -1008,6 +1082,7 @@ struct pidchain {
 
 static int	compselcpu(const void *, const void *);
 static int	compselmem(const void *, const void *);
+static int	compseldsk(const void *, const void *);
 
 
 // Create a mixed list with cgroups and
@@ -1142,6 +1217,11 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 				qsort(cgroupsel+is, im-is,
 					sizeof(struct cglinesel), compselmem);
 				break;
+
+		   	   case MSORTDSK:
+				qsort(cgroupsel+is, im-is,
+					sizeof(struct cglinesel), compseldsk);
+				break;
 			}
 		}
 	}
@@ -1183,7 +1263,7 @@ cgroupfilter(struct cstat *csp, int newdepth, char showorder)
 
 
 // Funtion to be called by qsort() to compare the
-// CPU time consumption of two cgroups.
+// CPU time consumption of two processes in a cgroup.
 //
 static int
 compselcpu(const void *a, const void *b)
@@ -1204,7 +1284,7 @@ compselcpu(const void *a, const void *b)
 
 
 // Funtion to be called by qsort() to compare the
-// memory consumption of two cgroups.
+// memory consumption of two processes in a cgroup.
 //
 static int
 compselmem(const void *a, const void *b)
@@ -1216,6 +1296,27 @@ compselmem(const void *a, const void *b)
                 return  1;
 
         if (amem > bmem)
+                return -1;
+
+        return 0;
+}
+
+
+// Funtion to be called by qsort() to compare the
+// disk activity of two processes in a cgroup.
+//
+static int
+compseldsk(const void *a, const void *b)
+{
+	count_t adisk = ((struct cglinesel *)a)->tsp->dsk.rsz +
+	                ((struct cglinesel *)a)->tsp->dsk.wsz;
+	count_t bdisk = ((struct cglinesel *)b)->tsp->dsk.rsz +
+	                ((struct cglinesel *)b)->tsp->dsk.wsz;
+
+        if (adisk < bdisk)
+                return  1;
+
+        if (adisk > bdisk)
                 return -1;
 
         return 0;
@@ -1345,6 +1446,10 @@ sortlevel(int curlevel, struct cgsorter *cgparent,
 					               cgc->cstat->mem.kernel +
 					               cgc->cstat->mem.shmem;
 				}
+				break;
+			   case MSORTDSK:
+				cgs->sortval = cgc->cstat->dsk.rbytes +
+				               cgc->cstat->dsk.wbytes;
 				break;
 			   default:
 				cgs->sortval = 0;	// no sorting

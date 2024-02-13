@@ -197,18 +197,10 @@ generic_samp(time_t curtime, int nsecs,
 				break;
 
 			   case MPROCDSK:	// switch to text mode: disk
-				if (supportflags & IOSTAT)
-				{
-					showtype  = MPROCDSK;
+				showtype  = MPROCDSK;
 
-					if (showorder != MSORTAUTO)
-						showorder = MSORTDSK;
-				}
-				else
-				{
-					showtype  = MPROCGEN;
-					showorder = MSORTCPU;
-				}
+				if (showorder != MSORTAUTO)
+					showorder = MSORTDSK;
 
 				displaymode = 'T';
 				break;
@@ -1338,16 +1330,6 @@ text_samp(time_t curtime, int nsecs,
 			   ** sort in disk-activity order
 			   */
 			   case MSORTDSK:
-				if ( !(supportflags & IOSTAT) )
-				{
-					if (rawreadflag)
-						statmsg = "No disk activity in "
-						          "raw file!";
-					else
-						statmsg = "No privileges to "
-						          "view disk activity!";
-					break;
-				}
 				showorder = MSORTDSK;
 				firstitem = 0;
 				break;
@@ -1409,17 +1391,6 @@ text_samp(time_t curtime, int nsecs,
 			   ** disk-specific figures per process
 			   */
 			   case MPROCDSK:
-				if ( !(supportflags & IOSTAT) )
-				{
-					if (rawreadflag)
-						statmsg = "No disk activity in "
-						          "raw file!";
-					else
-						statmsg = "No privileges to "
-						          "view disk activity!";
-					break;
-				}
-
 				showtype  = MPROCDSK;
 
 				if (showorder != MSORTAUTO)
@@ -2426,7 +2397,7 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** reset statistics 
+			   ** reset counters 
 			   */
 			   case MRESET:
 				getalarm(0);	/* restart the clock */
@@ -3034,20 +3005,6 @@ generic_init(void)
 			break;
 
 		   case MPROCDSK:
-			if ( !(supportflags & IOSTAT) )
-			{
-				if (rawreadflag)
-					fprintf(stderr,
-						"No disk activity in "
-						"raw file!\n");
-				else
-					fprintf(stderr,
-						"No privileges to view "
-						"disk activity!\n");
-				sleep(3);
-				break;
-			}
-
 			showtype  = MPROCDSK;
 			showorder = MSORTDSK;
 			break;
@@ -3353,7 +3310,8 @@ static struct helptext {
 	{"\t'%c'  - show all cgroups/processes i.s.o. only active ones (toggle)\n",
 								MALLACTIVE},
 	{"\t'%c'  - sort on cpu activity\n",			MSORTCPU},
-	{"\t'%c'  - sort on memory consumption\n",		MSORTMEM},
+	{"\t'%c'  - sort on memory utilization\n",		MSORTMEM},
+	{"\t'%c'  - sort on disk transfer rate\n",		MSORTDSK},
 	{"\n",							' '},
 	{"Information in text mode about processes:\n", 	' '},
 	{"\t'%c'  - generic info (default)\n",			MPROCGEN},

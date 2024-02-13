@@ -477,6 +477,8 @@ extern detail_printdef cgroupprt_CGRCPUMAX;
 extern detail_printdef cgroupprt_CGRMEMORY;
 extern detail_printdef cgroupprt_CGRMEMMAX;
 extern detail_printdef cgroupprt_CGRSWPMAX;
+extern detail_printdef cgroupprt_CGRDISKIO;
+extern detail_printdef cgroupprt_CGRDSKWGT;
 extern detail_printdef cgroupprt_CGRPID;
 extern detail_printdef cgroupprt_CGRCMD;
 
