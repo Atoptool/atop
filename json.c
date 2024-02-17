@@ -49,36 +49,66 @@
 #include "atop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "cgroups.h"
 #include "json.h"
 
 #define LEN_HP_SIZE	64
 #define LINE_BUF_SIZE	1024
 
-static void json_print_CPU(char *, struct sstat *, struct tstat *, int);
-static void json_print_cpu(char *, struct sstat *, struct tstat *, int);
-static void json_print_CPL(char *, struct sstat *, struct tstat *, int);
-static void json_print_GPU(char *, struct sstat *, struct tstat *, int);
-static void json_print_MEM(char *, struct sstat *, struct tstat *, int);
-static void json_print_SWP(char *, struct sstat *, struct tstat *, int);
-static void json_print_PAG(char *, struct sstat *, struct tstat *, int);
-static void json_print_PSI(char *, struct sstat *, struct tstat *, int);
-static void json_print_LVM(char *, struct sstat *, struct tstat *, int);
-static void json_print_MDD(char *, struct sstat *, struct tstat *, int);
-static void json_print_DSK(char *, struct sstat *, struct tstat *, int);
-static void json_print_NFM(char *, struct sstat *, struct tstat *, int);
-static void json_print_NFC(char *, struct sstat *, struct tstat *, int);
-static void json_print_NFS(char *, struct sstat *, struct tstat *, int);
-static void json_print_NET(char *, struct sstat *, struct tstat *, int);
-static void json_print_IFB(char *, struct sstat *, struct tstat *, int);
-static void json_print_NUM(char *, struct sstat *, struct tstat *, int);
-static void json_print_NUC(char *, struct sstat *, struct tstat *, int);
-static void json_print_LLC(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRG(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRC(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRM(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRD(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRN(char *, struct sstat *, struct tstat *, int);
-static void json_print_PRE(char *, struct sstat *, struct tstat *, int);
+static void json_print_CPU(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_cpu(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_CPL(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_GPU(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_MEM(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_SWP(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PAG(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PSI(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_LVM(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_MDD(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_DSK(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NFM(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NFC(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NFS(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NET(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_IFB(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NUM(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_NUC(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_LLC(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+
+static void json_print_CGR(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+
+static void json_print_PRG(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PRC(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PRM(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PRD(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PRN(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
+static void json_print_PRE(char *, struct sstat *, struct tstat *, int,
+                                                   struct cgchainer *, int);
 
 /*
 ** table with possible labels and the corresponding
@@ -87,7 +117,9 @@ static void json_print_PRE(char *, struct sstat *, struct tstat *, int);
 struct labeldef {
 	char	*label;
 	int     valid;
-	void	(*prifunc)(char *, struct sstat *, struct tstat *, int);
+	void	(*prifunc)(char *, struct sstat *,
+	                           struct tstat *, int,
+                                   struct cgchainer *, int);
 };
 
 static struct labeldef	labeldef[] = {
@@ -110,6 +142,8 @@ static struct labeldef	labeldef[] = {
 	{ "NUM",	0,	json_print_NUM },
 	{ "NUC",	0,	json_print_NUC },
 	{ "LLC",	0,	json_print_LLC },
+
+	{ "CGR",	0,	json_print_CGR },
 
 	{ "PRG",	0,	json_print_PRG },
 	{ "PRC",	0,	json_print_PRC },
@@ -198,7 +232,7 @@ int jsondef(char *pd)
 */
 char jsonout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
-	 struct cgchainer *devcstat, int ncgroups, int npids,
+	 struct cgchainer *devchain, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i, j, k;
@@ -235,7 +269,9 @@ char jsonout(time_t curtime, int numsecs,
 		snprintf(header, sizeof header, "\"%s\"",
 			labeldef[i].label);
 		/* call all print-functions */
-		(labeldef[i].prifunc)(header, sstat, devtstat->taskall, devtstat->ntaskall);
+		(labeldef[i].prifunc)(header, sstat,
+				devtstat->taskall, devtstat->ntaskall,
+				devchain, ncgroups);
 	}
 
 	printf("}\n");
@@ -265,7 +301,10 @@ static void json_calc_freqscale(count_t maxfreq, count_t cnt, count_t ticks,
 	}
 }
 
-static void json_print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_CPU(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	count_t maxfreq=0;
 	count_t cnt=0;
@@ -322,7 +361,10 @@ static void json_print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		);
 }
 
-static void json_print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_cpu(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 	count_t maxfreq=0;
@@ -376,7 +418,10 @@ static void json_print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_CPL(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"lavg1\": %.2f, "
@@ -392,7 +437,10 @@ static void json_print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->cpu.devint);
 }
 
-static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_GPU(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	int	i;
 
@@ -429,7 +477,10 @@ static void json_print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_MEM(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"physmem\": %lld, "
@@ -473,7 +524,10 @@ static void json_print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->mem.anonhugepage * pagesize);
 }
 
-static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_SWP(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"totswap\": %lld, "
@@ -489,7 +543,10 @@ static void json_print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->mem.commitlim * pagesize);
 }
 
-static void json_print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PAG(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"compacts\": %lld, "
@@ -515,7 +572,10 @@ static void json_print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->mem.oomkills);
 }
 
-static void json_print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PSI(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	if ( !(ss->psi.present) )
 		return;
@@ -555,7 +615,10 @@ static void json_print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->psi.iofull.avg300, ss->psi.iofull.total);
 }
 
-static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_LVM(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int	i;
 
@@ -586,7 +649,10 @@ static void json_print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_MDD(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -617,7 +683,10 @@ static void json_print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_DSK(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int	i;
 
@@ -650,7 +719,10 @@ static void json_print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NFM(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int	i;
 
@@ -683,7 +755,10 @@ static void json_print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NFC(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"rpccnt\": %lld, "
@@ -699,7 +774,10 @@ static void json_print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->nfs.client.rpcautrefresh);
 }
 
-static void json_print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NFS(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
 		"\"rpccnt\": %lld, "
@@ -735,7 +813,10 @@ static void json_print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nac
 		ss->nfs.server.rcnoca);
 }
 
-static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NET(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -804,7 +885,10 @@ static void json_print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_IFB(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -835,7 +919,10 @@ static void json_print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NUM(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -876,7 +963,10 @@ static void json_print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_NUC(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -911,7 +1001,10 @@ static void json_print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_LLC(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -935,9 +1028,108 @@ static void json_print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 }
 
 /*
+** print functions for cgroups-level statistics
+*/
+static void
+json_print_CGR(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
+{
+	register int i, p;
+
+        printf(", %s: [", hp);
+
+	for (i=0; i < ncgroups; i++) {
+		if (i > 0) {
+			printf(", ");
+		}
+
+                // print cgroup level metrics
+                //
+                printf( "{\"path\": \"%s\", "
+			 "\"nprocs\": %d, "
+			 "\"procsbelow\": %d, "
+			 "\"utime\": %lld, "
+			 "\"stime\": %lld, "
+			 "\"cpuweight\": %d, "
+			 "\"cpumax\": %d, "
+
+			 "\"memcurrent\": %lld, "
+			 "\"memanon\": %lld, "
+			 "\"memfile\": %lld, "
+			 "\"memkernel\": %lld, "
+			 "\"memshmem\": %lld, "
+			 "\"memmax\": %lld, "
+			 "\"swpmax\": %lld, "
+
+			 "\"diskrbytes\": %lld, "
+			 "\"diskwbytes\": %lld, "
+			 "\"diskrios\": %lld, "
+			 "\"diskwios\": %lld, "
+			 "\"diskweight\": %d, "
+			 "\"pidlist\": [",
+                        cggetpath(cs+i),
+                        (cs+i)->cstat->gen.nprocs,
+                        (cs+i)->cstat->gen.procsbelow,
+                        (cs+i)->cstat->cpu.utime,
+                        (cs+i)->cstat->cpu.stime,
+                        (cs+i)->cstat->conf.cpuweight,
+                        (cs+i)->cstat->conf.cpumax,
+
+                        (cs+i)->cstat->mem.current > 0 ?
+			       (cs+i)->cstat->mem.current * pagesize :
+			       (cs+i)->cstat->mem.current, 
+                        (cs+i)->cstat->mem.anon > 0 ?
+                        	(cs+i)->cstat->mem.anon * pagesize :
+                        	(cs+i)->cstat->mem.anon,
+                        (cs+i)->cstat->mem.file > 0 ?
+                        	(cs+i)->cstat->mem.file * pagesize :
+                        	(cs+i)->cstat->mem.file,
+                        (cs+i)->cstat->mem.kernel > 0 ?
+                        	(cs+i)->cstat->mem.kernel * pagesize :
+                        	(cs+i)->cstat->mem.kernel,
+                        (cs+i)->cstat->mem.shmem > 0 ?
+                        	(cs+i)->cstat->mem.shmem * pagesize :
+                        	(cs+i)->cstat->mem.shmem,
+                        (cs+i)->cstat->conf.memmax > 0 ?
+                        	(cs+i)->cstat->conf.memmax * pagesize :
+                        	(cs+i)->cstat->conf.memmax,
+                        (cs+i)->cstat->conf.swpmax > 0 ?
+                        	(cs+i)->cstat->conf.swpmax * pagesize :
+                        	(cs+i)->cstat->conf.swpmax,
+
+                        (cs+i)->cstat->dsk.rbytes,
+                        (cs+i)->cstat->dsk.wbytes,
+                        (cs+i)->cstat->dsk.rios,
+                        (cs+i)->cstat->dsk.wios,
+                        (cs+i)->cstat->conf.dskweight);
+
+                // generate related pidlist
+                //
+                if ((cs+i)->cstat->gen.nprocs)
+                {
+                        for (p=0; p < (cs+i)->cstat->gen.nprocs; p++) {
+				if (p > 0)
+					printf(", ");
+
+                                printf("%d", (cs+i)->proclist[p]);
+			}
+
+                }
+
+                printf("]}");
+	}
+
+	printf("]");
+}
+
+/*
 ** print functions for process-level statistics
 */
-static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRG(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i, exitcode;
 	static char st[3];
@@ -1023,7 +1215,10 @@ static void json_print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRC(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -1068,7 +1263,10 @@ static void json_print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRM(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -1116,7 +1314,10 @@ static void json_print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRD(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	register int i;
 
@@ -1142,7 +1343,10 @@ static void json_print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRN(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	if (!(supportflags & NETATOP))
 		return;
@@ -1176,7 +1380,10 @@ static void json_print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nac
 	printf("]");
 }
 
-static void json_print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+static void
+json_print_PRE(char *hp, struct sstat *ss,
+                         struct tstat *ps, int nact,
+			 struct cgchainer *cs, int ncgroups)
 {
 	if ( !(supportflags & GPUSTAT) )
 		return;

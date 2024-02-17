@@ -46,10 +46,10 @@ struct cstat {
 		int	cpuweight;	// -1=max, -2=undefined
 		int	cpumax;		// -1=max, -2=undefined (perc)
 
-		int	dskweight;	// -1=max, -2=undefined
-
 		count_t	memmax;		// -1=max, -2=undefined (pages)
 		count_t	swpmax;		// -1=max, -2=undefined (pages)
+
+		int	dskweight;	// -1=max, -2=undefined
 	} conf;
 
 	// CPU STATISTICS
@@ -62,7 +62,7 @@ struct cstat {
 
 	// MEMORY STATISTICS
 	struct cgmem {
-		count_t	current;	// current memory (pages) -1=undefined
+		count_t	current;	// current memory (pages)   -1=undefined
 		count_t	anon;		// anonymous memory (pages) -1=undefined
 		count_t	file;		// file memory (pages)      -1=undefined
 		count_t	kernel;		// kernel memory (pages)    -1=undefined

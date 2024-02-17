@@ -723,7 +723,7 @@ reportlive(time_t curtime, int numsecs, struct sstat *ss)
 static char
 reportraw(time_t curtime, int numsecs,
          	struct devtstat *devtstat, struct sstat *sstat,
-		struct cgchainer *devcstat, int ncgroups, int npids,
+		struct cgchainer *devchain, int ncgroups, int npids,
 		int nexit, unsigned int noverflow, char flags)
 {
 	static char		firstcall = 1;

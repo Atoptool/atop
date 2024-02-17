@@ -9,7 +9,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Date:        February 2007
 ** --------------------------------------------------------------------------
-** Copyright (C) 2007-2021 Gerlof Langeveld
+** Copyright (C) 2007-2024 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -40,32 +40,60 @@
 #include "cgroups.h"
 #include "parseable.h"
 
-void 	print_CPU(char *, struct sstat *, struct tstat *, int);
-void 	print_cpu(char *, struct sstat *, struct tstat *, int);
-void 	print_CPL(char *, struct sstat *, struct tstat *, int);
-void 	print_GPU(char *, struct sstat *, struct tstat *, int);
-void 	print_MEM(char *, struct sstat *, struct tstat *, int);
-void 	print_SWP(char *, struct sstat *, struct tstat *, int);
-void 	print_PAG(char *, struct sstat *, struct tstat *, int);
-void 	print_PSI(char *, struct sstat *, struct tstat *, int);
-void 	print_LVM(char *, struct sstat *, struct tstat *, int);
-void 	print_MDD(char *, struct sstat *, struct tstat *, int);
-void 	print_DSK(char *, struct sstat *, struct tstat *, int);
-void 	print_NFM(char *, struct sstat *, struct tstat *, int);
-void 	print_NFC(char *, struct sstat *, struct tstat *, int);
-void 	print_NFS(char *, struct sstat *, struct tstat *, int);
-void 	print_NET(char *, struct sstat *, struct tstat *, int);
-void 	print_IFB(char *, struct sstat *, struct tstat *, int);
-void 	print_NUM(char *, struct sstat *, struct tstat *, int);
-void 	print_NUC(char *, struct sstat *, struct tstat *, int);
-void 	print_LLC(char *, struct sstat *, struct tstat *, int);
+void 	print_CPU(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_cpu(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_CPL(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_GPU(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_MEM(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_SWP(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PAG(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PSI(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_LVM(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_MDD(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_DSK(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NFM(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NFC(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NFS(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NET(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_IFB(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NUM(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_NUC(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_LLC(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
 
-void 	print_PRG(char *, struct sstat *, struct tstat *, int);
-void 	print_PRC(char *, struct sstat *, struct tstat *, int);
-void 	print_PRM(char *, struct sstat *, struct tstat *, int);
-void 	print_PRD(char *, struct sstat *, struct tstat *, int);
-void 	print_PRN(char *, struct sstat *, struct tstat *, int);
-void 	print_PRE(char *, struct sstat *, struct tstat *, int);
+void 	print_CGR(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+
+void 	print_PRG(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PRC(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PRM(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PRD(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PRN(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
+void 	print_PRE(char *, struct sstat *, struct tstat *, int,
+                                          struct cgchainer *, int);
 
 static void calc_freqscale(count_t, count_t, count_t, count_t *, int *);
 static char *spaceformat(char *, char *);
@@ -77,7 +105,9 @@ static char *spaceformat(char *, char *);
 struct labeldef {
 	char	*label;
 	int	valid;
-	void	(*prifunc)(char *, struct sstat *, struct tstat *, int);
+	void	(*prifunc)(char *, struct sstat *,
+			           struct tstat *, int,
+                                   struct cgchainer *, int);
 };
 
 static struct labeldef	labeldef[] = {
@@ -100,6 +130,8 @@ static struct labeldef	labeldef[] = {
 	{ "NUM",	0,	print_NUM },
 	{ "NUC",	0,	print_NUC },
 	{ "LLC",	0,	print_LLC },
+
+	{ "CGR",	0,	print_CGR },
 
 	{ "PRG",	0,	print_PRG },
 	{ "PRC",	0,	print_PRC },
@@ -190,7 +222,7 @@ parsedef(char *pd)
 char
 parseout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
-         struct cgchainer *devcstat, int ncgroups, int npids,
+         struct cgchainer *devchain, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i;
@@ -222,10 +254,11 @@ parseout(time_t curtime, int numsecs,
 				datestr, timestr, numsecs);
 
 			/*
-			** call a selected print-function
+			** call a selected print function
 			*/
 			(labeldef[i].prifunc)(header, sstat,
-				devtstat->taskall, devtstat->ntaskall);
+				devtstat->taskall, devtstat->ntaskall,
+				devchain, ncgroups);
 		}
 	}
 
@@ -269,7 +302,9 @@ calc_freqscale(count_t maxfreq, count_t cnt, count_t ticks,
 
 
 void
-print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_CPU(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
         count_t maxfreq=0;
         count_t cnt=0;
@@ -314,7 +349,9 @@ print_CPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_cpu(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int i;
         count_t maxfreq=0;
@@ -352,7 +389,9 @@ print_cpu(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_CPL(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf("%s %lld %.2f %.2f %.2f %lld %lld\n",
 			hp,
@@ -365,7 +404,9 @@ print_CPL(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_GPU(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	int	i;
 
@@ -387,7 +428,9 @@ print_GPU(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_MEM(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
    		"%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
@@ -422,7 +465,9 @@ print_MEM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_SWP(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
@@ -438,7 +483,9 @@ print_SWP(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PAG(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 	       "%lld %lld\n",
@@ -460,7 +507,9 @@ print_PAG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PSI(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf("%s %c %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu "
 	       "%.1f %.1f %.1f %llu %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu\n",
@@ -478,7 +527,9 @@ print_PSI(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_LVM(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 
@@ -502,7 +553,9 @@ print_LVM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_MDD(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 
@@ -526,7 +579,9 @@ print_MDD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_DSK(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 
@@ -550,7 +605,9 @@ print_DSK(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NFM(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 
@@ -571,7 +628,9 @@ print_NFM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NFC(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf(	"%s %lld %lld %lld %lld %lld\n",
 			hp,
@@ -583,7 +642,9 @@ print_NFC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NFS(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	printf(	"%s %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 	        "%lld %lld %lld %lld %lld\n",
@@ -606,7 +667,9 @@ print_NFS(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NET(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 
@@ -654,7 +717,9 @@ print_NET(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_IFB(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 
@@ -674,7 +739,9 @@ print_IFB(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NUM(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 
@@ -699,7 +766,9 @@ print_NUM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_NUC(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 
@@ -721,7 +790,9 @@ print_NUC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_LLC(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 
@@ -737,10 +808,66 @@ print_LLC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 /*
+** print functions for cgroups-level statistics
+*/
+void
+print_CGR(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
+{
+	register int 	i, p;
+
+	for (i=0; i < ncgroups; i++)
+	{
+		// print cgroup level metrics
+		//
+		printf(	"%s C %s %d %d %lld %lld %d %d "
+		        "%lld %lld %lld %lld %lld %lld %lld "
+		        "%lld %lld %lld %lld %d\n",
+			hp,
+			cggetpath(devchain+i),
+			(devchain+i)->cstat->gen.nprocs,
+			(devchain+i)->cstat->gen.procsbelow,
+			(devchain+i)->cstat->cpu.utime,
+			(devchain+i)->cstat->cpu.stime,
+			(devchain+i)->cstat->conf.cpuweight,
+			(devchain+i)->cstat->conf.cpumax,
+
+			(devchain+i)->cstat->mem.current,
+			(devchain+i)->cstat->mem.anon,
+			(devchain+i)->cstat->mem.file,
+			(devchain+i)->cstat->mem.kernel,
+			(devchain+i)->cstat->mem.shmem,
+			(devchain+i)->cstat->conf.memmax,
+			(devchain+i)->cstat->conf.swpmax,
+
+			(devchain+i)->cstat->dsk.rbytes,
+			(devchain+i)->cstat->dsk.wbytes,
+			(devchain+i)->cstat->dsk.rios,
+			(devchain+i)->cstat->dsk.wios,
+			(devchain+i)->cstat->conf.dskweight);
+
+		// print related pidlist in one line
+		//
+		if ((devchain+i)->cstat->gen.nprocs)
+		{
+			printf( "%s P %s", hp, cggetpath(devchain+i));
+
+			for (p=0; p < (devchain+i)->cstat->gen.nprocs; p++)
+				printf(" %d", (devchain+i)->proclist[p]);
+
+			printf("\n");
+		}
+	}
+}
+
+/*
 ** print functions for process-level statistics
 */
 void
-print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRG(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i, exitcode;
 	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2];
@@ -789,7 +916,9 @@ print_PRG(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRC(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2], wchanout[20];
@@ -824,7 +953,9 @@ print_PRC(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRM(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i;
 	char		namout[PNAMLEN+1+2];
@@ -859,7 +990,9 @@ print_PRM(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRD(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
@@ -881,7 +1014,9 @@ print_PRD(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRN(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
@@ -905,7 +1040,9 @@ print_PRN(char *hp, struct sstat *ss, struct tstat *ps, int nact)
 }
 
 void
-print_PRE(char *hp, struct sstat *ss, struct tstat *ps, int nact)
+print_PRE(char *hp, struct sstat *ss,
+                    struct tstat *ps, int nact,
+                    struct cgchainer *devchain, int ncgroups)
 {
 	register int	i;
 	char		namout[PNAMLEN+1+2];
