@@ -69,14 +69,16 @@ struct rawheader {
 	int		osrel;		/* OS release number             */
 	int		osvers;		/* OS version number             */
 	int		ossub;		/* OS version subnumber          */
-	int		ifuture[6];	/* future use                    */
+	int		cstatlen;	/* length of struct cstat        */
+	int		ifuture[5];	/* future use                    */
 };
 
 struct rawrecord {
 	time_t		curtime;	/* current time (epoch)         */
 
 	unsigned short	flags;		/* various flags                */
-	unsigned short	sfuture[3];	/* future use                   */
+	unsigned short	ncgroups;	/* number of cgroups 		*/
+	unsigned short	sfuture[2];	/* future use                   */
 
 	unsigned int	scomplen;	/* length of compressed sstat   */
 	unsigned int	pcomplen;	/* length of compressed tstat's */
@@ -92,7 +94,11 @@ struct rawrecord {
 	unsigned int	nexit;		/* number of exited processes   */
 	unsigned int	noverflow;	/* number of overflow processes */
 	unsigned int    totidle;	/* number of idle     threads(I)*/
-	unsigned int	ifuture[5];	/* future use                   */
+	unsigned int	ccomplen;	/* length of compressed cstats  */
+	unsigned int	coriglen;	/* length of original   cstats	*/
+	unsigned int	ncgpids;	/* number of cgroups pidlist 	*/
+	unsigned int	icomplen;	/* length of compressed pidlist */
+	unsigned int	ifuture;	/* future use                   */
 };
 
 #endif

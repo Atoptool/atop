@@ -70,7 +70,7 @@ struct netpertask;
 struct visualize {
 	char	(*show_samp)  (time_t, int,
 	                struct devtstat *, struct sstat *, struct cgchainer *,
-			int, int, unsigned int, char);
+			int, int, int, unsigned int, char);
 	void	(*show_error) (const char *, ...);
 	void	(*show_end)   (void);
 	void	(*show_usage) (void);
@@ -147,7 +147,7 @@ extern int		almostcrit;
 */
 char		generic_samp (time_t, int,
 		            struct devtstat *, struct sstat *,
-			    struct cgchainer *, int,
+			    struct cgchainer *, int, int,
 		            int, unsigned int, char);
 void		generic_error(const char *, ...);
 void		generic_end  (void);
@@ -192,7 +192,7 @@ int		llccompar(const void *, const void *);
 int  		rawread(void);
 char		rawwrite (time_t, int,
 		            struct devtstat *, struct sstat *,
-			    struct cgchainer *, int,
+			    struct cgchainer *, int, int,
 		            int, unsigned int, char);
 
 int 		numeric(char *);

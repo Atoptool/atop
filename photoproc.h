@@ -68,7 +68,6 @@ struct tstat {
 		int	wasinactive;	/* boolean: task inactive	*/
 
 		char	utsname[UTSLEN+1];/* UTS name container or pod  */
-//		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
 	} gen;
 
 	/* CPU STATISTICS						*/

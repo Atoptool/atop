@@ -198,7 +198,7 @@ int jsondef(char *pd)
 */
 char jsonout(time_t curtime, int numsecs,
          struct devtstat *devtstat, struct sstat *sstat,
-	 struct cgchainer *devcstat, int ncgroups,
+	 struct cgchainer *devcstat, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
 	register int	i, j, k;

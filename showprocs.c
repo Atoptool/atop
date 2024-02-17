@@ -2456,16 +2456,16 @@ showcgroupline(detail_printpair* elemptr,
 
 /***************************************************************/
 char *
-cgroup_CGROUP_PATH(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         extern detail_printdef cgroupprt_CGROUP_PATH;
         extern int	startoffset;	// influenced by -> and <- keys
         static char	buf[4098];
 
-	char	*cgrname   = cstat->cstat->cgname;
-	int	namelen    = cstat->cstat->gen.namelen;
-	int	cgrdepth   = cstat->cstat->gen.depth;
+	char	*cgrname   = cgchain->cstat->cgname;
+	int	namelen    = cgchain->cstat->gen.namelen;
+	int	cgrdepth   = cgchain->cstat->gen.depth;
 
 	if (*cgrname == '\0')	// root?
 	{
@@ -2518,7 +2518,7 @@ detail_printdef cgroupprt_CGROUP_PATH =
         cgroup_CGROUP_PATH, NULL, ' ', 33, 0};
 /***************************************************************/
 char *
-cgroup_CGRNPROCS(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[10];
@@ -2527,7 +2527,7 @@ cgroup_CGRNPROCS(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 		return "      ";
 
 	// cgroup info
-        val2valstr(cstat->cstat->gen.nprocs, buf, 6, 0, 0); 
+        val2valstr(cgchain->cstat->gen.nprocs, buf, 6, 0, 0); 
         return buf;
 }
 
@@ -2535,7 +2535,7 @@ detail_printdef cgroupprt_CGRNPROCS =
    { "NPROCS", "CGRNPROCS", cgroup_CGRNPROCS, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRNPROCSB(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRNPROCSB(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[10];
@@ -2544,7 +2544,7 @@ cgroup_CGRNPROCSB(struct cgchainer *cstat, struct tstat *tstat, int avgval, int 
 		return "      ";
 
 	// cgroup info
-        val2valstr(cstat->cstat->gen.procsbelow, buf, 6, 0, 0); 
+        val2valstr(cgchain->cstat->gen.procsbelow, buf, 6, 0, 0); 
         return buf;
 }
 
@@ -2552,7 +2552,7 @@ detail_printdef cgroupprt_CGRNPROCSB =
    { "PBELOW", "CGRNPROCSB", cgroup_CGRNPROCSB, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRCPUBUSY(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
@@ -2561,14 +2561,14 @@ cgroup_CGRCPUBUSY(struct cgchainer *cstat, struct tstat *tstat, int avgval, int 
 
 	if (!tstat)	// cgroup info?
 	{
-		if (cstat->cstat->cpu.utime == -1)	// undefined?
+		if (cgchain->cstat->cpu.utime == -1)	// undefined?
 			return "      -";
 
-		perc	= (cstat->cstat->cpu.utime +
-			   cstat->cstat->cpu.stime) /
+		perc	= (cgchain->cstat->cpu.utime +
+			   cgchain->cstat->cpu.stime) /
 			  (cputicks/nrcpu*100.0);
 
-		maxperc = cstat->cstat->conf.cpumax;
+		maxperc = cgchain->cstat->conf.cpumax;
 
 		// determine if CPU load is limited on system level
 		//
@@ -2604,7 +2604,7 @@ detail_printdef cgroupprt_CGRCPUBUSY =
    { "CPUBUSY", "CGRCPUBUSY", cgroup_CGRCPUBUSY, NULL, 'C', 7};
 /***************************************************************/
 char *
-cgroup_CGRCPUMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
@@ -2614,15 +2614,15 @@ cgroup_CGRCPUMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 	if (tstat)	// process info?
 		return "      ";
 
-	maxperc = cstat->cstat->conf.cpumax;
+	maxperc = cgchain->cstat->conf.cpumax;
 
 	// when current cpu percentage is colored due to limitation
 	// by cpu.max, also color cpu.max itself
 	//
-	if (cstat->cstat->cpu.utime != -1)	// cpu usage available?
+	if (cgchain->cstat->cpu.utime != -1)	// cpu usage available?
 	{
-		perc	= (cstat->cstat->cpu.utime +
-		           cstat->cstat->cpu.stime) /
+		perc	= (cgchain->cstat->cpu.utime +
+		           cgchain->cstat->cpu.stime) /
 		          (cputicks/nrcpu*100.0);
 
 		if (maxperc >= 0 && perc + 2 >= maxperc)
@@ -2631,7 +2631,7 @@ cgroup_CGRCPUMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 
 	// cgroup info
 	//
-	switch (cstat->cstat->conf.cpumax)
+	switch (cgchain->cstat->conf.cpumax)
 	{
 	   case -1:
         	return "   max";
@@ -2647,7 +2647,7 @@ detail_printdef cgroupprt_CGRCPUMAX =
    { "CPUMAX", "CGRCPUMAX", cgroup_CGRCPUMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRCPUWGT(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRCPUWGT(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
@@ -2656,12 +2656,12 @@ cgroup_CGRCPUWGT(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 		return "      ";
 
 	// cgroup info
-	switch (cstat->cstat->conf.cpuweight)
+	switch (cgchain->cstat->conf.cpuweight)
 	{
 	   case -2:
         	return "     -";
 	   default:
-		snprintf(buf, sizeof buf, "%6d", cstat->cstat->conf.cpuweight);
+		snprintf(buf, sizeof buf, "%6d", cgchain->cstat->conf.cpuweight);
         	return buf;
 	}
 }
@@ -2670,7 +2670,7 @@ detail_printdef cgroupprt_CGRCPUWGT =
    { "CPUWGT", "CGRCPUWGT", cgroup_CGRCPUWGT, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRMEMORY(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
@@ -2679,22 +2679,22 @@ cgroup_CGRMEMORY(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 
 	if (!tstat)	// show cgroup info?
 	{
-		if (cstat->cstat->mem.current > 0)		// defined?
+		if (cgchain->cstat->mem.current > 0)		// defined?
 		{
-			memusage = cstat->cstat->mem.current;
+			memusage = cgchain->cstat->mem.current;
 		}
 		else
 		{
-			if (cstat->cstat->mem.anon == -1)	// undefined?
+			if (cgchain->cstat->mem.anon == -1)	// undefined?
 				return "     -";
 
-			memusage = (cstat->cstat->mem.anon +
-			            cstat->cstat->mem.file +
-		                    cstat->cstat->mem.kernel +
-		                    cstat->cstat->mem.shmem);
+			memusage = (cgchain->cstat->mem.anon +
+			            cgchain->cstat->mem.file +
+		                    cgchain->cstat->mem.kernel +
+		                    cgchain->cstat->mem.shmem);
 		}
 
-        	maxusage =  cstat->cstat->conf.memmax;
+        	maxusage =  cgchain->cstat->conf.memmax;
 
 		// set color if occupation percentage > 95%
 		//
@@ -2715,7 +2715,7 @@ detail_printdef cgroupprt_CGRMEMORY =
    { "MEMORY", "CGRMEMORY", cgroup_CGRMEMORY, NULL, 'M', 6};
 /***************************************************************/
 char *
-cgroup_CGRMEMMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
@@ -2724,13 +2724,13 @@ cgroup_CGRMEMMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 	if (tstat)	// process info?
 		return "      ";
 
-        maxusage =  cstat->cstat->conf.memmax;
+        maxusage =  cgchain->cstat->conf.memmax;
 
-	if (cstat->cstat->mem.anon != -1)	// current usage defined?
+	if (cgchain->cstat->mem.anon != -1)	// current usage defined?
 	{
-		memusage = (cstat->cstat->mem.anon +
-		            cstat->cstat->mem.file +
-		            cstat->cstat->mem.kernel);
+		memusage = (cgchain->cstat->mem.anon +
+		            cgchain->cstat->mem.file +
+		            cgchain->cstat->mem.kernel);
 
 		// set color if occupation percentage > 95%
 		//
@@ -2739,7 +2739,7 @@ cgroup_CGRMEMMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 	}
 
 	// cgroup info
-	switch (cstat->cstat->conf.memmax)
+	switch (cgchain->cstat->conf.memmax)
 	{
 	   case -1:
         	return "   max";
@@ -2755,7 +2755,7 @@ detail_printdef cgroupprt_CGRMEMMAX =
    { "MEMMAX", "CGRMEMMAX", cgroup_CGRMEMMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRSWPMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRSWPMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
@@ -2764,14 +2764,14 @@ cgroup_CGRSWPMAX(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 		return "      ";
 
 	// cgroup info
-	switch (cstat->cstat->conf.swpmax)
+	switch (cgchain->cstat->conf.swpmax)
 	{
 	   case -1:
         	return "   max";
 	   case -2:
         	return "     -";
 	   default:
-        	val2memstr(cstat->cstat->conf.swpmax*pagesize, buf, BFORMAT, 0, 0);
+        	val2memstr(cgchain->cstat->conf.swpmax*pagesize, buf, BFORMAT, 0, 0);
         	return buf;
 	}
 }
@@ -2780,23 +2780,24 @@ detail_printdef cgroupprt_CGRSWPMAX =
    { "SWPMAX", "CGRSWPMAX", cgroup_CGRSWPMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRDISKIO(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
 
 	if (!tstat)	// show cgroup info?
 	{
-		if (cstat->cstat->dsk.rbytes == -1)		// not defined?
+		if (cgchain->cstat->dsk.rbytes == -1)		// not defined?
 			return "     -";
 
-        	val2memstr(cstat->cstat->dsk.rbytes + cstat->cstat->dsk.wbytes, buf, BFORMAT, 0, 0);
+        	val2memstr(cgchain->cstat->dsk.rbytes + cgchain->cstat->dsk.wbytes,
+							buf, BFORMAT, avgval, nsecs);
 	}
 	else		// show process info
 	{
 		if (supportflags & IOSTAT)
         		val2memstr((tstat->dsk.rsz+tstat->dsk.wsz)*512,
-							buf, BFORMAT, 0, 0);
+							buf, BFORMAT, avgval, nsecs);
 		else
 			strcpy(buf, "nopriv");
 	}
@@ -2805,10 +2806,10 @@ cgroup_CGRDISKIO(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 }
 
 detail_printdef cgroupprt_CGRDISKIO =
-   { "IODISK", "CGRDISKIO", cgroup_CGRDISKIO, NULL, 'D', 6};
+   { "DISKIO", "CGRDISKIO", cgroup_CGRDISKIO, NULL, 'D', 6};
 /***************************************************************/
 char *
-cgroup_CGRDSKWGT(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
@@ -2817,12 +2818,12 @@ cgroup_CGRDSKWGT(struct cgchainer *cstat, struct tstat *tstat, int avgval, int n
 		return "     ";
 
 	// cgroup info
-	switch (cstat->cstat->conf.dskweight)
+	switch (cgchain->cstat->conf.dskweight)
 	{
 	   case -2:
         	return "    -";
 	   default:
-		snprintf(buf, sizeof buf, "%5d", cstat->cstat->conf.dskweight);
+		snprintf(buf, sizeof buf, "%5d", cgchain->cstat->conf.dskweight);
         	return buf;
 	}
 }
@@ -2831,7 +2832,7 @@ detail_printdef cgroupprt_CGRDSKWGT =
    { "IOWGT", "CGRDSKWGT", cgroup_CGRDSKWGT, NULL, ' ', 5};
 /***************************************************************/
 char *
-cgroup_CGRPID(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[64];
@@ -2848,7 +2849,7 @@ detail_printdef cgroupprt_CGRPID =
    { "PID", "CGRPID", cgroup_CGRPID, NULL, ' ', 5}; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
-cgroup_CGRCMD(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsecs,
+cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
 		count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
@@ -2859,7 +2860,7 @@ cgroup_CGRCMD(struct cgchainer *cstat, struct tstat *tstat, int avgval, int nsec
 	}
 	else		// cgroup info
 	{
-		if (cgroupdepth == 8 && cstat->cstat->gen.depth == 0)
+		if (cgroupdepth == 8 && cgchain->cstat->gen.depth == 0)
 		{
 			sprintf(buf, "[suppressed]");
 			*color = FGCOLORBORDER;

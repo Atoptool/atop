@@ -626,6 +626,7 @@ engine(void)
 	*/
 	static struct cgchainer	*devcstat;
 	int			ncgroups = 0;
+	int			npids    = 0;
 
 	/*
 	** reserve space for system-level statistics
@@ -918,7 +919,7 @@ engine(void)
 		** is arranged at a lower level
 		*/
 		if ( (supportflags&CGROUPV2) )
-			ncgroups = deviatcgroup(&devcstat);
+			ncgroups = deviatcgroup(&devcstat, &npids);
 
 		/*
 		** activate the installed print function to visualize
@@ -926,7 +927,8 @@ engine(void)
 		*/
 		lastcmd = (vis.show_samp)(curtime,
 				     curtime-pretime > 0 ? curtime-pretime : 1,
-		           	     &devtstat, devsstat, devcstat, ncgroups,
+		           	     &devtstat, devsstat,
+				     devcstat, ncgroups, npids,
 		                     nprocexit, noverflow, sampcnt==0);
 
 		/*

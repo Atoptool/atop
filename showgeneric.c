@@ -125,7 +125,7 @@ int	startoffset;
 char
 generic_samp(time_t curtime, int nsecs,
            struct devtstat *devtstat, struct sstat *sstat,
-	   struct cgchainer *cstats, int ncgroups,
+	   struct cgchainer *cstats, int ncgroups, int npids,
            int nexit, unsigned int noverflow, char flag)
 {
 	static char	firstcall = 1;

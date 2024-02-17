@@ -7,8 +7,9 @@
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Date:        September 2002
+** Date:        February 2024 (added cgroup support)
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2010 Gerlof Langeveld
+** Copyright (C) 2000-2024 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -60,6 +61,9 @@
 static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
+static int	getrawcstat(int, struct cgchainer **, unsigned long,
+				unsigned long, unsigned long, int, int);
+
 static int	rawwopen(void);
 static int	readchunk(int, void *, int);
 static int	lookslikedatetome(char *);
@@ -73,7 +77,7 @@ static void	try_other_version(int, int);
 char
 rawwrite(time_t curtime, int numsecs, 
          struct devtstat *devtstat, struct sstat *sstat,
-	 struct cgchainer *devcstat, int ncgroups,
+	 struct cgchainer *devchain, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
 	static int		rawfd = -1;
@@ -81,11 +85,16 @@ rawwrite(time_t curtime, int numsecs,
 	int			rv;
 	struct stat		filestat;
 
-	Byte			scompbuf[sizeof(struct sstat)], *pcompbuf;
-	unsigned long		scomplen = sizeof scompbuf;
-	unsigned long		pcomplen = sizeof(struct tstat) *
-						devtstat->ntaskall;
-	struct iovec 		iov[3];
+	Byte			scompbuf[sizeof(struct sstat)], *pcompbuf,
+				*ccompbuf = NULL, *icompbuf = NULL;
+
+	unsigned long		soriglen = sizeof scompbuf, scomplen = compressBound(soriglen),
+				poriglen, pcomplen,
+				coriglen, ccomplen,
+				ioriglen, icomplen;
+
+	struct iovec 		iov[5];
+	int			nrvectors;
 
 	/*
 	** first call:
@@ -102,21 +111,71 @@ rawwrite(time_t curtime, int numsecs,
 	(void) fstat(rawfd, &filestat);
 
 	/*
-	** compress system- and process-level statistics
+	** compress system level metrics
 	*/
-	rv = compress(scompbuf, &scomplen,
-				(Byte *)sstat, (unsigned long)sizeof *sstat);
+	rv = compress(scompbuf, &scomplen, (Byte *)sstat, soriglen);
 
-	testcompval(rv, "compress");
+	testcompval(rv, "compress system stats");
+
+	/*
+	** compress process level metrics
+	*/
+	poriglen = sizeof(struct tstat) * devtstat->ntaskall;
+	pcomplen = compressBound(poriglen);
 
 	pcompbuf = malloc(pcomplen);
 
-	ptrverify(pcompbuf, "Malloc failed for compression buffer\n");
+	ptrverify(pcompbuf, "Malloc failed for process compression buffer\n");
 
-	rv = compress(pcompbuf, &pcomplen, (Byte *)devtstat->taskall,
-						(unsigned long)pcomplen);
+	rv = compress(pcompbuf, &pcomplen, (Byte *)devtstat->taskall, poriglen);
 
-	testcompval(rv, "compress");
+	testcompval(rv, "compress processes");
+
+	/*
+	** compress cgroup level metrics
+	*/
+	if (supportflags & CGROUPV2)
+	{
+		/*
+		** calculate the size of all contiguous cstat structs
+		** and compress
+		*/
+		coriglen = (char *)(devchain+ncgroups-1)->cstat -
+			   (char *) devchain->cstat +
+			           (devchain+ncgroups-1)->cstat->gen.structlen;
+
+		ccomplen  = compressBound(coriglen);
+
+		ccompbuf = malloc(ccomplen);
+
+		ptrverify(ccompbuf, "Malloc failed for cgroup compression buffer\n");
+
+		rv = compress(ccompbuf, &ccomplen, (Byte *)devchain->cstat, coriglen);
+
+		testcompval(rv, "compress cgroups");
+
+		/*
+		** calculate the size of the cgroups pidlist
+		** and compress
+		*/
+		ioriglen = npids * sizeof(pid_t);
+		icomplen = compressBound(ioriglen);
+
+		icompbuf = malloc(icomplen);
+
+		ptrverify(icompbuf, "Malloc failed for cgroup compression pidlist\n");
+
+		rv = compress(icompbuf, &icomplen, (Byte *)devchain->proclist, ioriglen);
+
+		nrvectors = 5;
+	}
+	else
+	{
+		coriglen  = ccomplen = 0;
+		ioriglen  = icomplen = 0;
+	
+		nrvectors = 3;
+	}
 
 	/*
 	** fill record header and write to file
@@ -137,8 +196,13 @@ rawwrite(time_t curtime, int numsecs,
 	rr.totslpu	= devtstat->totslpu;
 	rr.totidle	= devtstat->totidle;
 	rr.totzomb	= devtstat->totzombie;
+	rr.ncgroups	= ncgroups;
+	rr.ncgpids	= npids;
 	rr.scomplen	= scomplen;
 	rr.pcomplen	= pcomplen;
+	rr.ccomplen	= ccomplen;
+	rr.coriglen	= coriglen;
+	rr.icomplen	= icomplen;
 
 	if (flag&RRBOOT)
 		rr.flags |= RRBOOT;
@@ -165,11 +229,11 @@ rawwrite(time_t curtime, int numsecs,
 		rr.flags |= RRGPUSTAT;
 
 	/*
-	** use 1-writev to make record operation atomic
+	** use writev to make record operation atomic
 	** to avoid write uncompleted record data.
 	*/
 	iov[0].iov_base = &rr;
-	iov[0].iov_len  = sizeof (rr);
+	iov[0].iov_len  = sizeof(rr);
 
 	iov[1].iov_base = scompbuf;
 	iov[1].iov_len  = scomplen;
@@ -177,7 +241,13 @@ rawwrite(time_t curtime, int numsecs,
 	iov[2].iov_base = pcompbuf;
 	iov[2].iov_len  = pcomplen;
 
-	if ( writev(rawfd, iov, 3) == -1)
+	iov[3].iov_base = ccompbuf;
+	iov[3].iov_len  = ccomplen;
+
+	iov[4].iov_base = icompbuf;
+	iov[4].iov_len  = icomplen;
+
+	if ( writev(rawfd, iov, nrvectors) == -1)
 	{
 		fprintf(stderr, "%s - ", rawname);
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
@@ -191,6 +261,12 @@ rawwrite(time_t curtime, int numsecs,
 	}
 
 	free(pcompbuf);
+
+	if (supportflags & CGROUPV2)
+	{
+		free(ccompbuf);
+		free(icompbuf);
+	}
 
 	return '\0';
 }
@@ -232,6 +308,7 @@ rawwopen()
 
 		if ( rh.sstatlen	!= sizeof(struct sstat)		||
 		     rh.tstatlen	!= sizeof(struct tstat)		||
+		     rh.cstatlen	!= sizeof(struct cstat)		||
 	    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
 		     rh.rawreclen	!= sizeof(struct rawrecord)	  )
 		{
@@ -275,6 +352,7 @@ rawwopen()
 	rh.aversion	= getnumvers() | 0x8000;
 	rh.sstatlen	= sizeof(struct sstat);
 	rh.tstatlen	= sizeof(struct tstat);
+	rh.cstatlen	= sizeof(struct cstat);
 	rh.rawheadlen	= sizeof(struct rawheader);
 	rh.rawreclen	= sizeof(struct rawrecord);
 	rh.supportflags	= supportflags | RAWLOGNG;
@@ -305,14 +383,14 @@ rawwopen()
 int
 rawread(void)
 {
+	static struct devtstat	devtstat;
+
 	int			i, j, rawfd, len, isregular = 1;
-	int			ncgroups = 0;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
 	struct sstat		sstat;
-	struct cgchainer	*devcstat = 0;
-	static struct devtstat	devtstat;
+	struct cgchainer	*devchain = NULL;
 
 	struct stat		filestat;
 
@@ -489,6 +567,7 @@ rawread(void)
 	*/
 	if (rh.sstatlen   != sizeof(struct sstat)		||
 	    rh.tstatlen   != sizeof(struct tstat)		||
+	    rh.cstatlen   != sizeof(struct cstat)		||
 	    rh.rawheadlen != sizeof(struct rawheader)		||
 	    rh.rawreclen  != sizeof(struct rawrecord)		  )
 	{
@@ -627,8 +706,11 @@ rawread(void)
 						int liResult;
 						/* just read READAHEADSIZE bytes into page cache */
 						char *buf = malloc(READAHEADSIZE);
+
 						ptrverify(buf, "Malloc failed for readahead");
+
 						liResult = pread(rawfd, buf, READAHEADSIZE, next_pos & ~(READAHEADSIZE - 1));
+
 						if(liResult == -1)
 						{
 							char lcMessage[64];
@@ -638,6 +720,7 @@ rawread(void)
 							          __FILE__, __LINE__, errno);
 							fprintf(stderr, "%s", lcMessage);
 						}
+
 						free(buf);
 					}
 					curr_pos = next_pos;
@@ -673,17 +756,16 @@ rawread(void)
 
 			/*
 			** allocate space, read compressed system-level
-			** statistics and decompress
+			** metrics and decompress
 			*/
 			if ( !getrawsstat(rawfd, &sstat, rr.scomplen) )
 				cleanstop(7);
 
 			/*
 			** allocate space, read compressed process-level
-			** statistics and decompress
+			** metrics and decompress
 			*/
-			devtstat.taskall    = malloc(sizeof(struct tstat  )
-								* rr.ndeviat);
+			devtstat.taskall = malloc(sizeof(struct tstat) * rr.ndeviat);
 
 			if (rr.totproc < rr.nactproc)	// compat old raw files
 				devtstat.procall = malloc(sizeof(struct tstat *)
@@ -738,8 +820,19 @@ rawread(void)
  			devtstat.totzombie	= rr.totzomb;
 
 			/*
-			** activate the installed print-function to visualize
-			** the system- and process-level statistics
+			** allocate space, read compressed cgroup-level
+			** metrics, the pidlist and decompress
+			*/
+			if (rr.flags & RRCGRSTAT)
+			{
+				if ( !getrawcstat(rawfd, &devchain, rr.ccomplen, rr.coriglen,
+							rr.icomplen, rr.ncgroups, rr.ncgpids) )
+					cleanstop(7);
+			}
+
+			/*
+			** activate the installed print function to visualize
+			** the system metrics, process metrics and cgroup metrics
 			*/
 			sampcnt++;
 
@@ -798,8 +891,8 @@ rawread(void)
 			do
 			{
 				lastcmd = (vis.show_samp)(rr.curtime,
-				     rr.interval,
-			             &devtstat, &sstat, devcstat, ncgroups,
+				     rr.interval, &devtstat, &sstat,
+				     devchain, rr.ncgroups, rr.ncgpids,
 			             rr.nexit, rr.noverflow, flags);
 			}
 			while (!isregular &&
@@ -811,6 +904,13 @@ rawread(void)
 			free(devtstat.taskall);
 			free(devtstat.procall);
 			free(devtstat.procactive);
+
+			if (rr.flags & RRCGRSTAT)
+			{
+				free(devchain->cstat);
+				free(devchain->proclist);
+				free(devchain);
+			}
 
 			switch (lastcmd)
 			{
@@ -860,6 +960,7 @@ rawread(void)
 	return isregular;
 }
 
+
 /*
 ** read the next raw record from the raw logfile
 */
@@ -868,6 +969,7 @@ getrawrec(int rawfd, struct rawrecord *prr, int rrlen)
 {
 	return readchunk(rawfd, prr, rrlen);
 }
+
 
 /*
 ** read the system-level statistics from the current offset
@@ -898,6 +1000,7 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 	return 1;
 }
 
+
 /*
 ** read the process-level statistics from the current offset
 */
@@ -926,6 +1029,77 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 
 	return 1;
 }
+
+
+/*
+** read the cgroup-level statistics and pidlist from the current offset
+*/
+static int
+getrawcstat(int rawfd, struct cgchainer **cpp,
+		unsigned long ccomplen, unsigned long coriglen,
+		unsigned long icomplen, int ncgroups, int npids)
+{
+	Byte		*ccompbuf, *corigbuf, *icompbuf, *iorigbuf;
+	int		rv;
+	unsigned long	ioriglen = npids * sizeof(pid_t);
+
+	/*
+	** read all cstat structs
+	*/
+	ccompbuf = malloc(ccomplen);
+	corigbuf = malloc(coriglen);
+
+	ptrverify(ccompbuf, "Malloc failed for reading compressed cgroups\n");
+	ptrverify(corigbuf, "Malloc failed for decompressing cgroups\n");
+
+	if ( readchunk(rawfd, ccompbuf, ccomplen) < ccomplen)
+	{
+		free(ccompbuf);
+		free(corigbuf);
+		return 0;
+	}
+
+	rv = uncompress((Byte *)corigbuf, &coriglen, ccompbuf, ccomplen);
+
+	testcompval(rv, "uncompress cgroups");
+
+	free(ccompbuf);
+
+	/*
+	** read pidlist
+	*/
+	icompbuf = malloc(icomplen);
+	iorigbuf = malloc(ioriglen);
+
+	ptrverify(icompbuf, "Malloc failed for reading pidlist\n");
+	ptrverify(iorigbuf, "Malloc failed for decompresssed pidlist\n");
+
+	if ( readchunk(rawfd, icompbuf, icomplen) < icomplen)
+	{
+		free(ccompbuf);
+		free(corigbuf);
+		free(icompbuf);
+		free(iorigbuf);
+
+		return 0;
+	}
+
+	rv = uncompress((Byte *)iorigbuf, &ioriglen, icompbuf, icomplen);
+
+	testcompval(rv, "uncompress cgroups pidlist");
+
+	free(icompbuf);
+
+	/*
+	** reconstruct an array of cgchainer structs from which
+	** each entry refers to one cstat struct and its own start
+	** entry in the pidlist
+	*/
+	cgbuildarray(cpp, (char *)corigbuf, (char *)iorigbuf, ncgroups);
+
+	return 1;
+}
+
 
 /* 
 ** verify if a particular ascii-string is in the format yyyymmdd

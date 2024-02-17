@@ -51,8 +51,6 @@ static void		cgrewind(struct cgchainer **);
 static struct cgchainer	*cgnext(struct cgchainer **, struct cgchainer **);
 static void		cgwipe(struct cgchainer **, struct cgchainer **,
 			       struct cgchainer **, struct cgchainer **);
-static void		cgbuildarray(struct cgchainer **, struct cgchainer **,
-		                     char *, char *, int);
 
 static unsigned long	walkcgroup(char *, struct cgchainer *, int, long, int, int);
 static void		getconfig(struct cstat *, struct cstat *);
@@ -125,8 +123,7 @@ static struct cgchainer	*cgprefirst,	// first in linked list
 // deviation cgroup admi
 //
 static struct cgchainer	*cgdevfirst,	// pointer to array (!)
-			*cgdevcursor,
-			*cgdevhash[CGROUPNHASH];
+			*cgdevcursor;
 
 
 // Check if cgroup v2 is supported on this machine
@@ -180,7 +177,8 @@ photocgroup(void)
 	cgcurfirst  = cgcurlast = cgcurcursor = NULL;
 
 	// wipe deviation cgroup memory 
-	// - wipe all contiguous cstat structs
+	// - wipe all contiguous cstat structs (start address in first cgchainer)
+	// - wipe pidlist (start address in first cgchainer)
 	// - wipe all contiguous cgchainer structs
 	//
 	if (cgdevfirst)
@@ -855,13 +853,12 @@ cgwipe(struct cgchainer **first,  struct cgchainer **last,
 // the current list to one contiguous area.
 // Also create enough memory to copy all pid lists from
 // the current list to one contiguous area.
-// After thath an array of cgchainer structs is created
-// and filled.
+// Next, create and fill an array of cgchainer structs.
 //
 // Returns:	number of cgchainer structs
 //
 int
-deviatcgroup(struct cgchainer **cdpp)
+deviatcgroup(struct cgchainer **cdpp, int *npids)
 {
 	struct cgchainer	*ccp = cgcurfirst;
 	char			*allc, *allp, *cp, *pp;
@@ -902,13 +899,15 @@ deviatcgroup(struct cgchainer **cdpp)
 	// build array of cgchainer structs and a hash list for the
 	// concatenated cstat structs for the deviation values
 	//
-	cgbuildarray(&cgdevfirst, cgdevhash, allc, allp, cgcurnum);
+	cgbuildarray(&cgdevfirst, allc, allp, cgcurnum);
 
 	// calculate deviation values
 	//
 	cgcalcdeviate();
 
-	*cdpp = cgdevfirst;
+	*cdpp  = cgdevfirst;
+	*npids = cgcurprocs;
+
 	return cgcurnum;
 }
 
@@ -917,9 +916,8 @@ deviatcgroup(struct cgchainer **cdpp)
 // proper location in the concatenated cstat structs and
 // the concatenated pid lists.
 //
-static void
-cgbuildarray(struct cgchainer **firstp, struct cgchainer **hashp,
-             char *cstats, char *pids, int ncstats)
+void
+cgbuildarray(struct cgchainer **firstp, char *cstats, char *pids, int ncstats)
 {
 	struct cgchainer	*cdp;
 	int			i;
@@ -937,8 +935,6 @@ cgbuildarray(struct cgchainer **firstp, struct cgchainer **hashp,
 
 		cdp->cstat    = (struct cstat *)cstats;
 		cstats += ((struct cstat *)cstats)->gen.structlen;
-
-		hashadd(hashp, cdp);
 	}
 
 	cdp = *firstp + ncstats - 1;
