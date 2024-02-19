@@ -948,7 +948,7 @@ cgbuildarray(struct cgchainer **firstp, char *cstats, char *pids, int ncstats)
 // Returns:	malloc'ed string with full path name to be freed later on
 //
 char *
-cggetpath(struct cgchainer *cdp)
+cggetpath(struct cgchainer *cdp, struct cgchainer *cdbase)
 {
 	// calculate path length including slashes (depth) and terminating 0-byte
 	//
@@ -987,7 +987,7 @@ cggetpath(struct cgchainer *cdp)
 
 			// climb upwards
 			//
-			cdp = cgdevfirst + cdp->cstat->gen.parentseq;
+			cdp = cdbase + cdp->cstat->gen.parentseq;
 		}
 
 		*(path+pathlen-1) = '\0';	// terminate string

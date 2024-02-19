@@ -825,7 +825,7 @@ print_CGR(char *hp, struct sstat *ss,
 		        "%lld %lld %lld %lld %lld %lld %lld "
 		        "%lld %lld %lld %lld %d\n",
 			hp,
-			cggetpath(devchain+i),
+			cggetpath(devchain+i, devchain),
 			(devchain+i)->cstat->gen.nprocs,
 			(devchain+i)->cstat->gen.procsbelow,
 			(devchain+i)->cstat->cpu.utime,
@@ -851,7 +851,7 @@ print_CGR(char *hp, struct sstat *ss,
 		//
 		if ((devchain+i)->cstat->gen.nprocs)
 		{
-			printf( "%s P %s", hp, cggetpath(devchain+i));
+			printf( "%s P %s", hp, cggetpath(devchain+i, devchain));
 
 			for (p=0; p < (devchain+i)->cstat->gen.nprocs; p++)
 				printf(" %d", (devchain+i)->proclist[p]);

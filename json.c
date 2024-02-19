@@ -1068,7 +1068,7 @@ json_print_CGR(char *hp, struct sstat *ss,
 			 "\"diskwios\": %lld, "
 			 "\"diskweight\": %d, "
 			 "\"pidlist\": [",
-                        cggetpath(cs+i),
+                        cggetpath(cs+i, cs),
                         (cs+i)->cstat->gen.nprocs,
                         (cs+i)->cstat->gen.procsbelow,
                         (cs+i)->cstat->cpu.utime,
