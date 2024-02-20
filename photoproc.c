@@ -674,12 +674,14 @@ procstatus(struct tstat *curtask)
 			continue;
 		}
 
-		if (memcmp(line, "voluntary_ctxt_switches:", 24)==0) {
+		if (memcmp(line, "voluntary_ctxt_switches:", 24)==0)
+		{
 			sscanf(line, "voluntary_ctxt_switches: %lld", &(curtask->cpu.nvcsw));
 			continue;
 		}
 
-		if (memcmp(line, "nonvoluntary_ctxt_switches:", 27)==0) {
+		if (memcmp(line, "nonvoluntary_ctxt_switches:", 27)==0)
+		{
 			sscanf(line, "nonvoluntary_ctxt_switches: %lld", &(curtask->cpu.nivcsw));
 			continue;
 		}

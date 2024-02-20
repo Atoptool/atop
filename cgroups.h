@@ -117,5 +117,7 @@ struct cgchainer **cgsort(struct cgchainer *, int, char);
 char             *cggetpath(struct cgchainer *, struct cgchainer *);
 void             cgwipecur(void);
 void             cgbuildarray(struct cgchainer **, char *, char *, int);
+void		 cgfillref(struct devtstat *, struct cgchainer *, int, int);
+
 
 #endif

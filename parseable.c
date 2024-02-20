@@ -104,41 +104,42 @@ static char *spaceformat(char *, char *);
 */
 struct labeldef {
 	char	*label;
-	int	valid;
+	short	valid;
+	short	cgroupref;
 	void	(*prifunc)(char *, struct sstat *,
 			           struct tstat *, int,
                                    struct cgchainer *, int);
 };
 
 static struct labeldef	labeldef[] = {
-	{ "CPU",	0,	print_CPU },
-	{ "cpu",	0,	print_cpu },
-	{ "CPL",	0,	print_CPL },
-	{ "GPU",	0,	print_GPU },
-	{ "MEM",	0,	print_MEM },
-	{ "SWP",	0,	print_SWP },
-	{ "PAG",	0,	print_PAG },
-	{ "PSI",	0,	print_PSI },
-	{ "LVM",	0,	print_LVM },
-	{ "MDD",	0,	print_MDD },
-	{ "DSK",	0,	print_DSK },
-	{ "NFM",	0,	print_NFM },
-	{ "NFC",	0,	print_NFC },
-	{ "NFS",	0,	print_NFS },
-	{ "NET",	0,	print_NET },
-	{ "IFB",	0,	print_IFB },
-	{ "NUM",	0,	print_NUM },
-	{ "NUC",	0,	print_NUC },
-	{ "LLC",	0,	print_LLC },
+	{ "CPU",	0, 0,	print_CPU },
+	{ "cpu",	0, 0,	print_cpu },
+	{ "CPL",	0, 0,	print_CPL },
+	{ "GPU",	0, 0,	print_GPU },
+	{ "MEM",	0, 0,	print_MEM },
+	{ "SWP",	0, 0,	print_SWP },
+	{ "PAG",	0, 0,	print_PAG },
+	{ "PSI",	0, 0,	print_PSI },
+	{ "LVM",	0, 0,	print_LVM },
+	{ "MDD",	0, 0,	print_MDD },
+	{ "DSK",	0, 0,	print_DSK },
+	{ "NFM",	0, 0,	print_NFM },
+	{ "NFC",	0, 0,	print_NFC },
+	{ "NFS",	0, 0,	print_NFS },
+	{ "NET",	0, 0,	print_NET },
+	{ "IFB",	0, 0,	print_IFB },
+	{ "NUM",	0, 0,	print_NUM },
+	{ "NUC",	0, 0,	print_NUC },
+	{ "LLC",	0, 0,	print_LLC },
 
-	{ "CGR",	0,	print_CGR },
+	{ "CGR",	0, 0,	print_CGR },
 
-	{ "PRG",	0,	print_PRG },
-	{ "PRC",	0,	print_PRC },
-	{ "PRM",	0,	print_PRM },
-	{ "PRD",	0,	print_PRD },
-	{ "PRN",	0,	print_PRN },
-	{ "PRE",	0,	print_PRE },
+	{ "PRG",	0, 1,	print_PRG },
+	{ "PRC",	0, 1,	print_PRC },
+	{ "PRM",	0, 1,	print_PRM },
+	{ "PRD",	0, 0,	print_PRD },
+	{ "PRN",	0, 0,	print_PRN },
+	{ "PRE",	0, 0,	print_PRE },
 };
 
 static int	numlabels = sizeof labeldef/sizeof(struct labeldef);
@@ -225,7 +226,7 @@ parseout(time_t curtime, int numsecs,
          struct cgchainer *devchain, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
-	register int	i;
+	register int	i, cgroupref_created = 0;
 	char		datestr[32], timestr[32], header[256];
 
 	/*
@@ -241,6 +242,17 @@ parseout(time_t curtime, int numsecs,
 	{
 		if (labeldef[i].valid)
 		{
+			/*
+			** when cgroup index is needed to map the tstat to a cgroup,
+			** once fill the tstat.gen.cgroupix variables
+			*/
+			if (supportflags & CGROUPV2 &&
+			    labeldef[i].cgroupref   && !cgroupref_created)
+			{
+				cgfillref(devtstat, devchain, ncgroups, npids);
+				cgroupref_created = 1;
+			}
+
 			/*
 			** prepare generic columns
 			*/
@@ -816,16 +828,18 @@ print_CGR(char *hp, struct sstat *ss,
                     struct cgchainer *devchain, int ncgroups)
 {
 	register int 	i, p;
+	char		*cgrpath;
 
 	for (i=0; i < ncgroups; i++)
 	{
 		// print cgroup level metrics
 		//
+		cgrpath = cggetpath(devchain+i, devchain);
+
 		printf(	"%s C %s %d %d %lld %lld %d %d "
 		        "%lld %lld %lld %lld %lld %lld %lld "
 		        "%lld %lld %lld %lld %d\n",
-			hp,
-			cggetpath(devchain+i, devchain),
+			hp, cgrpath,
 			(devchain+i)->cstat->gen.nprocs,
 			(devchain+i)->cstat->gen.procsbelow,
 			(devchain+i)->cstat->cpu.utime,
@@ -851,13 +865,15 @@ print_CGR(char *hp, struct sstat *ss,
 		//
 		if ((devchain+i)->cstat->gen.nprocs)
 		{
-			printf( "%s P %s", hp, cggetpath(devchain+i, devchain));
+			printf( "%s P %s", hp, cgrpath);
 
 			for (p=0; p < (devchain+i)->cstat->gen.nprocs; p++)
 				printf(" %d", (devchain+i)->proclist[p]);
 
 			printf("\n");
 		}
+
+		free(cgrpath);
 	}
 }
 
@@ -869,11 +885,37 @@ print_PRG(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	register int	i, exitcode;
-	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2];
+	register int	i, exitcode, cgrlen, cgrpathsize = 256;
+	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2],
+			*cgrout=NULL, *cgrpath;
+
+	// create assumed worst-case cgroup path size
+	// if it appears to be too small, it will later on be realloc'ed
+	//
+	if (supportflags & CGROUPV2)
+	{
+		cgrout = calloc(1, cgrpathsize);
+        	ptrverify(cgrout, "Malloc failed for output cgroup path\n");
+	}
 
 	for (i=0; i < nact; i++, ps++)
 	{
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)	// valid cgroup index?
+		{
+			cgrpath = cggetpath((devchain + ps->gen.cgroupix), devchain);
+
+			if (cgrpathsize < (cgrlen = strlen(cgrpath) + 3))
+			{
+				cgrpathsize = cgrlen;
+				cgrout      = realloc(cgrout, cgrpathsize);
+        			ptrverify(cgrout, "Realloc failed for output cgroup path\n");
+			}
+		}
+		else
+		{
+			cgrpath = "-";
+		}
+
 		if (ps->gen.excode & 0xff)      // killed by signal?
 			exitcode = (ps->gen.excode & 0x7f) + 256;
 		else
@@ -908,11 +950,17 @@ print_PRG(char *hp, struct sstat *ss,
 			ps->gen.ctid,
 			ps->gen.utsname[0] ? ps->gen.utsname:"-",
         		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
-			"",	// was: cgroup path
+			spaceformat(cgrpath, cgrout),
 			ps->gen.state == 'E' ?
 			    ps->gen.btime + ps->gen.elaps/hertz : 0,
 			ps->gen.nthridle);
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			free(cgrpath);
 	}
+
+	if (supportflags & CGROUPV2)
+		free(cgrout);
 }
 
 void
@@ -920,11 +968,23 @@ print_PRC(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	register int	i;
+	register int	i, cpumax;
 	char		namout[PNAMLEN+1+2], wchanout[20];
 
 	for (i=0; i < nact; i++, ps++)
 	{
+		if (supportflags & CGROUPV2)
+		{
+			if (ps->gen.cgroupix != -1)
+				cpumax = (devchain+ps->gen.cgroupix)->cstat->conf.cpumax;
+			else
+				cpumax = -2;
+		}
+		else
+		{
+			cpumax = -3;
+		}
+				
 		printf("%s %d %s %c %u %lld %lld %d %d %d %d %d %d %d %c "
 		       "%llu %s %llu %d %d %llu %llu\n",
 			hp,
@@ -945,8 +1005,8 @@ print_PRC(char *hp, struct sstat *ss,
 			ps->cpu.rundelay,
 			spaceformat(ps->cpu.wchan, wchanout),
 			ps->cpu.blkdelay,
-			-2,
-			-2,
+			cpumax,
+			-2,	// most restrictive cpumax no longer supported
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw);
 	}
@@ -957,11 +1017,37 @@ print_PRM(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	register int 	i;
+	register int 	i, memmax, swpmax;
 	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
+		if (supportflags & CGROUPV2)
+		{
+			if (ps->gen.cgroupix != -1)
+			{
+				memmax = (devchain+ps->gen.cgroupix)->cstat->conf.memmax;
+
+				if (memmax > 0)
+					memmax *= pagesize / 1024;
+
+				swpmax = (devchain+ps->gen.cgroupix)->cstat->conf.swpmax;
+
+				if (swpmax > 0)
+					swpmax *= pagesize / 1024;
+			}
+			else
+			{
+				memmax = -2;
+				swpmax = -2;
+			}
+		}
+		else
+		{
+			memmax = -3;
+			swpmax = -3;
+		}
+
 		printf("%s %d %s %c %u %lld %lld %lld %lld %lld %lld "
 		       "%lld %lld %lld %lld %lld %d %c %lld %lld %d %d %d %d\n",
 			hp,
@@ -983,9 +1069,10 @@ print_PRM(char *hp, struct sstat *ss,
 			ps->gen.tgid,
 			ps->gen.isproc ? 'y':'n',
 			ps->mem.pmem == (unsigned long long)-1LL ?
-							0:ps->mem.pmem,
+						0:ps->mem.pmem,
 			ps->mem.vlock,
-			-2, -2, -2, -2);
+			memmax, -2,
+			swpmax, -2);
 	}
 }
 

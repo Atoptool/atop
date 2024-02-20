@@ -68,6 +68,9 @@ struct tstat {
 		int	wasinactive;	/* boolean: task inactive	*/
 
 		char	utsname[UTSLEN+1];/* UTS name container or pod  */
+
+		int	cgroupix;	/* index in devchain -1=invalid */
+					/* lazy filling (parsable/json) */
 	} gen;
 
 	/* CPU STATISTICS						*/

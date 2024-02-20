@@ -116,41 +116,42 @@ static void json_print_PRE(char *, struct sstat *, struct tstat *, int,
 */
 struct labeldef {
 	char	*label;
-	int     valid;
+	short   valid;
+	short   cgroupref;
 	void	(*prifunc)(char *, struct sstat *,
 	                           struct tstat *, int,
                                    struct cgchainer *, int);
 };
 
 static struct labeldef	labeldef[] = {
-	{ "CPU",	0,	json_print_CPU },
-	{ "cpu",	0,	json_print_cpu },
-	{ "CPL",	0,	json_print_CPL },
-	{ "GPU",	0,	json_print_GPU },
-	{ "MEM",	0,	json_print_MEM },
-	{ "SWP",	0,	json_print_SWP },
-	{ "PAG",	0,	json_print_PAG },
-	{ "PSI",	0,	json_print_PSI },
-	{ "LVM",	0,	json_print_LVM },
-	{ "MDD",	0,	json_print_MDD },
-	{ "DSK",	0,	json_print_DSK },
-	{ "NFM",	0,	json_print_NFM },
-	{ "NFC",	0,	json_print_NFC },
-	{ "NFS",	0,	json_print_NFS },
-	{ "NET",	0,	json_print_NET },
-	{ "IFB",	0,	json_print_IFB },
-	{ "NUM",	0,	json_print_NUM },
-	{ "NUC",	0,	json_print_NUC },
-	{ "LLC",	0,	json_print_LLC },
+	{ "CPU",	0, 0,	json_print_CPU },
+	{ "cpu",	0, 0,	json_print_cpu },
+	{ "CPL",	0, 0,	json_print_CPL },
+	{ "GPU",	0, 0,	json_print_GPU },
+	{ "MEM",	0, 0,	json_print_MEM },
+	{ "SWP",	0, 0,	json_print_SWP },
+	{ "PAG",	0, 0,	json_print_PAG },
+	{ "PSI",	0, 0,	json_print_PSI },
+	{ "LVM",	0, 0,	json_print_LVM },
+	{ "MDD",	0, 0,	json_print_MDD },
+	{ "DSK",	0, 0,	json_print_DSK },
+	{ "NFM",	0, 0,	json_print_NFM },
+	{ "NFC",	0, 0,	json_print_NFC },
+	{ "NFS",	0, 0,	json_print_NFS },
+	{ "NET",	0, 0,	json_print_NET },
+	{ "IFB",	0, 0,	json_print_IFB },
+	{ "NUM",	0, 0,	json_print_NUM },
+	{ "NUC",	0, 0,	json_print_NUC },
+	{ "LLC",	0, 0,	json_print_LLC },
 
-	{ "CGR",	0,	json_print_CGR },
+	{ "CGR",	0, 0,	json_print_CGR },
 
-	{ "PRG",	0,	json_print_PRG },
-	{ "PRC",	0,	json_print_PRC },
-	{ "PRM",	0,	json_print_PRM },
-	{ "PRD",	0,	json_print_PRD },
-	{ "PRN",	0,	json_print_PRN },
-	{ "PRE",	0,	json_print_PRE },
+	{ "PRG",	0, 1,	json_print_PRG },
+	{ "PRC",	0, 1,	json_print_PRC },
+	{ "PRM",	0, 1,	json_print_PRM },
+	{ "PRD",	0, 0,	json_print_PRD },
+	{ "PRN",	0, 0,	json_print_PRN },
+	{ "PRE",	0, 0,	json_print_PRE },
 };
 
 static int numlabels = sizeof labeldef / sizeof(struct labeldef);
@@ -235,7 +236,7 @@ char jsonout(time_t curtime, int numsecs,
 	 struct cgchainer *devchain, int ncgroups, int npids,
          int nexit, unsigned int noverflow, char flag)
 {
-	register int	i, j, k;
+	register int	i, j, k, cgroupref_created = 0;
 	char		header[256];
 	struct tstat	*tmp = devtstat->taskall;
 
@@ -265,9 +266,21 @@ char jsonout(time_t curtime, int numsecs,
 		if (!labeldef[i].valid)
 			continue;
 
+		/*
+		** when cgroup index is needed to map the tstat to a cgroup,
+		** once fill the tstat.gen.cgroupix variables
+		*/
+		if (supportflags & CGROUPV2 &&
+		    labeldef[i].cgroupref   && !cgroupref_created)
+		{
+			cgfillref(devtstat, devchain, ncgroups, npids);
+			cgroupref_created = 1;
+		}
+
 		/* prepare generic columns */
 		snprintf(header, sizeof header, "\"%s\"",
 			labeldef[i].label);
+
 		/* call all print-functions */
 		(labeldef[i].prifunc)(header, sstat,
 				devtstat->taskall, devtstat->ntaskall,
@@ -1131,8 +1144,9 @@ json_print_PRG(char *hp, struct sstat *ss,
                          struct tstat *ps, int nact,
 			 struct cgchainer *cs, int ncgroups)
 {
-	register int i, exitcode;
-	static char st[3];
+	register int	i, exitcode;
+	static char	st[3];
+	char		*cgrpath;
 
 	printf(", %s: [", hp);
 
@@ -1164,6 +1178,11 @@ json_print_PRG(char *hp, struct sstat *ss,
 		if (i > 0) {
 			printf(", ");
 		}
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+		else
+			cgrpath = "-";
 
 		/* using getpwuid() & getpwuid to convert ruid & euid to string seems better, but the two functions take a long time */
 		printf("{\"pid\": %d, "
@@ -1209,7 +1228,10 @@ json_print_PRG(char *hp, struct sstat *ss,
 			ps->gen.elaps,
 			!!ps->gen.isproc, /* convert to boolean */
 			ps->gen.utsname[0] ? ps->gen.utsname:"-",
-			"-");	// was: cgroup path
+			cgrpath);
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			free(cgrpath);
 	}
 
 	printf("]");
@@ -1220,7 +1242,8 @@ json_print_PRC(char *hp, struct sstat *ss,
                          struct tstat *ps, int nact,
 			 struct cgchainer *cs, int ncgroups)
 {
-	register int i;
+	register int	i;
+	char		*cgrpath;
 
         printf(", %s: [", hp);
 
@@ -1230,6 +1253,12 @@ json_print_PRC(char *hp, struct sstat *ss,
 		if (i > 0) {
 			printf(", ");
 		}
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+		else
+			cgrpath = "-";
+
 		printf("{\"pid\": %d, "
 			"\"utime\": %lld, "
 			"\"stime\": %lld, "
@@ -1257,7 +1286,10 @@ json_print_PRC(char *hp, struct sstat *ss,
 			ps->cpu.nvcsw,
 			ps->cpu.nivcsw,
 			ps->cpu.sleepavg,
-			"-");	// was: cgroup path
+			cgrpath);
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			free(cgrpath);
 	}
 
 	printf("]");
@@ -1268,7 +1300,8 @@ json_print_PRM(char *hp, struct sstat *ss,
                          struct tstat *ps, int nact,
 			 struct cgchainer *cs, int ncgroups)
 {
-	register int i;
+	register int	i;
+	char		*cgrpath;
 
         printf(", %s: [", hp);
 
@@ -1278,6 +1311,12 @@ json_print_PRM(char *hp, struct sstat *ss,
 		if (i > 0) {
 			printf(", ");
 		}
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+		else
+			cgrpath = "-";
+
 		printf("{\"pid\": %d, "
 			"\"vmem\": %lld, "
 			"\"rmem\": %lld, "
@@ -1308,7 +1347,10 @@ json_print_PRM(char *hp, struct sstat *ss,
 			ps->mem.vswap,
 			ps->mem.pmem == (unsigned long long)-1LL ?
 			0:ps->mem.pmem,
-			"-");	// was: cgroup path
+			cgrpath);
+
+		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
+			free(cgrpath);
 	}
 
 	printf("]");

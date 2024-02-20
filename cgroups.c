@@ -1068,12 +1068,12 @@ hashfind(struct cgchainer *hashlist[], long hash)
 // PID hashing to find the processes that are related to
 // a particular cgroup 
 // ===========================================================
-struct pidchain {
-	struct pidchain	*hashnext;
-	struct tstat	*tstat;
+struct pid2tstat {
+	struct pid2tstat	*hashnext;
+	struct tstat		*tstat;
 };
 
-#define	PIDNHASH	256	// power of 2
+#define	PIDNHASH	512	// power of 2
 #define	PIDMASK		(PIDNHASH-1)
 
 static int	compselcpu(const void *, const void *);
@@ -1093,7 +1093,7 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 {
 	int			ic, ip, im, is;
 	struct cglinesel	*cgroupsel;
-	struct pidchain		*pidhash[PIDNHASH], *pidlist, *pidcur;
+	struct pid2tstat	*pidhash[PIDNHASH], *pidlist, *pidcur;
 
 	// create a hashlist to find the PIDs in a fast way
 	//
@@ -1103,12 +1103,12 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 		//
 		memset(pidhash, 0, sizeof pidhash);
 
-		// create one pidchain struct per tstat struct
+		// create one pid2tstat struct per tstat struct
 		//
-		pidlist = calloc(nprocs, sizeof(struct pidchain));
+		pidlist = calloc(nprocs, sizeof(struct pid2tstat));
 
 		ptrverify(pidlist,
-			  "Malloc for pidstart structs failed (%d)\n", nprocs);
+			  "Malloc for pid2tstat structs failed (%d)\n", nprocs);
 
 		pidcur = pidlist;
 
@@ -1598,4 +1598,84 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp)
 	}
 
 	return j;
+}
+
+
+// ===========================================================
+// PID hashing to find the cgroup that is related to
+// a particular process 
+// ===========================================================
+struct pid2cgchainer {
+	struct pid2cgchainer	*hashnext;
+	pid_t			pid;
+	int			cgindex;	// cgchainer index
+};
+
+// For every tstat struct, fill the reference (index) to
+// the related cgroup, represented by the cgchainer struct
+//
+void
+cgfillref(struct devtstat *devtstat, struct cgchainer *devchain,
+					int ncgroups, int npids)
+{
+	int			ic, ip, it, hash;
+	pid_t			pid;
+	struct pid2cgchainer	*pidhash[PIDNHASH], *pidlist, *pidcur;
+	struct cgchainer	*cp;
+	struct tstat		*tp = devtstat->taskall;
+
+	// create a hashlist to find the PIDs in a fast way
+	// initialize hash list
+	//
+	memset(pidhash, 0, sizeof pidhash);
+
+	// create one pid2cgchainer struct per cgroup pid
+	//
+	pidlist = calloc(npids, sizeof(struct pid2cgchainer));
+
+	ptrverify(pidlist, "Malloc for pid2cgchainer structs failed (%d)\n", npids);
+
+	// build hash list to find right cgchainer (cgroup) for a PID
+	//
+	for (ic=0, cp=devchain, pidcur=pidlist; ic < ncgroups; ic++, cp++)
+	{
+		for (ip=0;  ip < cp->cstat->gen.nprocs; ip++, pidcur++)
+		{
+			pid  = cp->proclist[ip];
+			hash = pid & PIDMASK;
+
+			pidcur->hashnext = pidhash[hash];
+			pidcur->pid      = pid;
+			pidcur->cgindex  = ic;
+
+			pidhash[hash]    = pidcur;
+		}
+	}
+
+	// connect every tstat struct to the concerning cgchainer
+	// by filling the index
+	//
+	for (it=0; it < devtstat->ntaskall; it++, tp++)
+	{
+		tp->gen.cgroupix = -1;
+
+		if (! tp->gen.isproc)	// skip threads
+			continue;
+
+		pid  = tp->gen.pid;
+		hash = pid & PIDMASK;
+
+		// search for cgchainer index related to this PID via hashlist
+		//
+		for (pidcur=pidhash[hash]; pidcur; pidcur=pidcur->hashnext)
+		{
+			if (pidcur->pid == pid)
+			{
+				tp->gen.cgroupix = pidcur->cgindex;
+				break;
+			}
+		}
+	}
+
+	free(pidlist);
 }
