@@ -7,9 +7,14 @@
 Live measurement in bar graph mode:
 .PP
 .TP 5
-.B \  atop -B[H] [interval [samples]]
+.B \  atop \-B[H] [interval [samples]]
 .PP
-Live measurement in text mode:
+Live measurement cgroups in text mode:
+.PP
+.TP 5
+.B \  atop \-G [-2|-3|-4|-5|-6|-7|-8|-9] [\-a] [\-C|\-M|\-D|\-A] [interval [samples]]
+.PP
+Live measurement processes in text mode:
 .PP
 .TP 5
 .B \  atop [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR] [interval [samples]]
@@ -27,9 +32,14 @@ Write raw log files:
 Analyze raw log files in bar graph mode:
 .PP
 .TP 5
-.B \  atop \-B[H]r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]]
+.B \  atop \-B[H] -r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]]
 .PP
-Analyze raw log files in text mode:
+Analyze cgroups from raw log files in text mode:
+.PP
+.TP 5
+.B \  atop \-G [-2|-3|-4|-5|-6|-7|-8|-9] [\-a] \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]]
+.PP
+Analyze processes from raw log files in text mode:
 .PP
 .TP 5
 .B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR]
@@ -45,10 +55,9 @@ is an interactive monitor to view the load on a Linux system.
 Every
 .I interval
 seconds (default: 10 seconds) information is gathered about the
-resource occupation on system level of the most critical hardware
-resources (from a performance point of view),
-i.e. CPUs, memory, disks and network interfaces. Besides,
-information is gathered about the processes (or threads) that
+resource occupation on system level (CPUs, memory, disks and network
+interfaces) and on cgroup level (version 2). Besides,
+information is gathered about the processes and threads that
 are responsible for the utilization of the CPUs, memory and disks.
 Network load per process is shown only when the
 .I netatop
@@ -208,22 +217,17 @@ When certain descriptions also apply to bar graph mode it will be
 mentioned explicitly.
 
 .SH TEXT MODE IN GENERAL
-The initial screen in text mode shows if
-.I atop
-runs with restricted view (unprivileged user) or unrestricted view
-(privileged user).  In case of restricted view
-.I atop
-does not have the privileges (no root identity nor the necessary capabilities)
-to retrieve all counter values on system level and on process level.
-.PP
 With every interval information is shown about the resource occupation
-on system level (CPU, memory, disks and network layers), followed
-by a list of processes which have been active during the last interval.
-Notice that all processes that were unchanged during the last interval
-are not shown, unless the key 'a' has been pressed or unless sorting on
-memory occupation is done (then inactive processes are relevant as well).
-If the list of active processes does not entirely fit on
-the screen, only the top of the list is shown (sorted in order of activity).
+on system level (CPU, memory, disks and network layers) in the upper part
+of the screen. When a resource has been unused during the interval,
+the line is suppressed unless the 'f' key is active.
+
+In the bottom part of the screen cgroup level (key 'G') or process level
+information is shown (keys 'g', 'c', 's', 'm', 'd', 'n', 'v', 'u' or 'p').
+By default, only cgroups are shown without assigned processes in the cgroup itself
+nor in the cgroups underneath, unless the 'a' key (all) is active.
+By default, only processes are shown that were active during
+the interval unless the 'a' key (all) is active.
 .br
 The intervals are repeated till the number of
 .I samples
@@ -234,7 +238,7 @@ When
 .I atop
 is started, it checks whether the standard output channel is connected to a
 screen, or to a file/pipe. In the first case it produces screen control 
-codes (via the ncurses library) and behaves interactively; in the second case
+codes (via the ncurses library) and behaves interactively. In the second case
 it produces flat text output.
 .PP
 In interactive mode, the output of 
@@ -257,8 +261,8 @@ However it is also possible to specify such key as
 on the command line. In that case
 .I atop
 switches to the indicated mode on beforehand. This mode can 
-be modified again interactively. Specifying such key as flag is especially
-useful when running
+be modified again interactively. Specifying such key as flag
+is especially useful when running
 .I atop
 with output to a pipe or file (non-interactively).
 These flags are the same as the keys that can be pressed in interactive
@@ -266,6 +270,15 @@ mode (see section INTERACTIVE COMMANDS).
 .br
 Additional flags are available to support storage of atop-data in raw 
 format (see section RAW DATA STORAGE).
+
+The status line in the initial screen shows if
+.I atop
+runs with restricted view (as unprivileged user) or unrestricted view
+(as privileged user).  In case of restricted view
+.I atop
+does not have the privileges (no root identity nor the necessary capabilities)
+to retrieve all counter values on system level and on process level.
+
 .SH PROCESS ACCOUNTING
 With every interval,
 .I atop
@@ -688,17 +701,22 @@ command line including arguments.
 .B G
 Show cgroup v2 information.
 
-TODO TODO
-Per process the following fields are shown:
-process-id, 'cpu.weight' of the cgroup the process
-belongs to, 'cpu.max' value (recalculated as percentage) of the cgroup
-the process belongs to, most restrictive 'cpu.max' value found in the
-upper directories, 'memory.max' value of the cgroup the process belongs to,
-most restrictive 'memory.max' value found in the upper
-directories, 'memory.swap.max' value of the cgroup the process belongs to,
-most restrictive 'memory.swap.max' value found in the
-upper directories, the command name, and
-the cgroup path name (horizontally scrollable).
+Show a hierarchical structure of cgroups and related metrics.
+Optionally, the processes assigned to each cgroup can be shown.
+With the keys/flags '2' till '7' the level depth of the cgroups can
+be chosen ('7' is default). With key/flag '8' the assigned active processes
+are shown as well, except the kernel processes (usually in the root cgroup).
+With key/flag '9' all active processes are shown, including the
+kernel processes.
+
+With key/flag 'a' (toggle) all cgroups and all processes are shown
+instead of only the active cgroups and processes.
+A cgroup is considered inactive when no processes are assigned to that cgroup
+nor to the cgroups underneath.
+
+With key/flag 'C' the output is sorted on CPU consumption, with
+key/flag 'M' sorted on memory consumption and with
+key/flag 'D' sorted on disk consumption.
 .PP
 .TP 5
 .B e
@@ -1283,6 +1301,7 @@ For large memory figures, another unit is chosen if the value does not fit
 (Mb instead of Kb, Gb instead of Mb, Tb instead of Gb, etcetera).
 For other values, a kind of exponent notation is used (value 123456789
 shown in a column of 5 positions gives 123e6).
+
 .SH OUTPUT DESCRIPTION - SYSTEM LEVEL
 The system level information in text mode consists
 of the following output lines:
@@ -1754,10 +1773,81 @@ If the screen-width does not allow all of these counters,
 only a relevant subset is shown.
 .br
 The number of lines showing the Infiniband ports can be limited.
+
+.SH OUTPUT DESCRIPTION - CGROUPS LEVEL (V2)
+In the bottom part of the screen a hierarchical list of cgroups
+can be shown. By default, cgroups without assigned processes in
+the cgroup itself and the cgroups underneath will be suppressed.
+By pressing the 'a' key (toggle) all cgroups will be shown.
+
+When depth level '8' or '9' has been selected (by pressing the
+corresponding key) the assigned processes are shown as well.
+By default, only the processes that were active during the interval.
+By pressing the 'a' key (toggle) all processes will be shown.
+.PP
+Per cgroup the following fields may be shown (in alphabetical order),
+depending on the current width of your window:
+.PP
+.TP 9
+.B CGROUP
+Name of the cgroup (version 2), i.e. the directory name in the
+cgroup hierrarchy.
+This root cgroup '/' corresponds to the cgroup root directory, which
+is usually '/sys/fs/cgroup'.
+.PP
+.TP 9
+.B CPUBUSY
+The consumed CPU percentage by this cgroup and all cgroups underneath
+(as a percentage of one CPU). Value -1 means undefined.
+.PP
+.TP 9
+.B CPUMAX
+The 'cpu.max' value of this cgroup (version 2),
+calculated as percentage of one CPU.
+Value -1 means maximum, while value -2 means undefined.
+.PP
+.TP 9
+.B CPUWGT
+The 'cpu.weight' value of this cgroup (version 2). 
+Value -2 means undefined.
+.PP
+.TP 9
+.B DISKIO
+The amount of data transferred to/from physical disks
+in this cgroup and the cgroups underneath. Value -1 means undefined.
+.PP
+.TP 9
+.B IOWGT
+The 'io.weight' value of this cgroup (version 2).
+Value -2 means undefined.
+.PP
+.TP 9
+.B MEMMAX
+The 'memory.max' value of this cgroup (version 2).
+Value -1 means maximum, while value -2 means undefined.
+.PP
+.TP 9
+.B MEMORY
+The current memory occupation of this cgroup and all cgroups underneath.
+Value -1 means undefined.
+.PP
+.TP 9
+.B NPROCS
+The number of processes assigned to this cgroup.
+.PP
+.TP 9
+.B PBELOW
+The number of processes assigned to the cgroups underneath this cgroup.
+.PP
+.TP 9
+.B SWPMAX
+The 'memory.swap.max' value of this cgroup (version 2).
+Value -1 means maximum, while value -2 means undefined.
+
 .SH OUTPUT DESCRIPTION - PROCESS LEVEL
-Following the system level information, a list of processes is shown 
-in text mode from which the
-resource utilization has changed during the last interval. These processes
+In the bottom part of the screen, a list of processes can be shown 
+from which the resource utilization has changed during the last
+interval. These processes
 might have used CPU time or might have issued disk or network requests.
 However a process
 is also shown if part of it has been paged out due to lack of memory (while
@@ -1804,12 +1894,6 @@ is loaded.
 .TP 9
 .B BDELAY
 Aggregated block I/O delay, i.e. time waiting for disk I/O.
-.PP
-.TP 9
-.B CGROUP
-Path name of the cgroup (version 2) to which this process belongs.
-This path name is relative to the cgroup root directory, which
-is usually '/sys/fs/cgroup'.
 .PP
 .TP 9
 .B CID/POD
@@ -1860,24 +1944,9 @@ The occupation percentage of this process related to the available capacity
 for this resource on system level.
 .PP
 .TP 9
-.B CPUMAX
-The 'cpu.max' value of the cgroup (version 2) to which this process belongs,
-calculated as percentage of one CPU.
-.PP
-.TP 9
-.B CPUMAXR
-The most restrictive (i.e. effective) 'cpu.max' value defined by the
-upper directories of the cgroup (version 2) to which this process belongs,
-calculated as percentage of one CPU.
-.PP
-.TP 9
 .B CPUNR
 The identification of the CPU the (main) thread is running on
 or has recently been running on.  
-.PP
-.TP 9
-.B CPUWGT
-The 'cpu.weight' value of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B CTID
@@ -1984,17 +2053,8 @@ When the
 daemon does not run with root privileges, this value is not available.
 .PP
 .TP 9
-.B MEMMAX
-The 'memory.max' value of the cgroup (version 2) to which this process belongs.
-.PP
-.TP 9
 .B MEMNOW
 Memory occupation at the moment of the sample on all used GPUs.
-.PP
-.TP 9
-.B MMMAXR
-The most restrictive (i.e. effective) 'memory.max' value defined by the
-upper directories of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B MINFLT
@@ -2217,18 +2277,8 @@ The start time of the process.
 The saved user-id of the process.
 .PP
 .TP 9
-.B SWPMAX
-The 'memory.swap.max' value of the cgroup (version 2) to which this
-process belongs.
-.PP
-.TP 9
 .B SWAPSZ
 The swap space consumed by this process (or user).
-.PP
-.TP 9
-.B SWMAXR
-The most restrictive (i.e. effective) 'memory.swap.max' value defined by the
-upper directories of the cgroup (version 2) to which this process belongs.
 .PP
 .TP 9
 .B SYSCPU
@@ -2439,10 +2489,12 @@ correspond to the labels (first verb of each line)
 that can be found in the interactive output:
 "CPU", "cpu", "CPL", "GPU", "MEM", "SWP", "PAG", "PSI", "LVM", "MDD",
 "DSK", "NFM", "NFC", "NFS", "NET", "IFB", "LLC", "NUM" and "NUC".
-.br
+
+For cgroup-level statistics the label "CGR" is available.
+
 For process-level statistics special labels are available:
 "PRG" (general), "PRC" (CPU), "PRE" (GPU), "PRM" (memory), "PRD"
-(disk, only if "storage accounting" is active) and "PRN" (network, only if
+(disk, but requires special privileges) and "PRN" (network, only if
 the optional module
 .I netatop
 or
@@ -2747,6 +2799,29 @@ consumption for node CPUs in irq mode (clock-ticks),
 consumption for node CPUs in softirq mode (clock-ticks),
 consumption for node CPUs in steal mode (clock-ticks), and
 consumption for node CPUs in guest mode (clock-ticks) overlapping user mode.
+.TP 9
+.B CGR
+For every cgroup (level) one or two lines are shown.
+The first line shows the utilization and configuration values
+of the cgroup. The optional second line shows the PIDs of the
+processes assigned to this cgroup.
+
+Subsequent fields of first line:
+character 'C', full path name of cgroup,
+number of processes assigned to this group,
+number of processes assigned to the cgroups underneath,
+CPU usage in user mode (microseconds),
+CPU usage in system mode (microseconds), CPU weight, CPU max,
+current memory usage (pages),
+anonymous memory usage (pages), file memory usage (pages),
+kernel memory usage (pages), shared memory usage (pages),
+memory max (pages), swap max (pages),
+number of bytes read from disk, number of bytes written to disk, 
+number of read requests from disk, number of write requests to disk, and
+disk weight.
+
+Subsequent fields of second line (only when processes assigned to this cgroup):
+character 'P', full path name of cgroup, and list of PIDs separated by spaces.
 .TP 9
 .B PRG
 For every process one line is shown.
