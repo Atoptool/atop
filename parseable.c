@@ -887,7 +887,7 @@ print_PRG(char *hp, struct sstat *ss,
 {
 	register int	i, exitcode, cgrlen, cgrpathsize = 256;
 	char		namout[PNAMLEN+1+2], cmdout[CMDLEN+1+2],
-			*cgrout=NULL, *cgrpath;
+			defaultbuf[8], *cgrout=defaultbuf, *cgrpath;
 
 	// create assumed worst-case cgroup path size
 	// if it appears to be too small, it will later on be realloc'ed
