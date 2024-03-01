@@ -1156,6 +1156,37 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 		}
 		else
 		{
+			// suppress this cgroup
+			// when it is a stub cgroup for this level,
+			// pass the stub to the previous valid entry
+			// of this level
+			//
+			if ( (*(cgchainerp+ic))->stub)
+			{
+				int j;
+
+				for (j=im-1; j > 0; j--)
+				{
+					int depth = (*(cgchainerp+ic))->cstat->gen.depth;
+
+			     		if (depth > (cgroupsel+j)->cgp->cstat->gen.depth)
+					{
+						break;
+					}
+
+			     		if (depth == (cgroupsel+j)->cgp->cstat->gen.depth)
+					{
+						(cgroupsel+j)->cgp->stub = 7;
+						break;
+					}
+					else
+					{
+						if (depth < CGRMAXDEPTH)
+			     			   (cgroupsel+j)->cgp->vlinemask &= ~(1 << (depth-1));
+					}
+				}
+			}
+
 			continue;
 		}
 		
@@ -1336,7 +1367,7 @@ static struct cgsorter		cgroot;		// struct for root with depth zero
 
 static struct cgchainer *sortlevel(int, struct cgsorter *, struct cgchainer *, int, char);
 static struct cgchainer **mergelevels(struct cgsorter *, int);
-static int		mergelevel(struct cgsorter *, struct cgchainer **);
+static int		mergelevel(struct cgsorter *, struct cgchainer **, unsigned long);
 static void		createsortlist(struct cgsorter *);
 static int              compsortval(const void *, const void *);
 
@@ -1528,12 +1559,13 @@ compsortval(const void *a, const void *b)
 
 
 // Gather all sorted cgsorter structs from the entire tree
-// into one list of pointers.
+// and create one array of cgchainer pointers in sorted order.
 //
 static struct cgchainer **
 mergelevels(struct cgsorter *cgrootp, int cgsize)
 {
 	struct cgchainer	**cgpp;
+	unsigned long		vlinemask = 0;
 
 	// allocate the list of pointers to be returned
 	//
@@ -1543,8 +1575,10 @@ mergelevels(struct cgsorter *cgrootp, int cgsize)
 	// fill the first entry with the root cgchainer struct pointer
 	//
 	*cgpp = cgrootp->cgthis;
+        (*cgpp)->stub = 1;	// no more entries on this level
+	(*cgpp)->vlinemask = vlinemask;
 
-	mergelevel(cgrootp, cgpp+1);
+	mergelevel(cgrootp, cgpp+1, vlinemask);
 
 	return cgpp;
 }
@@ -1554,10 +1588,11 @@ mergelevels(struct cgsorter *cgrootp, int cgsize)
 // To be called in a nested way for each level underneath.
 //
 static int 
-mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp)
+mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
+					unsigned long vlinemask)
 {
-	int i, j;
 	struct cgsorter *cgs, *cgsave;
+	int 		i, j, depth = cgparent->cgthis->cstat->gen.depth;
 
 	switch (cgparent->nrchild)
 	{
@@ -1567,10 +1602,17 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp)
 
 	   case 1:	// in case of one child no sortlist has been created
 		*cgpp = cgparent->cgchild->cgthis;
+		(*cgpp)->stub = 1;	// no more entries on this level
+
+		if (depth < CGRMAXDEPTH)
+			vlinemask &= ~(1 << depth);
+
+		(*cgpp)->vlinemask = vlinemask;
+
 		j = 1;
 
 		if (cgparent->cgchild->nrchild)	// merge descendants on lower level?
-			j += mergelevel(cgparent->cgchild, cgpp+1);
+			j += mergelevel(cgparent->cgchild, cgpp+1, vlinemask);
 
 		free(cgparent->cgchild);
 		break;
@@ -1582,11 +1624,30 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp)
 
 			*(cgpp+j) = cgs->cgthis;
 
+			if (i == cgparent->nrchild -1)	// last on this level?
+			{
+				(*(cgpp+j))->stub = 1;	// no more entries on this level
+
+				if (depth < CGRMAXDEPTH)
+					vlinemask &= ~(1 << depth);
+
+				(*(cgpp+j))->vlinemask = vlinemask;
+			}
+			else
+			{
+				(*(cgpp+j))->stub = 0;	// more entries on this level
+
+				if (depth < CGRMAXDEPTH)
+					vlinemask |= 1 << depth;
+
+				(*(cgpp+j))->vlinemask = vlinemask;
+			}
+
 			if (cgs->nrchild)	// merge descendants on lower level?
-				j += mergelevel(cgs, cgpp+j+1);
+				j += mergelevel(cgs, cgpp+j+1, vlinemask);
 		}
 
-		// all cgroups of this level merged: free malloced areas
+		// for all cgroups of this level merged: free malloced areas
 		//
 		free(cgparent->sortlist);
 

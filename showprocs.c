@@ -201,10 +201,10 @@ char *cgroup_CGRDISKIO(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRDSKWGT(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
-char *cgroup_CGRPID(struct cgchainer *, struct tstat *, int,
-				int, count_t, int, int *);
-char *cgroup_CGRCMD(struct cgchainer *, struct tstat *, int,
-				int, count_t, int, int *);
+char *cgroup_CGRPID(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
+char *cgroup_CGRCMD(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
 
 
 static char     *columnhead[] = {
@@ -2406,9 +2406,11 @@ showcgroupline(detail_printpair* elemptr,
         {
 		char *buf;
 
+
 		color = 0;
-		buf = curelem.pf->doactiveconvert(cgchain, tstat, avgval,
-				nsecs, cputicks, nrcpu, &color);
+
+		buf = curelem.pf->doactiveconvert(cgchain, tstat,
+				avgval, nsecs, cputicks, nrcpu, &color);
 
                 if (screen)
 		{
@@ -2456,18 +2458,21 @@ showcgroupline(detail_printpair* elemptr,
 
 /***************************************************************/
 char *
-cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
-        extern detail_printdef cgroupprt_CGROUP_PATH;
-        extern int	startoffset;	// influenced by -> and <- keys
         static char	buf[4098];
 
-	char	*cgrname   = cgchain->cstat->cgname;
-	int	namelen    = cgchain->cstat->gen.namelen;
-	int	cgrdepth   = cgchain->cstat->gen.depth;
+        extern detail_printdef cgroupprt_CGROUP_PATH;
+        extern int	startoffset;	// influenced by -> and <- keys
+	int		i;
 
-	if (*cgrname == '\0')	// root?
+	char		*cgrname  = cgchain->cstat->cgname;
+	int		namelen   = cgchain->cstat->gen.namelen;
+	int		cgrdepth  = cgchain->cstat->gen.depth;
+	unsigned long	vlinemask = cgchain->vlinemask;
+
+	if (*cgrname == '\0')	// root cgroup?
 	{
 		cgrname = "/";
 		namelen  = 1;
@@ -2485,16 +2490,36 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat, int avgval, i
 			break;
 
 		   default:
-			printw("%*s", (cgrdepth-1) * 3, "");
-
-			if (!tstat)
+			// draw continuous vertical bars for
+			// previous levels if not stub
+			//
+			for (i=0; i < cgrdepth-1; i++)
 			{
-	                	addch(ACS_LLCORNER);
+				if (i >= CGRMAXDEPTH || vlinemask & (1<<i))
+					addch(ACS_VLINE);
+				else
+					addch(' ');
+
+				addch(' ');
+				addch(' ');
+			}
+
+			if (!tstat)	// cgroup line
+			{
+				if (cgrdepth >= CGRMAXDEPTH || cgchain->stub)
+	                		addch(ACS_LLCORNER);
+				else
+	                		addch(ACS_LTEE);
+
 	                	addch(ACS_HLINE);
 			}
-			else
+			else		// process line
 			{
-				addch(' ');
+				if (cgrdepth >= CGRMAXDEPTH || cgchain->stub)
+					addch(' ');
+				else
+	                		addch(ACS_VLINE);
+
 				addch(' ');
 			}
 
@@ -2518,8 +2543,8 @@ detail_printdef cgroupprt_CGROUP_PATH =
         cgroup_CGROUP_PATH, NULL, ' ', 33, 0};
 /***************************************************************/
 char *
-cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[10];
 
@@ -2535,8 +2560,8 @@ detail_printdef cgroupprt_CGRNPROCS =
    { "NPROCS", "CGRNPROCS", cgroup_CGRNPROCS, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRNPROCSB(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRNPROCSB(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[10];
 
@@ -2552,8 +2577,8 @@ detail_printdef cgroupprt_CGRNPROCSB =
    { "PBELOW", "CGRNPROCSB", cgroup_CGRNPROCSB, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
 	float		perc;
@@ -2604,8 +2629,8 @@ detail_printdef cgroupprt_CGRCPUBUSY =
    { "CPUBUSY", "CGRCPUBUSY", cgroup_CGRCPUBUSY, NULL, 'C', 7};
 /***************************************************************/
 char *
-cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
 	float       perc;
@@ -2647,8 +2672,8 @@ detail_printdef cgroupprt_CGRCPUMAX =
    { "CPUMAX", "CGRCPUMAX", cgroup_CGRCPUMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRCPUWGT(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRCPUWGT(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
 
@@ -2670,8 +2695,8 @@ detail_printdef cgroupprt_CGRCPUWGT =
    { "CPUWGT", "CGRCPUWGT", cgroup_CGRCPUWGT, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
 	count_t		memusage, maxusage;
@@ -2715,8 +2740,8 @@ detail_printdef cgroupprt_CGRMEMORY =
    { "MEMORY", "CGRMEMORY", cgroup_CGRMEMORY, NULL, 'M', 6};
 /***************************************************************/
 char *
-cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
 	count_t		memusage, maxusage;
@@ -2755,8 +2780,8 @@ detail_printdef cgroupprt_CGRMEMMAX =
    { "MEMMAX", "CGRMEMMAX", cgroup_CGRMEMMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRSWPMAX(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRSWPMAX(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
 
@@ -2780,8 +2805,8 @@ detail_printdef cgroupprt_CGRSWPMAX =
    { "SWPMAX", "CGRSWPMAX", cgroup_CGRSWPMAX, NULL, ' ', 6};
 /***************************************************************/
 char *
-cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char	buf[16];
 
@@ -2809,8 +2834,8 @@ detail_printdef cgroupprt_CGRDISKIO =
    { "DISKIO", "CGRDISKIO", cgroup_CGRDISKIO, NULL, 'D', 6};
 /***************************************************************/
 char *
-cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
 
@@ -2832,8 +2857,8 @@ detail_printdef cgroupprt_CGRDSKWGT =
    { "IOWGT", "CGRDSKWGT", cgroup_CGRDSKWGT, NULL, ' ', 5};
 /***************************************************************/
 char *
-cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[64];
 
@@ -2849,8 +2874,8 @@ detail_printdef cgroupprt_CGRPID =
    { "PID", "CGRPID", cgroup_CGRPID, NULL, ' ', 5}; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
-cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat, int avgval, int nsecs,
-		count_t cputicks, int nrcpu, int *color)
+cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
         static char buf[16];
 

@@ -94,7 +94,14 @@ struct cgchainer {
 
 	struct cstat		*cstat;		// cgroup info and stats
 	pid_t			*proclist;	// PID list of cgroup
+
+	unsigned long		vlinemask;	// bit list for tree drawing:
+						// bit '1' for continuous line
+	char			stub;		// boolean for tree drawing:
+						// true means corner
 };
+
+#define CGRMAXDEPTH   (sizeof(unsigned long)*8)	// #bits in vlinemask
 
 // structure to be used for printing a merged list
 // of cgroups and processes
