@@ -1791,7 +1791,7 @@ depending on the current width of your window:
 .TP 9
 .B CGROUP
 Name of the cgroup (version 2), i.e. the directory name in the
-cgroup hierrarchy.
+cgroup hierarchy.
 This root cgroup '/' corresponds to the cgroup root directory, which
 is usually '/sys/fs/cgroup'.
 .PP
@@ -1807,6 +1807,11 @@ calculated as percentage of one CPU.
 Value -1 means maximum, while value -2 means undefined.
 .PP
 .TP 9
+.B CPUPS
+The CPU pressure percentage ('some') in this cgroup and
+cgroups underneath.
+.PP
+.TP 9
 .B CPUWGT
 The 'cpu.weight' value of this cgroup (version 2). 
 Value -2 means undefined.
@@ -1815,6 +1820,11 @@ Value -2 means undefined.
 .B DISKIO
 The amount of data transferred to/from physical disks
 in this cgroup and the cgroups underneath. Value -1 means undefined.
+.PP
+.TP 9
+.B DSKPS
+The disk pressure percentage ('full') in this cgroup and
+cgroups underneath.
 .PP
 .TP 9
 .B IOWGT
@@ -1830,6 +1840,11 @@ Value -1 means maximum, while value -2 means undefined.
 .B MEMORY
 The current memory occupation of this cgroup and all cgroups underneath.
 Value -1 means undefined.
+.PP
+.TP 9
+.B MEMPS
+The memory pressure percentage ('full') in this cgroup and
+cgroups underneath.
 .PP
 .TP 9
 .B NPROCS
@@ -2817,8 +2832,11 @@ anonymous memory usage (pages), file memory usage (pages),
 kernel memory usage (pages), shared memory usage (pages),
 memory max (pages), swap max (pages),
 number of bytes read from disk, number of bytes written to disk, 
-number of read requests from disk, number of write requests to disk, and
-disk weight.
+number of read requests from disk, number of write requests to disk,
+the disk weight,
+cpu some pressure (microseconds), cpu total pressure (microseconds),
+memory some pressure (microseconds), memory total pressure (microseconds),
+disk some pressure (microseconds), and disk total pressure (microseconds).
 
 Subsequent fields of second line (only when processes assigned to this cgroup):
 character 'P', full path name of cgroup, and list of PIDs separated by spaces.

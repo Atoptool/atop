@@ -57,7 +57,8 @@ struct cstat {
 		count_t	utime;		// time user   text (usec) -1=undefined
 		count_t	stime;		// time system text (usec) -1=undefined
 
-		count_t	pressure;	// total pressure (millisec)
+		count_t	somepres;	// some pressure (microsec)
+		count_t	fullpres;	// full pressure (microsec)
 	} cpu;
 
 	// MEMORY STATISTICS
@@ -68,7 +69,8 @@ struct cstat {
 		count_t	kernel;		// kernel memory (pages)    -1=undefined
 		count_t	shmem;		// shared memory (pages)    -1=undefined
 
-		count_t	pressure;	// total pressure (millisec)
+		count_t	somepres;	// some pressure (microsec)
+		count_t	fullpres;	// full pressure (microsec)
 	} mem;
 
 	// DISK I/O STATISTICS
@@ -78,7 +80,8 @@ struct cstat {
 		count_t	rios;		// total read I/Os on all physical disks
 		count_t	wios;		// total write I/Os on all physical disks
 
-		count_t	pressure;	// total pressure (millisec)
+		count_t	somepres;	// some pressure (microsec)
+		count_t	fullpres;	// full pressure (microsec)
 	} dsk;
 
 	// cgroup name with variable length

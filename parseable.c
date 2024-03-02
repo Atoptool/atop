@@ -838,7 +838,8 @@ print_CGR(char *hp, struct sstat *ss,
 
 		printf(	"%s C %s %d %d %lld %lld %d %d "
 		        "%lld %lld %lld %lld %lld %lld %lld "
-		        "%lld %lld %lld %lld %d\n",
+		        "%lld %lld %lld %lld %d %lld %lld "
+			"%lld %lld %lld %lld\n",
 			hp, cgrpath,
 			(devchain+i)->cstat->gen.nprocs,
 			(devchain+i)->cstat->gen.procsbelow,
@@ -859,7 +860,13 @@ print_CGR(char *hp, struct sstat *ss,
 			(devchain+i)->cstat->dsk.wbytes,
 			(devchain+i)->cstat->dsk.rios,
 			(devchain+i)->cstat->dsk.wios,
-			(devchain+i)->cstat->conf.dskweight);
+			(devchain+i)->cstat->conf.dskweight,
+			(devchain+i)->cstat->cpu.somepres,
+			(devchain+i)->cstat->cpu.fullpres,
+			(devchain+i)->cstat->mem.somepres,
+			(devchain+i)->cstat->mem.fullpres,
+			(devchain+i)->cstat->dsk.somepres,
+			(devchain+i)->cstat->dsk.fullpres);
 
 		// print related pidlist in one line
 		//

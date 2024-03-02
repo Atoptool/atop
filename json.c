@@ -1066,6 +1066,8 @@ json_print_CGR(char *hp, struct sstat *ss,
 			 "\"stime\": %lld, "
 			 "\"cpuweight\": %d, "
 			 "\"cpumax\": %d, "
+			 "\"cpupsisome\": %lld, "
+			 "\"cpupsitotal\": %lld, "
 
 			 "\"memcurrent\": %lld, "
 			 "\"memanon\": %lld, "
@@ -1074,13 +1076,19 @@ json_print_CGR(char *hp, struct sstat *ss,
 			 "\"memshmem\": %lld, "
 			 "\"memmax\": %lld, "
 			 "\"swpmax\": %lld, "
+			 "\"mempsisome\": %lld, "
+			 "\"mempsitotal\": %lld, "
 
 			 "\"diskrbytes\": %lld, "
 			 "\"diskwbytes\": %lld, "
 			 "\"diskrios\": %lld, "
 			 "\"diskwios\": %lld, "
 			 "\"diskweight\": %d, "
+			 "\"diskpsisome\": %lld, "
+			 "\"diskpsitotal\": %lld, "
+
 			 "\"pidlist\": [",
+
                         cggetpath(cs+i, cs),
                         (cs+i)->cstat->gen.nprocs,
                         (cs+i)->cstat->gen.procsbelow,
@@ -1088,6 +1096,8 @@ json_print_CGR(char *hp, struct sstat *ss,
                         (cs+i)->cstat->cpu.stime,
                         (cs+i)->cstat->conf.cpuweight,
                         (cs+i)->cstat->conf.cpumax,
+                        (cs+i)->cstat->cpu.somepres,
+                        (cs+i)->cstat->cpu.fullpres,
 
                         (cs+i)->cstat->mem.current > 0 ?
 			       (cs+i)->cstat->mem.current * pagesize :
@@ -1110,12 +1120,16 @@ json_print_CGR(char *hp, struct sstat *ss,
                         (cs+i)->cstat->conf.swpmax > 0 ?
                         	(cs+i)->cstat->conf.swpmax * pagesize :
                         	(cs+i)->cstat->conf.swpmax,
+                        (cs+i)->cstat->mem.somepres,
+                        (cs+i)->cstat->mem.fullpres,
 
                         (cs+i)->cstat->dsk.rbytes,
                         (cs+i)->cstat->dsk.wbytes,
                         (cs+i)->cstat->dsk.rios,
                         (cs+i)->cstat->dsk.wios,
-                        (cs+i)->cstat->conf.dskweight);
+                        (cs+i)->cstat->conf.dskweight,
+                        (cs+i)->cstat->dsk.somepres,
+                        (cs+i)->cstat->dsk.fullpres);
 
                 // generate related pidlist
                 //

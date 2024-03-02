@@ -473,12 +473,15 @@ detail_printdef *alldetaildefs[]=
 	&cgroupprt_CGRNPROCS,
 	&cgroupprt_CGRNPROCSB,
 	&cgroupprt_CGRCPUBUSY,
+	&cgroupprt_CGRCPUPSI,
 	&cgroupprt_CGRCPUMAX,
 	&cgroupprt_CGRCPUWGT,
 	&cgroupprt_CGRMEMORY,
+	&cgroupprt_CGRMEMPSI,
 	&cgroupprt_CGRMEMMAX,
 	&cgroupprt_CGRSWPMAX,
 	&cgroupprt_CGRDISKIO,
+	&cgroupprt_CGRDSKPSI,
 	&cgroupprt_CGRDSKWGT,
 	&cgroupprt_CGRPID,
 	&cgroupprt_CGRCMD,
@@ -747,6 +750,7 @@ make_detail_prints(detail_printpair *ar, int maxn, const char *pairs,
                                 break;
                         }
                 }
+
                 if (alldetaildefs[j]==0)
                 {
                         mcleanstop(1,
@@ -1355,9 +1359,10 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 		// meant to show cgroups
 		//
                 make_detail_prints(gencgroups, MAXITEMS, 
-                        "CGRPATH:10 CGRNPROCS:9 CGRNPROCSB:8 CGRCPUBUSY:7 "
-			"CGRCPUMAX:3 CGRCPUWGT:2 CGRMEMORY:7 CGRMEMMAX:3 "
-			"CGRSWPMAX:1 CGRDISKIO:6 CGRDSKWGT:2 CGRPID:5 CGRCMD:4", 
+                        "CGRPATH:10 CGRNPROCS:9 CGRNPROCSB:8 "
+			"CGRCPUBUSY:7 CGRCPUPSI:4 CGRCPUMAX:3 CGRCPUWGT:2 "
+			"CGRMEMORY:7 CGRMEMPSI:4 CGRMEMMAX:3 CGRSWPMAX:1 "
+			"CGRDISKIO:6 CGRDSKPSI:4 CGRDSKWGT:2 CGRPID:6 CGRCMD:5", 
                         "built-in gencgroups");
         }
 

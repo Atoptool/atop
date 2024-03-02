@@ -187,17 +187,23 @@ char *cgroup_CGRNPROCSB(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRCPUBUSY(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
+char *cgroup_CGRCPUPSI(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
 char *cgroup_CGRCPUWGT(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRCPUMAX(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRMEMORY(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
+char *cgroup_CGRMEMPSI(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
 char *cgroup_CGRMEMMAX(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRSWPMAX(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRDISKIO(struct cgchainer *, struct tstat *,
+				int, int, count_t, int, int *);
+char *cgroup_CGRDSKPSI(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 char *cgroup_CGRDSKWGT(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
@@ -2539,8 +2545,8 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGROUP_PATH = 
-       {"CGROUP (horizontal scroll: <- ->)", "CGRPATH", 
-        cgroup_CGROUP_PATH, NULL, ' ', 33, 0};
+       {"CGROUP (scroll: <- ->)    ", "CGRPATH", 
+        cgroup_CGROUP_PATH, NULL, ' ', 26, 0};
 /***************************************************************/
 char *
 cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2627,6 +2633,36 @@ cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat,
 
 detail_printdef cgroupprt_CGRCPUBUSY =
    { "CPUBUSY", "CGRCPUBUSY", cgroup_CGRCPUBUSY, NULL, 'C', 7};
+/***************************************************************/
+char *
+cgroup_CGRCPUPSI(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
+{
+        static char	buf[16];
+	float		perc;
+
+	if (tstat)	// process info?
+		return "     ";
+
+	// cgroup info
+	switch (cgchain->cstat->cpu.somepres)
+	{
+	   case -1:
+        	return "    -";
+	   default:
+		perc = cgchain->cstat->cpu.somepres /
+		       (cputicks/nrcpu*100.0);
+
+		if (perc >= 25.0)
+                	*color = FGCOLORCRIT;
+
+		snprintf(buf, sizeof buf, "%4.0f%%", perc);
+        	return buf;
+	}
+}
+
+detail_printdef cgroupprt_CGRCPUPSI =
+   { "CPUPS", "CGRCPUPSI", cgroup_CGRCPUPSI, NULL, ' ', 5};
 /***************************************************************/
 char *
 cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2740,6 +2776,36 @@ detail_printdef cgroupprt_CGRMEMORY =
    { "MEMORY", "CGRMEMORY", cgroup_CGRMEMORY, NULL, 'M', 6};
 /***************************************************************/
 char *
+cgroup_CGRMEMPSI(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
+{
+        static char	buf[16];
+	float		perc;
+
+	if (tstat)	// process info?
+		return "     ";
+
+	// cgroup info
+	switch (cgchain->cstat->mem.somepres)
+	{
+	   case -1:
+        	return "    -";
+	   default:
+		perc = cgchain->cstat->mem.fullpres /
+		       (cputicks/nrcpu*100.0);
+
+		if (perc >= 20.0)
+                	*color = FGCOLORCRIT;
+
+		snprintf(buf, sizeof buf, "%4.0f%%", perc);
+        	return buf;
+	}
+}
+
+detail_printdef cgroupprt_CGRMEMPSI =
+   { "MEMPS", "CGRMEMPSI", cgroup_CGRMEMPSI, NULL, ' ', 5};
+/***************************************************************/
+char *
 cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat,
 		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
 {
@@ -2832,6 +2898,36 @@ cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
 
 detail_printdef cgroupprt_CGRDISKIO =
    { "DISKIO", "CGRDISKIO", cgroup_CGRDISKIO, NULL, 'D', 6};
+/***************************************************************/
+char *
+cgroup_CGRDSKPSI(struct cgchainer *cgchain, struct tstat *tstat,
+		int avgval, int nsecs, count_t cputicks, int nrcpu, int *color)
+{
+        static char	buf[16];
+	float		perc;
+
+	if (tstat)	// process info?
+		return "     ";
+
+	// cgroup info
+	switch (cgchain->cstat->dsk.somepres)
+	{
+	   case -1:
+        	return "    -";
+	   default:
+		perc = cgchain->cstat->dsk.fullpres /
+		       (cputicks/nrcpu*100.0);
+
+		if (perc >= 25.0)
+                	*color = FGCOLORCRIT;
+
+		snprintf(buf, sizeof buf, "%4.0f%%", perc);
+        	return buf;
+	}
+}
+
+detail_printdef cgroupprt_CGRDSKPSI =
+   { "DSKPS", "CGRDSKPSI", cgroup_CGRDSKPSI, NULL, ' ', 5};
 /***************************************************************/
 char *
 cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat,

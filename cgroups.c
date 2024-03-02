@@ -56,7 +56,7 @@ static unsigned long	walkcgroup(char *, struct cgchainer *, int, long, int, int)
 static void		getconfig(struct cstat *, struct cstat *);
 static int		readconfigval(char *, count_t []);
 static void		getmetrics(struct cstat *);
-static count_t		gettotpressure(char *fname);
+static void		getpressure(char *, count_t *, count_t *);
 
 static long		hashcalc(char *, long, int);
 static void		hashadd(struct cgchainer *[], struct cgchainer *);
@@ -541,7 +541,7 @@ getmetrics(struct cstat *csp)
 		fclose(fp);
 	}
 
-	csp->cpu.pressure = gettotpressure("cpu.pressure");
+	getpressure("cpu.pressure", &(csp->cpu.somepres), &(csp->cpu.fullpres));
 
 	// gather memory metrics
 	//
@@ -602,7 +602,7 @@ getmetrics(struct cstat *csp)
 		fclose(fp);
 	}
 
-	csp->mem.pressure = gettotpressure("memory.pressure");
+	getpressure("memory.pressure", &(csp->mem.somepres), &(csp->mem.fullpres));
 
 	// gather disk I/O metrics
 	//
@@ -650,41 +650,45 @@ getmetrics(struct cstat *csp)
 		csp->dsk.wios   = -1;	// undefined
 	}
 
-	csp->dsk.pressure = gettotpressure("io.pressure");
+	getpressure("io.pressure", &(csp->dsk.somepres), &(csp->dsk.fullpres));
 }
 
-// Get total pressure value from file with a format similar to:
+// Get total pressure values from file with a format similar to:
 //
 //     some avg10=0.00 avg60=0.00 avg300=0.00 total=9660682563
-//     full avg10=0.00 avg60=0.00 avg300=0.00 total=9376892229  <--
+//     full avg10=0.00 avg60=0.00 avg300=0.00 total=9376892229 
 //
-count_t
-gettotpressure(char *fname)
+static void
+getpressure(char *fname, count_t *some, count_t *full)
 {
 	char 	psiformat[] = "%c%*s avg10=%f avg60=%f avg300=%f total=%llu",
 		linebuf[256], psitype;
 	float	a10, a60, a300;
-	count_t totpressure;
 	FILE	*fp;
 
-	totpressure = -1;	// undefined
+	*some = -1;	// initially undefined
+	*full = -1;	// initially undefined
 
 	if ( (fp = fopen(fname, "r")) != NULL)
 	{
-		fgets(linebuf, sizeof(linebuf), fp);	// skip 'some' line
-
-		// only handle second line: 'total' pressure
+		// handle first line: 'some' pressure
 		//
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			sscanf(linebuf, psiformat,
-				&psitype, &a10, &a60, &a300, &totpressure);
+				&psitype, &a10, &a60, &a300, some);
+                }
+
+		// handle second line: 'full' pressure
+		//
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			sscanf(linebuf, psiformat,
+				&psitype, &a10, &a60, &a300, full);
                 }
 
 		fclose(fp);
 	}
-
-	return totpressure;
 }
 
 
@@ -763,11 +767,18 @@ cgcalcdeviate(void)
 			if (dp->cstat->cpu.stime != -1)		// defined?
 				dp->cstat->cpu.stime	-= pp->cstat->cpu.stime;
 
-			if (dp->cstat->cpu.pressure != -1)	// defined?
-				dp->cstat->cpu.pressure	-= pp->cstat->cpu.pressure;
+			if (dp->cstat->cpu.somepres != -1)	// defined?
+				dp->cstat->cpu.somepres	-= pp->cstat->cpu.somepres;
 
-			if (dp->cstat->mem.pressure != -1)	// defined?
-				dp->cstat->mem.pressure	-= pp->cstat->mem.pressure;
+			if (dp->cstat->cpu.fullpres != -1)	// defined?
+				dp->cstat->cpu.fullpres	-= pp->cstat->cpu.fullpres;
+
+
+			if (dp->cstat->mem.somepres != -1)	// defined?
+				dp->cstat->mem.somepres	-= pp->cstat->mem.somepres;
+
+			if (dp->cstat->mem.fullpres != -1)	// defined?
+				dp->cstat->mem.fullpres	-= pp->cstat->mem.fullpres;
 
 
 			if (dp->cstat->dsk.rbytes != -1)	// defined?
@@ -778,8 +789,11 @@ cgcalcdeviate(void)
 				dp->cstat->dsk.wios	-= pp->cstat->dsk.wios;
 			}
 
-			if (dp->cstat->dsk.pressure != -1)	// defined?
-				dp->cstat->dsk.pressure	-= pp->cstat->dsk.pressure;
+			if (dp->cstat->dsk.somepres != -1)	// defined?
+				dp->cstat->dsk.somepres	-= pp->cstat->dsk.somepres;
+
+			if (dp->cstat->dsk.fullpres != -1)	// defined?
+				dp->cstat->dsk.fullpres	-= pp->cstat->dsk.fullpres;
 		}
 	}
 }
