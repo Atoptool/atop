@@ -19,6 +19,8 @@ In combination with the optional kernel module *netatop*,
 it even shows network activity per process/thread. 
 In combination with the optional daemon *atopgpud*,
 it also shows GPU activity on system level and process level. 
+Furthermore cgroup-level resource consumption can be shown, optionally
+with the processes contained by these cgroups.
 
 ## Highlights
 
@@ -28,6 +30,10 @@ The command atop has some major advantages compared to other performance monitor
 In *text mode* details are shown about the utilization of system resources and the resource consumption by processes.
 In *bar graph mode* a (character-based) graphical overview is given about the utilization of the processors, disks,
 network interfaces and memory on system level.
+
+* __Cgroups overview.__
+In *text mode* the cgroups hierarchy can be shown with the utilization of CPU, memory and disk resources
+and the processes contained by these cgroups.
 
 * __Resource consumption by *all* processes.__
 It shows the resource consumption by all processes that were active during the interval, so also the resource consumption by those processes that have finished during the interval.
