@@ -504,17 +504,22 @@ val2Hzstr(count_t value, char *strvalue)
 #define	ONEGBYTE	1073741824L
 #define	ONETBYTE	1099511627776LL
 #define	ONEPBYTE	1125899906842624LL
+#define	ONEEBYTE	1152921504606846976LL
+#define MAXLONGLONG	9223372036854775807LL
 
 #define	MAXBYTE		999
-#define	MAXKBYTE	ONEKBYTE*999L
-#define	MAXKBYTE9	ONEKBYTE*9L
-#define	MAXMBYTE	ONEMBYTE*999L
-#define	MAXMBYTE9	ONEMBYTE*9L
-#define	MAXGBYTE	ONEGBYTE*999LL
-#define	MAXGBYTE9	ONEGBYTE*9LL
-#define	MAXTBYTE	ONETBYTE*999LL
-#define	MAXTBYTE9	ONETBYTE*9LL
-#define	MAXPBYTE9	ONEPBYTE*9LL
+#define	MAXKBYTE	(ONEKBYTE*999L)
+#define	MAXKBYTE9	(ONEKBYTE*9L)
+#define	MAXMBYTE	(ONEMBYTE*999L)
+#define	MAXMBYTE9	(ONEMBYTE*9L)
+#define	MAXGBYTE	(ONEGBYTE*999LL)
+#define	MAXGBYTE9	(ONEGBYTE*9LL)
+#define	MAXTBYTE	(ONETBYTE*999LL)
+#define	MAXTBYTE9	(ONETBYTE*9LL)
+#define	MAXPBYTE 	(ONEPBYTE*999LL)
+#define	MAXPBYTE9	(ONEPBYTE*9LL)
+#define	MAXEBYTE 	(ONEEBYTE*999LL)
+#define	MAXEBYTE8	(ONEEBYTE*7LL+(ONEEBYTE-1))
 
 char *
 val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
@@ -574,7 +579,13 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 		                                    if (verifyval <= MAXPBYTE9)    /* pbytes 1-9 ? */
 		                                        aformat = PBFORMAT;
 		                                    else
-		                                        aformat = PBFORMAT_INT;    /* pbytes! */
+		                                        if (verifyval <= MAXPBYTE)    /* pbytes 10-999 ? */
+		                                            aformat = PBFORMAT_INT;
+		                                        else
+		                                            if (verifyval <= MAXEBYTE8)    /* ebytes 1-8 ? */
+		                                                aformat = EBFORMAT;
+		                                            else
+		                                                aformat = OVFORMAT;    /* max long long */
 	} else 
 	/*
 	** printed value per interval (normal mode) 
@@ -598,7 +609,10 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 						if (verifyval <= MAXTBYTE)    /* tbytes? */
 							aformat = TBFORMAT;
 						else
-							aformat = PBFORMAT;   /* pbytes! */
+						        if (verifyval <= MAXPBYTE)    /* pbytes? */
+							        aformat = PBFORMAT;
+						        else
+						         	aformat = EBFORMAT;   /* ebytes! */
 	}
 
 
@@ -665,8 +679,13 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 			basewidth-1, llround((double)((double)value/ONEPBYTE)), suffix);
 		break;
 
+	   case	EBFORMAT:
+		snprintf(strvalue, 7, "%*.1lfE%s",
+			basewidth-1, (double)((double)value/ONEEBYTE), suffix);
+		break;
+
 	   default:
-		snprintf(strvalue, 7, "!TILT!");
+		snprintf(strvalue, 7, "OVFLOW");
 	}
 
 	// check if overflow occurred during the formatting
@@ -681,6 +700,7 @@ val2memstr(count_t value, char *strvalue, int pformat, int avgval, int nsecs)
 	   case 'G':
 	   case 'T':
 	   case 'P':
+	   case 'E':
 		break;
 
 	   default:
