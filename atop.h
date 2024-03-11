@@ -100,6 +100,7 @@ extern char		rawreadflag;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];
+extern char		logpath[];
 extern struct visualize vis;
 
 extern char		displaymode;
