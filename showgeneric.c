@@ -958,17 +958,20 @@ text_samp(time_t curtime, int nsecs,
 						            (tall+t)->gen.tgid;
 						         t++)
 						    {
+							if (procsuppress(tall+t, &procsel))
+								continue;
+
 							if (deviatonly &&
 								showtype  != MPROCMEM &&
 							        showorder != MSORTMEM   )
 							{
-							  if (!(tall+t)->gen.wasinactive)
-							  {
+							   if (!(tall+t)->gen.wasinactive)
 								tsklist[j++] = tall+t;
-							  }
  							}
 							else
+							{
 								tsklist[j++] = tall+t;
+							}
 						    }
 	
 					            if (threadsort && j-n > 0 &&
@@ -1898,7 +1901,7 @@ text_samp(time_t curtime, int nsecs,
 				clrtoeol();
 
 				/* Linux fs/proc/array.c - task_state_array */
-				printw("Comma-separated process/thread states "
+				printw("Comma-separated thread states within process "
 				       "(R|S|D|I|T|t|X|Z|P): ");
 
 				memset(procsel.states, 0, sizeof procsel.states);
@@ -2741,7 +2744,9 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 
 
 /*
-** function that checks if the current process is selected or suppressed;
+** function that checks if the current process or thread must be
+** selected or suppressed
+**
 ** returns 1 (suppress) or 0 (do not suppress)
 */
 static int
@@ -2776,12 +2781,12 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 
 		while (sel->pid[i])
 		{
-			if (sel->pid[i] == curstat->gen.pid)
+			if (sel->pid[i] == curstat->gen.tgid)
 				break;
 			i++;
 		}
 
-		if (sel->pid[i] != curstat->gen.pid)
+		if (sel->pid[i] != curstat->gen.tgid)
 			return 1;
 	}
 
@@ -2833,9 +2838,29 @@ procsuppress(struct tstat *curstat, struct pselection *sel)
 
 	/*
 	** check if only processes in specific states should be shown 
+	**
+	** notice that the state of a process (i.e. the main thread)
+	** may be 'S' while a thread in the process might have state 'R'
+	** --> still show the process in that case!
 	*/
 	if (sel->states[0])
 	{
+		// check the states of the threads of this process
+		//
+		if (strchr(sel->states, 'R') && curstat->gen.nthrrun)
+			return 0;
+
+		if (strchr(sel->states, 'S') && curstat->gen.nthrslpi)
+			return 0;
+
+		if (strchr(sel->states, 'D') && curstat->gen.nthrslpu)
+			return 0;
+
+		if (strchr(sel->states, 'I') && curstat->gen.nthridle)
+			return 0;
+
+		// check the state of the process itself
+		//
 		if (strchr(sel->states, curstat->gen.state) == NULL)
 			return 1;
 	}
