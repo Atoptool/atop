@@ -1,7 +1,6 @@
 [Unit]
 Description=Atop process accounting daemon
 Documentation=man:atopacctd(8)
-After=syslog.target
 Before=atop.service
 
 [Service]
