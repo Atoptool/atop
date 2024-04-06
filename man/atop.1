@@ -1,4 +1,4 @@
-.TH ATOP 1 "January 2024" "Linux"
+.TH ATOP 1 "April 2024" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -7,17 +7,17 @@
 Live measurement in bar graph mode:
 .PP
 .TP 5
-.B \  atop \-B[H] [interval [samples]]
+.B \  atop \-B[H] [-t [absdir]] [interval [samples]]
 .PP
 Live measurement cgroups in text mode:
 .PP
 .TP 5
-.B \  atop \-G [-2|-3|-4|-5|-6|-7|-8|-9] [\-a] [\-C|\-M|\-D|\-A] [interval [samples]]
+.B \  atop \-G [-t [absdir]] [-2|-3|-4|-5|-6|-7|-8|-9] [\-a] [\-C|\-M|\-D|\-A] [interval [samples]]
 .PP
 Live measurement processes in text mode:
 .PP
 .TP 5
-.B \  atop [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR] [interval [samples]]
+.B \  atop [-t [absdir]] [\-g|\-m|\-d|\-n|\-u|\-p|\-s|\-c|\-v|\-o|\-y|\-Y] [\-C|\-M|\-D|\-N|\-A] [\-fFX1xR] [interval [samples]]
 .PP
 Live generation of parsable output (white-space separated or JSON):
 .PP
@@ -64,6 +64,44 @@ Network load per process is shown only when the
 kernel module or the
 .I netatop-bpf
 BPF module has been installed.
+.SH TWIN MODE
+With the
+.I -t
+flag you can run 
+.I atop
+interactively in 'twin mode'.
+This mode allows to run a live measurement with the possibility to
+review and analyze an earlier sample. Meanwhile, the live measurement
+continues.
+
+When started in twin mode,
+.I atop
+spawns a child process that gathers the counters and writes
+them to a temporary raw file. The parent process reads the counters
+from the temporary raw file and presents them to the user.
+The reading of the parent process keeps in pace with the written
+samples of the child process for live measurements.
+
+While the gathering continues by the child process, key 'r',
+key 'b' or key 'T' can be pressed to review earlier samples.
+The parent process implicitly pauses the live measurement by pressing
+one of these keys or by pressing key 'z' (pause) explicitly.
+
+After browsing through the earlier samples with the
+keys 't' (next sample), 'T' (previous sample), 'r' (reset to
+begin of measurement) and 'b' (branch to time tamp),
+the live measurement can be continued by pressing key 'z' (resume after pause).
+
+The temporary raw file will be written in the 
+.B /tmp
+directory by default. Optionally the absolute path name of an alternative
+directory can be added behind the
+.I -t
+flag (e.g. when there is not enough space in the
+.B /tmp
+directory). In any case, the parent process will terminate the child process
+when the measurement is finished and the temporary raw file will be
+removed.
 .SH BAR GRAPH MODE
 When running
 .I atop
@@ -3020,16 +3058,16 @@ interactively:
 .PP
 .B \  atop -r yy
 .PP
-View the contents of the standard logfile of 2023, April 15 from
+View the contents of the standard logfile of 2024, April 5 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20230415 -b 1400
+.B \  atop -r 20240405 -b 1400
 .PP
-Concatenate all raw log files of March 2023 and generate parsable
+Concatenate all raw log files of March 2024 and generate parsable
 output about the CPU utilization:
 .PP
 .TP 12
-.B \  atopcat /var/log/atop/atop_202303?? | atop -r -  -PCPU
+.B \  atopcat /var/log/atop/atop_202403?? | atop -r -  -PCPU
 .PP
 To monitor the system load and write it to a file (in plain ASCII)
 with an interval of one minute during half an hour with active
