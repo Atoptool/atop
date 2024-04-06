@@ -3466,119 +3466,120 @@ generic_init(void)
 static struct helptext {
 	char *helpline;
 	char helparg;
+	char mode;	// 'l' - live, 'r' - rawlog, 'a' - all
 } helptext[] = {
-	{"Display mode:\n", ' '},
+	{"Display mode:\n", ' ', 'a'},
 	{"\t'%c'  - show bar graphs for system utilization (toggle)\n",
-								MBARGRAPH},
-	{"\n",							' '},
-	{"Information in text mode about cgroups v2:\n", 	' '},
-	{"\t'%c'  - cgroups v2 metrics\n",			MCGROUPS},
-	{"\t 2-7 - cgroups tree level selection (default 7)\n", ' '},
-	{"\t 8   - cgroups with related processes, except kernel processes\n", ' '},
-	{"\t 9   - cgroups with related processes\n", ' '},
+								MBARGRAPH, 'a'},
+	{"\n",							' ', 'a'},
+	{"Information in text mode about cgroups v2:\n", 	' ', 'a'},
+	{"\t'%c'  - cgroups v2 metrics\n",			MCGROUPS, 'a'},
+	{"\t 2-7 - cgroups tree level selection (default 7)\n", ' ', 'a'},
+	{"\t 8   - cgroups with related processes, except kernel processes\n", ' ', 'a'},
+	{"\t 9   - cgroups with related processes\n", ' ', 'a'},
 	{"\t'%c'  - show all cgroups/processes i.s.o. only active ones (toggle)\n",
-								MALLACTIVE},
-	{"\t'%c'  - sort on cpu activity\n",			MSORTCPU},
-	{"\t'%c'  - sort on memory utilization\n",		MSORTMEM},
-	{"\t'%c'  - sort on disk transfer rate\n",		MSORTDSK},
-	{"\n",							' '},
-	{"Information in text mode about processes:\n", 	' '},
-	{"\t'%c'  - generic info (default)\n",			MPROCGEN},
-	{"\t'%c'  - memory details\n",				MPROCMEM},
-	{"\t'%c'  - disk details\n",				MPROCDSK},
-	{"\t'%c'  - network details\n",				MPROCNET},
-	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH},
-	{"\t'%c'  - GPU details\n",				MPROCGPU},
+								MALLACTIVE, 'a'},
+	{"\t'%c'  - sort on cpu activity\n",			MSORTCPU, 'a'},
+	{"\t'%c'  - sort on memory utilization\n",		MSORTMEM, 'a'},
+	{"\t'%c'  - sort on disk transfer rate\n",		MSORTDSK, 'a'},
+	{"\n",							' ', 'a'},
+	{"Information in text mode about processes:\n", 	' ', 'a'},
+	{"\t'%c'  - generic info (default)\n",			MPROCGEN, 'a'},
+	{"\t'%c'  - memory details\n",				MPROCMEM, 'a'},
+	{"\t'%c'  - disk details\n",				MPROCDSK, 'a'},
+	{"\t'%c'  - network details\n",				MPROCNET, 'a'},
+	{"\t'%c'  - scheduling and thread-group info\n",	MPROCSCH, 'a'},
+	{"\t'%c'  - GPU details\n",				MPROCGPU, 'a'},
 	{"\t'%c'  - various info (ppid, user/group, date/time, status, "
-	 "exitcode)\n",	MPROCVAR},
-	{"\t'%c'  - full command line per process\n",		MPROCARG},
-	{"\t'%c'  - use own output line definition\n",		MPROCOWN},
-	{"\n",							' '},
-	{"Sort list of processes in order of:\n",		' '},
-	{"\t'%c'  - cpu activity\n",				MSORTCPU},
-	{"\t'%c'  - memory consumption\n",			MSORTMEM},
-	{"\t'%c'  - disk activity\n",				MSORTDSK},
-	{"\t'%c'  - network activity\n",			MSORTNET},
-	{"\t'%c'  - GPU activity\n",				MSORTGPU},
-	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO},
-	{"\n",							' '},
-	{"Raw file viewing and twin mode:\n",			' '},
-	{"\t'%c'  - show next     sample\n",			MSAMPNEXT},
-	{"\t'%c'  - show previous sample\n",			MSAMPPREV},
-	{"\t'%c'  - branch to certain time\n",			MSAMPBRANCH},
-	{"\t'%c'  - rewind to begin\n",				MRESET},
+	 "exitcode)\n",	MPROCVAR, 'a'},
+	{"\t'%c'  - full command line per process\n",		MPROCARG, 'a'},
+	{"\t'%c'  - use own output line definition\n",		MPROCOWN, 'a'},
+	{"\n",							' ', 'a'},
+	{"Sort list of processes in order of:\n",		' ', 'a'},
+	{"\t'%c'  - cpu activity\n",				MSORTCPU, 'a'},
+	{"\t'%c'  - memory consumption\n",			MSORTMEM, 'a'},
+	{"\t'%c'  - disk activity\n",				MSORTDSK, 'a'},
+	{"\t'%c'  - network activity\n",			MSORTNET, 'a'},
+	{"\t'%c'  - GPU activity\n",				MSORTGPU, 'a'},
+	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO, 'a'},
+	{"\n",							' ', 'a'},
+	{"Raw file viewing and twin mode:\n",			' ', 'r'},
+	{"\t'%c'  - show next     sample\n",			MSAMPNEXT, 'r'},
+	{"\t'%c'  - show previous sample\n",			MSAMPPREV, 'r'},
+	{"\t'%c'  - branch to certain time\n",			MSAMPBRANCH, 'r'},
+	{"\t'%c'  - rewind to begin\n",				MRESET, 'r'},
 	{"\t'%c'  - pause button to freeze or continue (twin mode)\n",
-								MPAUSE},
-	{"\n",							' '},
-	{"Accumulated process figures:\n",			' '},
-	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
+								MPAUSE, 'r'},
+	{"\n",							' ', 'r'},
+	{"Accumulated process figures:\n",			' ', 'a'},
+	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER, 'a'},
 	{"\t'%c'  - total resource consumption per program (i.e. same "
-	 "process name)\n",					MCUMPROC},
-	{"\t'%c'  - total resource consumption per container/pod\n",MCUMCONT},
-	{"\n",							' '},
-	{"Process selections (keys shown in header line):\n",	' '},
+	 "process name)\n",					MCUMPROC, 'a'},
+	{"\t'%c'  - total resource consumption per container/pod\n",MCUMCONT, 'a'},
+	{"\n",							' ', 'a'},
+	{"Process selections (keys shown in header line):\n",	' ', 'a'},
 	{"\t'%c'  - focus on specific user name           "
-	                              "(regular expression)\n", MSELUSER},
+	                              "(regular expression)\n", MSELUSER, 'a'},
 	{"\t'%c'  - focus on specific program name        "
-	                              "(regular expression)\n", MSELPROC},
-	{"\t'%c'  - focus on specific container/pod name\n",    MSELCONT},
+	                              "(regular expression)\n", MSELPROC, 'a'},
+	{"\t'%c'  - focus on specific container/pod name\n",    MSELCONT, 'a'},
 	{"\t'%c'  - focus on specific command line string "
-	                              "(regular expression)\n", MSELARG},
-	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID},
-	{"\t'%c'  - focus on specific process/thread state(s)\n", MSELSTATE},
-	{"\n",							' '},
-	{"System resource selections (keys shown in header line):\n",' '},
+	                              "(regular expression)\n", MSELARG, 'a'},
+	{"\t'%c'  - focus on specific process id (PID)\n",      MSELPID, 'a'},
+	{"\t'%c'  - focus on specific process/thread state(s)\n", MSELSTATE, 'a'},
+	{"\n",							' ', 'a'},
+	{"System resource selections (keys shown in header line):\n",' ', 'a'},
 	{"\t'%c'  - focus on specific system resources    "
-	                              "(regular expression)\n", MSELSYS},
-	{"\n",							      ' '},
-	{"Screen handling:\n",					      ' '},
-	{"\t^L   - redraw the screen                       \n",	      ' '},
-	{"\tPgDn - show next page in the process list (or ^F)\n",     ' '},
-	{"\tPgUp - show previous page in the process list (or ^B)\n", ' '},
-	{"\tArDn - arrow-down for next line in process list\n",       ' '},
-	{"\tArUp   arrow-up for previous line in process list\n",     ' '},
-	{"\tArRt - arrow-right for next character in full command line\n", ' '},
+	                              "(regular expression)\n", MSELSYS, 'a'},
+	{"\n",							      ' ', 'a'},
+	{"Screen handling:\n",					      ' ', 'a'},
+	{"\t^L   - redraw the screen                       \n",	      ' ', 'a'},
+	{"\tPgDn - show next page in the process list (or ^F)\n",     ' ', 'a'},
+	{"\tPgUp - show previous page in the process list (or ^B)\n", ' ', 'a'},
+	{"\tArDn - arrow-down for next line in process list\n",       ' ', 'a'},
+	{"\tArUp   arrow-up for previous line in process list\n",     ' ', 'a'},
+	{"\tArRt - arrow-right for next character in full command line\n", ' ', 'a'},
 	{"\tArLt - arrow-left for previous character in full command line\n",
-									' '},
-	{"\n",							' '},
-	{"Presentation (keys shown in header line):\n",  	' '},
+									' ', 'a'},
+	{"\n",							' ', 'a'},
+	{"Presentation (keys shown in header line):\n",  	' ', 'a'},
 	{"\t'%c'  - show threads within process (thread view)      (toggle)\n",
-		 						MTHREAD},
+		 						MTHREAD, 'a'},
 	{"\t'%c'  - sort threads (when combined with thread view)  (toggle)\n",
-		 						MTHRSORT},
+		 						MTHRSORT, 'a'},
 	{"\t'%c'  - show all processes/threads (i.s.o. active)     (toggle)\n",
-								MALLACTIVE},
+								MALLACTIVE, 'a'},
 	{"\t'%c'  - show fixed number of header lines              (toggle)\n",
-								MSYSFIXED},
+								MSYSFIXED, 'a'},
 	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
-								MSYSNOSORT},
+								MSYSNOSORT, 'a'},
 	{"\t'%c'  - suppress terminateed processes in output       (toggle)\n",
-								MSUPEXITS},
+								MSUPEXITS, 'a'},
 	{"\t'%c'  - no colors to indicate high occupation          (toggle)\n",
-								MCOLORS},
+								MCOLORS, 'a'},
 	{"\t'%c'  - show average-per-second i.s.o. total values    (toggle)\n",
-								MAVGVAL},
+								MAVGVAL, 'a'},
 	{"\t'%c'  - calculate proportional set size (PSIZE)        (toggle)\n",
-								MCALCPSS},
+								MCALCPSS, 'a'},
 	{"\t'%c'  - determine WCHAN per thread                     (toggle)\n",
-								MGETWCHAN},
+								MGETWCHAN, 'a'},
 	{"\n",							' '},
 	{"Miscellaneous commands:\n",				' '},
 	{"\t'%c'  - change interval timer (0 = only manual trigger)\n",
-								MINTERVAL},
-	{"\t'%c'  - manual trigger to force next sample\n",	MSAMPNEXT},
-	{"\t'%c'  - reset counters to boot time values\n",	MRESET},
+								MINTERVAL, 'l'},
+	{"\t'%c'  - manual trigger to force next sample\n",	MSAMPNEXT, 'l'},
+	{"\t'%c'  - reset counters to boot time values\n",	MRESET, 'l'},
 	{"\t'%c'  - pause button to freeze current sample (toggle)\n",
-								MPAUSE},
+								MPAUSE, 'l'},
+	{"\n",							' ', 'l'},
+	{"\t'%c'  - limit lines for per-cpu, disk and interface resources\n",
+								MSYSLIMIT, 'a'},
+	{"\t'%c'  - kill a process (i.e. send a signal)\n",	MKILLPROC, 'a'},
 	{"\n",							' '},
-	{"\t'%c'  - limited lines for per-cpu, disk and interface resources\n",
-								MSYSLIMIT},
-	{"\t'%c'  - kill a process (i.e. send a signal)\n",	MKILLPROC},
-	{"\n",							' '},
-	{"\t'%c'  - version information\n",			MVERSION},
-	{"\t'%c'  - help information\n",			MHELP1},
-	{"\t'%c'  - help information\n",			MHELP2},
-	{"\t'%c'  - quit this program\n",			MQUIT},
+	{"\t'%c'  - version information\n",			MVERSION, 'a'},
+	{"\t'%c'  - help information\n",			MHELP1, 'a'},
+	{"\t'%c'  - help information\n",			MHELP2, 'a'},
+	{"\t'%c'  - quit this program\n",			MQUIT, 'a'},
 };
 
 static int helplines = sizeof(helptext)/sizeof(struct helptext);
@@ -3586,7 +3587,7 @@ static int helplines = sizeof(helptext)/sizeof(struct helptext);
 static void
 showhelp(int helpline)
 {
-	int	winlines = LINES-helpline, shown, tobeshown=1, i;
+	int	winlines = LINES-helpline, shown, tobeshown=1, i, lines;
 	WINDOW	*helpwin;
 
 	/*
@@ -3599,14 +3600,25 @@ showhelp(int helpline)
 	/*
 	** show help-lines 
 	*/
-	for (i=0, shown=0; i < helplines; i++, shown++)
+	for (i=0, lines=0, shown=0; i < helplines; i++)
 	{
+		if (rawreadflag)	// implies twin mode
+		{
+			if (helptext[i].mode == 'l')
+				continue;
+		}
+		else
+		{
+			if (helptext[i].mode == 'r')
+				continue;
+		}
+
 		wprintw(helpwin, helptext[i].helpline, helptext[i].helparg);
 
 		/*
 		** when the window is full, start paging interactively
 		*/
-		if (i >= winlines-2 && shown >= tobeshown)
+		if (lines >= winlines-2 && shown >= tobeshown)
 		{
 			int inputkey;
 
@@ -3651,6 +3663,9 @@ showhelp(int helpline)
 
 			wmove(helpwin, winlines-1, 0);
 		}
+
+		lines++;
+		shown++;
 	}
 
 	wmove(helpwin, winlines-1, 0);
