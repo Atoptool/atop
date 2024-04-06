@@ -109,8 +109,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <regex.h>
 #include <sys/utsname.h>
+#include <sys/select.h>
+#include <sys/ioctl.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -118,7 +121,8 @@
 #include "photosyst.h"
 
 extern char usecolors;
-
+static char winchange;
+static char keywaiting;	// key pushed back in stream?
 
 // maximum X axis label length
 //
@@ -229,6 +233,7 @@ static int	drawmemlines(struct perwindow *, int, int, int, int,
 static int	drawevent(struct perwindow *, int, int, int,
 			char *, char *, long);
 
+static void	getsigwinch(int);
 
 /////////////////////////////////////////////////////
 // entry point to display the deviation counters
@@ -344,7 +349,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 				statuscol = FGCOLORCRIT;
 		}
 
-		// wait for keystroke or alarm expiration
+		// wait for keystroke, alarm expiration or inotify watcher
 		//
 		switch (lastchar = headergetch(curtime, nsecs, statusmsg, statuscol))
 		{
@@ -388,7 +393,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 			break;		// redraw with current values
 
 		   case MSAMPNEXT:	// manual trigger for next sample?
-			if (paused)
+			if (paused && !twinpid)
 				break;
 
 			getalarm(0);
@@ -401,8 +406,12 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 				break;
 			}
 
-			if (paused)
-				break;
+			if (!paused && twinpid)
+			{
+				paused=1;       // implicit pause in twin mode
+				clrtoeol();
+				refresh();
+			}
 
 			getalarm(0);
 			return lastchar;
@@ -410,6 +419,14 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 		   case MRESET:		// reset to begin?
 			getalarm(0);
 			paused = 0;
+
+			if (twinpid)
+			{
+				paused=1;       // implicit pause in twin mode
+				clrtoeol();
+				refresh();
+			}
+
 			return lastchar;
 
 		   case MSAMPBRANCH:	// branch to other time?
@@ -419,6 +436,13 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 			{
 				beep();
 				break;
+			}
+
+			if (!paused && twinpid)
+			{
+				paused=1;       // implicit pause in twin mode
+				clrtoeol();
+				refresh();
 			}
 
 			if (getwininput("Enter new time (format [YYYYMMDD]hhmm): ",
@@ -450,12 +474,25 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 			break;
 
 		   case MPAUSE:		// pause key (toggle)?
+			if (rawreadflag && !twinpid)
+			{
+				beep();
+				break;
+			}
+
 			if (paused)
 			{
 				paused=0;
 
 				if (!rawreadflag)
+				{
 					alarm(1);
+				}
+				else
+				{
+					begintime = 0x7fffffff;
+					return MSAMPBRANCH;
+				}
 			}
 			else
 			{
@@ -506,6 +543,13 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 
 			if (interval && !paused && !rawreadflag)
 				alarm(1); // force new sample
+
+			if (twinpid)    // twin mode?
+			{
+				// jump to last sample after awaiting input
+				begintime = 0x7fffffff;
+				return MSAMPBRANCH;
+			}
 
 			break;
 
@@ -2114,6 +2158,11 @@ headergetch(time_t curtime, int nsecs, char *statusmsg, int statuscol)
 	int	headlen = strlen(headmsg);
 	char	buf[64], timestr[16], datestr[16];
 	int	seclen  = val2elapstr(nsecs, buf);
+	int	lastchar;
+
+	fd_set	readfds;
+	char	eventbuf[1024];
+	int	nrfds;
 
 	convdate(curtime, datestr);       /* date to ascii string   */
 	convtime(curtime, timestr);       /* time to ascii string   */
@@ -2150,11 +2199,95 @@ headergetch(time_t curtime, int nsecs, char *statusmsg, int statuscol)
         	colorswoff(headwin, statuscol);
 	}
 
-	wrefresh(headwin);
-
 	// wait for keystroke
 	//
-	return mvwgetch(headwin, 1, 0);
+	wmove(headwin, 1, 0);
+
+	wrefresh(headwin);
+
+	if (twinpid && !keywaiting)	// twin mode?
+	{
+		struct sigaction sigact, sigold;
+
+		/*
+		** catch window size changes while in select
+		*/
+	        memset(&sigact, 0, sizeof sigact);
+       		sigact.sa_handler = getsigwinch;
+       		sigaction(SIGWINCH, &sigact, &sigold);
+
+		winchange = 0;
+
+		/*
+		** await input character from keyboard, or
+		**       inotify trigger in case of twin mode, or
+		**       interval timer expiration
+		*/
+		FD_ZERO(&readfds);
+		FD_SET(0, &readfds);
+
+		if (!paused && fdinotify != -1)	// twin mode?
+		{
+			FD_SET(fdinotify, &readfds);
+			nrfds = fdinotify + 1;
+		}
+		else
+		{
+			nrfds = 1;
+		}
+
+		switch (select(nrfds, &readfds, (fd_set *)0,
+	                      (fd_set *)0, (struct timeval *)0))
+		{
+		   case -1:
+			/*
+			** window change or timer expiration?
+			*/
+			if (winchange)
+			{
+				// window change: set new dimensions
+				struct winsize w;
+
+				ioctl(0, TIOCGWINSZ, &w);
+				resizeterm(w.ws_row, w.ws_col);
+				lastchar = KEY_RESIZE;
+			}
+			else
+			{
+				// time interrupt
+				lastchar = 0;
+			}
+			break;
+
+		   default:
+			/*
+			** inotify trigger that new sample has been written?
+			** pretend as if the 't' key has been pressed
+			** to read that sample
+			**
+			** otherwise: read keystroke from keyboard
+			*/
+			if (FD_ISSET(fdinotify, &readfds))
+			{
+				read(fdinotify, eventbuf, sizeof eventbuf);
+
+				lastchar = MSAMPNEXT;
+			}
+			else
+			{
+				lastchar = wgetch(headwin);
+				keywaiting = 0;
+			}
+		}
+
+      			sigaction(SIGWINCH, &sigold, (struct sigaction *)0);
+	}
+	else	// no twin mode: neutral state is getch()
+	{
+		lastchar = wgetch(headwin);
+	}
+
+	return lastchar;
 }
 
 
@@ -2482,16 +2615,18 @@ showhelp(void)
 	//
 	if (rawreadflag)
 	{
-        	mvwprintw(helpwin, line++, 2, "Raw file viewing:");
+        	mvwprintw(helpwin, line++, 2, "Raw file viewing or twin mode:");
         	mvwprintw(helpwin, line++, 2,
-			" '%c'  - show next sample in raw file", MSAMPNEXT);
+			" '%c'  - show next sample", MSAMPNEXT);
         	mvwprintw(helpwin, line++, 2,
-			" '%c'  - show previous sample in raw file", MSAMPPREV);
+			" '%c'  - show previous sample", MSAMPPREV);
         	mvwprintw(helpwin, line++, 2,
-			" '%c'  - rewind to begin of raw file", MRESET);
+			" '%c'  - rewind to begin", MRESET);
         	mvwprintw(helpwin, line++, 2,
-			" '%c'  - branch to certain time in raw file",
-								MSAMPBRANCH);
+			" '%c'  - branch to certain time", MSAMPBRANCH);
+        	mvwprintw(helpwin, line++, 2,
+        		" '%c'  - pause button to freeze or continue (twin mode)",
+								MPAUSE);
 	}
 	else
 	{
@@ -2532,7 +2667,10 @@ showhelp(void)
 	// push this keystroke back to be received by the main loop
 	//
 	if (inputkey != MQUIT)
+	{
 		ungetch(inputkey);
+		keywaiting = 1;
+	}
 
 	// remove help window
 	delwin(helpwin);
@@ -2693,3 +2831,12 @@ compnetval(const void *a, const void *b)
 
         return  0;
 }
+
+// signal catcher
+//
+static void
+getsigwinch(int signr)
+{
+        winchange = 1;
+}
+

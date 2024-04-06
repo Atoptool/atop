@@ -290,11 +290,13 @@ rawwopen()
 {
 	struct rawheader	rh;
 	int			fd;
+	struct stat		filestats;
 
 	/*
 	** check if the file exists already
 	*/
-	if ( (fd = open(rawname, O_RDWR)) >= 0)
+	if ( (fd = open(rawname, O_RDWR)) >= 0 &&
+	      fstat(fd, &filestats) == 0 && filestats.st_size > 0)
 	{
 		/*
 		** read and verify header record
@@ -659,8 +661,7 @@ rawread(void)
 			** (only happens for the first record)
 			*/
 			if (begintime <= SECONDSINDAY)
-				begintime = normalize_epoch(cursortime,
-								begintime);
+				begintime = normalize_epoch(cursortime, begintime);
 
 			if (endtime && endtime <= SECONDSINDAY)
 				endtime = normalize_epoch(cursortime, endtime);
@@ -671,8 +672,7 @@ rawread(void)
 			*/
 			if (isregular)
 			{
-				*(offlist+offcur) = lseek(rawfd, 0, SEEK_CUR) -
-								rh.rawreclen;
+				*(offlist+offcur) = lseek(rawfd, 0, SEEK_CUR) - rh.rawreclen;
 
 				if ( ++offcur >= offsize )
 				{
@@ -700,10 +700,12 @@ rawread(void)
 					off_t next_pos;
 
 					lastcmd = 1;
-					next_pos = lseek(rawfd, rr.scomplen+rr.pcomplen, SEEK_CUR);
+					next_pos = lseek(rawfd, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen, SEEK_CUR);
+
 					if ((curr_pos >> READAHEADOFF) != (next_pos >> READAHEADOFF))
 					{
 						int liResult;
+
 						/* just read READAHEADSIZE bytes into page cache */
 						char *buf = malloc(READAHEADSIZE);
 
@@ -728,14 +730,11 @@ rawread(void)
 				}
 				else	// named pipe not seekable
 				{
-					char *dummybuf =
-						malloc(rr.scomplen+rr.pcomplen);
+					char *dummybuf = malloc(rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen);
 
-					ptrverify(dummybuf,
-				        "Malloc rawlog pipe buffer failed\n");
+					ptrverify(dummybuf, "Malloc rawlog pipe buffer failed\n");
 
-					readchunk(rawfd, dummybuf,
-						rr.scomplen+rr.pcomplen);
+					readchunk(rawfd, dummybuf, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen);
 
 					free(dummybuf);
 				}
@@ -916,9 +915,9 @@ rawread(void)
 			{
 		   	   case MSAMPPREV:
 				if (offcur >= 2)
-					offcur-= 2;
+					offcur -= 2;
 				else
-					offcur = 0;
+					offcur  = 0;
 
 				lseek(rawfd, *(offlist+offcur), SEEK_SET);
 				break;

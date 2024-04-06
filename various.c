@@ -853,7 +853,7 @@ mcleanstop(int exitcode, const char *errormsg, ...)
 }
 
 /*
-** cleanup, give error message and exit
+** cleanup and exit
 */
 void
 cleanstop(int exitcode)

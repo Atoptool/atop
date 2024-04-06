@@ -136,6 +136,7 @@
 #include <sys/resource.h>
 #include <regex.h>
 #include <glib.h>
+#include <sys/inotify.h>
 
 #include "atop.h"
 #include "acctproc.h"
@@ -163,6 +164,9 @@ time_t 		curtime;	/* timing info				*/
 unsigned long	interval = 10;
 unsigned long 	sampcnt;
 char		screen;
+int		fdinotify = -1;	/* inotify fd for twin mode  		*/
+pid_t		twinpid;	/* PID of lower half for twin mode	*/
+char		twindir[RAWNAMESZ] = "/tmp";
 int		linelen  = 80;
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
@@ -209,6 +213,7 @@ static char		awaittrigger;	/* boolean: awaiting trigger */
 static unsigned int 	nsamples = 0xffffffff;
 static char		midnightflag;
 static char		rawwriteflag;
+static char		twinmodeflag;
 
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
@@ -277,6 +282,8 @@ static struct {
 ** internal prototypes
 */
 static void	engine(void);
+static void	twinprepare(void);
+static void	twinclean(void);
 
 int
 main(int argc, char *argv[])
@@ -362,14 +369,6 @@ main(int argc, char *argv[])
 				vis.show_samp = rawwrite;
 				break;
 
-			   case 'B':		/* bar graphs ?               */
-				displaymode = 'D';
-				break;
-
-			   case 'H':		/* bar graphs ?               */
-				barmono = 1;
-				break;
-
 			   case 'r':		/* reading of raw data ?      */
 				if (optind < argc)
 				{
@@ -377,8 +376,7 @@ main(int argc, char *argv[])
 					{
 						if (strlen(argv[optind]) == 1)
 						{
-							strcpy(rawname,
-								"/dev/stdin");
+							strcpy(rawname, "/dev/stdin");
 							optind++;
 						}
 					}
@@ -391,6 +389,29 @@ main(int argc, char *argv[])
 				}
 
 				rawreadflag++;
+				break;
+
+			   case 't':		/* twin mode ?		      */
+				// optional absolute path name of directory?
+				if (optind < argc)
+				{
+					if (*(argv[optind]) == '/')
+					{
+						strncpy(twindir, argv[optind],
+								RAWNAMESZ-1);
+						optind++;
+					}
+				}
+
+				twinmodeflag++;
+				break;
+
+			   case 'B':		/* bar graphs ?               */
+				displaymode = 'D';
+				break;
+
+			   case 'H':		/* bar graphs ?               */
+				barmono = 1;
 				break;
 
 			   case 'S':		/* midnight limit ?           */
@@ -519,6 +540,17 @@ main(int argc, char *argv[])
 	pidwidth	= getpidwidth();
 
 	/*
+	** check if twin mode wanted with two atop processes:
+	**
+	** - lower half: gather statistics and write to raw file
+	** - upper half: read statistics and present to user
+	**
+	** consistency checks
+	*/
+	if (twinmodeflag)
+		twinprepare();
+
+	/*
 	** check if raw data from a file must be viewed
 	*/
 	if (rawreadflag)
@@ -528,17 +560,17 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	** determine start-time for gathering current statistics
-	*/
-	curtime = getboot() / hertz;
-
-	/*
 	** be sure to be leader of an own process group when
 	** running as a daemon (or at least: when not interactive);
 	** needed for systemd
 	*/
 	if (rawwriteflag)
 		(void) setpgid(0, 0);
+
+	/*
+	** determine start-time for gathering current statistics
+	*/
+	curtime = getboot() / hertz;
 
 	/*
 	** catch signals for proper close-down
@@ -970,7 +1002,7 @@ engine(void)
 void
 prusage(char *myname)
 {
-	printf("Usage: %s [-flags] [interval [samples]]\n",
+	printf("Usage: %s [-t [absdir]] [-flags] [interval [samples]]\n",
 					myname);
 	printf("\t\tor\n");
 	printf("Usage: %s -w  file  [-S] [-%c] [interval [samples]]\n",
@@ -979,9 +1011,12 @@ prusage(char *myname)
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
+	printf("\t  -t   twin mode: live measurement with possibility to review earlier samples\n");
+	printf("\t                  (raw file created in /tmp or in specific directory path)\n");
 	printf("\t  -%c  show bar graphs for system statistics\n", MBARGRAPH);
 	printf("\t  -%c  show bar graphs without categories\n", MBARMONO);
 	printf("\t  -%c  show cgroup v2 metrics\n", MCGROUPS);
+	printf("\t  -7  define cgroup v2 depth level -2 till -9 (default: -7)\n");
 	printf("\t  -%c  show version information\n", MVERSION);
 	printf("\t  -%c  show all processes and cgroups (i.s.o. active only)\n",
 			MALLACTIVE);
@@ -1177,4 +1212,120 @@ readrc(char *path, int syslevel)
 
 		fclose(fp);
 	}
+}
+
+/*
+** prepare twin mode
+*/
+#define TWINNAME	"atoptwinXXXXXX"
+extern char		twindir[];
+static char		*tempname;
+
+static void
+twinprepare(void)
+{
+	char	eventbuf[1024];
+	int	tempfd;
+
+	/*
+	** consistency checks for used options
+	*/
+	if (rawreadflag)
+	{
+		fprintf(stderr, "twin mode can not be combined with -r\n");
+        	exit(42);
+	}
+
+	if (rawwriteflag)
+	{
+		fprintf(stderr, "twin mode can not be combined with -w\n");
+        	exit(42);
+	}
+
+	if (!isatty(fileno(stdout)) )	// output to pipe or file?
+	{
+		fprintf(stderr, "twin mode only for interactive use\n");
+        	exit(42);
+	}
+
+	/*
+	** created unique temporary file
+	*/
+	if (strlen(twindir) + sizeof TWINNAME + 1 >= RAWNAMESZ)
+	{
+		fprintf(stderr, "twin mode directoy path too long\n");
+        	exit(42);
+	}
+
+	tempname = malloc(strlen(twindir) + sizeof TWINNAME + 1);
+
+	ptrverify(tempname, "Malloc failed for temporary twin name\n");
+
+	sprintf(tempname, "%s/%s", twindir, TWINNAME);
+
+	if ( (tempfd = mkstemp(tempname)) == -1)
+	{
+		perror("twin mode file creation");
+        	exit(42);
+	}
+
+	/*
+	** create lower half as child process
+	*/
+	switch (twinpid = fork())
+	{
+	   case -1:
+		perror("fork twin process");
+        	exit(42);
+
+	   case 0:	// lower half: gather data and write to rawfile
+		rawwriteflag++;
+
+		vis.show_samp = rawwrite;
+		break;
+
+	   default:	// upper half: read from raw file and visualize
+		rawreadflag++;
+
+		/*
+		** created inotify instance to be awoken when the lower half
+		** has written a new sample to the temporary file 
+		*/
+		if ( (fdinotify = inotify_init()) == -1)
+		{
+			perror("twin mode inotify init");
+        		exit(42);
+		}
+
+		(void) inotify_add_watch(fdinotify, tempname, IN_MODIFY);
+
+		/*
+		** arrange an automic kill of the lower half
+		** at the moment that the upper half terminates
+		*/
+		atexit(twinclean);
+
+		/*
+		** wait for first sample to be written by lower half
+		*/
+		(void) read(fdinotify, eventbuf, sizeof eventbuf);
+	}
+
+	/*
+	** define current raw file name for both parent and child
+	*/
+	strncpy(rawname, tempname, RAWNAMESZ-1);
+}
+
+/*
+** kill twin process that gathers data and
+** remove the temporary raw file
+*/
+static void
+twinclean(void)
+{
+	if (twinpid)    // kill lower half process
+		kill(twinpid, SIGTERM);
+
+	(void) unlink(tempname);
 }
