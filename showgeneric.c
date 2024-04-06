@@ -39,6 +39,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -49,6 +50,7 @@
 #include <regex.h>
 #include <locale.h>
 #include <unistd.h>
+#include <sys/select.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -66,7 +68,7 @@ static int	fixedhead;	/* boolean: fixate header-lines         */
 static int	sysnosort;	/* boolean: suppress sort of resources  */
 static int	threadsort;	/* boolean: sort threads per process    */
 static int	avgval;		/* boolean: average values i.s.o. total */
-static int	suppressexit;	/* boolean: suppress exited processes   */
+static int	suppressexit;	/* boolean: suppress terminated processes */
 
 static char	showtype  = MPROCGEN;
 static char	showorder = MSORTCPU;
@@ -88,6 +90,9 @@ static short	coloralmost = COLOR_CYAN;
 static short	colorcrit   = COLOR_RED;
 static short	colorthread = COLOR_YELLOW;
 
+static char	winchange;
+static char	keywaiting;	// set after key has been pushed back
+
 int		paused;    		// boolean: currently in pause-mode
 int		cgroupdepth = 7;	// default: cgroups without processes
 
@@ -99,6 +104,7 @@ static void	accumulate(struct tstat *, struct tstat *);
 static int	procsuppress(struct tstat *, struct pselection *);
 static void	limitedlines(void);
 static long	getnumval(char *, long, int);
+static void	getsigwinch(int);
 static void	generic_init(void);
 static char	text_samp(time_t, int, struct devtstat *, struct sstat *,
 	   		struct cgchainer *, int, int, unsigned int, char);
@@ -287,6 +293,10 @@ text_samp(time_t curtime, int nsecs,
 	struct passwd 	*pwd;
 	struct syscap	syscap;
 
+	fd_set		readfds;
+	char		eventbuf[1024];
+	int		nrfds;
+
 	/*
 	** number of entries in the active list of cgroups/tasks
 	** to be displayed
@@ -357,7 +367,7 @@ text_samp(time_t curtime, int nsecs,
 	** sellist contains the pointers to the structs in tstat
 	** that are currently selected on basis of a particular
 	** username (regexp), program name (regexp), container/pod name
-	** or suppressed exited procs
+	** or suppressed terminated procs
 	**
 	** this list will be allocated 'lazy'
 	*/
@@ -463,14 +473,18 @@ text_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						53 - seclen - utsnodenamelen;
+						60 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
+
+		if (len1 <= 0)
+			len1 = 1;
+
                 int len2	= lenavail - len1 - len1; 
 
-		printg("ATOP - %s%*s%s  %s%*s%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"
-		       "%c%c%*s%s elapsed", 
+		printg("ATOP - %s%*s%s %s %s %*s"
+		       "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
-			format1, format2, len1, "",
+			format1, format2, "      ", len1, "",
 			threadview                    ? MTHREAD    : '-',
 			threadsort                    ? MTHRSORT   : '-',
 			fixedhead  		      ? MSYSFIXED  : '-',
@@ -498,6 +512,19 @@ text_samp(time_t curtime, int nsecs,
                 else
                         printg("\n");
 
+		if (screen && paused)
+		{
+			if (usecolors)
+				attron(COLOR_PAIR(FGCOLORBORDER));
+
+			attron(A_REVERSE);
+			mvprintw(0, 27 + utsnodenamelen + len1, "PAUSED");
+			attroff(A_REVERSE);
+
+			if (usecolors)
+				attroff(COLOR_PAIR(FGCOLORBORDER));
+		}
+
 		/*
 		** print cumulative system- and user-time for all processes
 		*/
@@ -506,7 +533,7 @@ text_samp(time_t curtime, int nsecs,
 		if (noverflow)
 		{
 			snprintf(statbuf, sizeof statbuf, 
-			         "Only %d exited processes handled "
+			         "Only %d terminated processes handled "
 			         "-- %u skipped!", nexit, noverflow);
 
 			statmsg = statbuf;
@@ -608,7 +635,10 @@ text_samp(time_t curtime, int nsecs,
 
 				if (rawreadflag)
 				{
-					viewmsg   = "Rawfile view";
+					if (twinpid)
+						viewmsg   = "Twin mode";
+					else
+						viewmsg   = "Rawfile view";
 				}
 				else
 				{
@@ -622,8 +652,6 @@ text_samp(time_t curtime, int nsecs,
 				{
 					if (usecolors)
 						attron(COLOR_PAIR(FGCOLORINFO));
-
-					attron(A_BLINK);
 				}
 
        				printg(initmsg);
@@ -632,7 +660,6 @@ text_samp(time_t curtime, int nsecs,
 				{
 					if (usecolors)
 						attroff(COLOR_PAIR(FGCOLORINFO));
-					attroff(A_BLINK);
 
 					printg("%*s", COLS - strlen(initmsg)
 					                   - strlen(viewmsg),
@@ -649,8 +676,6 @@ text_samp(time_t curtime, int nsecs,
 				{
 					if (usecolors)
 						attron(COLOR_PAIR(FGCOLORALMOST));
-
-					attron(A_BLINK);
 				}
 
        				printg(viewmsg);
@@ -659,7 +684,6 @@ text_samp(time_t curtime, int nsecs,
 				{
 					if (usecolors)
 						attroff(COLOR_PAIR(FGCOLORALMOST));
-					attroff(A_BLINK);
 				}
 
 			}
@@ -1137,22 +1161,95 @@ text_samp(time_t curtime, int nsecs,
 		if (screen)
 		{
 			/*
-			** show blinking pause-indication if necessary
+			** refresh screen output generated sofar
 			*/
-			if (paused)
+			move(statline, 0);
+
+			refresh();
+
+			if (twinpid && !keywaiting)	// twin mode?
 			{
-				move(statline, COLS-6);
-				attron(A_BLINK);
-				attron(A_REVERSE);
-				printw("PAUSED");
-				attroff(A_REVERSE);
-				attroff(A_BLINK);
+				struct sigaction sigact, sigold;
+
+				/*
+				** catch window size changes while in select
+				*/
+			        memset(&sigact, 0, sizeof sigact);
+        			sigact.sa_handler = getsigwinch;
+        			sigaction(SIGWINCH, &sigact, &sigold);
+
+				winchange = 0;
+
+				/*
+				** await input character from keyboard, or
+				**       inotify trigger in case of twin mode, or
+				**       interval timer expiration
+				*/
+				FD_ZERO(&readfds);
+				FD_SET(0, &readfds);
+
+				if (!paused && fdinotify != -1)	// twin mode?
+				{
+					FD_SET(fdinotify, &readfds);
+					nrfds = fdinotify + 1;
+				}
+				else
+				{
+					nrfds = 1;
+				}
+
+				switch (select(nrfds, &readfds, (fd_set *)0,
+			                      (fd_set *)0, (struct timeval *)0))
+				{
+				   case -1:
+					/*
+					** window change or timer expiration?
+					*/
+					if (winchange)
+					{
+						// window change: set new dimensions
+						struct winsize w;
+
+						ioctl(0, TIOCGWINSZ, &w);
+						resizeterm(w.ws_row, w.ws_col);
+						lastchar = KEY_RESIZE;
+					}
+					else
+					{
+						// time interrupt
+						lastchar = 0;
+					}
+					break;
+
+				   default:
+					/*
+					** inotify trigger that new sample has been written?
+					** pretend as if the 't' key has been pressed
+					** to read that sample
+					**
+					** otherwise: read keystroke from keyboard
+					*/
+					if (FD_ISSET(fdinotify, &readfds))
+					{
+						read(fdinotify, eventbuf, sizeof eventbuf);
+	
+						lastchar = MSAMPNEXT;
+					}
+					else
+					{
+						lastchar = getch();
+					}
+				}
+
+        			sigaction(SIGWINCH, &sigold, (struct sigaction *)0);
+			}
+			else	// no twin mode: neutral state is getch()
+			{
+				lastchar = getch();
+				keywaiting = 0;
 			}
 
-			/*
-			** await input character or interval timer expiration
-			*/
-			switch ( (lastchar = mvgetch(statline, 0)) )
+			switch (lastchar)
 			{
 			   /*
 			   ** timer expired
@@ -1162,18 +1259,8 @@ text_samp(time_t curtime, int nsecs,
 				timeout(0);
 				(void) getch();
 				timeout(-1);
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
 
-				return lastchar;	
+				goto free_and_return;	
 
 			   /*
 			   ** stop it
@@ -1191,40 +1278,18 @@ text_samp(time_t curtime, int nsecs,
 				erase();
 				refresh();
 
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
-
-				return lastchar;
+				goto free_and_return;	
 
 			   /*
 			   ** manual trigger for next sample
 			   */
 			   case MSAMPNEXT:
-				if (paused)
+				if (paused && !twinpid)
 					break;
 
 				getalarm(0);
 
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
-
-				return lastchar;
+				goto free_and_return;	
 
 			   /*
 			   ** manual trigger for previous sample
@@ -1238,21 +1303,14 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				if (paused)
-					break;
+				if (!paused && twinpid)
+				{
+					paused=1;	// implicit pause in twin mode
+					clrtoeol();
+					refresh();
+				}
 
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
-
-				return lastchar;
+				goto free_and_return;	
 
                            /*
 			   ** branch to certain time stamp
@@ -1266,8 +1324,12 @@ text_samp(time_t curtime, int nsecs,
                                         break;
                                 }
 
-                                if (paused)
-                                        break;
+				if (!paused && twinpid)
+				{
+					paused=1;	// implicit pause in twin mode
+					clrtoeol();
+					refresh();
+				}
 
                                 echo();
                                 move(statline, 0);
@@ -1291,18 +1353,7 @@ text_samp(time_t curtime, int nsecs,
                                         break;
                                 }
 
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
-
-                                return lastchar;
+				goto free_and_return;	
 
 			   /*
 			   ** sort order automatically depending on
@@ -1559,7 +1610,7 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MHELP1:
 			   case MHELP2:
-				alarm(0);	/* stop the clock         */
+				alarm(0);	/* stop the clock   */
 
 				move(1, 0);
 				clrtobot();	/* blank the screen */
@@ -1570,9 +1621,18 @@ text_samp(time_t curtime, int nsecs,
 				move(statline, 0);
 
 				if (interval && !paused && !rawreadflag)
-					alarm(3); /* force new sample     */
+					alarm(1); /* force new sample */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					// jump to last sample after awaiting input
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
+
 				break;
 
 			   /*
@@ -1621,6 +1681,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3); /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1653,6 +1720,13 @@ text_samp(time_t curtime, int nsecs,
 				}
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1740,6 +1814,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1782,6 +1863,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1830,6 +1918,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1888,6 +1983,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -1964,6 +2066,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -2006,6 +2115,13 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -2098,12 +2214,25 @@ text_samp(time_t curtime, int nsecs,
 					alarm(3);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
 			   ** toggle pause-state
 			   */
 			   case MPAUSE:
+				if (rawreadflag && !twinpid)
+				{
+					statmsg = "Just use 'T' and 't' to browse...";
+					break;
+				}
+
 				if (paused)
 				{
 					paused=0;
@@ -2111,7 +2240,15 @@ text_samp(time_t curtime, int nsecs,
 					refresh();
 
 					if (!rawreadflag)
-						alarm(1);
+					{
+						alarm(1);	/* start the clock */
+					}
+					else
+					{
+						begintime = 0x7fffffff;
+						lastchar = MSAMPBRANCH;
+						goto free_and_return;	
+					}
 				}
 				else
 				{
@@ -2279,7 +2416,7 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** suppression of exited processes in output
+			   ** suppression of terminated processes in output
 			   */
 			   case MSUPEXITS:
 				if (suppressexit)
@@ -2394,9 +2531,16 @@ text_samp(time_t curtime, int nsecs,
 					    maxllclines, statline);
 
 				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+					alarm(1);  /* set short timer */
 
 				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
 				break;
 
 			   /*
@@ -2406,18 +2550,14 @@ text_samp(time_t curtime, int nsecs,
 				getalarm(0);	/* restart the clock */
 				paused = 0;
 
-				if (tpcumlist)  free(tpcumlist);
-				if (pcumlist)   free(pcumlist);
-				if (tucumlist)  free(tucumlist);
-				if (ucumlist)   free(ucumlist);
-				if (tccumlist)  free(tccumlist);
-				if (ccumlist)   free(ccumlist);
-				if (tsklist)    free(tsklist);
-				if (sellist)    free(sellist);
-				if (cgroupsort) free(cgroupsort);
-				if (cgroupsel)  free(cgroupsel);
+				if (twinpid)
+				{
+					paused=1;	// implicit pause in twin mode
+					clrtoeol();
+					refresh();
+				}
 
-				return lastchar;
+				goto free_and_return;	
 
 			   /*
 			   ** show version info
@@ -2507,20 +2647,24 @@ text_samp(time_t curtime, int nsecs,
 		}
 		else	/* no screen */
 		{
-			if (tpcumlist)  free(tpcumlist);
-			if (pcumlist)   free(pcumlist);
-			if (tucumlist)  free(tucumlist);
-			if (ucumlist)   free(ucumlist);
-			if (tccumlist)  free(tccumlist);
-			if (ccumlist)   free(ccumlist);
-			if (tsklist)    free(tsklist);
-			if (sellist)    free(sellist);
-			if (cgroupsort) free(cgroupsort);
-			if (cgroupsel)  free(cgroupsel);
-
-			return '\0';
+			lastchar = '\0';
+			goto free_and_return;
 		}
 	}
+
+    free_and_return:
+	if (tpcumlist)  free(tpcumlist);
+	if (pcumlist)   free(pcumlist);
+	if (tucumlist)  free(tucumlist);
+	if (ucumlist)   free(ucumlist);
+	if (tccumlist)  free(tccumlist);
+	if (ccumlist)   free(ccumlist);
+	if (tsklist)    free(tsklist);
+	if (sellist)    free(sellist);
+	if (cgroupsort) free(cgroupsort);
+	if (cgroupsel)  free(cgroupsel);
+
+	return lastchar;
 }
 
 /*
@@ -3358,6 +3502,14 @@ static struct helptext {
 	{"\t'%c'  - GPU activity\n",				MSORTGPU},
 	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO},
 	{"\n",							' '},
+	{"Raw file viewing and twin mode:\n",			' '},
+	{"\t'%c'  - show next     sample\n",			MSAMPNEXT},
+	{"\t'%c'  - show previous sample\n",			MSAMPPREV},
+	{"\t'%c'  - branch to certain time\n",			MSAMPBRANCH},
+	{"\t'%c'  - rewind to begin\n",				MRESET},
+	{"\t'%c'  - pause button to freeze or continue (twin mode)\n",
+								MPAUSE},
+	{"\n",							' '},
 	{"Accumulated process figures:\n",			' '},
 	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER},
 	{"\t'%c'  - total resource consumption per program (i.e. same "
@@ -3379,7 +3531,7 @@ static struct helptext {
 	{"\t'%c'  - focus on specific system resources    "
 	                              "(regular expression)\n", MSELSYS},
 	{"\n",							      ' '},
-	{"Screen-handling:\n",					      ' '},
+	{"Screen handling:\n",					      ' '},
 	{"\t^L   - redraw the screen                       \n",	      ' '},
 	{"\tPgDn - show next page in the process list (or ^F)\n",     ' '},
 	{"\tPgUp - show previous page in the process list (or ^B)\n", ' '},
@@ -3400,7 +3552,7 @@ static struct helptext {
 								MSYSFIXED},
 	{"\t'%c'  - suppress sorting system resources              (toggle)\n",
 								MSYSNOSORT},
-	{"\t'%c'  - suppress exited processes in output            (toggle)\n",
+	{"\t'%c'  - suppress terminateed processes in output       (toggle)\n",
 								MSUPEXITS},
 	{"\t'%c'  - no colors to indicate high occupation          (toggle)\n",
 								MCOLORS},
@@ -3410,12 +3562,6 @@ static struct helptext {
 								MCALCPSS},
 	{"\t'%c'  - determine WCHAN per thread                     (toggle)\n",
 								MGETWCHAN},
-	{"\n",							' '},
-	{"Raw file viewing:\n",					' '},
-	{"\t'%c'  - show next     sample in raw file\n",	MSAMPNEXT},
-	{"\t'%c'  - show previous sample in raw file\n",	MSAMPPREV},
-	{"\t'%c'  - branch to certain time in raw file\n",	MSAMPBRANCH},
-	{"\t'%c'  - rewind to begin of raw file\n",		MRESET},
 	{"\n",							' '},
 	{"Miscellaneous commands:\n",				' '},
 	{"\t'%c'  - change interval timer (0 = only manual trigger)\n",
@@ -3498,6 +3644,7 @@ showhelp(int helpline)
 
 			   default:
                 		ungetch(inputkey);
+				keywaiting = 1;
 				delwin(helpwin);
 				return;
 			}
@@ -3545,7 +3692,7 @@ generic_usage(void)
 			MSYSFIXED);
 	printf("\t  -%c  suppress sorting of system resources\n",
 			MSYSNOSORT);
-	printf("\t  -%c  suppress exited processes in output\n",
+	printf("\t  -%c  suppress terminated processes in output\n",
 			MSUPEXITS);
 	printf("\t  -%c  show limited number of lines for certain resources\n",
 			MSYSLIMIT);
@@ -3955,4 +4102,10 @@ do_flags(char *name, char *val)
 			break;
 		}
 	}
+}
+
+static void
+getsigwinch(int signr)
+{
+	winchange = 1;
 }

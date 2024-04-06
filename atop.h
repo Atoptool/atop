@@ -88,6 +88,8 @@ extern time_t   	curtime;
 extern unsigned long    interval;
 extern unsigned long	sampcnt;
 extern char      	screen;
+extern int 		fdinotify;
+extern pid_t 		twinpid;
 extern int      	linelen;
 extern char      	acctreason;
 extern char		deviatonly;
