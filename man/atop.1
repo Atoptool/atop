@@ -3024,16 +3024,22 @@ a final sample will be forced after which
 .I atop
 will terminate.
 .SH EXAMPLES
-To monitor the current system load in text mode with an interval of
+Monitor the current system load in text mode with an interval of
 (default) 10 seconds:
 .PP
 .TP 12
 .B \  atop
 .PP
-To monitor the current system load as bar graphs with an interval of 5 seconds:
+Monitor the current system load as bar graphs with an interval of 5 seconds:
 .PP
 .TP 12
 .B \  atop -B 5
+.PP
+View the cgroups with the related processes (except kernel processes) with
+the possibility to review previous samples during the live measurement:
+.PP
+.TP 12
+.B \  atop -G8 -t
 .PP
 Store information about the system and process activity in binary compressed
 form to a file with an interval of ten minutes during an hour:
@@ -3069,7 +3075,7 @@ output about the CPU utilization:
 .TP 12
 .B \  atopcat /var/log/atop/atop_202403?? | atop -r -  -PCPU
 .PP
-To monitor the system load and write it to a file (in plain ASCII)
+Monitor the system load and write it to a file (in plain ASCII)
 with an interval of one minute during half an hour with active
 processes sorted on memory consumption:
 .PP
@@ -3116,14 +3122,11 @@ This file is created when
 .I atop
 is installed.
 The default settings are:
-.TP 8
-\
+     LOGOPTS=""
 .br
-LOGOPTS=""
+     LOGINTERVAL=600
 .br
-LOGINTERVAL=600
-.br
-LOGGENERATIONS=28
+     LOGGENERATIONS=28
 .PP
 .TP 5
 .BI /var/log/atop/atop_ YYYYMMDD
