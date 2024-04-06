@@ -1285,7 +1285,10 @@ text_samp(time_t curtime, int nsecs,
 			   */
 			   case MSAMPNEXT:
 				if (paused && !twinpid)
+				{
+					beep();
 					break;
+				}
 
 				getalarm(0);
 
@@ -1297,8 +1300,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MSAMPPREV:
 				if (!rawreadflag)
 				{
-					statmsg = "Only allowed when viewing "
-					          "raw file!";
+					statmsg = "Only allowed in twin mode or "
+						  "when viewing raw file!";
 					beep();
 					break;
 				}
@@ -1318,8 +1321,8 @@ text_samp(time_t curtime, int nsecs,
                            case MSAMPBRANCH:
                                 if (!rawreadflag)
                                 {
-                                        statmsg = "Only allowed when viewing "
-                                                  "raw file!";
+					statmsg = "Only allowed in twin mode or "
+						  "when viewing raw file!";
                                         beep();
                                         break;
                                 }
@@ -1395,8 +1398,7 @@ text_samp(time_t curtime, int nsecs,
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF))
 				{
 					statmsg = "Module 'netatop' or 'netatop-bpf' not "
-					          "active or no root privs; "
-					          "request ignored!";
+					          "active or no root privs";
 					break;
 				}
 				showorder = MSORTNET;
@@ -1639,7 +1641,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** send signal to process
 			   */
 			   case MKILLPROC:
-				if (rawreadflag)
+				if (rawreadflag && !twinpid)
 				{
 					statmsg = "Not possible when viewing "
 					          "raw file!";
@@ -1677,7 +1679,7 @@ text_samp(time_t curtime, int nsecs,
 					}
 				}
 
-				if (!paused)
+				if (!paused && !twinpid)
 					alarm(3); /* set short timer */
 
 				firstitem = 0;
@@ -1696,8 +1698,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MINTERVAL:
 				if (rawreadflag)
 				{
-					statmsg = "Not possible when viewing "
-					          "raw file!";
+					statmsg = "Not possible in twin mode or "
+						  "when viewing raw file!";
 					beep();
 					break;
 				}
@@ -1711,7 +1713,7 @@ text_samp(time_t curtime, int nsecs,
 				if (interval)
 				{
 					if (!paused)
-						alarm(3); /* set short timer */
+						alarm(1); /* set short timer */
 				}
 				else
 				{

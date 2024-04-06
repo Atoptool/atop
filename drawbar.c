@@ -430,7 +430,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 			return lastchar;
 
 		   case MSAMPBRANCH:	// branch to other time?
-			// only possible when viewing raw file
+			// only possible in twin mode or when viewing raw file
 			//
 			if (!rawreadflag)
 			{
@@ -502,7 +502,7 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 			break;
 
 		   case MINTERVAL:	// modify interval?
-			// not possible when viewing raw file
+			// not possible in twin mode or when viewing raw file
 			//
 			if (rawreadflag)
 			{
@@ -2610,8 +2610,8 @@ showhelp(void)
 
 	line++;
 
-	// show context dependent help text for raw file viewing or
-	// live measurement 
+	// show context dependent help text for raw file viewing/twin mode
+	// or live measurement 
 	//
 	if (rawreadflag)
 	{
