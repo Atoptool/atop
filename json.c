@@ -1200,7 +1200,7 @@ json_print_PRG(char *hp, struct sstat *ss,
 
 		/* using getpwuid() & getpwuid to convert ruid & euid to string seems better, but the two functions take a long time */
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"state\": \"%c\", "
 			"\"ruid\": %d, "
 			"\"rgid\": %d, "
@@ -1274,7 +1274,7 @@ json_print_PRC(char *hp, struct sstat *ss,
 			cgrpath = "-";
 
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"utime\": %lld, "
 			"\"stime\": %lld, "
 			"\"nice\": %d, "
@@ -1334,7 +1334,7 @@ json_print_PRM(char *hp, struct sstat *ss,
 			cgrpath = "-";
 
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"vmem\": %lld, "
 			"\"rmem\": %lld, "
 			"\"vexec\": %lld, "
@@ -1390,7 +1390,7 @@ json_print_PRD(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"rio\": %lld, "
 			"\"rsz\": %lld, "
 			"\"wio\": %lld, "
@@ -1424,7 +1424,7 @@ json_print_PRN(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"tcpsnd\": \"%lld\", "
 			"\"tcpssz\": \"%lld\", "
 			"\"tcprcv\": \"%lld\", "
@@ -1463,7 +1463,7 @@ json_print_PRE(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
-			"\"name\": \"(%.19s)\", "
+			"\"cmd\": \"%.19s\", "
 			"\"gpustate\": \"%c\", "
 			"\"nrgpus\": %d, "
 			"\"gpulist\": \"%x\", "
