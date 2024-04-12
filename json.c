@@ -1274,6 +1274,7 @@ json_print_PRC(char *hp, struct sstat *ss,
 			cgrpath = "-";
 
 		printf("{\"pid\": %d, "
+			"\"name\": \"(%.19s)\", "
 			"\"utime\": %lld, "
 			"\"stime\": %lld, "
 			"\"nice\": %d, "
@@ -1288,6 +1289,7 @@ json_print_PRC(char *hp, struct sstat *ss,
 			"\"sleepavg\": %d, "
 			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
+			ps->gen.name,
 			ps->cpu.utime,
 			ps->cpu.stime,
 			ps->cpu.nice,
@@ -1332,6 +1334,7 @@ json_print_PRM(char *hp, struct sstat *ss,
 			cgrpath = "-";
 
 		printf("{\"pid\": %d, "
+			"\"name\": \"(%.19s)\", "
 			"\"vmem\": %lld, "
 			"\"rmem\": %lld, "
 			"\"vexec\": %lld, "
@@ -1347,6 +1350,7 @@ json_print_PRM(char *hp, struct sstat *ss,
 			"\"pmem\": %lld, "
 			"\"cgroup\": \"%s\"}",
 			ps->gen.pid,
+			ps->gen.name,
 			ps->mem.vmem,
 			ps->mem.rmem,
 			ps->mem.vexec,
@@ -1386,12 +1390,14 @@ json_print_PRD(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
+			"\"name\": \"(%.19s)\", "
 			"\"rio\": %lld, "
 			"\"rsz\": %lld, "
 			"\"wio\": %lld, "
 			"\"wsz\": %lld, "
 			"\"cwsz\": %lld}",
 			ps->gen.pid,
+			ps->gen.name,
 			ps->dsk.rio, ps->dsk.rsz,
 			ps->dsk.wio, ps->dsk.wsz, ps->dsk.cwsz);
 	}
@@ -1418,6 +1424,7 @@ json_print_PRN(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
+			"\"name\": \"(%.19s)\", "
 			"\"tcpsnd\": \"%lld\", "
 			"\"tcpssz\": \"%lld\", "
 			"\"tcprcv\": \"%lld\", "
@@ -1427,6 +1434,7 @@ json_print_PRN(char *hp, struct sstat *ss,
 			"\"udprcv\": \"%lld\", "
 			"\"udprsz\": \"%lld\"}",
 			ps->gen.pid,
+			ps->gen.name,
 			ps->net.tcpsnd, ps->net.tcpssz,
 			ps->net.tcprcv, ps->net.tcprsz,
 			ps->net.udpsnd, ps->net.udpssz,
@@ -1455,6 +1463,7 @@ json_print_PRE(char *hp, struct sstat *ss,
 			printf(", ");
 		}
 		printf("{\"pid\": %d, "
+			"\"name\": \"(%.19s)\", "
 			"\"gpustate\": \"%c\", "
 			"\"nrgpus\": %d, "
 			"\"gpulist\": \"%x\", "
@@ -1464,6 +1473,7 @@ json_print_PRE(char *hp, struct sstat *ss,
 			"\"memcum\": %lld, "
 			"\"sample\": %lld}",
 			ps->gen.pid,
+			ps->gen.name,
 			ps->gpu.state == '\0' ? 'N':ps->gpu.state,
 			ps->gpu.nrgpus,
 			ps->gpu.gpulist,
