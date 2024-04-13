@@ -830,11 +830,14 @@ print_CGR(char *hp, struct sstat *ss,
 	register int 	i, p;
 	char		*cgrpath;
 
+	if ( !(supportflags & CGROUPV2) )
+		return;
+
 	for (i=0; i < ncgroups; i++)
 	{
 		// print cgroup level metrics
 		//
-		cgrpath = cggetpath(devchain+i, devchain);
+		cgrpath = cggetpath(devchain+i, devchain, 0);
 
 		printf(	"%s C %s %d %d %lld %lld %d %d "
 		        "%lld %lld %lld %lld %lld %lld %lld "
@@ -909,7 +912,7 @@ print_PRG(char *hp, struct sstat *ss,
 	{
 		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)	// valid cgroup index?
 		{
-			cgrpath = cggetpath((devchain + ps->gen.cgroupix), devchain);
+			cgrpath = cggetpath((devchain + ps->gen.cgroupix), devchain, 0);
 
 			if (cgrpathsize < (cgrlen = strlen(cgrpath) + 3))
 			{

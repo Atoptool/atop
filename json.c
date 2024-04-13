@@ -1048,7 +1048,11 @@ json_print_CGR(char *hp, struct sstat *ss,
                          struct tstat *ps, int nact,
 			 struct cgchainer *cs, int ncgroups)
 {
-	register int i, p;
+	if ( !(supportflags & CGROUPV2) )
+		return;
+
+	register int	i, p;
+	char		*cgrpath;
 
         printf(", %s: [", hp);
 
@@ -1056,6 +1060,8 @@ json_print_CGR(char *hp, struct sstat *ss,
 		if (i > 0) {
 			printf(", ");
 		}
+
+                cgrpath = cggetpath(cs+i, cs, 1);
 
                 // print cgroup level metrics
                 //
@@ -1089,7 +1095,7 @@ json_print_CGR(char *hp, struct sstat *ss,
 
 			 "\"pidlist\": [",
 
-                        cggetpath(cs+i, cs),
+			cgrpath,
                         (cs+i)->cstat->gen.nprocs,
                         (cs+i)->cstat->gen.procsbelow,
                         (cs+i)->cstat->cpu.utime,
@@ -1130,6 +1136,8 @@ json_print_CGR(char *hp, struct sstat *ss,
                         (cs+i)->cstat->conf.dskweight,
                         (cs+i)->cstat->dsk.somepres,
                         (cs+i)->cstat->dsk.fullpres);
+
+		free(cgrpath);
 
                 // generate related pidlist
                 //
@@ -1194,11 +1202,14 @@ json_print_PRG(char *hp, struct sstat *ss,
 		}
 
 		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
-			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs, 1);
 		else
 			cgrpath = "-";
 
-		/* using getpwuid() & getpwuid to convert ruid & euid to string seems better, but the two functions take a long time */
+		/*
+		** using getpwuid() & getpwuid to convert ruid & euid to string
+		** seems better, but the two functions take a long time
+		*/
 		printf("{\"pid\": %d, "
 			"\"cmd\": \"%.19s\", "
 			"\"state\": \"%c\", "
@@ -1269,7 +1280,7 @@ json_print_PRC(char *hp, struct sstat *ss,
 		}
 
 		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
-			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs, 1);
 		else
 			cgrpath = "-";
 
@@ -1329,7 +1340,7 @@ json_print_PRM(char *hp, struct sstat *ss,
 		}
 
 		if (supportflags & CGROUPV2 && ps->gen.cgroupix != -1)
-			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs);
+			cgrpath = cggetpath((cs + ps->gen.cgroupix), cs, 1);
 		else
 			cgrpath = "-";
 

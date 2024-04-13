@@ -124,7 +124,7 @@ int              cgroupv2support(void);
 void             photocgroup(void);
 int              deviatcgroup(struct cgchainer **, int *);
 struct cgchainer **cgsort(struct cgchainer *, int, char);
-char             *cggetpath(struct cgchainer *, struct cgchainer *);
+char             *cggetpath(struct cgchainer *, struct cgchainer *, int);
 void             cgwipecur(void);
 void             cgbuildarray(struct cgchainer **, char *, char *, int);
 void		 cgfillref(struct devtstat *, struct cgchainer *, int, int);

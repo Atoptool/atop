@@ -957,14 +957,21 @@ cgbuildarray(struct cgchainer **firstp, char *cstats, char *pids, int ncstats)
 
 
 // Assemble full pathname of cgroup directory (from cgroup top directory)
-// from the deviation array
+// from the deviation array.
+// For JSON output, double escape characters (backslashes) can be requested
+// vi boolean 'escdouble'.
 //
 // Returns:	malloc'ed string with full path name to be freed later on
 //
+#define	MAXESCAPES	16
+
 char *
-cggetpath(struct cgchainer *cdp, struct cgchainer *cdbase)
+cggetpath(struct cgchainer *cdp, struct cgchainer *cdbase, int escdouble)
 {
 	// calculate path length including slashes (depth) and terminating 0-byte
+	//
+	// in case of double escapes, add a (hopefully) worst-case number of
+	// bytes to the malloc'ed buffer to double the backslashes
 	//
 	// in case of the top directory (without a parent), reserve one extra
 	// byte for the '/' character
@@ -973,8 +980,8 @@ cggetpath(struct cgchainer *cdp, struct cgchainer *cdbase)
 		          cdp->cstat->gen.depth   + 1 + 
 			 (cdp->cstat->gen.sequence ? 0 : 1);
 
-	char	*path = calloc(1, pathlen);
-	char	*ps;
+	char    *path = calloc(1, pathlen);
+	char    *ps;
 
 	ptrverify(path, "Malloc failed for concatenated cgpath (%d)\n", pathlen);
 
@@ -1010,6 +1017,41 @@ cggetpath(struct cgchainer *cdp, struct cgchainer *cdbase)
 	{
 		*path     = '/';
 		*(path+1) = '\0';       // terminate string
+	}
+
+	// when double escapes are required and at least one backslash
+	// is present, reallocate and convert the assembled path
+	//
+	// room for a worst-case number of backslashes is allocated
+	// to avoid counting backslashes before transferring all bytes
+	//
+	if (escdouble && strchr(path, '\\'))
+	{
+		char	*escpath, *pi, *po;
+
+		pathlen += MAXESCAPES;
+
+	       	escpath  = malloc(pathlen);
+		ptrverify(escpath, "Malloc failed for escape cgpath (%d)\n", pathlen);
+
+		pi = path;
+		po = escpath;
+
+		while (*pi)
+		{
+			*po++ = *pi;
+
+			if (*pi++ == '\\')	// insert additional backslash
+				*po++ = '\\';
+
+			if (po - escpath >= pathlen-1)
+				break; // truncate to avoid overflow
+		}
+
+		*po = 0;
+
+		free(path);	// free original string
+		path = escpath;
 	}
 
 	return path;
