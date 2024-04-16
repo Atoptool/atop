@@ -295,59 +295,73 @@ rawwopen()
 	/*
 	** check if the file exists already
 	*/
-	if ( (fd = open(rawname, O_RDWR)) >= 0 &&
-	      fstat(fd, &filestats) == 0 && filestats.st_size > 0)
+	if ( (fd = open(rawname, O_RDWR)) >= 0 )
 	{
 		/*
-		** read and verify header record
+		** check if the file already contains a file header (and records)
 		*/
-		if ( read(fd, &rh, sizeof rh) < sizeof rh)
-			mcleanstop(7, "%s - cannot read header\n", rawname);
-
-		if (rh.magic != MYMAGIC)
-			mcleanstop(7, "file %s exists but does not contain raw "
-				"atop output (wrong magic number)\n", rawname);
-
-		if ( rh.sstatlen	!= sizeof(struct sstat)		||
-		     rh.tstatlen	!= sizeof(struct tstat)		||
-		     rh.cstatlen	!= sizeof(struct cstat)		||
-	    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
-		     rh.rawreclen	!= sizeof(struct rawrecord)	  )
+		if (fstat(fd, &filestats) == 0 && filestats.st_size > 0)
 		{
-			fprintf(stderr,
-				"existing file %s has incompatible header\n",
-				rawname);
+			/*
+			** read and verify raw file header
+			*/
+			if ( read(fd, &rh, sizeof rh) < sizeof rh)
+				mcleanstop(7, "%s - cannot read header\n", rawname);
 
-			if (rh.aversion & 0x8000 &&
-			   (rh.aversion & 0x7fff) != getnumvers())
+			if (rh.magic != MYMAGIC)
+				mcleanstop(7, "file %s exists but does not contain raw "
+					"atop output (wrong magic number)\n", rawname);
+
+			if ( rh.sstatlen	!= sizeof(struct sstat)		||
+			     rh.tstatlen	!= sizeof(struct tstat)		||
+			     rh.cstatlen	!= sizeof(struct cstat)		||
+		    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
+			     rh.rawreclen	!= sizeof(struct rawrecord)	  )
 			{
 				fprintf(stderr,
-					"(created by version %d.%d - "
-					"current version %d.%d)\n",
-					(rh.aversion >> 8) & 0x7f,
-					 rh.aversion & 0xff,
-					 getnumvers() >> 8,
-					 getnumvers() & 0x7f);
+					"existing file %s has incompatible header\n",
+					rawname);
+
+				if (rh.aversion & 0x8000 &&
+				   (rh.aversion & 0x7fff) != getnumvers())
+				{
+					fprintf(stderr,
+						"(created by version %d.%d - "
+						"current version %d.%d)\n",
+						(rh.aversion >> 8) & 0x7f,
+						 rh.aversion & 0xff,
+						 getnumvers() >> 8,
+						 getnumvers() & 0x7f);
+				}
+
+				cleanstop(7);
 			}
 
+			/*
+			** jump to end of file, being prepared to extend with more records
+			*/
+			(void) lseek(fd, (off_t) 0, SEEK_END);
+
+			return fd;
+		}
+	}
+	else
+	{
+		/*
+		** file does not exist (or can not be opened)
+		*/
+		if ( (fd = creat(rawname, 0666)) == -1)
+		{
+			fprintf(stderr, "%s - ", rawname);
+			perror("create raw file");
 			cleanstop(7);
 		}
-
-		(void) lseek(fd, (off_t) 0, SEEK_END);
-
-		return fd;
 	}
 
 	/*
-	** file does not exist (or can not be opened)
+	** empty file is opened now
+	** write a raw file header
 	*/
-	if ( (fd = creat(rawname, 0666)) == -1)
-	{
-		fprintf(stderr, "%s - ", rawname);
-		perror("create raw file");
-		cleanstop(7);
-	}
-
 	memset(&rh, 0, sizeof rh);
 
 	rh.magic	= MYMAGIC;
