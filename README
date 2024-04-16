@@ -2,7 +2,7 @@ COPYRIGHT NOTICE
 ----------------
 For all files that are not marked differently:
 
-Copyright Gerlof Langeveld 2007-2023 and licensed under the GPL v2 (or any later version).
+Copyright Gerlof Langeveld 2007-2024 and licensed under the GPL v2 (or any later version).
 
 
 DEPENDENCIES
@@ -24,8 +24,8 @@ can be different depending on the Linux distro):
 * glib2   or libglib2.0
 
 
-INSTALLING AND USING ATOP
--------------------------
+INSTALLING AND USING ATOP FROM TARBALL
+--------------------------------------
 
 For interactive use, it is sufficient to install ATOP with the command
 (as root):
@@ -71,45 +71,8 @@ process accounting file that is used by this package.
 See also the section PROCESS ACCOUNTING in the man page of atop.
 
 
-KERNEL ISSUES WITH PROCESS ACCOUNTING
--------------------------------------
-
-Newer upstream kernels (e.g. 4.8 and 4.9) have two issuess
-with process accounting:
-
-1) Sometimes process accounting does not work at all¹. Atopacctd tries to
-work around this issue, by retrying to initialize process accounting
-several times.
-
-2) When using the NETLINK inface, the command TASKSTATS_CMD_GET
-consequently returns -EINVAL². Atopacctd needs NETLINK to be able to
-be triggered that some process in the system has finished. In this way,
-atopacctd can be in a blocking state as long as no processes terminate.
-When atopacctd detects that NETLINK fails, it switches into a polling
-mode to periodically try if it can read process accounting records as
-a workaround. This issue has to do with cpumasks and you can work-around
-it by building a kernel that has CONFIG_NR_CPUS configured to exactly
-the amount of CPUs (logical CPUs) in the system the kernel runs on. You
-can find this kernel option under "Processor type and features" -->
-"Maximum number of CPUs".
-
-
-[1] Bug 190271 - process accounting sometimes does not work
-https://bugzilla.kernel.org/show_bug.cgi?id=190271
-
-[2] Bug 190711 - Process accounting: Using the NETLINK interface,
-the command TASKSTATS_CMD_GET returns -EINVAL
-https://bugzilla.kernel.org/show_bug.cgi?id=190711
-
-Linux kernel mailing list thread:
-
-[REGRESSION] Two issues that prevent process accounting (taskstats) from
-working correctly
-https://lkml.org/lkml/2016/12/19/182
-
-
-SERVICE ACTIVATION AFTER INSTALLATION
--------------------------------------
+SERVICE ACTIVATION AFTER INSTALLATING PACKAGE
+---------------------------------------------
 
 After the package has been installed, be sure that the related services
 are activated.
