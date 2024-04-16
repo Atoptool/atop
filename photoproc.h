@@ -71,6 +71,7 @@ struct tstat {
 
 		int	cgroupix;	/* index in devchain -1=invalid */
 					/* lazy filling (parsable/json) */
+		int	ifuture[4];	/* reserved for future use	*/
 	} gen;
 
 	/* CPU STATISTICS						*/
@@ -138,7 +139,7 @@ struct tstat {
 
 	struct gpu {
 		char	state;		// A - active, E - Exit, '\0' - no use
-		char	cfuture[3];	//
+		char	bfuture[3];	//
 		short	nrgpus;		// number of GPUs for this process
 		int32_t	gpulist;	// bitlist with GPU numbers
 
@@ -151,6 +152,7 @@ struct tstat {
 		count_t	memnow;		// current    memory consumption in KiB
 		count_t	memcum;		// cumulative memory consumption in KiB
 		count_t	sample;		// number of samples
+		count_t	cfuture[3];	//
 	} gpu;
 };
 

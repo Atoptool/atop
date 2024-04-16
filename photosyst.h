@@ -103,7 +103,7 @@ struct	memstat {
 	count_t anonhugepage;   // anonymous transparent huge pages
 				// (in units of 'normal' pages)
 
-	count_t	cfuture[4];	// reserved for future use
+	count_t	cfuture[5];	// reserved for future use
 };
 
 /************************************************************************/
@@ -124,6 +124,7 @@ struct	mempernuma {
 	count_t	shmem;		// tot shmem incl. tmpfs (pages) for this numa
 	count_t	tothp;		// total huge pages (huge pages) for this numa
 	count_t	freehp;		// total free pages (huge pages) for this numa
+	count_t	cfuture[2];	// reserved for future use
 };
 
 struct	memnuma {
@@ -143,6 +144,7 @@ struct	cpupernuma {
 	count_t	Stime;		// accumulate softirq time in clock ticks for per numa
 	count_t	steal;		// accumulate steal   time in clock ticks for per numa
 	count_t	guest;		// accumulate guest   time in clock ticks for per numa
+	count_t	cfuture[2];	// reserved for future use
 };
 
 struct	cpunuma {
@@ -417,6 +419,7 @@ struct perifb {
 	count_t	sndb;       		// bytes transmitted
 	count_t	rcvp;   	    	// packets received
 	count_t	sndp;       		// packets transmitted
+	count_t	cfuture[4];		// reserved for future use
 };
 
 struct ifbstat {

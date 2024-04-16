@@ -8,7 +8,7 @@
 ** ================================================================
 ** Author:      Gerlof Langeveld
 ** E-mail:      gerlof.langeveld@atoptool.nl
-** Date:        January/february 2024
+** Date:        January/February 2024
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -37,8 +37,11 @@ struct cstat {
 		int	procsbelow;	// number of processes in cgroups below
 		int	namelen;	// cgroup name length (at end of struct)
 		int	fullnamelen;	// cgroup path length
+		int	ifuture[4];
+
 		long	namehash;	// cgroup name hash of
 					// full path name excluding slashes
+		long	lfuture[4];
 	} gen;
 
 	// CONFIGURATION INFO
@@ -50,6 +53,9 @@ struct cstat {
 		count_t	swpmax;		// -1=max, -2=undefined (pages)
 
 		int	dskweight;	// -1=max, -2=undefined
+
+		int	ifuture[5];
+		count_t	cfuture[5];
 	} conf;
 
 	// CPU STATISTICS
@@ -59,6 +65,8 @@ struct cstat {
 
 		count_t	somepres;	// some pressure (microsec)
 		count_t	fullpres;	// full pressure (microsec)
+
+		count_t	cfuture[5];
 	} cpu;
 
 	// MEMORY STATISTICS
@@ -71,6 +79,8 @@ struct cstat {
 
 		count_t	somepres;	// some pressure (microsec)
 		count_t	fullpres;	// full pressure (microsec)
+
+		count_t	cfuture[5];
 	} mem;
 
 	// DISK I/O STATISTICS
@@ -82,6 +92,8 @@ struct cstat {
 
 		count_t	somepres;	// some pressure (microsec)
 		count_t	fullpres;	// full pressure (microsec)
+
+		count_t	cfuture[5];
 	} dsk;
 
 	// cgroup name with variable length
