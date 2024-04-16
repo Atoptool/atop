@@ -213,7 +213,8 @@ static char		awaittrigger;	/* boolean: awaiting trigger */
 static unsigned int 	nsamples = 0xffffffff;
 static char		midnightflag;
 static char		rawwriteflag;
-static char		twinmodeflag;
+
+char			twinmodeflag;
 
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
@@ -229,6 +230,7 @@ static struct {
 	int	sysonly;
 } manrc[] = {
 	{	"flags",		do_flags,		0, },
+	{	"twindir",		do_twindir,		0, },
 	{	"interval",		do_interval,		0, },
 	{	"linelen",		do_linelength,		0, },
 	{	"username",		do_username,		0, },
@@ -1265,6 +1267,7 @@ twinprepare(void)
 
 	if ( (tempfd = mkstemp(tempname)) == -1)
 	{
+		fprintf(stderr, "%s: ", tempname);
 		perror("twin mode file creation");
         	exit(42);
 	}

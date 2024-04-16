@@ -278,6 +278,7 @@ void	do_colinfo(char *, char *);
 void	do_colalmost(char *, char *);
 void	do_colcrit(char *, char *);
 void	do_colthread(char *, char *);
+void	do_twindir(char *, char *);
 void	do_flags(char *, char *);
 
 #endif

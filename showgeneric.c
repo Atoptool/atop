@@ -3919,6 +3919,7 @@ struct colmap {
 	{ "black",	COLOR_BLACK,	},
 	{ "white",	COLOR_WHITE,	},
 };
+
 static short
 modify_color(char *colorname)
 {
@@ -3939,7 +3940,6 @@ modify_color(char *colorname)
 
 	exit(1);
 }
-
 
 void
 do_colinfo(char *name, char *val)
@@ -3966,9 +3966,18 @@ do_colthread(char *name, char *val)
 }
 
 void
+do_twindir(char *name, char *val)
+{
+	extern char	twindir[];
+
+	strncpy(twindir, val, RAWNAMESZ-1);
+}
+
+void
 do_flags(char *name, char *val)
 {
-	int	i;
+	int	 	i;
+	extern char	twinmodeflag;
 
 	for (i=0; val[i]; i++)
 	{
@@ -4116,6 +4125,10 @@ do_flags(char *name, char *val)
 		   case '8':
 		   case '9':
 			cgroupdepth = val[i] - 0x30;
+			break;
+
+		   case 't':
+			twinmodeflag++;
 			break;
 		}
 	}
