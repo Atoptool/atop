@@ -71,6 +71,20 @@ process accounting file that is used by this package.
 See also the section PROCESS ACCOUNTING in the man page of atop.
 
 
+OVERVIEW OF RELATED PROGRAMS
+----------------------------
+
+When installing atop the following programs are provided:
+
+  atop        - System and process monitor (live and from raw log)
+  atopacctd   - Daemon: handles process accounting records to be used by atop
+  atopgpud    - Daemon: gathers metrics from Nvidia GPUs to be used by atop
+  atopsar     - System activity reports (live and from raw log)
+  atopcat     - Concatenate raw log files and provide raw log information
+  atophide    - Make extractions from raw logs and/or anonymize raw logs
+  atopconvert - Convert raw log to newer version
+
+
 SERVICE ACTIVATION AFTER INSTALLATING PACKAGE
 ---------------------------------------------
 
