@@ -52,7 +52,7 @@ main(int argc, char *argv[])
 	int			firstfile, beverbose=0, dryrun=0;
 	struct rawheader	rh;
 	struct rawrecord	rr;
-	char			*infile, *sstat, *pstat;
+	char			*infile, *sstat, *pstat, *cstat, *istat;
 	unsigned short		aversion;
 
 	// verify the command line arguments: input filename(s)
@@ -151,9 +151,9 @@ main(int argc, char *argv[])
                         	     (rh.aversion >> 8) & 0x7f,
 				      rh.aversion & 0xff);
 
-				fprintf(stderr, "%-10s %-8s %12s  %8s  %9s\n",
+				fprintf(stderr, "%-10s %-8s %12s  %8s  %9s  %8s %8s\n",
 					"date", "time", "interval",
-					"comprsys", "comprproc");
+					"comprsys", "comprproc", "comprcgr", "comppids");
 			}
 					
 		}
@@ -170,15 +170,17 @@ main(int argc, char *argv[])
 		}
 
 		// read every raw record followed by the compressed
-		// system-level and process-level stats
+		// system-level stats, process-level stats,
+		// cgroup-level stats and pidlist.
 		//
 		while ( read(fd, &rr, sizeof rr) == sizeof rr )
 		{
 			if (beverbose)
 			{
-				fprintf(stderr, "%19s %12u  %8u  %9u   %s\n",
+				fprintf(stderr, "%19s %12u  %8u  %9u  %8u %8u  %s\n",
 					convepoch(rr.curtime),
 					rr.interval, rr.scomplen, rr.pcomplen,
+					rr.ccomplen, rr.icomplen,
 					rr.flags&RRBOOT ? "boot" : "");
 			}
 
@@ -196,7 +198,19 @@ main(int argc, char *argv[])
 				exit(7);
 			}
 
-			// read system-level and process-level stats
+			if ( (cstat = malloc(rr.ccomplen)) == NULL)
+			{
+				fprintf(stderr, "malloc failed for cstat\n");
+				exit(7);
+			}
+
+			if ( (istat = malloc(rr.icomplen)) == NULL)
+			{
+				fprintf(stderr, "malloc failed for istat\n");
+				exit(7);
+			}
+
+			// read system-level stats
 			// 
 			if ((n = read(fd, sstat, rr.scomplen)) != rr.scomplen)
 			{
@@ -213,10 +227,14 @@ main(int argc, char *argv[])
 
 					free(sstat);
 					free(pstat);
+					free(cstat);
+					free(istat);
 					break;
 				}
 			}
 
+			// read process-level stats
+			// 
 			if ((n = read(fd, pstat, rr.pcomplen)) != rr.pcomplen)
 			{
 				if (n == -1)
@@ -232,33 +250,92 @@ main(int argc, char *argv[])
 
 					free(sstat);
 					free(pstat);
+					free(cstat);
+					free(istat);
 					break;
 				}
 			}
 
+			// read cgroup-level stats
+			// 
+			if ((n = read(fd, cstat, rr.ccomplen)) != rr.ccomplen)
+			{
+				if (n == -1)
+				{
+					fprintf(stderr, "read file %s", infile);
+					perror("");
+					exit(8);
+				}
+				else
+				{
+					fprintf(stderr,
+					     "file %s incomplete!\n", infile);
+
+					free(sstat);
+					free(pstat);
+					free(cstat);
+					free(istat);
+					break;
+				}
+			}
+
+			// read compressed pidlist
+			// 
+			if ((n = read(fd, istat, rr.icomplen)) != rr.icomplen)
+			{
+				if (n == -1)
+				{
+					fprintf(stderr, "read file %s", infile);
+					perror("");
+					exit(8);
+				}
+				else
+				{
+					fprintf(stderr,
+					     "file %s incomplete!\n", infile);
+
+					free(sstat);
+					free(pstat);
+					free(cstat);
+					free(istat);
+					break;
+				}
+			}
+
+
 			if (!dryrun)
 			{
 				// write raw record followed by the compressed
-				// system-level and process-level stats
+				// system-level stats, process-level stats,
+				// cgroup-level stats and pidlist
 				//
 				if ( write(1, &rr, sizeof rr) < sizeof rr)
 				{
-					fprintf(stderr,
-						"can not write raw record\n");
+					fprintf(stderr, "can not write raw record\n");
 					exit(11);
 				}
 
 				if ( write(1, sstat, rr.scomplen) < rr.scomplen)
 				{
-					fprintf(stderr,
-						"can not write sstat\n");
+					fprintf(stderr, "can not write sstat\n");
 					exit(11);
 				}
 
 				if ( write(1, pstat, rr.pcomplen) < rr.pcomplen)
 				{
-					fprintf(stderr,
-						"can not write pstat\n");
+					fprintf(stderr, "can not write pstat\n");
+					exit(11);
+				}
+
+				if ( write(1, cstat, rr.ccomplen) < rr.ccomplen)
+				{
+					fprintf(stderr, "can not write cstat\n");
+					exit(11);
+				}
+
+				if ( write(1, istat, rr.icomplen) < rr.icomplen)
+				{
+					fprintf(stderr, "can not write istat\n");
 					exit(11);
 				}
 			}
@@ -267,6 +344,8 @@ main(int argc, char *argv[])
 			//
 			free(sstat);
 			free(pstat);
+			free(cstat);
+			free(istat);
 		}
 
 		close(fd);
