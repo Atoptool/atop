@@ -71,9 +71,12 @@ static int	openin(char *);
 static void	readin(int, void *, int);
 static int	openout(char *);
 static void	writeout(int, void *, int);
-static void	writesamp(int, struct rawrecord *, void *, int, void *, int, int);
+static void	writesamp(int, struct rawrecord *,
+			void *, int, void *, int, int,
+			void *, int, void *, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
+
 static void	testcompval(int, char *);
 static void	anonymize(struct sstat *, struct tstat *, int);
 static char 	*findstandin(struct standin **, unsigned long *, char *, char *);
@@ -132,6 +135,8 @@ main(int argc, char *argv[])
 
 	struct sstat		sstat;
 	struct tstat		*tstatp;
+	struct cstat		*cstatp;
+	char			*istatp;
 
 	int			ifd, ofd=0, writecnt = 0, anonflag = 0;
 	int			i, c, numallowedcoms = sizeof allowedcoms/sizeof(char *);
@@ -198,8 +203,6 @@ main(int argc, char *argv[])
 		exit(3);
 	}
 
-
-
 	if (rh.sstatlen   != sizeof(struct sstat)               ||
             rh.tstatlen   != sizeof(struct tstat)               ||
             rh.rawheadlen != sizeof(struct rawheader)           ||
@@ -246,6 +249,8 @@ main(int argc, char *argv[])
 		{
 			(void) lseek(ifd, rr.scomplen, SEEK_CUR);
 			(void) lseek(ifd, rr.pcomplen, SEEK_CUR);
+			(void) lseek(ifd, rr.ccomplen, SEEK_CUR);
+			(void) lseek(ifd, rr.icomplen, SEEK_CUR);
 			continue;
 		}
 
@@ -282,19 +287,40 @@ main(int argc, char *argv[])
                 if ( !getrawtstat(ifd, tstatp, rr.pcomplen, rr.ndeviat) )
                         exit(7);
 
+                // get compressed cgroup-level statistics
+                //
+                cstatp = malloc(rr.ccomplen);
+
+                ptrverify(cstatp, "Malloc failed for compressed pidlist\n");
+
+		readin(ifd, cstatp, rr.ccomplen);
+
+                // get compressed pidlist
+                //
+                istatp = malloc(rr.icomplen);
+
+                ptrverify(istatp, "Malloc failed for compressed pidlist\n");
+
+		readin(ifd, istatp, rr.icomplen);
+
 		// anonymize command lines and hostname
 		//
 		if (anonflag)
 			anonymize(&sstat, tstatp, rr.ndeviat);
 
-		// write record header, system-level stats and process-level stats
+		// write record header, system-level stats, process-level stats,
+		// cgroup-level stats and pidlist
 		//
 		writesamp(ofd, &rr, &sstat, sizeof sstat,
-		                    tstatp, sizeof *tstatp, rr.ndeviat);
+		                    tstatp, sizeof *tstatp, rr.ndeviat,
+				    cstatp, rr.ccomplen,
+				    istatp, rr.icomplen);
 
                 // cleanup
                 // 
                 free(tstatp);
+                free(cstatp);
+                free(istatp);
         }
 
 	// close files
@@ -605,11 +631,45 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 }
 
 
-// Function to write the system-level statistics from the current offset
+#if 0
+// Function to read the cgroup-level statistics
+// from the current offset
+//
+static struct cstat *
+getrawcstat(int rawfd, unsigned long ccomplen, unsigned long coriglen)
+{
+	Byte		*ccompbuf, *corigbuf;
+	int		rv;
+
+	/*
+	** read all cstat structs
+	*/
+	ccompbuf = malloc(ccomplen);
+	corigbuf = malloc(coriglen);
+
+	ptrverify(ccompbuf, "Malloc failed for reading compressed cgroups\n");
+	ptrverify(corigbuf, "Malloc failed for decompressing cgroups\n");
+
+	readin(rawfd, ccompbuf, ccomplen);
+
+	rv = uncompress((Byte *)corigbuf, &coriglen, ccompbuf, ccomplen);
+
+	testcompval(rv, "uncompress cgroups");
+
+	free(ccompbuf);
+
+	return (struct cstat *)corigbuf;
+}
+#endif
+
+// Function to write a new output sample from the current offset
 //
 static void
 writesamp(int ofd, struct rawrecord *rr,
-	 void *sstat, int sstatlen, void *tstat, int tstatlen, int ntask)
+	 void *sstat, int sstatlen,
+	 void *tstat, int tstatlen, int ntask,
+	 void *cstat, int cstatlen,
+	 void *istat, int istatlen)
 {
 	int			rv;
 	Byte			scompbuf[sstatlen], *pcompbuf;
@@ -661,8 +721,25 @@ writesamp(int ofd, struct rawrecord *rr,
 	}
 
 	free(pcompbuf);
-}
 
+	/*
+	** write compressed cgroup status structures to file
+	*/
+	if ( write(ofd, cstat, cstatlen) == -1)
+	{
+		perror("write raw cgroup records");
+		exit(7);
+	}
+
+	/*
+	** write compressed PID list
+	*/
+	if ( write(ofd, istat, istatlen) == -1)
+	{
+		perror("write raw pidlist");
+		exit(7);
+	}
+}
 
 
 // check success of (de)compression

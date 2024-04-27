@@ -61,8 +61,9 @@
 static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
-static int	getrawcstat(int, struct cgchainer **, unsigned long,
-				unsigned long, unsigned long, int, int);
+static int	getrawcstat(int, struct cgchainer **,
+			unsigned long, unsigned long,
+                        unsigned long, int, int);
 
 static int	rawwopen(void);
 static int	readchunk(int, void *, int);

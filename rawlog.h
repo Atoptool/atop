@@ -100,5 +100,4 @@ struct rawrecord {
 	unsigned int	icomplen;	/* length of compressed pidlist */
 	unsigned int	ifuture;	/* future use                   */
 };
-
 #endif
