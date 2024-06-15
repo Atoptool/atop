@@ -595,7 +595,7 @@ dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
         }
         else                // nothing is known: suppress
         {
-            buf = NULL;
+            buf = "           -";
         }
 
 	return buf;
