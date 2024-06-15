@@ -259,10 +259,10 @@ parseout(time_t curtime, int numsecs,
 			convdate(curtime, datestr);
 			convtime(curtime, timestr);
 
-			snprintf(header, sizeof header, "%s %s %ld %s %s %d",
+			snprintf(header, sizeof header, "%s %s %lld %s %s %d",
 				labeldef[i].label,
 				utsname.nodename,
-				curtime,
+				(long long)curtime,
 				datestr, timestr, numsecs);
 
 			/*
