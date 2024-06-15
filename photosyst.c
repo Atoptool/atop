@@ -444,85 +444,93 @@ photosyst(struct sstat *si)
         static char fn[512];
         int didone=0;
 
-	if (si->cpu.nrcpu <= SCALINGMAXCPU)
-	{
-            for (i = 0; i < si->cpu.nrcpu; ++i)
-            {
-                long long f=0;
+	// check governor statistics
+        for (i = 0; i < si->cpu.nrcpu; ++i)
+        {
+		long long f=0;
 
-                snprintf(fn, sizeof fn,
+		snprintf(fn, sizeof fn,
                    "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
                    i);
 
-                if ((fp=fopen(fn, "r")) != 0)
-                {
-                        long long hits=0;
-                        long long maxfreq=0;
-                        long long cnt=0;
-                        long long sum=0;
+		if ((fp=fopen(fn, "r")) != 0)
+		{
+                    long long hits=0;
+                    long long maxfreq=0;
+                    long long cnt=0;
+                    long long sum=0;
 
-                        while (fscanf(fp, "%lld %lld", &f, &cnt) == 2)
-                        {
-                                f	/= 1000;
-                                sum 	+= (f*cnt);
-                                hits	+= cnt;
+                    while (fscanf(fp, "%lld %lld", &f, &cnt) == 2)
+                    {
+                            f		/= 1000;
+                            sum 	+= (f*cnt);
+                            hits	+= cnt;
 
-                                if (f > maxfreq)
-                        		maxfreq=f;
-                        	didone=1;
-                        }
+                            if (f > maxfreq)
+                    		maxfreq=f;
+                    }
 
-	                si->cpu.cpu[i].freqcnt.maxfreq	= maxfreq;
-	                si->cpu.cpu[i].freqcnt.cnt	= sum;
-	                si->cpu.cpu[i].freqcnt.ticks	= hits;
+                    si->cpu.cpu[i].freqcnt.maxfreq = maxfreq;
+                    si->cpu.cpu[i].freqcnt.cnt	   = sum;
+                    si->cpu.cpu[i].freqcnt.ticks   = hits;
 
-                        fclose(fp);
-                }
+                    fclose(fp);
+	            didone=1;
+		}
 		else
-		{    // governor statistics not available
-                     snprintf(fn, sizeof fn, 
-                      "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
-		      i);
-
-                        if ((fp=fopen(fn, "r")) != 0)
-                        {
-                                if (fscanf(fp, "%lld", &f) == 1)
-                                {
-  					// convert KHz to MHz
-	                                si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
-                                }
-
-                                fclose(fp);
-                        }
-                        else 
-                        {
-	                        si->cpu.cpu[i].freqcnt.maxfreq=0;
-                        }
-
-                       snprintf(fn, sizeof fn,
-                       "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
-		       i);
-        
-                        if ((fp=fopen(fn, "r")) != 0)
-                        {
-                                if (fscanf(fp, "%lld", &f) == 1)
-                                {
-   					// convert KHz to MHz
-                                        si->cpu.cpu[i].freqcnt.cnt   = f/1000;
-                                        si->cpu.cpu[i].freqcnt.ticks = 0;
-                                        didone=1;
-                                }
-
-                                fclose(fp);
-                        }
-                        else
-                        {
-                                si->cpu.cpu[i].freqcnt.cnt	= 0;
-                                si->cpu.cpu[i].freqcnt.ticks 	= 0;
-                        }
-                }
-            } // for all CPUs
+		{
+			break;
+		}
 	}
+
+        if (!didone)     // did not get processor freq statistics yet
+	{
+		long long f=0;
+
+        	for (i = 0; i < si->cpu.nrcpu; ++i)
+        	{
+        		snprintf(fn, sizeof fn, 
+               		       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
+			      i);
+
+               	 	if ((fp=fopen(fn, "r")) != 0)
+                	{
+                        	if (fscanf(fp, "%lld", &f) == 1)
+                        	{
+  					// convert KHz to MHz
+	                        	si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
+                        	}
+
+                        	fclose(fp);
+                	}
+                	else 
+                	{
+	                	si->cpu.cpu[i].freqcnt.maxfreq=0;
+                	}
+
+                	snprintf(fn, sizeof fn,
+                       		"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
+		       	i);
+        
+                	if ((fp=fopen(fn, "r")) != 0)
+                	{
+                 		if (fscanf(fp, "%lld", &f) == 1)
+                        	{
+   					// convert KHz to MHz
+                                	si->cpu.cpu[i].freqcnt.cnt   = f/1000;
+                                	si->cpu.cpu[i].freqcnt.ticks = 0;
+                        	}
+	
+                        	fclose(fp);
+                        	didone=1;
+                	}
+                	else
+                	{
+                        	si->cpu.cpu[i].freqcnt.cnt	= 0;
+                        	si->cpu.cpu[i].freqcnt.ticks 	= 0;
+                	}
+		}
+        } // for all CPUs
 
         if (!didone)     // did not get processor freq statistics.
                          // use /proc/cpuinfo
