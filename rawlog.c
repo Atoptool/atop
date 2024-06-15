@@ -841,7 +841,7 @@ rawread(void)
 			{
 				if ( !getrawcstat(rawfd, &devchain, rr.ccomplen, rr.coriglen,
 							rr.icomplen, rr.ncgroups, rr.ncgpids) )
-					cleanstop(7);
+				cleanstop(7);
 			}
 
 			/*
@@ -1090,7 +1090,6 @@ getrawcstat(int rawfd, struct cgchainer **cpp,
 
 	if ( readchunk(rawfd, icompbuf, icomplen) < icomplen)
 	{
-		free(ccompbuf);
 		free(corigbuf);
 		free(icompbuf);
 		free(iorigbuf);
