@@ -45,6 +45,7 @@
 #include <dirent.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
+#include <sys/resource.h>
 #include <limits.h>
 
 #define SCALINGMAXCPU	8	// threshold for scaling info per CPU
@@ -2810,9 +2811,23 @@ getperfevents(struct cpustat *cs)
 	if (firstcall)
 	{
 		struct perf_event_attr  pea;
-		int			success = 0;
+		int			success=0, minfds = cs->nrcpu*2 + 32;
+		struct rlimit		rlim;
 
 		firstcall = 0;
+
+		/*
+		** for perf events two file descriptors will
+		** be opened permanently per CPU, so take care
+		** that enough open files are allowed for this process
+		*/
+		getrlimit(RLIMIT_NOFILE, &rlim);
+
+		if (rlim.rlim_cur < minfds)	// default not enough?
+		{
+			rlim.rlim_cur = minfds;
+			(void) setrlimit(RLIMIT_NOFILE, &rlim);
+		}
 
 		/*
 		** allocate space for per-cpu file descriptors
@@ -2851,7 +2866,6 @@ getperfevents(struct cpustat *cs)
 		if (! droprootprivs())
 			mcleanstop(42, "failed to drop root privs\n");
 
-
 		/*
 		** all failed (probably no kernel support)?
 		*/
@@ -2887,7 +2901,7 @@ getperfevents(struct cpustat *cs)
 		if (*(fdi+i) != -1)
 		{
                 	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
-                        cs->all.instr += cs->cpu[i].instr;
+
 			if(liResult < 0)
 			{
 				char lcMessage[64];
@@ -2897,9 +2911,13 @@ getperfevents(struct cpustat *cs)
 				           __FILE__, __LINE__, errno);
 				fprintf(stderr, "%s", lcMessage);
 			}
+			else
+			{
+                        	cs->all.instr += cs->cpu[i].instr;
+			}
 
                 	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
-                        cs->all.cycle += cs->cpu[i].cycle;
+
 			if(liResult < 0)
 			{
 				char lcMessage[64];
@@ -2908,6 +2926,10 @@ getperfevents(struct cpustat *cs)
 				          "%s:%d - Error %d reading cycle counters\n",
 				           __FILE__, __LINE__, errno );
 				fprintf(stderr, "%s", lcMessage);
+			}
+			else
+			{
+                        	cs->all.cycle += cs->cpu[i].cycle;
 			}
 		}
         }
