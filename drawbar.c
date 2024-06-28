@@ -639,23 +639,23 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 	if (!mono)
 	{
-		vertvals->category[0].ccol	= COLORCPUSYS;
-		vertvals->category[0].clab	= 'S';
-		vertvals->category[0].cval	= sstat->cpu.all.stime * 100 /
+		vertvals->category[0].ccol	= COLORCPUINTR;
+		vertvals->category[0].clab	= 'I';
+		vertvals->category[0].cval	=
+			(sstat->cpu.all.Stime + sstat->cpu.all.Itime) * 100 /
+						  alltics;
+
+		vertvals->category[1].ccol	= COLORCPUSYS;
+		vertvals->category[1].clab	= 'S';
+		vertvals->category[1].cval	= sstat->cpu.all.stime * 100 /
 		 				  alltics;
 	
-		vertvals->category[1].ccol	= COLORCPUUSR;
-		vertvals->category[1].clab	= 'U';
-		vertvals->category[1].cval	=
+		vertvals->category[2].ccol	= COLORCPUUSR;
+		vertvals->category[2].clab	= 'U';
+		vertvals->category[2].cval	=
 			(sstat->cpu.all.utime +
 			 sstat->cpu.all.ntime -
 			 sstat->cpu.all.guest) * 100 / alltics;
-
-		vertvals->category[2].ccol	= COLORCPUIDLE;
-		vertvals->category[2].clab	= 'I';
-		vertvals->category[2].cval	=
-			(sstat->cpu.all.Stime + sstat->cpu.all.Itime) * 100 /
-						  alltics;
 
 		vertvals->category[3].ccol	= COLORCPUSTEAL;
 		vertvals->category[3].clab	= 's';
@@ -704,24 +704,24 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 			if (!mono)
 			{
-				(vertvals+i+1)->category[0].ccol = COLORCPUSYS;
-				(vertvals+i+1)->category[0].clab = 'S';
+				(vertvals+i+1)->category[0].ccol = COLORCPUINTR;
+				(vertvals+i+1)->category[0].clab = 'I';
 				(vertvals+i+1)->category[0].cval =
+					(sstat->cpu.cpu[i].Stime +
+					 sstat->cpu.cpu[i].Itime) *100/alltics;
+
+				(vertvals+i+1)->category[1].ccol = COLORCPUSYS;
+				(vertvals+i+1)->category[1].clab = 'S';
+				(vertvals+i+1)->category[1].cval =
 					sstat->cpu.cpu[i].stime * 100 /
 								alltics;
 
-				(vertvals+i+1)->category[1].ccol = COLORCPUUSR;
-				(vertvals+i+1)->category[1].clab = 'U';
-				(vertvals+i+1)->category[1].cval =
+				(vertvals+i+1)->category[2].ccol = COLORCPUUSR;
+				(vertvals+i+1)->category[2].clab = 'U';
+				(vertvals+i+1)->category[2].cval =
 					(sstat->cpu.cpu[i].utime +
 				 	 sstat->cpu.cpu[i].ntime -
 				 	 sstat->cpu.cpu[i].guest) *100/alltics;
-
-				(vertvals+i+1)->category[2].ccol = COLORCPUIDLE;
-				(vertvals+i+1)->category[2].clab = 'I';
-				(vertvals+i+1)->category[2].cval =
-					(sstat->cpu.cpu[i].Stime +
-					 sstat->cpu.cpu[i].Itime) *100/alltics;
 
 				(vertvals+i+1)->category[3].ccol = COLORCPUSTEAL;
 				(vertvals+i+1)->category[3].clab = 's';
@@ -1511,7 +1511,7 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 			//
 			n = (vp->category[c].cval + valperunit/2) / valperunit;
 
-			if (n > 0 && mp - vp->barmap + n < MAXHEIGHT)
+			if (n > 0 && mp - vp->barmap + n <= MAXHEIGHT)
 			{
 				// fill all color positions (lines)
 				//
