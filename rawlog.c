@@ -588,8 +588,13 @@ rawread(void)
 	    rh.rawheadlen != sizeof(struct rawheader)		||
 	    rh.rawreclen  != sizeof(struct rawrecord)		  )
 	{
+		fprintf(stderr, "sstatlen: %d/%lu\n", rh.sstatlen, sizeof(struct sstat));
+		fprintf(stderr, "cstatlen: %d/%lu\n", rh.cstatlen, sizeof(struct cstat));
+		fprintf(stderr, "tstatlen: %d/%lu\n", rh.tstatlen, sizeof(struct tstat));
+		fprintf(stderr, "headlen:  %d/%lu\n", rh.rawheadlen, sizeof(struct rawheader));
+		fprintf(stderr, "reclen:   %d/%lu\n", rh.rawreclen, sizeof(struct rawrecord));
 		fprintf(stderr,
-			"raw file %s has incompatible format\n", rawname);
+			"\nraw file %s has incompatible format\n", rawname);
 
 		if (rh.aversion & 0x8000 &&
        		   (rh.aversion & 0x7fff) != getnumvers())
