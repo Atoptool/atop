@@ -1247,5 +1247,6 @@ try_other_version(int majorversion, int minorversion)
 	/*
 	** point of no return, except when exec failed
 	*/
-	fprintf(stderr, "activation of %s failed!\n", tmpbuf);
+	fprintf(stderr, "activation of %s failed!\n\n", tmpbuf);
+	fprintf(stderr, "use 'atopconvert' to convert this raw log!\n");
 }

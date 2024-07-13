@@ -43,3 +43,16 @@ struct icmpv4_stats_without_InCsumErrors {
 	count_t OutAddrMasks;
 	count_t OutAddrMaskReps;
 };
+
+struct  netstat_wrong {
+        struct ipv4_stats                        ipv4;
+        struct icmpv4_stats_without_InCsumErrors icmpv4;
+        struct udpv4_stats                       udpv4;
+
+        struct ipv6_stats                        ipv6;
+        struct icmpv6_stats                      icmpv6;
+        struct udpv6_stats                       udpv6;
+
+        struct tcp_stats_without_InCsumErrors  tcp;
+};
+

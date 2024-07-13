@@ -51,6 +51,7 @@
 #include "atop.h"
 #include "photosyst.h"
 #include "photoproc.h"
+#include "cgroups.h"
 #include "rawlog.h"
 
 #include "prev/netstats_wrong.h"
@@ -88,6 +89,10 @@
 #include "prev/photosyst_210.h"
 #include "prev/photoproc_210.h"
 
+#include "prev/photosyst_211.h"
+#include "prev/photoproc_211.h"
+#include "prev/cgroups_211.h"
+
 
 void	justcopy(void *, void *, count_t, count_t);
 
@@ -101,6 +106,7 @@ void	smem_to_27(void *, void *, count_t, count_t);
 void	sdsk_to_27(void *, void *, count_t, count_t);
 
 void	smem_to_28(void *, void *, count_t, count_t);
+void	snet_to_28(void *, void *, count_t, count_t);
 void	sdsk_to_28(void *, void *, count_t, count_t);
 void	smnu_to_28(void *, void *, count_t, count_t);
 void	scnu_to_28(void *, void *, count_t, count_t);
@@ -119,6 +125,10 @@ void	tcpu_to_28(void *, void *, count_t, count_t);
 void	tmem_to_28(void *, void *, count_t, count_t);
 
 void	tgen_to_210(void *, void *, count_t, count_t);
+
+void	tgen_to_211(void *, void *, count_t, count_t);
+void	tcpu_to_211(void *, void *, count_t, count_t);
+void	tmem_to_211(void *, void *, count_t, count_t);
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions
@@ -297,6 +307,58 @@ smem_to_28(void *old, void *new, count_t oldsize, count_t newsize)
         m28->pagetables		= 0;	// new counter
 
         memset(m28->cfuture, 0, sizeof m28->cfuture);
+}
+
+void
+snet_to_28(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct netstat_wrong	*n27 = old;
+	struct netstat		*n28 = new;
+
+	// copy unmodified structs
+	//
+	memcpy(&(n28->ipv4),   &(n27->ipv4),   sizeof n28->ipv4);
+	memcpy(&(n28->ipv6),   &(n27->ipv6),   sizeof n28->ipv6);
+
+	memcpy(&(n28->udpv4),  &(n27->udpv4),  sizeof n28->udpv4);
+	memcpy(&(n28->udpv6),  &(n27->udpv6),  sizeof n28->udpv6);
+
+	memcpy(&(n28->icmpv6), &(n27->icmpv6), sizeof n28->icmpv6);
+
+	// convert tcp_stats (last counter added)
+	//
+	memcpy(&(n28->tcp),    &(n27->tcp),    sizeof n27->tcp);
+	n28->tcp.InCsumErrors = 0;
+
+	// convert icmpv4_stats (counter added in the middle)
+	//
+	n28->icmpv4.InMsgs           = n27->icmpv4.InMsgs;
+        n28->icmpv4.InErrors         = n27->icmpv4.InErrors;
+        n28->icmpv4.InCsumErrors     = 0;    // new counter
+        n28->icmpv4.InDestUnreachs   = n27->icmpv4.InDestUnreachs;
+        n28->icmpv4.InTimeExcds      = n27->icmpv4.InTimeExcds;
+        n28->icmpv4.InParmProbs      = n27->icmpv4.InParmProbs;
+        n28->icmpv4.InSrcQuenchs     = n27->icmpv4.InSrcQuenchs;
+        n28->icmpv4.InRedirects      = n27->icmpv4.InRedirects;
+        n28->icmpv4.InEchos          = n27->icmpv4.InEchos;
+        n28->icmpv4.InEchoReps       = n27->icmpv4.InEchoReps;
+        n28->icmpv4.InTimestamps     = n27->icmpv4.InTimestamps;
+        n28->icmpv4.InTimestampReps  = n27->icmpv4.InTimestampReps;
+        n28->icmpv4.InAddrMasks      = n27->icmpv4.InAddrMasks;
+        n28->icmpv4.InAddrMaskReps   = n27->icmpv4.InAddrMaskReps;
+        n28->icmpv4.OutMsgs          = n27->icmpv4.OutMsgs;
+        n28->icmpv4.OutErrors        = n27->icmpv4.OutErrors;
+        n28->icmpv4.OutDestUnreachs  = n27->icmpv4.OutDestUnreachs;
+        n28->icmpv4.OutTimeExcds     = n27->icmpv4.OutTimeExcds;
+        n28->icmpv4.OutParmProbs     = n27->icmpv4.OutParmProbs;
+        n28->icmpv4.OutSrcQuenchs    = n27->icmpv4.OutSrcQuenchs;
+        n28->icmpv4.OutRedirects     = n27->icmpv4.OutRedirects;
+        n28->icmpv4.OutEchos         = n27->icmpv4.OutEchos;
+        n28->icmpv4.OutEchoReps      = n27->icmpv4.OutEchoReps;
+        n28->icmpv4.OutTimestamps    = n27->icmpv4.OutTimestamps;
+        n28->icmpv4.OutTimestampReps = n27->icmpv4.OutTimestampReps;
+        n28->icmpv4.OutAddrMasks     = n27->icmpv4.OutAddrMasks;
+        n28->icmpv4.OutAddrMaskReps  = n27->icmpv4.OutAddrMaskReps;
 }
 
 void
@@ -532,6 +594,43 @@ tgen_to_210(void *old, void *new, count_t oldsize, count_t newsize)
 	memcpy(g210->cgpath,  g29->cgpath,    sizeof(g210->cgpath));
 }
 
+void
+tgen_to_211(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// member 'cgpath' removed, member cgroupix and ifuture instead
+	//
+	struct gen_210	*g210 = old;
+	struct gen_211	*g211 = new;
+
+	memcpy(g211, g210, sizeof *g211);	// copy base values
+	memset(g211->ifuture, 0, sizeof g211->ifuture);
+	g211->cgroupix = -1;
+}
+
+void
+tcpu_to_211(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// set future values (released cgroup values) to zero
+	//
+	struct cpu_210	*c210 = old;
+	struct cpu_211	*c211 = new;
+
+	memcpy(c211, c210, sizeof *c211);	// copy base values
+	memset(c211->ifuture, 0, sizeof c211->ifuture);
+}
+
+void
+tmem_to_211(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	// set future values (released cgroup values) to zero
+	//
+	struct mem_210	*m210 = old;
+	struct mem_211	*m211 = new;
+
+	memcpy(m211, m210, sizeof *m211);	// copy base values
+	memset(m211->cfuture, 0, sizeof m211->cfuture);
+}
+
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
 //
@@ -561,7 +660,10 @@ struct sstat_27		sstat_27;
 struct sstat_28		sstat_28;
 struct sstat_29		sstat_29;
 struct sstat_210	sstat_210;
+struct sstat_211	sstat_211;
 struct sstat		sstat;
+
+struct cstat		cstat;
 
 struct tstat_20		tstat_20;
 struct tstat_21		tstat_21;
@@ -574,6 +676,7 @@ struct tstat_27		tstat_27;
 struct tstat_28		tstat_28;
 struct tstat_29		tstat_29;
 struct tstat_210	tstat_210;
+struct tstat_211	tstat_211;
 struct tstat		tstat;
 
 struct convertall {
@@ -581,6 +684,9 @@ struct convertall {
 
 	unsigned int		sstatlen;	// length of struct sstat
 	void			*sstat;		// pointer to sstat struct
+
+	unsigned int		cstatlen;	// length of struct cstat (>= 2.11)
+	void			*cstat;		// pointer to cstat struct
 
 	unsigned int		tstatlen;	// length of struct tstat
 	void			*tstat;		// pointer to tstat structs
@@ -601,6 +707,9 @@ struct convertall {
         struct sconvstruct	scnum;
         struct sconvstruct	sllc;
 
+	// conversion definition for subparts within cstat
+	// relevant from version 2.12 onwards
+	
 	// conversion definition for subparts within tstat
 	struct tconvstruct 	tgen;
 	struct tconvstruct 	tcpu;
@@ -612,6 +721,7 @@ struct convertall {
 {
 	{SETVERSION(2,0),
 		 sizeof(struct sstat_20), 	&sstat_20,
+		 0,				NULL,
 		 sizeof(struct tstat_20), 	NULL,
 
 		{sizeof(struct cpustat_20),  	&sstat_20.cpu,	NULL},
@@ -644,6 +754,7 @@ struct convertall {
 
 	{SETVERSION(2,1), // 2.0 --> 2.1
 		 sizeof(struct sstat_21), 	&sstat_21,
+		 0,				NULL,
 		 sizeof(struct tstat_21), 	NULL,
 
 		{sizeof(struct cpustat_21),  	&sstat_21.cpu,	scpu_to_21},
@@ -676,6 +787,7 @@ struct convertall {
 
 	{SETVERSION(2,2), // 2.1 --> 2.2
 		 sizeof(struct sstat_22), 	&sstat_22,
+		 0,				NULL,
 		 sizeof(struct tstat_22), 	NULL,
 
 		{sizeof(struct cpustat_22),  	&sstat_22.cpu,	justcopy},
@@ -708,6 +820,7 @@ struct convertall {
 
 	{SETVERSION(2,3), // 2.2 --> 2.3
 		 sizeof(struct sstat_23), 	&sstat_23,
+		 0,				NULL,
 		 sizeof(struct tstat_23), 	NULL,
 
 		{sizeof(struct cpustat_23),  	&sstat_23.cpu,	justcopy},
@@ -740,6 +853,7 @@ struct convertall {
 
 	{SETVERSION(2,4), // 2.3 --> 2.4
 		 sizeof(struct sstat_24),	&sstat_24,
+		 0,				NULL,
 		 sizeof(struct tstat_24), 	NULL,
 
 		{sizeof(struct cpustat_24),  	&sstat_24.cpu,	justcopy},
@@ -773,6 +887,7 @@ struct convertall {
 
 	{SETVERSION(2,5), // 2.4 --> 2.5
 		 sizeof(struct sstat_25),	&sstat_25,
+		 0,				NULL,
 		 sizeof(struct tstat_25), 	NULL,
 
 		{sizeof(struct cpustat_25),  	&sstat_25.cpu,	justcopy},
@@ -806,6 +921,7 @@ struct convertall {
 
 	{SETVERSION(2,6), // 2.5 --> 2.6
 		 sizeof(struct sstat_26),	&sstat_26,
+		 0,				NULL,
 		 sizeof(struct tstat_26), 	NULL,
 
 		{sizeof(struct cpustat_26),  	&sstat_26.cpu,	justcopy},
@@ -839,6 +955,7 @@ struct convertall {
 
 	{SETVERSION(2,7), // 2.6 --> 2.7
 		 sizeof(struct sstat_27),	&sstat_27,
+		 0,				NULL,
 		 sizeof(struct tstat_27), 	NULL,
 
 		{sizeof(struct cpustat_27),  	&sstat_27.cpu,	scpu_to_27},
@@ -872,11 +989,12 @@ struct convertall {
 
 	{SETVERSION(2,8), // 2.7 --> 2.8
 		 sizeof(struct sstat_28),	&sstat_28,
+		 0,				NULL,
 		 sizeof(struct tstat_28), 	NULL,
 
 		{sizeof(struct cpustat_28),  	&sstat_28.cpu,	   justcopy},
 		{sizeof(struct memstat_28),  	&sstat_28.mem,	   smem_to_28},
-		{sizeof(struct netstat_28),  	&sstat_28.net,	   justcopy},
+		{sizeof(struct netstat_28),  	&sstat_28.net,	   snet_to_28},
 		{sizeof(struct intfstat_28), 	&sstat_28.intf,	   justcopy},
 		{sizeof(struct dskstat_28),  	&sstat_28.dsk,	   sdsk_to_28},
 		{sizeof(struct nfsstat_28),  	&sstat_28.nfs,	   justcopy},
@@ -905,6 +1023,7 @@ struct convertall {
 
 	{SETVERSION(2,9), // 2.8 --> 2.9
 		 sizeof(struct sstat_29),	&sstat_29,
+		 0,				NULL,
 		 sizeof(struct tstat_29), 	NULL,
 
 		{sizeof(struct cpustat_29),  	&sstat_29.cpu,	   justcopy},
@@ -938,6 +1057,7 @@ struct convertall {
 
 	{SETVERSION(2,10), // 2.9 --> 2.10
 		 sizeof(struct sstat_210),	&sstat_210,
+		 0,				NULL,
 		 sizeof(struct tstat_210), 	NULL,
 
 		{sizeof(struct cpustat_210),  	&sstat_210.cpu,	   justcopy},
@@ -968,6 +1088,40 @@ struct convertall {
 		{sizeof(struct gpu_210),
 			STROFFSET(&tstat_210.gpu, &tstat_210),	justcopy},
 	},
+
+	{SETVERSION(2,11), // 2.10 --> 2.11
+		 sizeof(struct sstat_211),	&sstat_211,
+		 sizeof(struct cstat_211),	NULL,
+		 sizeof(struct tstat_211), 	NULL,
+
+		{sizeof(struct cpustat_211),  	&sstat_211.cpu,	   justcopy},
+		{sizeof(struct memstat_211),  	&sstat_211.mem,	   justcopy},
+		{sizeof(struct netstat_211),  	&sstat_211.net,	   justcopy},
+		{sizeof(struct intfstat_211), 	&sstat_211.intf,   justcopy},
+		{sizeof(struct dskstat_211),  	&sstat_211.dsk,	   justcopy},
+		{sizeof(struct nfsstat_211),  	&sstat_211.nfs,	   justcopy},
+		{sizeof(struct contstat_211), 	&sstat_211.cfs,	   justcopy},
+		{sizeof(struct wwwstat_211),  	&sstat_211.www,	   justcopy},
+		{sizeof(struct pressure_211),  	&sstat_211.psi,	   justcopy},
+		{sizeof(struct gpustat_211),  	&sstat_211.gpu,	   justcopy},
+		{sizeof(struct ifbstat_211),  	&sstat_211.ifb,	   justcopy},
+		{sizeof(struct memnuma_211), 	&sstat_211.memnuma, justcopy},
+		{sizeof(struct cpunuma_211),  	&sstat_211.cpunuma, justcopy},
+		{sizeof(struct llcstat_211),  	&sstat_211.llc,	   justcopy},
+
+		{sizeof(struct gen_211),
+			STROFFSET(&tstat_211.gen, &tstat_211),	tgen_to_211},
+		{sizeof(struct cpu_211),
+			STROFFSET(&tstat_211.cpu, &tstat_211),	tcpu_to_211},
+		{sizeof(struct dsk_211),
+			STROFFSET(&tstat_211.dsk, &tstat_211),	justcopy},
+		{sizeof(struct mem_211),
+			STROFFSET(&tstat_211.mem, &tstat_211),	tmem_to_211},
+		{sizeof(struct net_211),
+			STROFFSET(&tstat_211.net, &tstat_211),	justcopy},
+		{sizeof(struct gpu_211),
+			STROFFSET(&tstat_211.gpu, &tstat_211),	justcopy},
+	},
 };
 
 int	numconvs = sizeof convs / sizeof(struct convertall);
@@ -993,8 +1147,8 @@ static void	do_tconvert(void *, void *,
 			struct tconvstruct *, struct tconvstruct *);
 
 static int	getrawsstat(int, struct sstat *, int);
-static int	getrawtstat(int, struct tstat *, int, int);
-static void	testcompval(int, char *);
+static int	getrawtstat(int, struct tstat *, unsigned long, int, int);
+static void	testcompval(int, char *, char *);
 
 int
 main(int argc, char *argv[])
@@ -1159,6 +1313,7 @@ main(int argc, char *argv[])
 
 	orh.aversion	= convs[targetix].version | 0x8000;
 	orh.sstatlen	= convs[targetix].sstatlen;
+	orh.cstatlen	= convs[targetix].cstatlen;
 	orh.tstatlen	= convs[targetix].tstatlen;
 
 	if (orh.pidwidth == 0)	// no pid width know in old raw log?
@@ -1211,7 +1366,8 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 			"Malloc failed for %d stored tasks\n", irr.ndeviat);
 
 		if ( !getrawtstat(ifd, convs[ivix].tstat,
-					irr.pcomplen, irr.ndeviat) )
+		                       convs[ivix].tstatlen * irr.ndeviat,
+		                       irr.pcomplen, irr.ndeviat) )
 			exit(7);
 
 		// STEP-BY-STEP CONVERSION FROM OLD VERSION TO NEW VERSION
@@ -1280,6 +1436,12 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix)
 			}
 
 			free(convs[i].tstat);
+
+			// in version 2.11 incompatible cgroups v2 metrics
+			// are implemented and earlier metrics will be lost
+			//
+			if (convs[i].version == SETVERSION(2,10))
+				irr.flags &= ~RRCGRSTAT;
 		}
 
 		// write new sample to output file
@@ -1491,7 +1653,7 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 
 	rv = uncompress((Byte *)sp, &uncomplen, compbuf, complen);
 
-	testcompval(rv, "uncompress");
+	testcompval(rv, "sstat", "uncompress");
 
 	free(compbuf);
 
@@ -1502,10 +1664,10 @@ getrawsstat(int rawfd, struct sstat *sp, int complen)
 // Function to read the process-level statistics from the current offset
 //
 static int
-getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
+getrawtstat(int rawfd, struct tstat *pp, unsigned long uncomplen,
+                       int complen, int ndeviat)
 {
 	Byte		*compbuf;
-	unsigned long	uncomplen = sizeof(struct tstat) * ndeviat;
 	int		rv;
 
 	compbuf = malloc(complen);
@@ -1522,7 +1684,7 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 
 	rv = uncompress((Byte *)pp, &uncomplen, compbuf, complen);
 
-	testcompval(rv, "uncompress");
+	testcompval(rv, "tstat", "uncompress");
 
 	free(compbuf);
 
@@ -1547,7 +1709,7 @@ writesamp(int ofd, struct rawrecord *rr,
 	rv = compress(scompbuf, &scomplen,
 				(Byte *)sstat, (unsigned long)sstatlen);
 
-	testcompval(rv, "compress");
+	testcompval(rv, "sstat", "compress");
 
 	pcompbuf = malloc(pcomplen);
 
@@ -1556,7 +1718,7 @@ writesamp(int ofd, struct rawrecord *rr,
 	rv = compress(pcompbuf, &pcomplen, (Byte *)tstat,
 						(unsigned long)pcomplen);
 
-	testcompval(rv, "compress");
+	testcompval(rv, "tstat", "compress");
 
 	rr->scomplen	= scomplen;
 	rr->pcomplen	= pcomplen;
@@ -1593,7 +1755,7 @@ writesamp(int ofd, struct rawrecord *rr,
 // check success of (de)compression
 //
 static void
-testcompval(int rv, char *func)
+testcompval(int rv, char *name, char *func)
 {
 	switch (rv)
 	{
@@ -1603,22 +1765,22 @@ testcompval(int rv, char *func)
 		break;
 
 	   case Z_MEM_ERROR:
-		fprintf(stderr, "%s: failed due to lack of memory\n", func);
+		fprintf(stderr, "%s %s: failed due to lack of memory\n", name, func);
 		exit(7);
 
 	   case Z_BUF_ERROR:
-		fprintf(stderr, "%s: failed due to lack of room in buffer\n",
-								func);
+		fprintf(stderr, "%s %s: failed due to lack of room in buffer\n",
+								name, func);
 		exit(7);
 
    	   case Z_DATA_ERROR:
 		fprintf(stderr,
-		        "%s: failed due to corrupted/incomplete data\n", func);
+		        "%s %s: failed due to corrupted/incomplete data\n", name, func);
 		exit(7);
 
 	   default:
 		fprintf(stderr,
-		        "%s: unexpected error %d\n", func, rv);
+		        "%s %s: unexpected error %d\n", name, func, rv);
 		exit(7);
 	}
 }

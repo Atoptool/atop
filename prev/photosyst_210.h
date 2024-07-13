@@ -119,7 +119,7 @@ struct	cpupernuma_210 {
 
 struct	cpunuma_210 {
 	count_t           nrnuma;		/* the counts of numa		*/
-	struct cpupernuma numa[MAXNUMA_210];
+	struct cpupernuma_210 numa[MAXNUMA_210];
 };
 
 /************************************************************************/
