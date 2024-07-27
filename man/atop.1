@@ -1,4 +1,4 @@
-.TH ATOP 1 "April 2024" "Linux"
+.TH ATOP 1 "July 2024" "Linux"
 .SH NAME
 .B atop 
 - Advanced System & Process Monitor
@@ -1315,6 +1315,13 @@ to a raw file that can be read by a newer version of
 for more details).
 
 .SH OUTPUT DESCRIPTION
+The header line always shows the host name, the end date and end time when
+the sample has been taken, the current options that are active (only in text
+mode), and the elapsed time (duration) of the sample. The verb 'PAUSED' will
+be shown behind the time when
+.B atop
+is currently paused with the 'z' key.
+
 The first sample shows the system level activity since boot
 (the elapsed time in the header shows the time since boot).
 .PP
