@@ -21,7 +21,11 @@ PMPATH2  = /usr/lib64/pm-utils/sleep.d
 PMPATHD  = /usr/lib/systemd/system-sleep
 
 PKG_CONFIG ?= pkg-config
-CFLAGS  += -O2 -I. -Wall $(shell $(PKG_CONFIG) --cflags glib-2.0)  -Wno-stringop-truncation -Wmissing-prototypes -Wmissing-declarations -Wformat-security # -DNOPERFEVENT   # -DHTTPSTATS
+CFLAGS  += -O2 -I. -Wall $(shell $(PKG_CONFIG) --cflags glib-2.0) -Wmissing-prototypes -Wmissing-declarations -Wformat-security # -DNOPERFEVENT   # -DHTTPSTATS
+CC_CHECK := $(shell echo | $(CC) -dM -E - | grep -q __clang__ && echo clang || echo gcc)
+ifeq ($(CC_CHECK),gcc)
+    CFLAGS += -Wno-stringop-trunction
+endif
 LDFLAGS += $(shell $(PKG_CONFIG) --libs glib-2.0)
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
