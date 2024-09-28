@@ -22,13 +22,15 @@ PMPATHD  = /usr/lib/systemd/system-sleep
 
 PKG_CONFIG ?= pkg-config
 
-CFLAGS  += -O2 -I. -Wall $(shell $(PKG_CONFIG) --cflags glib-2.0) -Wmissing-prototypes -Wmissing-declarations -Wformat-security # -DNOPERFEVENT   # -DHTTPSTATS
+override CFLAGS  := -O2 -I. -Wall $(shell $(PKG_CONFIG) --cflags glib-2.0) -Wmissing-prototypes -Wmissing-declarations -Wformat-security $(CFLAGS) # -DNOPERFEVENT   # -DHTTPSTATS
+
 CC_CHECK := $(shell echo | $(CC) -dM -E - | grep -q __clang__ && echo clang || echo gcc)
 ifeq ($(CC_CHECK),gcc)
-    CFLAGS += -Wno-stringop-truncation
+    override CFLAGS += -Wno-stringop-truncation
 endif
 
-LDFLAGS += $(shell $(PKG_CONFIG) --libs glib-2.0)
+override LDFLAGS := $(shell $(PKG_CONFIG) --libs glib-2.0) $(LDFLAGS)
+
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
 OBJMOD2  = acctproc.o photoproc.o photosyst.o cgroups.o rawlog.o ifprop.o parseable.o
