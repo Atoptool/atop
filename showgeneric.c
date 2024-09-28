@@ -4130,6 +4130,10 @@ do_flags(char *name, char *val)
 		   case 't':
 			twinmodeflag++;
 			break;
+
+		   case 'I':
+			idnamesuppress++;
+			break;
 		}
 	}
 }

@@ -171,6 +171,7 @@ int		linelen  = 80;
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
+char		idnamesuppress;	/* suppress UID/GID to name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 char		flaglist[MAXFL];
 char		deviatonly = 1;
@@ -418,6 +419,10 @@ main(int argc, char *argv[])
 
 			   case 'S':		/* midnight limit ?           */
 				midnightflag++;
+				break;
+
+			   case 'I':		/* suppress ID translation ?  */
+				idnamesuppress++;
 				break;
 
                            case 'b':		/* begin time ?               */
@@ -1013,8 +1018,8 @@ prusage(char *myname)
 					myname);
 	printf("\n");
 	printf("\tgeneric flags:\n");
-	printf("\t  -t   twin mode: live measurement with possibility to review earlier samples\n");
-	printf("\t                  (raw file created in /tmp or in specific directory path)\n");
+	printf("\t  -t  twin mode: live measurement with possibility to review earlier samples\n");
+	printf("\t                 (raw file created in /tmp or in specific directory path)\n");
 	printf("\t  -%c  show bar graphs for system statistics\n", MBARGRAPH);
 	printf("\t  -%c  show bar graphs without categories\n", MBARMONO);
 	printf("\t  -%c  show cgroup v2 metrics\n", MCGROUPS);
@@ -1033,6 +1038,7 @@ prusage(char *myname)
 			"non-screen output\n");
 	printf("\t  -z  prepend regex matching environment variables to "
                         "command line\n");
+	printf("\t  -I  suppress UID/GID to name translation (show numbers instead)\n");
 
 	if (vis.show_usage)
 		(*vis.show_usage)();

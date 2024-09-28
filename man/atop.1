@@ -2022,6 +2022,9 @@ in the kernel.
 .TP 9
 .B EGID
 Effective group-id under which this process executes.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B ENDATE
@@ -2040,6 +2043,9 @@ Virtual environment identified (OpenVZ only).
 .TP 9
 .B EUID
 Effective user-id under which this process executes.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B EXC
@@ -2049,10 +2055,16 @@ or the fatal signal number (second position of column 'ST' is S or C).
 .TP 9
 .B FSGID
 Filesystem group-id under which this process executes.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B FSUID
 Filesystem user-id under which this process executes.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B GPU
@@ -2219,6 +2231,9 @@ Runqueue delay, i.e. time spent waiting on a runqueue.
 .TP 9
 .B RGID
 The real group-id under which the process executes. 
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B RGROW 
@@ -2268,6 +2283,9 @@ or ranges from 1 (lowest) till 99 (highest) for a realtime process
 .TP 9
 .B RUID
 The real user-id under which the process executes. 
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B S
@@ -2281,6 +2299,9 @@ processes which have finished during the last interval.
 .TP 9
 .B SGID
 The saved group-id of the process.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B SNET 
@@ -2330,6 +2351,9 @@ The start time of the process.
 .TP 9
 .B SUID
 The saved user-id of the process.
+When the name is longer than 8 or when the
+.I -I
+flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B SWAPSZ

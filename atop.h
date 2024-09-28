@@ -99,6 +99,7 @@ extern char		calcpss;
 extern char		getwchan;
 extern char		rawname[];
 extern char		rawreadflag;
+extern char		idnamesuppress;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];

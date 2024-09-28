@@ -538,6 +538,36 @@ showprocline(detail_printpair* elemptr, struct tstat *curstat,
         }
 }
 
+/***************************************************************/
+/* Generic functions to translate UID or GID number into a     */
+/* string of 8 characters, to be stored in strbuf with a       */
+/* of maximum 9 bytes.                                         */
+/* When no translation is wanted (-I flag) or when the         */
+/* name is longer than 8, a string representation of the       */
+/* UID or GID number is returned.                              */
+/***************************************************************/
+static void
+uid2str(uid_t uid, char *strbuf)
+{
+        struct passwd *pwd;
+
+	if (!idnamesuppress && (pwd = getpwuid(uid)) && strlen(pwd->pw_name) <= 8)
+		snprintf(strbuf, 9, "%-8.8s", pwd->pw_name);
+        else 
+		snprintf(strbuf, 9, "%-8d", uid);
+}
+
+static void
+gid2str(gid_t gid, char *strbuf)
+{
+        struct group *grp;
+
+	if (!idnamesuppress && (grp = getgrgid(gid)) && strlen(grp->gr_name) <= 8)
+		snprintf(strbuf, 9, "%-8.8s", grp->gr_name);
+        else 
+		snprintf(strbuf, 9, "%-8d", gid);
+}
+
 
 /*******************************************************************/
 /* PROCESS PRINT FUNCTIONS */
@@ -973,16 +1003,9 @@ char *
 procprt_RUID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
-        struct passwd   *pwd;
 
-        if ( (pwd = getpwuid(curstat->gen.ruid)) )
-        {
-                        sprintf(buf, "%-8.8s", pwd->pw_name);
-        } 
-        else 
-        {
-                        snprintf(buf, sizeof buf, "%-8d", curstat->gen.ruid);
-        }
+	uid2str(curstat->gen.ruid, buf);
+
         return buf;
 }
 
@@ -993,16 +1016,9 @@ char *
 procprt_EUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
-        struct passwd   *pwd;
 
-        if ( (pwd = getpwuid(curstat->gen.euid)) )
-        {
-                        sprintf(buf, "%-8.8s", pwd->pw_name);
-        } 
-        else 
-        {
-                        snprintf(buf, sizeof buf, "%-8d", curstat->gen.euid);
-        }
+	uid2str(curstat->gen.euid, buf);
+
         return buf;
 }
 
@@ -1019,16 +1035,9 @@ char *
 procprt_SUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
-        struct passwd   *pwd;
 
-        if ( (pwd = getpwuid(curstat->gen.suid)) )
-        {
-                        sprintf(buf, "%-8.8s", pwd->pw_name);
-        } 
-        else 
-        {
-                        snprintf(buf, sizeof buf, "%-8d", curstat->gen.suid);
-        }
+	uid2str(curstat->gen.suid, buf);
+
         return buf;
 }
 
@@ -1045,16 +1054,9 @@ char *
 procprt_FSUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
-        struct passwd   *pwd;
 
-        if ( (pwd = getpwuid(curstat->gen.fsuid)) )
-        {
-                        sprintf(buf, "%-8.8s", pwd->pw_name);
-        } 
-        else 
-        {
-                        snprintf(buf, sizeof buf, "%-8d", curstat->gen.fsuid);
-        }
+	uid2str(curstat->gen.fsuid, buf);
+
         return buf;
 }
 
@@ -1071,21 +1073,9 @@ char *
 procprt_RGID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        struct group    *grp;
-        char *groupname;
-        char grname[16];
 
-        if ( (grp = getgrgid(curstat->gen.rgid)) )
-        {
-                        groupname = grp->gr_name;
-        }
-        else
-        {
-                        snprintf(grname, sizeof grname, "%d",curstat->gen.rgid);
-                        groupname = grname;
-        }
+	gid2str(curstat->gen.rgid, buf);
 
-        sprintf(buf, "%-8.8s", groupname);
         return buf;
 }
 
@@ -1096,21 +1086,9 @@ char *
 procprt_EGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        struct group    *grp;
-        char *groupname;
-        char grname[16];
 
-        if ( (grp = getgrgid(curstat->gen.egid)) )
-        {
-                        groupname = grp->gr_name;
-        }
-        else
-        {
-                        snprintf(grname, sizeof grname, "%d",curstat->gen.egid);
-                        groupname = grname;
-        }
+	gid2str(curstat->gen.egid, buf);
 
-        sprintf(buf, "%-8.8s", groupname);
         return buf;
 }
 
@@ -1127,21 +1105,9 @@ char *
 procprt_SGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        struct group    *grp;
-        char *groupname;
-        char grname[16];
 
-        if ( (grp = getgrgid(curstat->gen.sgid)) )
-        {
-                        groupname = grp->gr_name;
-        }
-        else
-        {
-                        snprintf(grname, sizeof grname, "%d",curstat->gen.sgid);
-                        groupname = grname;
-        }
+	gid2str(curstat->gen.sgid, buf);
 
-        sprintf(buf, "%-8.8s", groupname);
         return buf;
 }
 
@@ -1158,21 +1124,9 @@ char *
 procprt_FSGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
-        struct group    *grp;
-        char *groupname;
-        char grname[16];
 
-        if ( (grp = getgrgid(curstat->gen.fsgid)) )
-        {
-                        groupname = grp->gr_name;
-        }
-        else
-        {
-                        snprintf(grname, sizeof grname,"%d",curstat->gen.fsgid);
-                        groupname = grname;
-        }
+	gid2str(curstat->gen.fsgid, buf);
 
-        sprintf(buf, "%-8.8s", groupname);
         return buf;
 }
 
