@@ -49,8 +49,6 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <curses.h>
-#include <pwd.h>
-#include <grp.h>
 #include <regex.h>
 
 #include "atop.h"
@@ -549,10 +547,10 @@ showprocline(detail_printpair* elemptr, struct tstat *curstat,
 static void
 uid2str(uid_t uid, char *strbuf)
 {
-        struct passwd *pwd;
+        char *username;
 
-	if (!idnamesuppress && (pwd = getpwuid(uid)) && strlen(pwd->pw_name) <= 8)
-		snprintf(strbuf, 9, "%-8.8s", pwd->pw_name);
+	if (!idnamesuppress && (username = uid2name(uid)) && strlen(username) <= 8)
+		snprintf(strbuf, 9, "%-8.8s", username);
         else 
 		snprintf(strbuf, 9, "%-8d", uid);
 }
@@ -560,10 +558,10 @@ uid2str(uid_t uid, char *strbuf)
 static void
 gid2str(gid_t gid, char *strbuf)
 {
-        struct group *grp;
+        char *grpname;
 
-	if (!idnamesuppress && (grp = getgrgid(gid)) && strlen(grp->gr_name) <= 8)
-		snprintf(strbuf, 9, "%-8.8s", grp->gr_name);
+	if (!idnamesuppress && (grpname = gid2name(gid)) && strlen(grpname) <= 8)
+		snprintf(strbuf, 9, "%-8.8s", grpname);
         else 
 		snprintf(strbuf, 9, "%-8d", gid);
 }

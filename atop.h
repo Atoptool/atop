@@ -174,6 +174,9 @@ char		*val2cpustr(count_t, char *);
 char            *val2Hzstr(count_t, char *);
 int             val2elapstr(int, char *);
 
+char 		*uid2name(uid_t);
+char		*gid2name(gid_t);
+
 int		compcpu(const void *, const void *);
 int		compdsk(const void *, const void *);
 int		compmem(const void *, const void *);
