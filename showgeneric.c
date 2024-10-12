@@ -1740,8 +1740,8 @@ text_samp(time_t curtime, int nsecs,
 
 				move(statline, 0);
 				clrtoeol();
-				printw("Username as regular expression "
-				       "(enter=all users): ");
+				printw("Users as regular expression or "
+				       "one numerical UID (enter=all users): ");
 
 				procsel.username[0] = '\0';
 				scanw("%255s\n", procsel.username);
