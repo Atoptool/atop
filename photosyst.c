@@ -12,7 +12,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2012 Gerlof Langeveld
+** Copyright (C) 2000-2024 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -1790,6 +1790,7 @@ photosyst(struct sstat *si)
 	** pressure statistics in /proc/pressure (>= 4.20)
 	**
 	** cpu:      some avg10=0.00 avg60=1.37 avg300=3.73 total=30995960
+	** cpu:      full avg10=0.00 avg60=0.00 avg300=0.00 total=0
 	** io:       some avg10=0.00 avg60=8.83 avg300=22.86 total=141658568
 	** io:       full avg10=0.00 avg60=8.33 avg300=21.56 total=133129045
 	** memory:   some avg10=0.00 avg60=0.74 avg300=1.67 total=10663184
@@ -1808,7 +1809,7 @@ photosyst(struct sstat *si)
 
 		if ( (fp = fopen("cpu", "r")) != NULL)
 		{
-			if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 			{
 				nr = sscanf(linebuf, psiformat,
 			            	&psitype,
@@ -1816,8 +1817,12 @@ photosyst(struct sstat *si)
 					&psitemp.avg300, &psitemp.total);
 
 				if (nr == 5)	// complete line ?
-					memmove(&(si->psi.cpusome), &psitemp,
-								sizeof psitemp);
+				{
+					if (psitype == 's')
+						memmove(&(si->psi.cpusome),
+							&psitemp, sizeof psitemp);
+					// cpu full always seems to be zero
+				}
 			}
 			fclose(fp);
 		}
@@ -1835,12 +1840,10 @@ photosyst(struct sstat *si)
 				{
 					if (psitype == 's')
 						memmove(&(si->psi.memsome),
-							&psitemp,
-							sizeof psitemp);
+							&psitemp, sizeof psitemp);
 					else
 						memmove(&(si->psi.memfull),
-							&psitemp,
-							sizeof psitemp);
+							&psitemp, sizeof psitemp);
 				}
 			}
 			fclose(fp);
