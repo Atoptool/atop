@@ -249,6 +249,18 @@ needed for the presentation in text mode. The next interval in bar graph
 mode shows the bars unsorted again unless the window width is unsufficient
 for all bars.
 .PP
+For the CPUs, disks and memory resources also a bar graph with two bars
+is shown reflecting the PSI values 'some' (S) and 'full' (F).
+The 'some' (S) percentage indicates the time in which at least some tasks
+were stalled on a given resource.
+The 'full' (F) percentage indicates the time in which all non-idle tasks were stalled
+on this resource simultaneously, which had severe impact on the performance.
+.br
+For some Linux distributions PSI support might be disabled by default.
+In that case you need to pass
+.B psi=1
+on the kernel command line during boot.
+.PP
 The remaining part of this manual page mainly describes the information
 shown in text mode.
 When certain descriptions also apply to bar graph mode it will be
@@ -1630,7 +1642,7 @@ the number of out-of-memory kills ('oomkill').
 Pressure Stall Information.
 .br
 This line contains percentages about resource pressure related to CPU,
-memory and I/O. Certain percentages refer to 'some' meaning that some
+memory and disk I/O. Certain percentages refer to 'some' meaning that some
 processes/threads were delayed due to resource overload. Other
 percentages refer to 'full' meaning a loss of overall throughput
 due to resource overload.
@@ -1642,6 +1654,11 @@ The values 'cs' (cpu some), 'ms' (memory some), 'mf' (memory full), 'is'
 (I/O some) and 'if' (I/O full) each show
 three percentages separated by slashes:
 pressure percentage over the last 10, 60 and 300 seconds.
+.br
+For some Linux distributions PSI support might be disabled by default.
+In that case you need to pass
+.B psi=1
+on the kernel command line during boot.
 .PP
 .TP 5
 .B LVM/MDD/DSK
@@ -1850,6 +1867,11 @@ Value -1 means maximum, while value -2 means undefined.
 .B CPUPS
 The CPU pressure percentage ('some') in this cgroup and
 cgroups underneath.
+.br
+For some Linux distributions PSI support might be disabled by default.
+In that case you need to pass
+.B psi=1
+on the kernel command line during boot.
 .PP
 .TP 9
 .B CPUWGT
@@ -1865,6 +1887,11 @@ in this cgroup and the cgroups underneath. Value -1 means undefined.
 .B DSKPS
 The disk pressure percentage ('full') in this cgroup and
 cgroups underneath.
+.br
+For some Linux distributions PSI support might be disabled by default.
+In that case you need to pass
+.B psi=1
+on the kernel command line during boot.
 .PP
 .TP 9
 .B IOWGT
@@ -1885,6 +1912,11 @@ Value -1 means undefined.
 .B MEMPS
 The memory pressure percentage ('full') in this cgroup and
 cgroups underneath.
+.br
+For some Linux distributions PSI support might be disabled by default.
+In that case you need to pass
+.B psi=1
+on the kernel command line during boot.
 .PP
 .TP 9
 .B NPROCS

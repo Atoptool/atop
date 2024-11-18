@@ -85,6 +85,7 @@ struct sselection {
 #define COLOR_MYORANGE  20
 #define COLOR_MYGREEN   21
 #define COLOR_MYGREY    22
+#define COLOR_MYLGREY   23
 
 #define COLOR_MYBROWN1  24
 #define COLOR_MYBROWN2  25
@@ -108,6 +109,7 @@ struct sselection {
 #define	FGCOLORALMOST	3
 #define	FGCOLORCRIT	4
 #define	FGCOLORTHR	5
+#define	FGCOLORGREY	6
 
 #define WHITE_GREEN     10
 #define WHITE_ORANGE    11

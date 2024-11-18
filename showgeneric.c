@@ -3405,6 +3405,7 @@ generic_init(void)
 			init_color(COLOR_MYORANGE, 675, 500,  50);
 			init_color(COLOR_MYGREEN,    0, 600, 100);
 			init_color(COLOR_MYGREY,   240, 240, 240);
+			init_color(COLOR_MYLGREY,  800, 800, 800);
 
 			init_color(COLOR_MYBROWN1, 420, 160, 160);
 			init_color(COLOR_MYBROWN2, 735, 280, 280);
@@ -3422,11 +3423,12 @@ generic_init(void)
 
 			// color pair definitions (foreground/background)
 			//
-			init_pair(FGCOLORINFO,     colorinfo,   -1);
-			init_pair(FGCOLORALMOST,   coloralmost, -1);
-			init_pair(FGCOLORCRIT,     colorcrit,   -1);
-			init_pair(FGCOLORTHR,      colorthread, -1);
-                	init_pair(FGCOLORBORDER,   COLOR_CYAN,  -1);
+			init_pair(FGCOLORINFO,     colorinfo,    -1);
+			init_pair(FGCOLORALMOST,   coloralmost,  -1);
+			init_pair(FGCOLORCRIT,     colorcrit,    -1);
+			init_pair(FGCOLORTHR,      colorthread,  -1);
+                	init_pair(FGCOLORBORDER,   COLOR_CYAN,   -1);
+                	init_pair(FGCOLORGREY,     COLOR_MYLGREY, -1);
 
 	                init_pair(WHITE_GREEN,     COLOR_WHITE, COLOR_MYGREEN);
 			init_pair(WHITE_ORANGE,    COLOR_WHITE, COLOR_MYORANGE);

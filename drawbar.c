@@ -1625,9 +1625,22 @@ static void
 drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 	                 int valperunit, int psisomeperc, int psifullperc)
 {
-	int	curline;
+	int	curline, visiblepressure;
 	int	somefromline = barlines - (psisomeperc + (valperunit/2)) / valperunit;
 	int	fullfromline = barlines - (psifullperc + (valperunit/2)) / valperunit;
+
+	// determine if there is any visible pressure
+	//
+	if (psisomeperc == -1)
+		somefromline = barlines;
+
+	if (psifullperc == -1)
+		fullfromline = barlines;
+
+	if (somefromline + fullfromline == 2 * barlines)
+		visiblepressure = 0;
+	else
+		visiblepressure = 1;
 
 	// draw bar graph line-by-line
 	//
@@ -1637,11 +1650,18 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 		//
 		mvwaddch(win, curline+startline, startcol, ' ');
 		waddch(win, ' ');
+
+		if (!visiblepressure)
+			colorswon(win, FGCOLORGREY);
+
 		waddch(win, ACS_VLINE);
+
+		if (!visiblepressure)
+			colorswoff(win, FGCOLORGREY);
 
 		// draw the 'some' PSI value
 		//
-		if (psisomeperc != -1 && curline >= somefromline)
+		if (curline >= somefromline)
 		{
 			colorswon(win, COLORWARN);
 			waddch(win, curline == barlines-1 ? 'S' : ' ');
@@ -1654,7 +1674,7 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 
 		// draw the 'full' PSI value
 		//
-		if (psifullperc != -1 && curline >= fullfromline)
+		if (curline >= fullfromline)
 		{
 			colorswon(win, COLORBAD);
 			waddch(win, curline == barlines-1 ? 'F' : ' ');
@@ -1670,6 +1690,10 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 	//
 	mvwaddch(win, curline+startline, startcol, ' ');
 	waddch(win, ' ');
+
+	if (!visiblepressure)
+		colorswon(win, FGCOLORGREY);
+
 	waddch(win, ACS_LLCORNER);
 	waddch(win, ACS_HLINE);
 	waddch(win, ACS_HLINE);
@@ -1678,105 +1702,10 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 
 	// print X axes
 	//
-	mvwprintw(win, curline+startline, startcol, "  psi");
+	mvwprintw(win, curline+startline, startcol+2, "PSI");
 
-#if 0
-		// for each bar
-		//
-		for (curcol=0, vp=vvp; curcol < realbars; curcol++, vp++)
-		{
-			color = vp->barmap[barlines-curline-1];
-			barch = vp->barchr[barlines-curline-1];
-
-			// print colored character(s)
-			//
-			if (color)
-			{
-				colorswon(w->win, color);
-
-				switch (barwidth)
-				{
-				   case 1:
-					waddch(w->win, barch);
-					break;
-				   case 2:
-					waddch(w->win, barch);
-					waddch(w->win, BARCHAR);
-					break;
-				   case 3:
-					waddch(w->win, BARCHAR);
-					waddch(w->win, barch);
-					waddch(w->win, BARCHAR);
-				}
-
-				colorswoff(w->win, color);
-			}
-			else
-			{
-				// print fillers
-				//
-				if (filler != ' ')
-					colorswon(w->win, FGCOLORCRIT);
-
-				for (i=0; i < barwidth; i++)
-					waddch(w->win, filler);
-
-				if (filler != ' ')
-					colorswoff(w->win, FGCOLORCRIT);
-			}
-
-			// add fillers between the bars
-			//
-			if (filler != ' ')
-				colorswon(w->win, FGCOLORCRIT);
-
-			for (i=0; i < (curcol < realbars-1 ?
-						spacing : spacing-1); i++)
-				waddch(w->win, filler);
-
-			if (filler != ' ')
-				colorswoff(w->win, FGCOLORCRIT);
-		}
-	}
-
-	mvwprintw(w->win, curline++, 0, "%c  %*d", *ychar, scalelen, 0);
-	mvwprintw(w->win, curline++, 0, "%c  %*d", *ychar, scalelen, 0);
-
-
-
-	if (horizontalxlab)
-	{
-		// print X axis values horizontally (one line)
-		//
-		wmove(w->win, curline++, xindent);
-
-		if (barlabsize == 1 && barwidth == 3)
-			waddch(w->win, ' ');	// alignment
-
-		for (i=0, vp=vvp; i < realbars; i++)
-			wprintw(w->win, "%-*.*s ", labwidth, barlabsize,
-							(vp+i)->barlab);
-	}
-	else
-	{
-		// print X axis values vertically
-		//
-		for (i=0; i < barlabsize; i++)
-		{
-			wmove(w->win, curline++, xindent);
-
-			for (curcol=0, vp=vvp; curcol < realbars; curcol++,vp++)
-			{
-				waddch(w->win, *((vp->barlab)+i));
-
-				for (j=0; j < barwidth-1; j++)
-					waddch(w->win, BARCHAR);
-
-				if (spacing)
-					waddch(w->win, ' ');
-			}
-		}
-#endif
+	if (!visiblepressure)
+		colorswoff(win, FGCOLORGREY);
 }
 
 /////////////////////////////////////////////////////
@@ -2018,10 +1947,10 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 			slabmem, freemem, hugefree, hugeused, shmrssreal;
 	long long	totalswp, shmemswp, freeswp;
 	char		scanseverity, swapseverity, killseverity;
-	int 		curline=0, barlines, color;
+	int 		curline=0, barlines, eventlines, psilines, color;
 	int 		usedlines, freelines, cachelines, tmpfslines,
 			slablines, shmemlines, hugelines;
-	int		memorycol = 1,
+	int		memorycol = 1, psisomeperc, psifullperc,
 			swapcol   = memorycol + MEMORYBARSZ + 1,
 			eventcol  = swapcol   + SWAPBARSZ   + 2;
 	float		valperunit;
@@ -2234,45 +2163,86 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 		eventcol = swapcol+1;
 	}
 
-	// show events
+	// calculate PSI percentages, if supported
+	//
+	if (sstat->psi.present)
+	{
+		psisomeperc = sstat->psi.memsome.total / ((count_t)nsecs*10000);
+
+		if (psisomeperc > 100)
+			psisomeperc = 100;
+
+		psifullperc = sstat->psi.memfull.total / ((count_t)nsecs*10000);
+
+		if (psifullperc > 100)
+			psifullperc = 100;
+
+		// calculate how many free lines are available on top of
+		// the event counters to be used for drawing PSI bar graph,
+		// supposing that all event counters (19 lines) can be shown
+		//
+		psilines = barlines - 19 - 1;
+
+		if (psilines < 7)	// not enough lines?
+			psilines = 7;
+	}
+	else
+	{
+		psisomeperc = -1;
+		psifullperc = -1;
+
+		psilines    = 0;
+	}
+
+	eventlines = barlines - psilines - 3;
+
+	// show as many event counters as possible, starting with
+	// the most relevant counters first (bottom-up)
+	// also consider if PSI 
 	//
 	mvwprintw(w->win, curline, eventcol, "  Events ");
 
-	if (barlines > 1)	// show oomkilling?
+	if (eventlines > 1)	// show oomkilling?
 		curline = drawevent(w, curline, eventcol,
 				severitycolor(killseverity),
 				" oomkills ", " %8ld ",
 				sstat->mem.oomkills);	
 
-	if (barlines > 4)	// show swapouts?
+	if (eventlines > 4)	// show swapouts?
 		curline = drawevent(w, curline, eventcol,
 				severitycolor(swapseverity),
 				" swapouts ", "%7ld/s ",
 				sstat->mem.swouts/nsecs);	
 
-	if (barlines > 7)	// show pagescans?
+	if (eventlines > 7)	// show pagescans?
 		curline = drawevent(w, curline, eventcol,
 				severitycolor(scanseverity),
 				" pagscans ", "%7ld/s ",
 				sstat->mem.pgscans / nsecs);	
 
-	if (barlines > 10)	// show swapins?
+	if (eventlines > 10)	// show swapins?
 		curline = drawevent(w, curline, eventcol,
 				COLORMEMBAR,
 				"  swapins ", "%7ld/s ",
 				sstat->mem.swins / nsecs);	
 
-	if (barlines > 13)	// show pageouts?
+	if (eventlines > 13)	// show pageouts?
 		curline = drawevent(w, curline, eventcol,
 				COLORMEMBAR,
 				"  pagouts ", "%7ld/s ",
 				sstat->mem.pgouts / nsecs);	
 
-	if (barlines > 16)	// show pageins?
+	if (eventlines > 16)	// show pageins?
 		curline = drawevent(w, curline, eventcol,
 				COLORMEMBAR,
 				"  pageins ", "%7ld/s ",
 				sstat->mem.pgins / nsecs);	
+
+	// draw PSI bar graph
+	//
+	if (psilines)
+		drawpsibars(w->win, psilines, 0, eventcol-2, 100/(psilines-2),
+					psisomeperc, psifullperc);
 
         wrefresh(w->win);
 
