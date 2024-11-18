@@ -1949,8 +1949,6 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	mvwprintw(w->win, curline, memorycol, "%*s",
 			MEMORYBARSZ-(MEMORYBARSZ-6)/2, "Memory");
 
-        wrefresh(w->win);
-
 	// show swap space (if used)
 	//
 	if (totalswp)
@@ -2839,4 +2837,3 @@ getsigwinch(int signr)
 {
         winchange = 1;
 }
-
