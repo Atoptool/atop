@@ -168,6 +168,8 @@ int		fdinotify = -1;	/* inotify fd for twin mode  		*/
 pid_t		twinpid;	/* PID of lower half for twin mode	*/
 char		twindir[RAWNAMESZ] = "/tmp";
 int		linelen  = 80;
+int		generations = 28; /* By default, keep recent 30 days' log */
+char		logpath[256] = "/var/log/atop"; /*support writing to other paths, to avoid system disk being fully occupied */
 char		acctreason;	/* accounting not active (return val) 	*/
 char		rawname[RAWNAMESZ];
 char		rawreadflag;
@@ -224,6 +226,8 @@ static void		readrc(char *, int);
 
 static void do_interval(char *, char *);
 static void do_linelength(char *, char *);
+static void do_generations(char *, char *);
+static void do_logpath(char *, char *);
 
 static struct {
 	char	*tag;
@@ -234,6 +238,8 @@ static struct {
 	{	"twindir",		do_twindir,		0, },
 	{	"interval",		do_interval,		0, },
 	{	"linelen",		do_linelength,		0, },
+	{	"generations",		do_generations,		0, },
+	{	"logpath",		do_logpath,		0, },
 	{	"username",		do_username,		0, },
 	{	"procname",		do_procname,		0, },
 	{	"maxlinecpu",		do_maxcpu,		0, },
@@ -1111,6 +1117,18 @@ static void
 do_linelength(char *name, char *val)
 {
 	linelen = get_posval(name, val);
+}
+
+static void
+do_generations(char *name, char *val)
+{
+	generations = get_posval(name, val);
+}
+
+static void
+do_logpath(char *name, char *val)
+{
+	strcpy(logpath, val);
 }
 
 /*
