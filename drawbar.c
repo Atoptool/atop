@@ -224,7 +224,7 @@ static int	drawvertbars(struct perwindow *, float, float,
 			int, int, struct vertval *, int,
 			char *, char *, int, int, int);
 
-static void	drawpsibars(WINDOW *, int, int, int, int, int, int);
+static void	drawpsibars(WINDOW *, int, int, int, int, int, int, int, int);
 
 static int	drawnetbars(struct perwindow *, int, struct netval *,
 						int, char *,char *);
@@ -1524,10 +1524,10 @@ drawvertbars(   struct perwindow *w,
 	//
 	if (psisomeperc+psifullperc > -2)
 	{
-		int startcol = w->ncols - psicols - 1;
+		int startcol = w->ncols - psicols + 1;
 
 		drawpsibars(w->win, barlines, 0, startcol, valperunit,
-					psisomeperc, psifullperc);
+					1, 0, psisomeperc, psifullperc);
 	}
 
 	// flush window content
@@ -1618,14 +1618,15 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 }
 
 /////////////////////////////////////////////////////
-// draw two tiny bars for the some and full PSI
+// draw two bars for the 'some' and 'full' PSI
 // percentages
 /////////////////////////////////////////////////////
 static void
 drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
-	                 int valperunit, int psisomeperc, int psifullperc)
+	                 int valperunit, int barwidth, int boxed,
+			 int psisomeperc, int psifullperc)
 {
-	int	curline, visiblepressure;
+	int	i, curline, visiblepressure;
 	int	somefromline = barlines - (psisomeperc + (valperunit/2)) / valperunit;
 	int	fullfromline = barlines - (psifullperc + (valperunit/2)) / valperunit;
 
@@ -1642,34 +1643,68 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 	else
 		visiblepressure = 1;
 
-	// draw bar graph line-by-line
+	///////////////////////
+	// draw graph framework
+	///////////////////////
 	//
+	// draw Y axe
+	// (gray if no pressure now)
+	//
+	if (!visiblepressure)
+		colorswon(win, FGCOLORGREY);
+
 	for (curline=0; curline < barlines; curline++)
 	{
-		// draw spaces and vertical line for Y axes
+		mvwaddch(win, curline+startline, startcol, ACS_VLINE);
+
+		if (boxed)
+			mvwaddch(win, curline+startline,
+			              startcol+2*barwidth+1, ACS_VLINE);
+	}
+
+	// draw X axe
+	//
+	mvwaddch(win, curline+startline, startcol, ACS_LLCORNER);
+
+	for (i=0; i < barwidth*2; i++)
+		waddch(win, ACS_HLINE);
+
+	if (boxed)
+		mvwaddch(win, curline+startline, startcol+2*barwidth+1, ACS_LRCORNER);
+
+	curline++;
+
+	// print X label
+	//
+	mvwprintw(win, curline+startline, startcol+barwidth/2+boxed, "PSI");
+
+	if (!visiblepressure)
+		colorswoff(win, FGCOLORGREY);
+
+	///////////////////////
+	// draw the PSI values
+	///////////////////////
+	for (curline=0; curline < barlines; curline++)
+	{
+		// address the cursor on the start position
 		//
-		mvwaddch(win, curline+startline, startcol, ' ');
-		waddch(win, ' ');
-
-		if (!visiblepressure)
-			colorswon(win, FGCOLORGREY);
-
-		waddch(win, ACS_VLINE);
-
-		if (!visiblepressure)
-			colorswoff(win, FGCOLORGREY);
+		wmove(win, curline+startline, startcol+1);
 
 		// draw the 'some' PSI value
 		//
 		if (curline >= somefromline)
 		{
 			colorswon(win, COLORWARN);
-			waddch(win, curline == barlines-1 ? 'S' : ' ');
+
+			for (i=0; i < barwidth; i++)
+				waddch(win, curline == barlines-1 ? "Some"[i] : ' ');
+
 			colorswoff(win,  COLORWARN);
 		}
 		else
 		{
-			waddch(win, ' ');
+			for (i=0; i < barwidth; i++)
+				waddch(win, ' ');
 		}
 
 		// draw the 'full' PSI value
@@ -1677,35 +1712,18 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 		if (curline >= fullfromline)
 		{
 			colorswon(win, COLORBAD);
-			waddch(win, curline == barlines-1 ? 'F' : ' ');
+
+			for (i=0; i < barwidth; i++)
+				waddch(win, curline == barlines-1 ? "Full"[i] : ' ');
+
 			colorswoff(win, COLORBAD);
 		}
 		else
 		{
-			waddch(win, ' ');
+			for (i=0; i < barwidth; i++)
+				waddch(win, ' ');
 		}
 	}
-
-	// print X axes
-	//
-	mvwaddch(win, curline+startline, startcol, ' ');
-	waddch(win, ' ');
-
-	if (!visiblepressure)
-		colorswon(win, FGCOLORGREY);
-
-	waddch(win, ACS_LLCORNER);
-	waddch(win, ACS_HLINE);
-	waddch(win, ACS_HLINE);
-
-	curline++;
-
-	// print X axes
-	//
-	mvwprintw(win, curline+startline, startcol+2, "PSI");
-
-	if (!visiblepressure)
-		colorswoff(win, FGCOLORGREY);
 }
 
 /////////////////////////////////////////////////////
@@ -2241,8 +2259,8 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// draw PSI bar graph
 	//
 	if (psilines)
-		drawpsibars(w->win, psilines, 0, eventcol-2, 100/(psilines-2),
-					psisomeperc, psifullperc);
+		drawpsibars(w->win, psilines, 0, eventcol, 100/psilines,
+					4, 1, psisomeperc, psifullperc);
 
         wrefresh(w->win);
 
