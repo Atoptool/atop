@@ -90,7 +90,7 @@
 **    -	deviatcgroup()
 **	Calculates the differences between the current cgroup-level
 ** 	counters and the corresponding counters of the previous cycle.
-
+**
 **    -	deviatsyst()
 **	Calculates the differences between the current system-level
 ** 	counters and the corresponding counters of the previous cycle.
@@ -169,7 +169,8 @@ pid_t		twinpid;	/* PID of lower half for twin mode	*/
 char		twindir[RAWNAMESZ] = "/tmp";
 int		linelen  = 80;
 char		acctreason;	/* accounting not active (return val) 	*/
-char		rawname[RAWNAMESZ];
+char		irawname[RAWNAMESZ];
+char		orawname[RAWNAMESZ];
 char		rawreadflag;
 char		idnamesuppress;	/* suppress UID/GID to name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
@@ -203,9 +204,8 @@ extern GHashTable *ghash_net;
 int		supportflags;	/* supported features             	*/
 char		**argvp;
 
-
-struct visualize vis = {generic_samp, generic_error,
-			generic_end,  generic_usage};
+struct handler	handlers[MAXHANDLERS];
+int		numhandlers;
 
 /*
 ** argument values
@@ -214,6 +214,9 @@ static char		awaittrigger;	/* boolean: awaiting trigger */
 static unsigned int 	nsamples = 0xffffffff;
 static char		midnightflag;
 static char		rawwriteflag;
+static char		parseoutflag;
+static char		jsonoutflag;
+static char		screenoutflag;
 
 char			twinmodeflag;
 
@@ -364,12 +367,17 @@ main(int argc, char *argv[])
 				exit(0);
 
 			   case 'w':		/* writing of raw data ?      */
-				rawwriteflag++;
 				if (optind >= argc)
 					prusage(argv[0]);
 
-				strncpy(rawname, argv[optind++], RAWNAMESZ-1);
-				vis.show_samp = rawwrite;
+				strncpy(orawname, argv[optind++], RAWNAMESZ-1);
+
+				if (!rawwriteflag)
+				{	
+					rawwriteflag++;
+					handlers[numhandlers++].handle_sample = rawwrite;
+				}
+
 				break;
 
 			   case 'r':		/* reading of raw data ?      */
@@ -379,13 +387,13 @@ main(int argc, char *argv[])
 					{
 						if (strlen(argv[optind]) == 1)
 						{
-							strcpy(rawname, "/dev/stdin");
+							strcpy(irawname, "/dev/stdin");
 							optind++;
 						}
 					}
 					else
 					{
-						strncpy(rawname, argv[optind],
+						strncpy(irawname, argv[optind],
 								RAWNAMESZ-1);
 						optind++;
 					}
@@ -439,14 +447,22 @@ main(int argc, char *argv[])
 				if ( !parsedef(optarg) )
 					prusage(argv[0]);
 
-				vis.show_samp = parseout;
+				if (!parseoutflag)
+				{
+					parseoutflag++;
+					handlers[numhandlers++].handle_sample = parseout;
+				}
 				break;
 
                            case 'J':		/* json output?          */
 				if ( !jsondef(optarg) )
 					prusage(argv[0]);
 
-				vis.show_samp = jsonout;
+				if (!jsonoutflag)
+				{
+					jsonoutflag++;
+					handlers[numhandlers++].handle_sample = jsonout;
+				}
 				break;
 
                            case 'L':		/* line length                */
@@ -501,6 +517,13 @@ main(int argc, char *argv[])
 			   default:		/* gather other flags */
 				flaglist[i++] = c;
 			}
+
+			/*
+			** check if this flag explicitly refers to
+			** generic (screen) output
+			*/
+			if (strchr("gmdnsevcoGaCMDNEAupjSf", c))
+				screenoutflag++;
 		}
 
 		/*
@@ -525,6 +548,14 @@ main(int argc, char *argv[])
 			}
 		}
 	}
+
+	/*
+	** verify if the generic handler has to be installed as default
+	** (no other handler choosen) or if the generic screen handler
+	** has to be added due to an explicit flag
+	*/
+	if (numhandlers == 0 || screenoutflag)
+		handlers[numhandlers++].handle_sample = generic_samp;
 
 	/*
 	** determine the name of this node (without domain-name)
@@ -666,6 +697,7 @@ engine(void)
 	static struct cgchainer	*devcstat;
 	int			ncgroups = 0;
 	int			npids    = 0;
+	int			i;
 
 	/*
 	** reserve space for system-level statistics
@@ -762,7 +794,7 @@ engine(void)
 	*/
 	for (sampcnt=0; sampcnt < nsamples; sampcnt++)
 	{
-		char	lastcmd;
+		char	lastcmd = ' ';
 
 		/*
 		** if the limit-flag is specified:
@@ -964,11 +996,14 @@ engine(void)
 		** activate the installed print function to visualize
 		** the deviations
 		*/
-		lastcmd = (vis.show_samp)(curtime,
+		for (i=0; handlers[i].handle_sample; i++)
+		{
+			lastcmd = (handlers[i].handle_sample)(curtime,
 				     curtime-pretime > 0 ? curtime-pretime : 1,
 		           	     &devtstat, devsstat,
 				     devcstat, ncgroups, npids,
 		                     nprocexit, noverflow, sampcnt==0);
+		}
 
 		/*
 		** release dynamically allocated memory
@@ -1040,8 +1075,7 @@ prusage(char *myname)
                         "command line\n");
 	printf("\t  -I  suppress UID/GID to name translation (show numbers instead)\n");
 
-	if (vis.show_usage)
-		(*vis.show_usage)();
+	generic_usage();
 
 	printf("\n");
 	printf("\tspecific flags for raw logfiles:\n");
@@ -1250,6 +1284,18 @@ twinprepare(void)
         	exit(42);
 	}
 
+	if (parseoutflag)
+	{
+		fprintf(stderr, "twin mode can not be combined with -P\n");
+        	exit(42);
+	}
+
+	if (jsonoutflag)
+	{
+		fprintf(stderr, "twin mode can not be combined with -J\n");
+        	exit(42);
+	}
+
 	if (!isatty(fileno(stdout)) )	// output to pipe or file?
 	{
 		fprintf(stderr, "twin mode only for interactive use\n");
@@ -1257,7 +1303,7 @@ twinprepare(void)
 	}
 
 	/*
-	** created unique temporary file
+	** create unique temporary file
 	*/
 	if (strlen(twindir) + sizeof TWINNAME + 1 >= RAWNAMESZ)
 	{
@@ -1290,7 +1336,7 @@ twinprepare(void)
 	   case 0:	// lower half: gather data and write to rawfile
 		rawwriteflag++;
 
-		vis.show_samp = rawwrite;
+		handlers[0].handle_sample = rawwrite;
 		break;
 
 	   default:	// upper half: read from raw file and visualize
@@ -1323,7 +1369,8 @@ twinprepare(void)
 	/*
 	** define current raw file name for both parent and child
 	*/
-	strncpy(rawname, tempname, RAWNAMESZ-1);
+	strncpy(irawname, tempname, RAWNAMESZ-1);
+	strncpy(orawname, tempname, RAWNAMESZ-1);
 }
 
 /*

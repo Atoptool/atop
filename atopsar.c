@@ -169,10 +169,10 @@ atopsar(int argc, char *argv[])
 				break;
 
 			   case 'r':		/* reading of file data ? */
-				strncpy(rawname, optarg, RAWNAMESZ-1);
+				strncpy(irawname, optarg, RAWNAMESZ-1);
 
-				if (strcmp(rawname, "-") == 0)
-					strcpy(rawname, "/dev/stdin");
+				if (strcmp(irawname, "-") == 0)
+					strcpy(irawname, "/dev/stdin");
 
 				rawreadflag++;
 				break;
@@ -314,7 +314,7 @@ atopsar(int argc, char *argv[])
 		** select own reportraw-function to be called
 		** by the rawread function
 		*/
-		vis.show_samp  = reportraw;
+		handlers[0].handle_sample  = reportraw;
 
 		for (i=0; i < pricnt; i++)
 		{

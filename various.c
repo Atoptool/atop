@@ -824,8 +824,7 @@ ptrverify(const void *ptr, const char *errormsg, ...)
 		acctswoff();
 		netatop_signoff();
 
-		if (vis.show_end)
-			(vis.show_end)();
+		generic_end();
 
 		va_start(args, errormsg);
 		vfprintf(stderr, errormsg, args);
@@ -845,7 +844,7 @@ mcleanstop(int exitcode, const char *errormsg, ...)
 
 	acctswoff();
 	netatop_signoff();
-	(vis.show_end)();
+	generic_end();
 
 	va_start(args, errormsg);
 	vfprintf(stderr, errormsg, args);
@@ -862,7 +861,7 @@ cleanstop(int exitcode)
 {
 	acctswoff();
 	netatop_signoff();
-	(vis.show_end)();
+	generic_end();
 
 	exit(exitcode);
 }

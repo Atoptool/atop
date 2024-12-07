@@ -69,13 +69,13 @@ struct netpertask;
 #define RRGPUSTAT	0x0080
 #define RRCGRSTAT	0x0100
 
-struct visualize {
-	char	(*show_samp)  (time_t, int,
-	                struct devtstat *, struct sstat *, struct cgchainer *,
-			int, int, int, unsigned int, char);
-	void	(*show_error) (const char *, ...);
-	void	(*show_end)   (void);
-	void	(*show_usage) (void);
+#define MAXHANDLERS	10
+
+struct handler {
+	char	(*handle_sample)  (time_t, int,
+       			struct devtstat *, struct sstat *,
+			struct cgchainer *, int, int, int,
+			unsigned int, char);
 };
 
 /*
@@ -97,13 +97,14 @@ extern char		usecolors;
 extern char		threadview;
 extern char		calcpss;
 extern char		getwchan;
-extern char		rawname[];
+extern char		irawname[];
+extern char		orawname[];
 extern char		rawreadflag;
 extern char		idnamesuppress;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];
-extern struct visualize vis;
+extern struct handler	handlers[];
 
 extern char		displaymode;
 extern char		barmono;
@@ -148,7 +149,7 @@ extern int		almostcrit;
 #define	RAWLOGNG	(ACCTACTIVE|IOSTAT|NETATOP|NETATOPD)
 
 /*
-** structure containing the start-addresses of functions for visualization
+** structure containing the start addresses of functions for visualization
 */
 char		generic_samp (time_t, int,
 		            struct devtstat *, struct sstat *,

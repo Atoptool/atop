@@ -321,6 +321,15 @@ mode (see section INTERACTIVE COMMANDS).
 Additional flags are available to support storage of atop-data in raw 
 format (see section RAW DATA STORAGE).
 
+By default,
+.I atop
+produces its output full-screen unless a flag is passed to direct
+the output to a raw log (-w) or direct the output in parseable (-P)
+or JSON output (-J). It is possible however to produce full-screen
+output while the output is also directed in another way. In that
+case a flag that relates to full-screen output (like -g) has to be
+passed on the command line explicitly.
+
 The status line in the initial screen shows if
 .I atop
 runs with restricted view (as unprivileged user) or unrestricted view
@@ -3093,6 +3102,19 @@ Monitor the current system load as bar graphs with an interval of 5 seconds:
 .TP 12
 .B \  atop -B 5
 .PP
+Monitor the current system load in text mode with an interval of 4 seconds
+with the possibility to browse back and forth while measuring
+continues (twin mode):
+.PP
+.TP 12
+.B \  atop -t 4
+.PP
+Live monitoring of the current system load while writing the measurement
+to a raw log in parallel (to be viewed later on): 
+.PP
+.TP 12
+.B \  atop -g -w /tmp/sessionx
+.PP
 View the cgroups with the related processes (except kernel processes) with
 the possibility to review previous samples during the live measurement:
 .PP
@@ -3122,12 +3144,17 @@ interactively:
 .PP
 .B \  atop -r yy
 .PP
-View the contents of the standard logfile of 2024, April 5 from
+View the contents of the standard logfile of 2024, November 5 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20240405 -b 1400
+.B \  atop -r 20241105 -b 1400
 .PP
-Concatenate all raw log files of March 2024 and generate parsable
+Read the contents of today's logfile and show the CPU utilization on
+system level as parseable output and JSON output:
+.PP
+.B \  atop -r -PCPU -JCPU
+.PP
+Concatenate all raw log files of November 2024 and generate parsable
 output about the CPU utilization:
 .PP
 .TP 12

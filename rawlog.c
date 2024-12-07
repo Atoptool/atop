@@ -250,15 +250,15 @@ rawwrite(time_t curtime, int numsecs,
 
 	if ( writev(rawfd, iov, nrvectors) == -1)
 	{
-		fprintf(stderr, "%s - ", rawname);
+		fprintf(stderr, "%s - ", orawname);
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
 			mcleanstop(8,
 			   "failed to write raw/status/process record to %s\n",
-			   rawname);
+			   orawname);
 
 		mcleanstop(7,
 		   "failed to write raw/status/process record to %s\n",
-		   rawname);
+		   orawname);
 	}
 
 	free(pcompbuf);
@@ -296,7 +296,7 @@ rawwopen()
 	/*
 	** check if the file exists already
 	*/
-	if ( (fd = open(rawname, O_RDWR)) >= 0 )
+	if ( (fd = open(orawname, O_RDWR)) >= 0 )
 	{
 		/*
 		** check if the file already contains a file header (and records)
@@ -307,11 +307,11 @@ rawwopen()
 			** read and verify raw file header
 			*/
 			if ( read(fd, &rh, sizeof rh) < sizeof rh)
-				mcleanstop(7, "%s - cannot read header\n", rawname);
+				mcleanstop(7, "%s - cannot read header\n", orawname);
 
 			if (rh.magic != MYMAGIC)
 				mcleanstop(7, "file %s exists but does not contain raw "
-					"atop output (wrong magic number)\n", rawname);
+					"atop output (wrong magic number)\n", orawname);
 
 			if ( rh.sstatlen	!= sizeof(struct sstat)		||
 			     rh.tstatlen	!= sizeof(struct tstat)		||
@@ -321,7 +321,7 @@ rawwopen()
 			{
 				fprintf(stderr,
 					"existing file %s has incompatible header\n",
-					rawname);
+					orawname);
 
 				if (rh.aversion & 0x8000 &&
 				   (rh.aversion & 0x7fff) != getnumvers())
@@ -351,9 +351,9 @@ rawwopen()
 		/*
 		** file does not exist (or can not be opened)
 		*/
-		if ( (fd = creat(rawname, 0666)) == -1)
+		if ( (fd = creat(orawname, 0666)) == -1)
 		{
-			fprintf(stderr, "%s - ", rawname);
+			fprintf(stderr, "%s - ", orawname);
 			perror("create raw file");
 			cleanstop(7);
 		}
@@ -384,7 +384,7 @@ rawwopen()
 
 	if ( write(fd, &rh, sizeof rh) == -1)
 	{
-		fprintf(stderr, "%s - ", rawname);
+		fprintf(stderr, "%s - ", orawname);
 		perror("write raw header");
 		cleanstop(7);
 	}
@@ -402,7 +402,7 @@ rawread(void)
 {
 	static struct devtstat	devtstat;
 
-	int			i, j, rawfd, len, isregular = 1;
+	int			i, j, v, rawfd, len, isregular = 1;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
@@ -423,7 +423,7 @@ rawread(void)
 	time_t			timenow;
 	struct tm		*tp;
 
-	switch ( len = strlen(rawname) )
+	switch ( len = strlen(irawname) )
 	{
 	   /*
 	   ** if no filename is specified, assemble the name of the raw file
@@ -432,7 +432,7 @@ rawread(void)
 		timenow	= time(0);
 		tp	= localtime(&timenow);
 
-		snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
+		snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
 			BASEPATH, 
 			tp->tm_year+1900,
 			tp->tm_mon+1,
@@ -445,16 +445,16 @@ rawread(void)
 	   ** the full pathname of the raw file
 	   */
 	   case 8:
-		if ( access(rawname, F_OK) == 0) 
+		if ( access(irawname, F_OK) == 0) 
 			break;		/* existing file */
 
-		if (lookslikedatetome(rawname))
+		if (lookslikedatetome(irawname))
 		{
 			char	savedname[16];
 
-			strcpy(savedname, rawname); // no overflow (len=8)
+			strcpy(savedname, irawname); // no overflow (len=8)
 
-			snprintf(rawname, RAWNAMESZ, "%s/atop_%s",
+			snprintf(irawname, RAWNAMESZ, "%s/atop_%s",
 				BASEPATH, 
 				savedname);
 			break;
@@ -467,7 +467,7 @@ rawread(void)
 	   ** of y's).
 	   */
 	   default:
-		if ( access(rawname, F_OK) == 0) 
+		if ( access(irawname, F_OK) == 0) 
 			break;		/* existing file */
 
 		/*
@@ -480,13 +480,13 @@ rawread(void)
 		memset(py, 'y', len);
 		*(py+len) = '\0';
 
-		if ( strcmp(rawname, py) == 0 )
+		if ( strcmp(irawname, py) == 0 )
 		{
 			timenow	 = time(0);
 			timenow -= len*3600*24;
 			tp	 = localtime(&timenow);
 
-			snprintf(rawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
+			snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
 				BASEPATH, 
 				tp->tm_year+1900,
 				tp->tm_mon+1,
@@ -500,9 +500,9 @@ rawread(void)
 	** make sure the file is a regular file (seekable) or
 	** a pipe (not seekable)
 	*/
-	if (stat(rawname, &filestat) == -1)
+	if (stat(irawname, &filestat) == -1)
 	{
-		fprintf(stderr, "%s - ", rawname);
+		fprintf(stderr, "%s - ", irawname);
 		perror("stat raw file");
 		cleanstop(7);
 	}
@@ -518,18 +518,18 @@ rawread(void)
 	/*
 	** open raw file
 	*/
-	if ( (rawfd = open(rawname, O_RDONLY)) == -1)
+	if ( (rawfd = open(irawname, O_RDONLY)) == -1)
 	{
 		char	command[512], tmpname1[200], tmpname2[200];
 
 		/*
 		** check if a compressed raw file is present
 		*/
-		snprintf(tmpname1, sizeof tmpname1, "%s.gz", rawname);
+		snprintf(tmpname1, sizeof tmpname1, "%s.gz", irawname);
 
 		if ( access(tmpname1, F_OK|R_OK) == -1)
 		{
-			fprintf(stderr, "%s - ", rawname);
+			fprintf(stderr, "%s - ", irawname);
 			perror("open raw file");
 			cleanstop(7);
 		}
@@ -542,7 +542,7 @@ rawread(void)
 		rawfd = mkstemp(tmpname2);
 		if (rawfd == -1)
 		{
-			fprintf(stderr, "%s - ", rawname);
+			fprintf(stderr, "%s - ", irawname);
 			perror("creating decompression temp file");
 			cleanstop(7);
 		}
@@ -554,7 +554,7 @@ rawread(void)
 
 		if (system_res)
 		{
-			fprintf(stderr, "%s - gunzip failed", rawname);
+			fprintf(stderr, "%s - gunzip failed", irawname);
 			cleanstop(7);
 		}
 	}
@@ -575,7 +575,7 @@ rawread(void)
 	if (rh.magic != MYMAGIC)
 	{
 		fprintf(stderr, "file %s does not contain raw atop/atopsar "
-				"output (wrong magic number)\n", rawname);
+				"output (wrong magic number)\n", irawname);
 		cleanstop(7);
 	}
 
@@ -594,7 +594,7 @@ rawread(void)
 		fprintf(stderr, "headlen:  %d/%lu\n", rh.rawheadlen, sizeof(struct rawheader));
 		fprintf(stderr, "reclen:   %d/%lu\n", rh.rawreclen, sizeof(struct rawrecord));
 		fprintf(stderr,
-			"\nraw file %s has incompatible format\n", rawname);
+			"\nraw file %s has incompatible format\n", irawname);
 
 		if (rh.aversion & 0x8000 &&
        		   (rh.aversion & 0x7fff) != getnumvers())
@@ -909,10 +909,13 @@ rawread(void)
 
 			do
 			{
-				lastcmd = (vis.show_samp)(rr.curtime,
-				     rr.interval, &devtstat, &sstat,
-				     devchain, rr.ncgroups, rr.ncgpids,
-			             rr.nexit, rr.noverflow, flags);
+				for (v=0; handlers[v].handle_sample; v++)
+				{
+					lastcmd = (handlers[v].handle_sample)(rr.curtime,
+				     		rr.interval, &devtstat, &sstat,
+				     		devchain, rr.ncgroups, rr.ncgpids,
+			             		rr.nexit, rr.noverflow, flags);
+				}
 			}
 			while (!isregular &&
 				( lastcmd == MSAMPPREV		||
