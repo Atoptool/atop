@@ -522,7 +522,7 @@ main(int argc, char *argv[])
 			** check if this flag explicitly refers to
 			** generic (screen) output
 			*/
-			if (strchr("gmdnsevcoGaCMDNEAupjSf", c))
+			if (strchr("gmdnsevcoBGaCMDNEAupjSf", c))
 				screenoutflag++;
 		}
 
