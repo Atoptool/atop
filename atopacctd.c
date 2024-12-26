@@ -889,7 +889,7 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 	{
 		syslog(LOG_ERR, "Unexpected write error to shadow file: %s\n",
  		     					strerror(errno));
-		exit(7);
+		cleanup_and_go = 129;
 	}
 
 	return ssz;
