@@ -920,6 +920,7 @@ rawread(void)
 			while (!isregular &&
 				( lastcmd == MSAMPPREV		||
 				  lastcmd == MRESET     	||
+				  lastcmd == MEND	     	||
 				 (lastcmd == MSAMPBRANCH &&
 						begintime < cursortime) ));
 
@@ -948,6 +949,11 @@ rawread(void)
 		   	   case MRESET:
 				lseek(rawfd, *offlist, SEEK_SET);
 				offcur = 1;
+				break;
+
+			   case MEND:
+				begintime = 0x7fffffff;
+				lastcmd = MSAMPBRANCH;
 				break;
 
 			   case MSAMPBRANCH:

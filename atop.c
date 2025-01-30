@@ -1026,7 +1026,7 @@ engine(void)
 			curtime = getboot() / hertz;	// reset current time
 
 			/* set current (will be 'previous') counters to 0 */
-			memset(cursstat, 0,           sizeof(struct sstat));
+			memset(cursstat, 0, sizeof(struct sstat));
 
 			/* remove all tasks in database */
 			pdb_makeresidue();

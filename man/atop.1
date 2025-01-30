@@ -89,8 +89,9 @@ one of these keys or by pressing key 'z' (pause) explicitly.
 
 After browsing through the earlier samples with the
 keys 't' (next sample), 'T' (previous sample), 'r' (reset to
-begin of measurement) and 'b' (branch to time tamp),
-the live measurement can be continued by pressing key 'z' (resume after pause).
+begin of measurement), 'Z' (fast-forward to end of measurement)
+and 'b' (branch to timestamp), the live measurement can be continued
+by pressing key 'z' (resume after pause).
 
 The temporary raw file will be written in the 
 .B /tmp
@@ -1050,6 +1051,13 @@ When viewing the contents of a raw file, this key can be used to rewind
 to the beginning of the file again (except when reading raw data from a pipe).
 .PP
 .TP 5
+.B Z
+When viewing the contents of a raw file this key can be used to fast-forward
+to the end of the file, however not when reading raw data from a pipe.
+.br
+This key can be used in text mode and bar graph mode.
+.PP
+.TP 5
 .B U
 Specify a regular expression string for specific user names or a numerical UID.
 From now on, only (active) processes will be shown from a user which matches
@@ -1277,9 +1285,9 @@ is used, stdin will be read.
 .br
 The samples from the file can be viewed interactively by using the key 't'
 to show the next sample, the key 'T' to show the previous sample, the
-key 'b' to branch to a particular time or the key 'r' to rewind to
-the begin of the file. These keys can be used in text mode as well as
-in bar graph mode.
+key 'b' to branch to a particular time, the key 'r' to rewind to
+the begin of the file or the 'Z' key to fast-forward to the end of the file.
+These keys can be used in text mode as well as in bar graph mode.
 .br
 When output is redirected to a file or pipe,
 .B atop

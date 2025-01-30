@@ -214,6 +214,7 @@ struct sselection {
 #define	MPAUSE		'z'
 #define	MQUIT		'q'
 #define	MRESET		'r'
+#define	MEND		'Z'
 #define	MSAMPNEXT	't'
 #define	MSAMPPREV	'T'
 #define	MSAMPBRANCH	'b'

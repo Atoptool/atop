@@ -433,6 +433,25 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 
 			return lastchar;
 
+		   case MEND:		// branch to end?
+			// only possible in twin mode or when viewing raw file
+			//
+			if (!rawreadflag)
+			{
+				beep();
+				break;
+			}
+
+			if (!paused && twinpid)
+			{
+				paused=1;       // implicit pause in twin mode
+				clrtoeol();
+				refresh();
+			}
+
+			begintime = 0x7fffffff;
+			return MSAMPBRANCH;
+
 		   case MSAMPBRANCH:	// branch to other time?
 			// only possible in twin mode or when viewing raw file
 			//
@@ -2771,7 +2790,7 @@ getwininput(char *prompt, char *answer, int maxanswer, char numerical)
 // create a separate window with help text and
 // wait for any keyboard input 
 /////////////////////////////////////////////////////
-#define	HELPLINES	25
+#define	HELPLINES	27
 #define	HELPCOLS	70
 
 static void
@@ -2840,6 +2859,8 @@ showhelp(void)
 			" '%c'  - show previous sample", MSAMPPREV);
         	mvwprintw(helpwin, line++, 2,
 			" '%c'  - rewind to begin", MRESET);
+        	mvwprintw(helpwin, line++, 2,
+			" '%c'  - fast-forward to end", MEND);
         	mvwprintw(helpwin, line++, 2,
 			" '%c'  - branch to certain time", MSAMPBRANCH);
         	mvwprintw(helpwin, line++, 2,

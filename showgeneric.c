@@ -2562,6 +2562,27 @@ text_samp(time_t curtime, int nsecs,
 				goto free_and_return;	
 
 			   /*
+			   ** branch to end of log 
+			   */
+			   case MEND:
+                                if (!rawreadflag)
+                                {
+					statmsg = "Only allowed in twin mode or "
+						  "when viewing raw file!";
+                                        beep();
+                                        break;
+                                }
+
+				if (!paused && twinpid)
+				{
+					paused=1;	// implicit pause in twin mode
+					clrtoeol();
+					refresh();
+				}
+
+				goto free_and_return;	
+
+			   /*
 			   ** show version info
 			   */
 			   case MVERSION:
@@ -3512,6 +3533,7 @@ static struct helptext {
 	{"\t'%c'  - show previous sample\n",			MSAMPPREV, 'r'},
 	{"\t'%c'  - branch to certain time\n",			MSAMPBRANCH, 'r'},
 	{"\t'%c'  - rewind to begin\n",				MRESET, 'r'},
+	{"\t'%c'  - fast-forward to end\n",			MEND, 'r'},
 	{"\t'%c'  - pause button to freeze or continue (twin mode)\n",
 								MPAUSE, 'r'},
 	{"\n",							' ', 'r'},
