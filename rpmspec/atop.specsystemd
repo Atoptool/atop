@@ -8,7 +8,7 @@ Summary:        Advanced System and Process Monitor
 License:        GPL
 Group: 	        System Environment
 Requires:       zlib, ncurses, python3
-BuildRequires:  zlib-devel, ncurses-devel
+BuildRequires:  zlib-devel, ncurses-devel, glib2-devel
 BuildRoot:      /var/tmp/rpm-buildroot-atop
 
 %description
