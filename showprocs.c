@@ -212,9 +212,9 @@ char *cgroup_CGRCMD(struct cgchainer *, struct tstat *,
 
 
 static char     *columnhead[] = {
-	[MSORTCPU]= "CPU", [MSORTMEM]= "MEM",
-	[MSORTDSK]= "DSK", [MSORTNET]= "NET",
-	[MSORTGPU]= "GPU",
+	[MSORTCPU]= "ACPU", [MSORTMEM]= "AMEM",
+	[MSORTDSK]= "ADSK", [MSORTNET]= "ANET",
+	[MSORTGPU]= "AGPU",
 };
 
 /***************************************************************/
@@ -379,49 +379,72 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
         detail_printpair curelem;
 
         char *chead="";
-        char *autoindic="";
-        int order=showorder;
-        int col=0;
-        int align;
+        int  order=showorder;
+        int  curline, col;
         char pagindic[10];
-        int pagindiclen;
-        int n=0;
-        int bufsz;
-        int maxw=screen ? COLS : linelen;    // for non screen: 80 columns max
+        int  pagindiclen;
+        int  n=0;
+        char buf[16];
 
         colspacings=getspacings(elemptr);
-        bufsz=maxw+1;
 
         elemptr=newelems;     // point to adjusted array
-        char buf[bufsz+2];    // long live dynamically sized auto arrays...
         
-        if (!screen) 
+        if (screen) 
+	{
+		getyx(stdscr, curline, col);	// get current line
+		(void) col;			// intentionally unused
+	}
+	else
+	{
                 printg("\n");
+	}
 
-        while ((curelem=*elemptr).pf!=0) 
+        while ((curelem=*elemptr).pf != 0) 
         {
-		int widen = 0;
-
-                if (curelem.pf->head==0)     // empty header==special: SORTITEM
+                if (curelem.pf->head == 0)     // empty header==special: SORTITEM
                 {
-                        chead     = columnhead[order];
-                        autoindic = autosort ? "A" : " ";
-			widen     = procprt_SORTITEM.width-3;
+			snprintf(buf, sizeof buf, "%*s", procprt_SORTITEM.width,
+				autosort ? columnhead[order] : columnhead[order]+1);
+
+                        chead = buf;
                 } 
                 else 
                 {
-                        chead=curelem.pf->head;
-                        autoindic="";
+                        chead = curelem.pf->head;
                 }
 
                 if (screen)
                 {
-                        col += sprintf(buf+col, "%*s%s%*s",
-				widen, autoindic, chead, colspacings[n], "");
+			// print sort criterium column? then switch on color
+			//
+			if (curelem.pf->head == 0)
+			{
+				if (usecolors)
+					attron(COLOR_PAIR(FGCOLORINFO));
+				else
+					attron(A_BOLD);
+			}
+
+			// print column header
+			//
+                        printg("%-*s", curelem.pf->width, chead);
+
+			// print sort criterium column? then switch off color
+			//
+			if (curelem.pf->head == 0)
+			{
+				if (usecolors)
+					attroff(COLOR_PAIR(FGCOLORINFO));
+				else
+					attroff(A_BOLD);
+			}
+
+                        printg("%*s", colspacings[n], "");
                 }
                 else
                 {
-                        col += sprintf(buf+col, "%s%s ", autoindic, chead);
+                        printg("%s ", chead);
                 }
                               
                 elemptr++;
@@ -430,23 +453,15 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
 
         if (screen)   // add page number, eat from last header if needed...
         {
-                pagindiclen=sprintf(pagindic,"%d/%d", curlist, totlist);
-                align=COLS-col-pagindiclen;    // extra spaces needed
-            
-                if (align >= 0)     // align by adding spaces
-                {
-                        sprintf(buf+col, "%*s", align+pagindiclen, pagindic);
-                }
-                else if (col+align >= 0)
-                {    // align by removing from the right
-                        sprintf(buf+col+align, "%s", pagindic);
-                }
+                pagindiclen = sprintf(pagindic,"%d/%d", curlist, totlist);
+
+		move(curline, COLS-pagindiclen);
+                printg("%s", pagindic);
         }
-
-        printg("%s", buf);
-
-        if (!screen) 
-                printg("\n");
+	else
+	{
+		printg("\n");
+	}
 }
 
 
