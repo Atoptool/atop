@@ -2468,7 +2468,7 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
 			//
 			for (i=0; i < cgrdepth-1; i++)
 			{
-				if (i >= CGRMAXDEPTH || vlinemask & (1<<i))
+				if (i >= CGRMAXDEPTH || vlinemask & (1ULL<<i))
 					addch(ACS_VLINE);
 				else
 					addch(' ');
