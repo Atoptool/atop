@@ -449,6 +449,7 @@ text_samp(time_t curtime, int nsecs,
 	** processes are shown; the loop will be preempted by receiving
 	** a timer-signal or when the trigger-button is pressed.
 	*/
+	size_t len_procsel_states = strlen(procsel.states);
 	while (1)
 	{
 		curline = 1;
@@ -2055,7 +2056,7 @@ text_samp(time_t curtime, int nsecs,
 					}
 
 					if (needed)
-					    procsel.states[strlen(procsel.states)] = *sp;
+					    procsel.states[len_procsel_states] = *sp;
 
 					sp = strtok(NULL, ",");
 				}
