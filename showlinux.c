@@ -642,7 +642,7 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
 
         makeargv(str, linename, items);
 
-        for(i=a=0; items[i].name && i<maxn-1; i++) 
+        for(i=a=0; i<maxn-1 && items[i].name; i++)
         {
                 const char *name=items[i].name;
                 int j;
@@ -736,7 +736,7 @@ make_detail_prints(detail_printpair *ar, int maxn, const char *pairs,
         makeargv(str, linename, items);
 
         int i;
-        for(i=0; items[i].name && i<maxn-1; ++i) 
+        for(i=0; i<maxn-1 && items[i].name; ++i)
         {
                 const char *name=items[i].name;
                 int j;
