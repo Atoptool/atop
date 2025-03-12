@@ -302,8 +302,7 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 	return pids;
 
     close_and_return:
-	if (buf)
-		free(buf);
+	free(buf);
 
 	close(actsock);
 	actsock = -1;

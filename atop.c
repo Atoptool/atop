@@ -1016,8 +1016,7 @@ engine(void)
 		if ((supportflags & NETATOPD) && (nprocexitnet > 0))
 			netatop_exiterase();
 
-		if (gp)
-			free(gp);
+		free(gp);
 
 		if (lastcmd == MRESET)	/* reset requested ? */
 		{

@@ -859,8 +859,7 @@ text_samp(time_t curtime, int nsecs,
 				** selection specified for tasks:
 				** create new (worst case) pointer list if needed
 				*/
-				if (sellist)	// remove previous list if needed
-					free(sellist);
+				free(sellist); // remove previous list if needed
 	
 				sellist = malloc(sizeof(struct tstat *) * ncurlist);
 	
@@ -940,8 +939,7 @@ text_samp(time_t curtime, int nsecs,
 					if (!tsklist || ntsk != ntotal ||
 								tdeviate != deviatonly)
 					{
-						if (tsklist)
-							free(tsklist);	// remove current
+						free(tsklist);	// remove current
 	
 						tsklist = malloc(sizeof(struct tstat *)
 									    * ntotal);
@@ -1072,8 +1070,7 @@ text_samp(time_t curtime, int nsecs,
 				** when a list has been created already that is
 				** not suitable, first remove it
 				*/
-				if (cgroupsort)
-					free(cgroupsort);
+				free(cgroupsort);
 
 				cgroupsort = cgsort(cgchainers, ncgroups, curorder);
 
@@ -1096,8 +1093,7 @@ text_samp(time_t curtime, int nsecs,
 				** when a selection list has been created
 				** already that is not suitable, first remove it
 				*/
-				if (cgroupsel)
-					free(cgroupsel);
+				free(cgroupsel);
 
 				/*
 				** create new merged list of cgroups and processes
@@ -2676,16 +2672,16 @@ text_samp(time_t curtime, int nsecs,
 	}
 
     free_and_return:
-	if (tpcumlist)  free(tpcumlist);
-	if (pcumlist)   free(pcumlist);
-	if (tucumlist)  free(tucumlist);
-	if (ucumlist)   free(ucumlist);
-	if (tccumlist)  free(tccumlist);
-	if (ccumlist)   free(ccumlist);
-	if (tsklist)    free(tsklist);
-	if (sellist)    free(sellist);
-	if (cgroupsort) free(cgroupsort);
-	if (cgroupsel)  free(cgroupsel);
+	free(tpcumlist);
+	free(pcumlist);
+	free(tucumlist);
+	free(ucumlist);
+	free(tccumlist);
+	free(ccumlist);
+	free(tsklist);
+	free(sellist);
+	free(cgroupsort);
+	free(cgroupsel);
 
 	return lastchar;
 }
