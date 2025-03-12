@@ -1238,7 +1238,7 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 					else
 					{
 						if (depth < CGRMAXDEPTH)
-			     			   (cgroupsel+j)->cgp->vlinemask &= ~(1 << (depth-1));
+			     			   (cgroupsel+j)->cgp->vlinemask &= ~(1ULL << (depth-1));
 					}
 				}
 			}
@@ -1661,7 +1661,7 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 		(*cgpp)->stub = 1;	// no more entries on this level
 
 		if (depth < CGRMAXDEPTH)
-			vlinemask &= ~(1 << depth);
+			vlinemask &= ~(1ULL << depth);
 
 		(*cgpp)->vlinemask = vlinemask;
 
@@ -1685,7 +1685,7 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 				(*(cgpp+j))->stub = 1;	// no more entries on this level
 
 				if (depth < CGRMAXDEPTH)
-					vlinemask &= ~(1 << depth);
+					vlinemask &= ~(1ULL << depth);
 
 				(*(cgpp+j))->vlinemask = vlinemask;
 			}
@@ -1694,7 +1694,7 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 				(*(cgpp+j))->stub = 0;	// more entries on this level
 
 				if (depth < CGRMAXDEPTH)
-					vlinemask |= 1 << depth;
+					vlinemask |= 1ULL << depth;
 
 				(*(cgpp+j))->vlinemask = vlinemask;
 			}
