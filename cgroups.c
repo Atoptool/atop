@@ -853,8 +853,7 @@ cgwipe(struct cgchainer **first,  struct cgchainer **last,
 	{
 		cpn = cp->next;
 
-		if (cp->proclist)
-			free(cp->proclist);
+		free(cp->proclist);
 
 		free(cp->cstat);
 		free(cp);

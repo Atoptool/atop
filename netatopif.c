@@ -153,8 +153,7 @@ netatop_probe(void)
 		{
 			(void) close(netexitfd);
 
-			if (nahp)
-				munmap(nahp, sizeof *nahp);
+			munmap(nahp, sizeof *nahp);
 
 			netexitfd = -1;
 			nahp = NULL;

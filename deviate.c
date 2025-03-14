@@ -88,14 +88,11 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 	/*
  	** remove allocated lists of previous sample and initialize counters
 	*/
-	if (devtstat->taskall)
-		free(devtstat->taskall);
+	free(devtstat->taskall);
 
-	if (devtstat->procall)
-		free(devtstat->procall);
+	free(devtstat->procall);
 
-	if (devtstat->procactive)
-		free(devtstat->procactive);
+	free(devtstat->procactive);
 
 	memset(devtstat, 0, sizeof *devtstat);
 
