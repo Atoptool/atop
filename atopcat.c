@@ -28,9 +28,15 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
+#define _POSIX_C_SOURCE
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <getopt.h>
 #include <fcntl.h>
 #include <time.h>
 #include <stdio.h>

@@ -27,6 +27,10 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
+#define _POSIX_C_SOURCE
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -1189,7 +1193,8 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 	//
 	cgroupsel = malloc(sizeof(struct cglinesel) * (ncgroups+nprocs));
 
-	ptrverify(cgroupsel, "Malloc for cglinesel structs failed (%d)\n",
+	if (cgroupsel == NULL)
+		ptrverify(cgroupsel, "Malloc for cglinesel structs failed (%d)\n",
 					ncgroups + nprocs);
 
 	*cgroupselp = cgroupsel;

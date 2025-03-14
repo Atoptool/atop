@@ -36,6 +36,11 @@
 ** it under the terms of the GNU General Public License version 2 as
 ** published by the Free Software Foundation.
 */
+#define _POSIX_C_SOURCE
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>

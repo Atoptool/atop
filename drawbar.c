@@ -103,6 +103,10 @@
 // horizontally scaled by the user, atop might switch from one model to
 // the other.
 /////////////////////////////////////////////////////////////////////////////
+#define _POSIX_C_SOURCE
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <sys/types.h>
 #include <curses.h>

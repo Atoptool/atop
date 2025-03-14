@@ -102,9 +102,16 @@ typedef struct
 {
         char *head;                      // column header
         char *configname;                // name as used to config print line
-        char *(*doactiveconvert)();      // pointer to conv function
+
+	union {
+        	char *(*doactiveconverts)(struct tstat *, int, int);
+        	char *(*doactiveconvertc)(struct cgchainer *, struct tstat *,
+                			int, int, count_t, int, int *);
+	} ac;
+   			                 // pointer to conv function
                                          // for active process
-        char *(*doexitconvert)();        // pointer to conv function
+	char *(*doexitconvert)(struct tstat *, int, int);        
+			                 // pointer to conv function
                                          // for exited process
 	char sortcrit;                   // sort criterion similar to showorder
         int  width;                      // required width

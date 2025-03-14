@@ -118,6 +118,10 @@
 ** can be linked with 'atop'; the one to use can eventually be chosen
 ** at runtime. 
 */
+#define _POSIX_C_SOURCE	
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -128,6 +132,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/utsname.h>

@@ -32,6 +32,7 @@
 #include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <getopt.h>
 #include <time.h>
 #include <stdio.h>
 #include <errno.h>
