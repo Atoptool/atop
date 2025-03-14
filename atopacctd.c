@@ -112,7 +112,7 @@ static char		atopacctddate[]    = ATOPDATE;
 static unsigned long	maxshadowrec = MAXSHADOWREC;
 static char		*pacctdir    = PACCTDIR;
 
-static char		cleanup_and_go = 0;
+static int		cleanup_and_go = 0;
 
 /*
 ** function prototypes
