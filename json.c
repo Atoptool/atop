@@ -879,18 +879,38 @@ json_print_NET(char *hp, struct sstat *ss,
 			"\"rpack\": %lld, "
 			"\"rbyte\": %lld, "
 			"\"rerrs\": %lld, "
+			"\"rdrop\": %lld, "
+			"\"rfifo\": %lld, "
+			"\"rcompr\": %lld, "
+			"\"rframe\": %lld, "
+			"\"rmultic\": %lld, "
 			"\"spack\": %lld, "
 			"\"sbyte\": %lld, "
 			"\"serrs\": %lld, "
+			"\"sdrop\": %lld, "
+			"\"sfifo\": %lld, "
+			"\"scompr\": %lld, "
+			"\"scollis\": %lld, "
+			"\"scarrier\": %lld, "
 			"\"speed\": \"%ld\", "
 			"\"duplex\": %d}",
 			ss->intf.intf[i].name,
 			ss->intf.intf[i].rpack,
 			ss->intf.intf[i].rbyte,
 			ss->intf.intf[i].rerrs,
+                        ss->intf.intf[i].rdrop,
+                        ss->intf.intf[i].rfifo,
+                        ss->intf.intf[i].rcompr,
+                        ss->intf.intf[i].rframe,
+                        ss->intf.intf[i].rmultic,
 			ss->intf.intf[i].spack,
 			ss->intf.intf[i].sbyte,
 			ss->intf.intf[i].serrs,
+                        ss->intf.intf[i].sdrop,
+                        ss->intf.intf[i].sfifo,
+                        ss->intf.intf[i].scompr,
+                        ss->intf.intf[i].scollis,
+                        ss->intf.intf[i].scarrier,
 			ss->intf.intf[i].speed,
 			ss->intf.intf[i].duplex);
 	}

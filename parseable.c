@@ -716,7 +716,8 @@ print_NET(char *hp, struct sstat *ss,
 
 	for (i=0; ss->intf.intf[i].name[0]; i++)
 	{
-		printf(	"%s %s %lld %lld %lld %lld %ld %d\n",
+		printf(	"%s %s %lld %lld %lld %lld %ld %d "
+			"%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			ss->intf.intf[i].name,
 			ss->intf.intf[i].rpack,
@@ -724,7 +725,20 @@ print_NET(char *hp, struct sstat *ss,
 			ss->intf.intf[i].spack,
 			ss->intf.intf[i].sbyte,
 			ss->intf.intf[i].speed,
-			ss->intf.intf[i].duplex);
+			ss->intf.intf[i].duplex,
+
+			ss->intf.intf[i].rerrs,
+			ss->intf.intf[i].serrs,
+			ss->intf.intf[i].rdrop,
+			ss->intf.intf[i].sdrop,
+			ss->intf.intf[i].rfifo,
+			ss->intf.intf[i].sfifo,
+			ss->intf.intf[i].rcompr,
+			ss->intf.intf[i].scompr,
+			ss->intf.intf[i].rframe,
+			ss->intf.intf[i].rmultic,
+			ss->intf.intf[i].scollis,
+			ss->intf.intf[i].scarrier);
 	}
 }
 
