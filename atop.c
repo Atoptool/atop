@@ -343,7 +343,7 @@ main(int argc, char *argv[])
 	else
 		p = argv[0];
 
-	if ( memcmp(p, "atopsar", 7) == 0)
+	if ( strcmp(p, "atopsar") == 0)
 		return atopsar(argc, argv);
 
 	/* 
