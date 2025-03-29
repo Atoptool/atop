@@ -185,8 +185,12 @@ char            displaymode = 'T';      /* 'T' = text, 'D' = draw        */
 char            barmono     = 0; /* boolean: bar without categories?     */
 		                 /* name in case of parseable output     */
 
-char		prependenv = 0;  /* boolean: prepend selected            */
+char		prependenv  = 0; /* boolean: prepend selected            */
 				 /* environment variables to cmdline     */
+
+char		connectgpud    = 0; /* boolean: connect to atopgpud      */
+char		connectnetatop = 0; /* boolean: connect to netatop(bpf)  */
+
 regex_t		envregex;
 
 unsigned short	hertz;
@@ -493,6 +497,14 @@ main(int argc, char *argv[])
 				prependenv = 1;
 				break;
 
+                           case 'k':		/* try to open TCP connection to atopgpud */
+				connectgpud = 1;
+				break;
+
+                           case 'K':		/* try to open connection to netatop/netatop-bpf */
+				connectnetatop = 1;
+				break;
+
 			   default:		/* gather other flags */
 				flaglist[i++] = c;
 			}
@@ -621,7 +633,8 @@ main(int argc, char *argv[])
 	/*
 	** open socket to the IP layer to issue getsockopt() calls later on
 	*/
-	netatop_ipopen();
+	if (connectnetatop)
+		netatop_ipopen();
 
 	/*
 	** since privileged activities are finished now, there is no
@@ -735,11 +748,15 @@ engine(void)
 
 	/*
  	** open socket to the atopgpud daemon for GPU statistics
+	** if explicitly required
 	*/
-        nrgpus = gpud_init();
+	if (connectgpud)
+	{
+		nrgpus = gpud_init();
 
-	if (nrgpus)
-		supportflags |= GPUSTAT;
+		if (nrgpus)
+			supportflags |= GPUSTAT;
+	}
 
 	/*
 	** MAIN-LOOP:
@@ -786,7 +803,10 @@ engine(void)
 		** send request for statistics to atopgpud 
 		*/
 		if (nrgpus)
-			gpupending = gpud_statrequest();
+		{
+			if ((gpupending = gpud_statrequest()) == 0)
+				nrgpus = 0;
+		}
 
 		/*
 		** take a snapshot of the current system-level metrics 
@@ -818,28 +838,8 @@ engine(void)
 			// connection lost or timeout on receive?
 			if (nrgpuproc == -1)
 			{
-				int ng;
-
-				// try to reconnect
-        			ng = gpud_init();
-
-				if (ng != nrgpus)	// no success
-					nrgpus = 0;
-
-				if (nrgpus)
-				{
-					// request for stats again
-					if (gpud_statrequest())
-					{
-						// receive stats response
-						nrgpuproc = gpud_statresponse(nrgpus,
-						     cursstat->gpu.gpu, &gp);
-
-						// persistent failure?
-						if (nrgpuproc == -1)
-							nrgpus = 0;
-					}
-				}
+				nrgpus = 0;
+				supportflags &= ~GPUSTAT;
 			}
 
 			cursstat->gpu.nrgpus = nrgpus;
@@ -929,7 +929,7 @@ engine(void)
 		/*
  		** merge GPU per-process stats with other per-process stats
 		*/
-		if (nrgpus && nrgpuproc)
+		if (nrgpus && nrgpuproc > 0)
 			gpumergeproc(curtpres, ntaskpres,
 		                     curpexit, nprocexit,
 		 	             gp,       nrgpuproc);
@@ -976,8 +976,8 @@ engine(void)
 		if ((supportflags & NETATOPD) && (nprocexitnet > 0))
 			netatop_exiterase();
 
-		if (gp)
-			free(gp);
+		free(gp);
+		gp = NULL;      // avoid double free
 
 		if (lastcmd == MRESET)	/* reset requested ? */
 		{
@@ -1033,6 +1033,9 @@ prusage(char *myname)
 			"non-screen output\n");
 	printf("\t  -z  prepend regex matching environment variables to "
                         "command line\n");
+	printf("\t  -k  try to connect to external atopgpud daemon (default: do not connect)\n");
+	printf("\t  -K  try to connect to netatop/netatop-bpf interface (default: do not connect)\n");
+
 
 	if (vis.show_usage)
 		(*vis.show_usage)();

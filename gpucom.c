@@ -43,12 +43,12 @@
 
 #define	GPUDPORT	59123
 
-static void	gputype_parse(char *);
+static int	gputype_parse(char *);
 
-static void	gpustat_parse(int, char *, int,
+static int	gpustat_parse(int, char *, int,
 		                      struct pergpu *, struct gpupidstat *);
-static void	gpuparse(int, char *, struct pergpu *);
-static void	pidparse(int, char *, struct gpupidstat *);
+static int	gpuparse(int, char *, struct pergpu *);
+static int	pidparse(int, char *, struct gpupidstat *);
 static int	rcvuntil(int, char *, int);
 
 static int	actsock = -1;
@@ -150,20 +150,24 @@ gpud_init(void)
 	if ( rcvuntil(actsock, buf, length) == -1)
 	{
 		perror("receive type request from atopgpud");
+		free(buf);
 		goto close_and_return;
 	}
 
 	buf[length] = '\0';
 
-	gputype_parse(buf);
-
-        numgpus = numgpus <= MAXGPU ? numgpus : MAXGPU;
+	if (! gputype_parse(buf))
+	{
+		free(buf);
+		goto close_and_return;
+	}
 
 	return numgpus;
 
     close_and_return:
 	close(actsock);
 	actsock = -1;
+	numgpus = 0;
 	return 0;
 }
 
@@ -176,7 +180,7 @@ gpud_init(void)
 **
 ** Return value:
 ** 	0 in case of failure
-** 	1 in case of success
+** 	1 in case of success (request pending)
 */
 int
 gpud_statrequest(void)
@@ -190,6 +194,7 @@ gpud_statrequest(void)
 	{
 		close(actsock);
 		actsock = -1;
+		numgpus = 0;
 		return 0;
 	}
 
@@ -216,7 +221,7 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 	uint32_t	prelude;
 	char		*buf = NULL, *p;
 	int		version, length;
-	int		pids = 0;
+	int		maxprocs = 0, nrprocs;
 
 	if (actsock == -1)
 		return -1;
@@ -269,22 +274,22 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 	*(buf+length) = '\0';
 
 	/*
-	** determine number of per-process stats
-	** and malloc space to parse these stats
+	** determine number of per-process stats in string
+	** and malloc space to store these stats
 	*/
 	for (p=buf; *p; p++)
 	{
 		if (*p == PIDDELIM)
-			pids++;
+			maxprocs++;
 	}
 
 	if (gps)
 	{
-		if (pids)
+		if (maxprocs)
 		{
-			*gps = malloc(pids * sizeof(struct gpupidstat));
-			ptrverify(gps, "Malloc failed for gpu pidstats\n");
-			memset(*gps, 0, pids * sizeof(struct gpupidstat));
+			*gps = malloc(maxprocs * sizeof(struct gpupidstat));
+			ptrverify(*gps, "Malloc failed for gpu pidstats\n");
+			memset(*gps, 0, maxprocs * sizeof(struct gpupidstat));
 		}
 		else
 		{
@@ -295,18 +300,27 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 	/*
 	** parse stats string for per-gpu stats
 	*/
-	gpustat_parse(version, buf, maxgpu, ggs, gps ? *gps : NULL);
+	if ( (nrprocs =  gpustat_parse(version, buf, maxgpu, ggs, gps ? *gps : NULL)) == -1)
+	{
+		if (gps)
+		{
+			free(*gps);
+			*gps = NULL;    // avoid double free later on
+		}
+
+		goto close_and_return; // inconsistent data received from atopgpud
+	}
 
 	free(buf);
 
-	return pids;
+	return nrprocs;
 
     close_and_return:
-	if (buf)
-		free(buf);
+	free(buf);
 
 	close(actsock);
 	actsock = -1;
+	numgpus = 0;
 	return -1;
 }
 
@@ -314,6 +328,9 @@ gpud_statresponse(int maxgpu, struct pergpu *ggs, struct gpupidstat **gps)
 /*
 ** Receive given number of bytes from given socket
 ** into given buffer address
+**
+** Return value:  number of bytes received
+**                -1 - failed (including end-of-connection)
 */
 static int
 rcvuntil(int sock, char *buf, int size)
@@ -339,23 +356,27 @@ rcvuntil(int sock, char *buf, int size)
 **
 ** Store the type, busid and tasksupport of every GPU in
 ** static pointer tables
+**
+** Return value:  1 - success
+**                0 - failed
 */
-static void
+static int
 gputype_parse(char *buf)
 {
-	char	*p, *start, **bp, **tp, *cp;
+	char	*p, *start, **bp, **tp, *cp, fails=0;
 
 	/*
 	** determine number of GPUs
 	*/
 	if ( sscanf(buf, "%d@", &numgpus) != 1)
-	{
-		close(actsock);
-		actsock = -1;
-		return;
-	}
+		return 0;
 
-	for (p=buf; *p; p++)	// search for first delimiter
+        numgpus = numgpus <= MAXGPU ? numgpus : MAXGPU;
+
+	/*
+	** search for first GPU delimiter (@)
+	*/
+	for (p=buf; *p; p++)
 	{
 		if (*p == GPUDELIM)
 		{
@@ -363,6 +384,9 @@ gputype_parse(char *buf)
 			break;
 		}
 	}
+
+	if (*p == 0)	// no delimiter or no data behind delimeter?
+		return 0;
 
 	/*
 	** parse GPU info and build arrays of pointers to the
@@ -380,27 +404,47 @@ gputype_parse(char *buf)
 		ptrverify(gputypes, "Malloc failed for gpu types\n");
 		ptrverify(gputasks, "Malloc failed for gpu tasksup\n");
 
-		for (field=0, start=p; ; p++)
+		for (field=0, start=p; fails == 0; p++)
 		{
 			if (*p == ' ' || *p == '\0' || *p == GPUDELIM)
 			{
 				switch(field)
 				{
 				   case 0:
+					if (bp - gpubusid >= numgpus)
+					{
+						fails++;
+						break; 	// inconsistent with number of GPUs
+					}
+
 					if (p-start <= MAXGPUBUS)
 						*bp++ = start;
 					else
 						*bp++ = p - MAXGPUBUS;
 					break;
 				   case 1:
+					if (tp - gputypes >= numgpus)
+					{
+						fails++;
+						break; 	// inconsistent with number of GPUs
+					}
+
 					if (p-start <= MAXGPUTYPE)
 						*tp++ = start;
 					else
 						*tp++ = p - MAXGPUTYPE;
 					break;
 				   case 2:
+					if (cp - gputasks >= numgpus)
+					{
+						fails++;
+						break; 	// inconsistent with number of GPUs
+					}
+
 					*cp++ = *start;
 					break;
+				   default:
+					fails++;
 				}
 
 				field++;
@@ -418,7 +462,25 @@ gputype_parse(char *buf)
 
 		*bp = NULL;
 		*tp = NULL;
+
+		/*
+		** verify if number of GPUs and supplied per-GPU information
+		** appears to be inconsistent
+		*/
+		if (fails || bp - gpubusid != numgpus || tp - gputypes != numgpus || cp - gputasks != numgpus)
+		{
+			free(gpubusid);
+			free(gputypes);
+			free(gputasks);
+			return 0;
+		}
 	}
+	else
+	{
+		return 0;
+	}
+
+	return 1;
 }
 
 
@@ -429,106 +491,146 @@ gputype_parse(char *buf)
 ** with a '@' delimiter.
 ** Every series with counters on process level is introduced
 ** with a '#' delimiter (last part of the GPU level data).
+**
+** Return value:  valid number of processes 
+**                -1 - failed
 */
-static void
+static int
 gpustat_parse(int version, char *buf, int maxgpu, 
 		struct pergpu *gg, struct gpupidstat *gp)
 {
-	char	*p, *start, delimlast;
-	int	gpunum = 0;
+	char		*p, *pp, *start;
+	int		gpunum, nrprocs = 0;
 
 	/*
 	** parse stats string
 	*/
-	for (p=start=buf, delimlast=DUMMY; gpunum <= maxgpu; p++)
-	{
-		char delimnow;
+	for (p=buf; *p && *p != GPUDELIM; p++)	// find first GPU deimiter
+		; 
 
-		if (*p != '\0' && *p != GPUDELIM && *p != PIDDELIM)
+	if (*p == 0)	// string without GPU delimiter
+		return -1;
+
+	for (p++, start=p, gpunum=0; gpunum < maxgpu; p++)
+	{
+		char delimnext;
+
+		// search next GPU delimiter
+		//
+		if (*p && *p != GPUDELIM)
 			continue;
 
 		/*
-		** next delimiter or end-of-string found
+		** next GPU delimiter or end-of-string found
 		*/
-		delimnow = *p;
-		*p       = 0;
+		delimnext = *p;
+		*p        = 0;
 
- 		switch (delimlast)
+		/*
+		** parse GPU itself
+		*/
+		if (! gpuparse(version, start, gg))
+			return -1;
+
+		strncpy(gg->type,  gputypes[gpunum], MAXGPUTYPE);
+		strncpy(gg->busid, gpubusid[gpunum], MAXGPUBUS);
+
+		/*
+		** continue searching for per-process stats for this GPU
+		*/
+		if (gp)
 		{
-		   case DUMMY:
-			break;
-
-		   case GPUDELIM:
-			gpuparse(version, start, gg);
-
-			strcpy(gg->type,  gputypes[gpunum]);
-			strcpy(gg->busid, gpubusid[gpunum]);
-
-			gpunum++;
-			gg++;
-			break;
-
-		   case PIDDELIM:
-			if (gp)
+			for (pp = start; pp < p; pp++)
 			{
-				pidparse(version, start, gp);
+				if (*pp != PIDDELIM)
+					continue;
+
+				// new PID delimiter (#) found
+				//
+				if (! pidparse(version, pp+1, gp))
+					return -1;
 
 				gp->gpu.nrgpus++;
-				gp->gpu.gpulist = 1<<(gpunum-1);
+				gp->gpu.gpulist = 1<<gpunum;
 				gp++;
 
-				(gg-1)->nrprocs++;
+				gg->nrprocs++;	// per GPU
+				nrprocs++;	// total
 			}
 		}
 
-		if (delimnow == 0 || *(p+1) == 0)
+		gpunum++;
+		gg++;
+
+		if (delimnext == 0 || *(p+1) == 0)
 			break;
 
-		start     = p+1;
-		delimlast = delimnow;
+		start = p+1;
 	}
+
+	return nrprocs;
 }
 
 
 /*
 ** Parse GPU statistics string
+**
+** Return value:  1 - success
+**                0 - failed
 */
-static void
+static int
 gpuparse(int version, char *p, struct pergpu *gg)
 {
+	int nr;
+
 	switch (version)
 	{
 	   case 1:
-		(void) sscanf(p, "%d %d %lld %lld %lld %lld %lld %lld", 
+		nr = sscanf(p, "%d %d %lld %lld %lld %lld %lld %lld", 
 			&(gg->gpupercnow), &(gg->mempercnow),
 			&(gg->memtotnow),  &(gg->memusenow),
 			&(gg->samples),    &(gg->gpuperccum),
 			&(gg->memperccum), &(gg->memusecum));
 
+		if (nr < 8)	// parse error: unexpected data
+			return 0;
+
 		gg->nrprocs = 0;
 
 		break;
 	}
+
+	return 1;
 }
 
 
 /*
 ** Parse PID statistics string
+**
+** Return value:  1 - success
+**                0 - failed
 */
-static void
+static int
 pidparse(int version, char *p, struct gpupidstat *gp)
 {
+	int nr;
+
 	switch (version)
 	{
 	   case 1:
-		(void) sscanf(p, "%c %ld %d %d %lld %lld %lld %lld",
+		nr = sscanf(p, "%c %ld %d %d %lld %lld %lld %lld",
 			&(gp->gpu.state),   &(gp->pid),    
 			&(gp->gpu.gpubusy), &(gp->gpu.membusy),
 			&(gp->gpu.timems),
 			&(gp->gpu.memnow), &(gp->gpu.memcum),
 		        &(gp->gpu.sample));
+
+		if (nr < 8)	// parse error: unexpected data
+	 		return 0;
 		break;
 	}
+
+	return 1;
 }
 
 

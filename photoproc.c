@@ -117,22 +117,23 @@ photoproc(struct tstat *tasklist, int maxtask)
 	regainrootprivs();
 
 	/*
-	** if kernel module is  not active on this system,
-	** netatop-bpf will try tp run;
+	** if netatop kernel module is not active on this system,
+	** try to connect to netatop-bpf 
 	*/
-	if (!(supportflags & NETATOPD)) {
+	if (connectnetatop && !(supportflags & NETATOP)) {
 		netatop_bpf_probe();
 	}
+
 	/*
-	** if netatop-bpf is  not active on this system,
-	** kernel module will try to run;
+	** if netatop-bpf is not active on this system,
+	** try to connect to kernel module
 	*/
-	if (!(supportflags & NETATOPBPF)) {
+	if (connectnetatop && !(supportflags & NETATOPBPF)) {
 		netatop_probe();
 	}
 
 	/*
-	** if netatop-bpf is active on this system, skip call
+	** if netatop-bpf is active on this system, fetch data
 	*/
 	if (supportflags & NETATOPBPF) {
 		netatop_bpf_gettask();
@@ -226,7 +227,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 				curtask->net.udprsz = tc->udprcvbytes;
 			}
 		} else {
-			// read network stats from netatop
+			// read network stats from netatop (if active)
 			netatop_gettask(curtask->gen.tgid, 'g', curtask);
 		}
 
