@@ -100,6 +100,7 @@ extern char		getwchan;
 extern char		irawname[];
 extern char		orawname[];
 extern char		rawreadflag;
+extern char		connectnetatop;
 extern char		idnamesuppress;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
