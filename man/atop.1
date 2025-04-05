@@ -2038,7 +2038,14 @@ line option can be used to prepend matching environment variables to the
 displayed command line. POSIX Extended Regular Expression syntax are used
 (see regex(3)). When a matching environment variable is too long (exceeding
 the buffer that should contain the command line), it will be truncated.
+Usually only the environment variables will be shown of the processes that
+are running under your own user ID, unless you are a privileged user.
 .br
+WARNING: Don't use this flag when 
+.I writing
+to a (publicly readable) raw file!
+You might expose sensitive environment variables to the readers of that raw file.
+
 Behind the verb 'COMMAND-LINE' in the header line, the current page number
 and the total number of pages of the process/thread list are shown.
 .PP

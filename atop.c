@@ -1078,6 +1078,7 @@ prusage(char *myname)
 			"non-screen output\n");
 	printf("\t  -z  prepend regex matching environment variables to "
                         "command line\n");
+	printf("\t      WARNING: don't use this flag when writing (publicly readable) raw files!\n");
 	printf("\t  -I  suppress UID/GID to name translation (show numbers instead)\n");
 	printf("\t  -k  try to connect to external atopgpud daemon (default: do not connect)\n");
 	printf("\t  -K  try to connect to netatop/netatop-bpf interface (default: do not connect)\n");
