@@ -973,8 +973,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec.ac_rw);
 
-			strncpy(api->gen.name, acctrec.ac_comm, PNAMLEN);
-			api->gen.name[PNAMLEN] = '\0';
+			safe_strcpy(api->gen.name, acctrec.ac_comm, sizeof api->gen.name);
 			filled = 1;
 			break;
 
@@ -1002,8 +1001,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec_v3.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec_v3.ac_rw);
 
-			strncpy(api->gen.name, acctrec_v3.ac_comm, PNAMLEN);
-			api->gen.name[PNAMLEN] = '\0';
+			safe_strcpy(api->gen.name, acctrec_v3.ac_comm, sizeof api->gen.name);
 			filled = 1;
 			break;
 		}

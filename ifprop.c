@@ -331,8 +331,8 @@ getphysprop(struct ifprop *p)
 	*/
 	memset(&ifreq,  0, sizeof ifreq);
 
-	strncpy((void *)&ifreq.ifr_ifrn.ifrn_name, p->name,
-			sizeof ifreq.ifr_ifrn.ifrn_name-1);
+	safe_strcpy((void *)&ifreq.ifr_ifrn.ifrn_name, p->name,
+			sizeof ifreq.ifr_ifrn.ifrn_name);
 
 #ifdef ETHTOOL_GLINKSETTINGS
 	ethlink = calloc(1, sizeof *ethlink);
@@ -417,8 +417,8 @@ getphysprop(struct ifprop *p)
 		*/
 		memset(&iwreq,  0, sizeof iwreq);
 
-		strncpy(iwreq.ifr_ifrn.ifrn_name, p->name,
-				sizeof iwreq.ifr_ifrn.ifrn_name-1);
+		safe_strcpy(iwreq.ifr_ifrn.ifrn_name, p->name,
+				sizeof iwreq.ifr_ifrn.ifrn_name);
 
 		if ( ioctl(sockfd, SIOCGIWRATE, &iwreq) == 0) 
 		{

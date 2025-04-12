@@ -173,10 +173,10 @@ atopsar(int argc, char *argv[])
 				break;
 
 			   case 'r':		/* reading of file data ? */
-				strncpy(irawname, optarg, RAWNAMESZ-1);
+				safe_strcpy(irawname, optarg, RAWNAMESZ);
 
 				if (strcmp(irawname, "-") == 0)
-					strcpy(irawname, "/dev/stdin");
+					safe_strcpy(irawname, "/dev/stdin", RAWNAMESZ);
 
 				rawreadflag++;
 				break;

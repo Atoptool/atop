@@ -1170,3 +1170,20 @@ gid2name(gid_t gid)
 
 	return NULL;
 }
+
+
+/*
+** copy a string to a destination buffer that will always
+** be null-terminated 
+** 'dstsize' is supposed to be the total size of the
+** destination buffer including null-byte
+*/
+void
+safe_strcpy(char *dst, const char *src, size_t dstsize)
+{
+	if (dstsize == 0)
+		return;
+
+	dst[0] = '\0';
+	strncat(dst, src, dstsize - 1);
+}

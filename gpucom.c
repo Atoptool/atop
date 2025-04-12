@@ -536,8 +536,8 @@ gpustat_parse(int version, char *buf, int maxgpu,
 		if (! gpuparse(version, start, gg))
 			return -1;
 
-		strncpy(gg->type,  gputypes[gpunum], MAXGPUTYPE);
-		strncpy(gg->busid, gpubusid[gpunum], MAXGPUBUS);
+		safe_strcpy(gg->type,  gputypes[gpunum], sizeof gg->type);
+		safe_strcpy(gg->busid, gpubusid[gpunum], sizeof gg->busid);
 
 		/*
 		** continue searching for per-process stats for this GPU

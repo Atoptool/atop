@@ -3790,8 +3790,7 @@ do_username(char *name, char *val)
 {
 	struct passwd	*pwd;
 
-	strncpy(procsel.username, val, sizeof procsel.username -1);
-	procsel.username[sizeof procsel.username -1] = 0;
+	safe_strcpy(procsel.username, val, sizeof procsel.username);
 
 	if (procsel.username[0])
 	{
@@ -3849,7 +3848,7 @@ do_username(char *name, char *val)
 void
 do_procname(char *name, char *val)
 {
-	strncpy(procsel.progname, val, sizeof procsel.progname -1);
+	safe_strcpy(procsel.progname, val, sizeof procsel.progname);
 	procsel.prognamesz = strlen(procsel.progname);
 
 	if (procsel.prognamesz)
@@ -3994,7 +3993,7 @@ do_twindir(char *name, char *val)
 {
 	extern char	twindir[];
 
-	strncpy(twindir, val, RAWNAMESZ-1);
+	safe_strcpy(twindir, val, RAWNAMESZ);
 }
 
 void

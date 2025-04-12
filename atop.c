@@ -379,7 +379,7 @@ main(int argc, char *argv[])
 				if (optind >= argc)
 					prusage(argv[0]);
 
-				strncpy(orawname, argv[optind++], RAWNAMESZ-1);
+				safe_strcpy(orawname, argv[optind++], sizeof orawname);
 
 				if (!rawwriteflag)
 				{	
@@ -402,8 +402,7 @@ main(int argc, char *argv[])
 					}
 					else
 					{
-						strncpy(irawname, argv[optind],
-								RAWNAMESZ-1);
+						safe_strcpy(irawname, argv[optind], sizeof irawname);
 						optind++;
 					}
 				}
@@ -417,8 +416,8 @@ main(int argc, char *argv[])
 				{
 					if (*(argv[optind]) == '/')
 					{
-						strncpy(twindir, argv[optind],
-								RAWNAMESZ-1);
+						safe_strcpy(twindir, argv[optind],
+								sizeof twindir);
 						optind++;
 					}
 				}
@@ -1377,8 +1376,8 @@ twinprepare(void)
 	/*
 	** define current raw file name for both parent and child
 	*/
-	strncpy(irawname, tempname, RAWNAMESZ-1);
-	strncpy(orawname, tempname, RAWNAMESZ-1);
+	safe_strcpy(irawname, tempname, sizeof irawname);
+	safe_strcpy(orawname, tempname, sizeof orawname);
 }
 
 /*

@@ -2102,8 +2102,7 @@ static void
 nullmodname(unsigned int major, unsigned int minor,
 		char *curname, struct perdsk *px, int maxlen)
 {
-	strncpy(px->name, curname, maxlen-1);
-	*(px->name+maxlen-1) = 0;
+	safe_strcpy(px->name, curname, maxlen);
 }
 
 static void
@@ -2178,8 +2177,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 				/*
  				** store info in hash list
 				*/
-				strncpy(dmp->name, dentry->d_name, MAXDKNAM);
-				dmp->name[MAXDKNAM-1] = 0;
+				safe_strcpy(dmp->name, dentry->d_name, sizeof dmp->name);
 				dmp->major 	= major(statbuf.st_rdev);
 				dmp->minor 	= minor(statbuf.st_rdev);
 
@@ -2209,8 +2207,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 			/*
 		 	** info found in hash list; fill proper name
 			*/
-			strncpy(px->name, dmp->name, maxlen-1);
-			*(px->name+maxlen-1) = 0;
+			safe_strcpy(px->name, dmp->name, maxlen);
 			return;
 		}
 
@@ -2220,8 +2217,7 @@ lvmmapname(unsigned int major, unsigned int minor,
 	/*
 	** info not found in hash list; fill original name
 	*/
-	strncpy(px->name, curname, maxlen-1);
-	*(px->name+maxlen-1) = 0;
+	safe_strcpy(px->name, curname, maxlen);
 }
 
 /*
