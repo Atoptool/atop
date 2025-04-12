@@ -99,6 +99,7 @@ extern char		calcpss;
 extern char		getwchan;
 extern char		irawname[];
 extern char		orawname[];
+extern char		twindir[];
 extern char		rawreadflag;
 extern char		connectnetatop;
 extern char		idnamesuppress;

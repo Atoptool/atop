@@ -3991,8 +3991,6 @@ do_colthread(char *name, char *val)
 void
 do_twindir(char *name, char *val)
 {
-	extern char	twindir[];
-
 	safe_strcpy(twindir, val, RAWNAMESZ);
 }
 

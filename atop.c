@@ -1267,7 +1267,6 @@ readrc(char *path, int syslevel)
 ** prepare twin mode
 */
 #define TWINNAME	"atoptwinXXXXXX"
-extern char		twindir[];
 static char		*tempname;
 
 static void
