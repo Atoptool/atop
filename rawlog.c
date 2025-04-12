@@ -60,7 +60,6 @@
 #include "rawlog.h"
 
 #define	BASEPATH	"/var/log/atop"  
-#define	BINPATH		"/usr/bin/atop"
 
 static int	getrawrec  (int, struct rawrecord *, int);
 static int	getrawsstat(int, struct sstat *, int);
@@ -73,7 +72,6 @@ static int	rawwopen(void);
 static int	readchunk(int, void *, int);
 static int	lookslikedatetome(char *);
 static void	testcompval(int, char *);
-static void	try_other_version(int, int);
 
 /*
 ** write a raw record to file
@@ -520,50 +518,18 @@ rawread(void)
 	isregular = S_ISREG(filestat.st_mode);
 
 	/*
-	** open raw file
+	** open raw file for reading
 	*/
 	if ( (rawfd = open(irawname, O_RDONLY)) == -1)
 	{
-		char	command[512], tmpname1[200], tmpname2[200];
-
-		/*
-		** check if a compressed raw file is present
-		*/
-		snprintf(tmpname1, sizeof tmpname1, "%s.gz", irawname);
-
-		if ( access(tmpname1, F_OK|R_OK) == -1)
-		{
-			fprintf(stderr, "%s - ", irawname);
-			perror("open raw file");
-			cleanstop(7);
-		}
-
-		/*
-		** compressed raw file to be decompressed via gunzip
-		*/
-		fprintf(stderr, "Decompressing logfile ....\n");
-		snprintf(tmpname2, sizeof tmpname2, "/tmp/atopwrkXXXXXX");
-		rawfd = mkstemp(tmpname2);
-		if (rawfd == -1)
-		{
-			fprintf(stderr, "%s - ", irawname);
-			perror("creating decompression temp file");
-			cleanstop(7);
-		}
-
-		snprintf(command,  sizeof command, "gunzip -c %s > %s",
-							tmpname1, tmpname2);
-		const int system_res = system (command);
-		unlink(tmpname2);
-
-		if (system_res)
-		{
-			fprintf(stderr, "%s - gunzip failed", irawname);
-			cleanstop(7);
-		}
+		fprintf(stderr, "%s - ", irawname);
+		perror("open raw file");
+		cleanstop(7);
 	}
 
-	/* make the kernel readahead more effective, */
+	/*
+	** make the kernel readahead more effective
+       	*/
 	if (isregular)
 		posix_fadvise(rawfd, 0, 0, POSIX_FADV_SEQUENTIAL);
 
@@ -619,13 +585,6 @@ rawread(void)
 		}
 
 		close(rawfd);
-
-		if (((rh.aversion >> 8) & 0x7f) != (getnumvers()   >> 8) ||
-		     (rh.aversion       & 0xff) != (getnumvers() & 0x7f)   )
-		{
-			try_other_version((rh.aversion >> 8) & 0x7f,
-			                   rh.aversion       & 0xff);
-		}
 
 		cleanstop(7);
 	}
@@ -1206,60 +1165,4 @@ readchunk(int fd, void *buf, int len)
 	}
 
 	return (char *)p - (char *)buf;
-}
-
-/*
-** try to activate another atop- or atopsar-version
-** to read this logfile
-*/
-static void
-try_other_version(int majorversion, int minorversion)
-{
-	char		tmpbuf[1024];
-	extern char	**argvp;
-	int		fds;
-	struct rlimit	rlimit;
-	int 		setresuid(uid_t, uid_t, uid_t);
-
-	/*
- 	** prepare name of executable file
-	** the current pathname (if any) is stripped off
-	*/
-	snprintf(tmpbuf, sizeof tmpbuf, "%s-%d.%d",
-		BINPATH, majorversion, minorversion);
-
-	fprintf(stderr, "trying to activate %s....\n", tmpbuf);
-
-	/*
-	** be sure no open file descriptors are passed
-	** except stdin, stdout en stderr
-	*/
-	(void) getrlimit(RLIMIT_NOFILE, &rlimit);
-
-	for (fds=3; fds < rlimit.rlim_cur; fds++)
-		close(fds);
-
-	/*
-	** be absolutely sure not to pass setuid-root privileges
-	** to the loaded program; errno EAGAIN and ENOMEM are not
-	** acceptable!
-	*/
-	if ( setresuid(getuid(), getuid(), getuid()) == -1 && errno != EPERM)
-	{
-		fprintf(stderr, "not possible to drop root-privileges!\n");
-		exit(1);
-	}
-
-	/*
- 	** load alternative executable image
-	** at this moment the saved-uid might still be set
-	** to 'root' but this is reset at the moment of exec
-	*/
-	(void) execvp(tmpbuf, argvp);
-
-	/*
-	** point of no return, except when exec failed
-	*/
-	fprintf(stderr, "activation of %s failed!\n\n", tmpbuf);
-	fprintf(stderr, "use 'atopconvert' to convert this raw log!\n");
 }
