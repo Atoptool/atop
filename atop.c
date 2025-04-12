@@ -1313,7 +1313,7 @@ twinprepare(void)
 	*/
 	if (strlen(twindir) + sizeof TWINNAME + 1 >= RAWNAMESZ)
 	{
-		fprintf(stderr, "twin mode directoy path too long\n");
+		fprintf(stderr, "twin mode directory path too long\n");
         	exit(42);
 	}
 
