@@ -232,8 +232,9 @@ rawwrite(time_t curtime, int numsecs,
 		rr.flags |= RRGPUSTAT;
 
 	/*
-	** use writev to make record operation atomic
-	** to avoid write uncompleted record data.
+	** use writev to make recording operation atomic
+	** however, it does not avoid writing *uncompleted*
+	** recorded data to a regular file
 	*/
 	iov[0].iov_base = &rr;
 	iov[0].iov_len  = sizeof(rr);
@@ -250,9 +251,13 @@ rawwrite(time_t curtime, int numsecs,
 	iov[4].iov_base = icompbuf;
 	iov[4].iov_len  = icomplen;
 
-	if ( writev(rawfd, iov, nrvectors) == -1)
+	if ( writev(rawfd, iov, nrvectors) <
+			sizeof(rr) + scomplen + pcomplen + ccomplen + icomplen)
 	{
-		fprintf(stderr, "%s - ", orawname);
+		/*
+		** restore original file size from before partly write
+		** to keep file consistency
+		*/
 		if ( ftruncate(rawfd, filestat.st_size) == -1)
 			mcleanstop(8,
 			   "failed to write raw/status/process record to %s\n",
