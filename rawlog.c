@@ -61,7 +61,7 @@
 
 #define	BASEPATH	"/var/log/atop"  
 
-static int	getrawrec  (int, struct rawrecord *, int);
+static int	getrawrec  (int, struct rawrecord *, int, int);
 static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
 static int	getrawcstat(int, struct cgchainer **,
@@ -232,9 +232,11 @@ rawwrite(time_t curtime, int numsecs,
 		rr.flags |= RRGPUSTAT;
 
 	/*
-	** use writev to make recording operation atomic
-	** however, it does not avoid writing *uncompleted*
-	** recorded data to a regular file
+	** writev can be used to write different chunks of data to
+	** a regular (raw) file in one operation atomically (i.e. without
+	** intermingling with data written by other processes).
+	** however, this call does not avoid that only part of the
+	** data is written to the (raw) file!
 	*/
 	iov[0].iov_base = &rr;
 	iov[0].iov_len  = sizeof(rr);
@@ -636,7 +638,7 @@ rawread(void)
 
 	while (lastcmd && lastcmd != 'q')
 	{
-		while ( getrawrec(rawfd, &rr, rh.rawreclen) == rh.rawreclen)
+		while ( getrawrec(rawfd, &rr, rh.rawreclen, isregular) == rh.rawreclen)
 		{
 			unsigned int	k, l;
 
@@ -961,9 +963,32 @@ rawread(void)
 ** read the next raw record from the raw logfile
 */
 static int
-getrawrec(int rawfd, struct rawrecord *prr, int rrlen)
+getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
 {
-	return readchunk(rawfd, prr, rrlen);
+	// read rawrecord itself
+	//
+	
+	struct stat	filestats;
+	int 		n = readchunk(rawfd, prr, rrlen);
+
+	// verify file consistency:
+	// 	are all expected compressed buffers written
+	//	behind the raw record header?
+	//
+	if (n == rrlen && isregular)
+	{
+		if ( fstat(rawfd, &filestats) == 0)
+		{
+			if (filestats.st_size - lseek(rawfd, 0, SEEK_CUR) <
+					prr->scomplen + prr->pcomplen +
+					prr->ccomplen + prr->icomplen)
+			{
+				mcleanstop(9, "raw file incomplete!\n");
+			}
+		}
+	}
+
+	return n;
 }
 
 
