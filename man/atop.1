@@ -565,13 +565,14 @@ BPF module that can be separately installed.
 .br
 When
 .I atop
-gathers counters for a new interval, it verifies if the
+has been started with the '-K' flag, it verifies if the
 .I netatop
 or 
 .I netatop-bpf
 module is currently active. If so,
 .I atop
-obtains the relevant network counters from this module and shows
+obtains the relevant network counters from this module for each interval
+and shows
 the number of sent and received packets per process/thread in the generic
 screen. Besides, detailed counters can be requested by
 pressing the 'n' key.
@@ -600,8 +601,9 @@ in the system, as well as utilization counters of every
 process that uses a GPU.
 When
 .I atop
-notices that the daemon is active, it reads these GPU utilization
-counters with every interval.
+has been started with the '-k' flag, it reads these
+GPU utilization counters with every interval when
+the daemon is active.
 
 The
 .I atopgpud
