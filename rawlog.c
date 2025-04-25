@@ -299,8 +299,10 @@ static int
 rawwopen()
 {
 	struct rawheader	rh;
-	int			fd;
+	struct rawrecord	rr;
+	int			fd, rv;
 	struct stat		filestats;
+	time_t			prevtime = 0;
 
 	/*
 	** check if the file exists already
@@ -348,9 +350,32 @@ rawwopen()
 			}
 
 			/*
-			** jump to end of file, being prepared to extend with more records
+			** loop through the existing sample records in the file
+			** to do some sanity checking and to find out if the end
+			** of the file is consistent (the latter is already
+			** verified by the getrawrec() function)
 			*/
-			(void) lseek(fd, (off_t) 0, SEEK_END);
+			while ( (rv = getrawrec(fd, &rr, rh.rawreclen, 1)) == rh.rawreclen)
+			{
+				if (	rr.curtime <= prevtime			||
+					rr.ccomplen > rr.coriglen		||
+					rr.scomplen > sizeof(struct sstat)	||
+					rr.pcomplen > sizeof(struct tstat) * rr.ndeviat)
+				{
+					mcleanstop(7,
+						"Inconsistencies found in existing raw file\n");
+				}
+
+				prevtime = rr.curtime;
+
+				lseek(fd, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen, SEEK_CUR);
+			}
+
+			if (rv != 0)
+			{
+				mcleanstop(7,
+					"Incomplete record header in existing raw file\n");
+			}
 
 			return fd;
 		}
@@ -411,7 +436,7 @@ rawread(void)
 {
 	static struct devtstat	devtstat;
 
-	int			i, j, v, rawfd, len, isregular = 1;
+	int			i, j, v, rv, rawfd, len, isregular = 1;
 	char			*py;
 	struct rawheader	rh;
 	struct rawrecord	rr;
@@ -638,7 +663,7 @@ rawread(void)
 
 	while (lastcmd && lastcmd != 'q')
 	{
-		while ( getrawrec(rawfd, &rr, rh.rawreclen, isregular) == rh.rawreclen)
+		while ( (rv = getrawrec(rawfd, &rr, rh.rawreclen, isregular)) == rh.rawreclen)
 		{
 			unsigned int	k, l;
 
@@ -939,6 +964,9 @@ rawread(void)
 
 		if (isregular)
 		{
+			if (rv != 0)	// inconsistent/incomplete raw file?
+				mcleanstop(7, "inconsistent raw file!\n");
+
 			if (offcur >= 1)
 				offcur--;
 
@@ -983,7 +1011,7 @@ getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
 					prr->scomplen + prr->pcomplen +
 					prr->ccomplen + prr->icomplen)
 			{
-				mcleanstop(9, "raw file incomplete!\n");
+				mcleanstop(9, "raw file is incomplete!\n");
 			}
 		}
 	}
@@ -1145,6 +1173,11 @@ lookslikedatetome(char *p)
 	return 1;	/* yes, looks like a date to me */
 }
 
+
+/*
+** test return code of (de)compression and
+** terminate when wrong
+*/
 static void
 testcompval(int rv, char *func)
 {
@@ -1173,6 +1206,13 @@ testcompval(int rv, char *func)
 	}
 }
 
+
+/*
+** read chunk of data with specified length
+** (specifically important when reading from pipe)
+**
+** returns: number of bytes read
+*/
 static int
 readchunk(int fd, void *buf, int len)
 {
@@ -1183,8 +1223,8 @@ readchunk(int fd, void *buf, int len)
 	{
  		switch (n = read(fd, p, len))
 		{
-		   case 0:
-			return 0;	// EOF
+		   case 0:	// EOF?
+			return (char *)p - (char *)buf;
 		   case -1:
 			perror("read raw file");
 			cleanstop(9);
