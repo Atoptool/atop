@@ -349,6 +349,15 @@ rawwopen()
 				cleanstop(7);
 			}
 
+			if (rh.supportflags != (supportflags | RAWLOGNG))
+				mcleanstop(7, "%s - different features in existing raw log\n", orawname);
+
+			if (rh.hertz != hertz)
+				mcleanstop(7, "%s - different hertz in existing raw log\n", orawname);
+
+			if (rh.pagesize != pagesize)
+				mcleanstop(7, "%s - different page size in existing raw log\n", orawname);
+
 			/*
 			** loop through the existing sample records in the file
 			** to do some sanity checking and to find out if the end
