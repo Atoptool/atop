@@ -59,7 +59,7 @@ main(int argc, char *argv[])
 	struct rawheader	rh;
 	struct rawrecord	rr;
 	char			*infile, *sstat, *pstat, *cstat, *istat;
-	unsigned short		aversion;
+	unsigned int		aversion, cgroupv2 = 0;
 
 	// verify the command line arguments: input filename(s)
 	//
@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 	if ( isatty(fileno(stdout)) && !dryrun)
 	{
 		fprintf(stderr,
-			"this program produces binary output on stdout "
+			"This program produces binary output on stdout "
 			"that should be redirected\nto a file or pipe!\n");
 		exit(1);
 	}
@@ -139,6 +139,7 @@ main(int argc, char *argv[])
 		if (firstfile)
 		{
 			aversion = rh.aversion;
+			cgroupv2 = rh.supportflags & CGROUPV2;
 
 			if (!dryrun)
 			{
@@ -170,6 +171,15 @@ main(int argc, char *argv[])
 				fprintf(stderr,
 					"Version of file %s is unequal to "
 					"version of first file\n", infile);
+				close(fd);
+				exit(5);
+			}
+
+			if (cgroupv2 != (rh.supportflags & CGROUPV2))
+			{
+				fprintf(stderr,
+					"Cgroups support of file %s is unequal to "
+					"first file\n", infile);
 				close(fd);
 				exit(5);
 			}
