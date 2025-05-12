@@ -56,8 +56,6 @@
 #include "atop.h"
 #include "acctproc.h"
 
-int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
-
 static unsigned long long getbootlinux(long);
 
 /*
