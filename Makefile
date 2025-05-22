@@ -61,7 +61,7 @@ atophide:	atophide.o
 		$(CC) atophide.o -o atophide -lz $(LDFLAGS)
 
 clean:
-		rm -f *.o atop atopsar atopacctd atopconvert atopcat versdate.h
+		rm -f *.o atop atopsar atopacctd atopconvert atopcat atophide versdate.h
 
 distr:
 		rm -f *.o atop
