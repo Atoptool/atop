@@ -918,8 +918,11 @@ photosyst(struct sstat *si)
 				ptrverify(lhugepagetot,
 					"Malloc failed for huge page total");
 
-				sprintf(lhugepagetot, "%s/%s/nr_hugepages",
-							HUGEPAGEDIR, dentry->d_name);
+				snprintf(lhugepagetot,
+						sizeof HUGEPAGEDIR + 1 +
+				                strlen(dentry->d_name) + 1 +
+						sizeof "nr_hugepages" + 1,
+						"%s/%s/nr_hugepages", HUGEPAGEDIR, dentry->d_name);
 
 
 				lhugepagefree = malloc(sizeof HUGEPAGEDIR + 1 +
@@ -929,8 +932,10 @@ photosyst(struct sstat *si)
 				ptrverify(lhugepagefree,
 					"Malloc failed for huge page free");
 
-				sprintf(lhugepagefree, "%s/%s/free_hugepages",
-							HUGEPAGEDIR, dentry->d_name);
+				snprintf(lhugepagefree, sizeof HUGEPAGEDIR + 1 + 
+				                        strlen(dentry->d_name) + 1 +
+                                                        sizeof "free_hugepages" + 1,
+						"%s/%s/free_hugepages", HUGEPAGEDIR, dentry->d_name);
 
 				break;
 			}
@@ -1070,9 +1075,11 @@ photosyst(struct sstat *si)
 					else if ( strcmp("HugePages_Free:", nam) == EQ)
 						si->memnuma.numa[j].freehp = cnts[1];
 				}
+
 				fclose(fp);
 			}
 		}
+
 		closedir(dirp);
 	}
 
@@ -2640,6 +2647,57 @@ get_ksm(struct sstat *si)
 	}
 
 	return 1;
+}
+
+
+/*
+** determine if this system uses *real* NUMA rather than *fake* NUMA
+** that is the case when not all node distances have the same value
+*/
+#define	NUMADISTANCE0	"/sys/devices/system/node/node0/distance"
+
+int
+uses_realnuma(void)
+{
+	static int	realnuma = -1;
+	FILE		*fp;
+	int		i, total, nr=0, dist[10];
+	char		linebuf[1024];
+
+	if (realnuma == -1)	// first call?
+	{
+		if ( (fp = fopen(NUMADISTANCE0, "r")) != NULL)
+		{
+			if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			{
+				nr = sscanf(linebuf, "%d %d %d %d %d %d %d %d %d %d",
+					&dist[0], &dist[1], &dist[2], &dist[3],
+					&dist[4], &dist[5], &dist[6], &dist[7],
+					&dist[8], &dist[9]);
+			}
+
+			fclose(fp);
+		}
+
+		if (nr <= 0)
+		{
+			realnuma = 0;	// probably fake NUMA
+		}
+		else
+		{
+			// totalize all distances
+        		for (i=0, total=0; i < nr; i++)
+				total += dist[i];
+
+			// average distance not equal to the first distance?
+			if (total / i != dist[0])
+				realnuma = 1;	// real NUMA
+			else
+				realnuma = 0;	// fake NUMA
+		}
+	}
+
+	return realnuma;
 }
 
 

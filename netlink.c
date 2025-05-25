@@ -78,7 +78,7 @@ netlink_open(void)
 	** determine maximum number of CPU's for this system
 	** and specify mask to register all cpu's
 	*/
-	sprintf(cpudef, "0-%d", getnumcpu() -1);
+	snprintf(cpudef, sizeof cpudef, "0-%d", getnumcpu() -1);
 
 	/*
 	** indicate to listen for processes from all CPU's

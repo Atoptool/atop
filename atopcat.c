@@ -381,7 +381,7 @@ convepoch(time_t utime)
 
 	tt = localtime(&utime);
 
-	sprintf(datetime, "%04d/%02d/%02d %02d:%02d:%02d",
+	snprintf(datetime, sizeof datetime, "%04d/%02d/%02d %02d:%02d:%02d",
                 tt->tm_year+1900, tt->tm_mon+1, tt->tm_mday,
 		tt->tm_hour, tt->tm_min, tt->tm_sec);
 

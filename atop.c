@@ -1321,7 +1321,7 @@ twinprepare(void)
 
 	ptrverify(tempname, "Malloc failed for temporary twin name\n");
 
-	sprintf(tempname, "%s/%s", twindir, TWINNAME);
+	snprintf(tempname, strlen(twindir) + sizeof TWINNAME + 1, "%s/%s", twindir, TWINNAME);
 
 	if ( (tempfd = mkstemp(tempname)) == -1)
 	{

@@ -58,7 +58,7 @@
 #include "showgeneric.h"
 #include "showlinux.h"
 
-static void	format_bandw(char *, count_t);
+static void	format_bandw(char *, int, count_t);
 static void	gettotwidth(detail_printpair *, int *, int *, int *);
 static int 	*getspacings(detail_printpair *);
 
@@ -453,7 +453,7 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
 
         if (screen)   // add page number, eat from last header if needed...
         {
-                pagindiclen = sprintf(pagindic,"%d/%d", curlist, totlist);
+                pagindiclen = snprintf(pagindic, sizeof pagindic, "%d/%d", curlist, totlist);
 
 		move(curline, COLS-pagindiclen);
                 printg("%s", pagindic);
@@ -615,9 +615,9 @@ procprt_TID_ae(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
 	if (curstat->gen.isproc)
-        	sprintf(buf, "%*s", procprt_TID.width, "-");
+        	snprintf(buf, sizeof buf, "%*s", procprt_TID.width, "-");
 	else
-        	sprintf(buf, "%*d", procprt_TID.width, curstat->gen.pid);
+        	snprintf(buf, sizeof buf, "%*d", procprt_TID.width, curstat->gen.pid);
         return buf;
 }
 
@@ -629,7 +629,7 @@ procprt_PID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[64];
 
-        sprintf(buf, "%*d", procprt_PID.width, curstat->gen.tgid);
+        snprintf(buf, sizeof buf, "%*d", procprt_PID.width, curstat->gen.tgid);
         return buf;
 }
 
@@ -639,9 +639,9 @@ procprt_PID_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
         if (curstat->gen.pid == 0)
-        	sprintf(buf, "%*s", procprt_PID.width, "?");
+        	snprintf(buf, sizeof buf, "%*s", procprt_PID.width, "?");
 	else
-        	sprintf(buf, "%*d", procprt_PID.width, curstat->gen.tgid);
+        	snprintf(buf, sizeof buf, "%*d", procprt_PID.width, curstat->gen.tgid);
         return buf;
 }
 
@@ -653,7 +653,7 @@ procprt_PPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[64];
 
-        sprintf(buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
+        snprintf(buf, sizeof buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
         return buf;
 }
 
@@ -663,9 +663,9 @@ procprt_PPID_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
 	if (curstat->gen.ppid)
-        	sprintf(buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
+        	snprintf(buf, sizeof buf, "%*d", procprt_PPID.width, curstat->gen.ppid);
 	else
-		sprintf(buf, "%*s", procprt_PPID.width, "-");
+		snprintf(buf, sizeof buf, "%*s", procprt_PPID.width, "-");
         return buf;
 }
 
@@ -677,7 +677,7 @@ procprt_VPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[64];
 
-        sprintf(buf, "%*d", procprt_VPID.width, curstat->gen.vpid);
+        snprintf(buf, sizeof buf, "%*d", procprt_VPID.width, curstat->gen.vpid);
         return buf;
 }
 
@@ -686,7 +686,7 @@ procprt_VPID_e(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[64];
 
-	sprintf(buf, "%*s", procprt_VPID.width, "-");
+	snprintf(buf, sizeof buf, "%*s", procprt_VPID.width, "-");
         return buf;
 }
 
@@ -698,7 +698,7 @@ procprt_CTID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[32];
 
-        sprintf(buf, "%5d", curstat->gen.ctid);
+        snprintf(buf, sizeof buf, "%5d", curstat->gen.ctid);
         return buf;
 }
 
@@ -717,9 +717,9 @@ procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
 	if (curstat->gen.utsname[0])
-        	sprintf(buf, "%-15s", curstat->gen.utsname);
+        	snprintf(buf, sizeof buf, "%-15s", curstat->gen.utsname);
 	else
-        	sprintf(buf, "%-15s", "host-----------");
+        	snprintf(buf, sizeof buf, "%-15s", "host-----------");
 
         return buf;
 }
@@ -730,9 +730,9 @@ procprt_CID_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
 	if (curstat->gen.utsname[0])
-        	sprintf(buf, "%-15s", curstat->gen.utsname);
+        	snprintf(buf, sizeof buf, "%-15s", curstat->gen.utsname);
 	else
-        	sprintf(buf, "%-15s", "?");
+        	snprintf(buf, sizeof buf, "%-15s", "?");
 
         return buf;
 }
@@ -994,7 +994,7 @@ procprt_CMD_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%-14.14s", curstat->gen.name);
+        snprintf(buf, sizeof buf, "%-14.14s", curstat->gen.name);
         return buf;
 }
 
@@ -1004,8 +1004,8 @@ procprt_CMD_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[15]="<";
         char        helpbuf[15];
 
-        sprintf(helpbuf, "<%.12s>",  curstat->gen.name);
-        sprintf(buf,     "%-14.14s", helpbuf);
+        snprintf(helpbuf, sizeof helpbuf, "<%.12s>",  curstat->gen.name);
+        snprintf(buf,     sizeof buf,     "%-14.14s", helpbuf);
         return buf;
 }
 
@@ -1227,7 +1227,7 @@ procprt_THR_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%4d", curstat->gen.nthr);
+        snprintf(buf, sizeof buf, "%4d", curstat->gen.nthr);
         return buf;
 }
 
@@ -1245,7 +1245,7 @@ procprt_TRUN_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%4d", curstat->gen.nthrrun);
+        snprintf(buf, sizeof buf, "%4d", curstat->gen.nthrrun);
         return buf;
 }
 
@@ -1263,7 +1263,7 @@ procprt_TSLPI_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%5d", curstat->gen.nthrslpi);
+        snprintf(buf, sizeof buf, "%5d", curstat->gen.nthrslpi);
         return buf;
 }
 
@@ -1281,7 +1281,7 @@ procprt_TSLPU_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%5d", curstat->gen.nthrslpu);
+        snprintf(buf, sizeof buf, "%5d", curstat->gen.nthrslpu);
         return buf;
 }
 
@@ -1299,7 +1299,7 @@ procprt_TIDLE_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%5d", curstat->gen.nthridle);
+        snprintf(buf, sizeof buf, "%5d", curstat->gen.nthridle);
         return buf;
 }
 
@@ -1364,7 +1364,7 @@ procprt_NICE_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%4d", curstat->cpu.nice);
+        snprintf(buf, sizeof buf, "%4d", curstat->cpu.nice);
         return buf;
 }
 
@@ -1382,7 +1382,7 @@ procprt_PRI_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%3d", curstat->cpu.prio);
+        snprintf(buf, sizeof buf, "%3d", curstat->cpu.prio);
         return buf;
 }
 
@@ -1400,7 +1400,7 @@ procprt_RTPR_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%4d", curstat->cpu.rtprio);
+        snprintf(buf, sizeof buf, "%4d", curstat->cpu.rtprio);
         return buf;
 }
 
@@ -1418,7 +1418,7 @@ procprt_CURCPU_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[15];
 
-        sprintf(buf, "%5d", curstat->cpu.curcpu);
+        snprintf(buf, sizeof buf, "%5d", curstat->cpu.curcpu);
         return buf;
 }
 
@@ -1487,7 +1487,7 @@ procprt_EXC_e(struct tstat *curstat, int avgval, int nsecs)
         static char buf[4];
 
 
-        sprintf(buf, "%3d", 
+        snprintf(buf, sizeof buf, "%3d", 
                  curstat->gen.excode & 0xff ?
                           curstat->gen.excode & 0x7f : 
                           (curstat->gen.excode>>8) & 0xff);
@@ -1536,9 +1536,9 @@ procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
         int 	curoffset  = startoffset <= cmdlen ? startoffset : cmdlen;
 
         if (screen) 
-                sprintf(buf, "%-*.*s", curwidth, curwidth, pline+curoffset);
+                snprintf(buf, sizeof buf, "%-*.*s", curwidth, curwidth, pline+curoffset);
         else
-                sprintf(buf, "%.*s", CMDLEN, pline+curoffset);
+                snprintf(buf, sizeof buf, "%.*s", CMDLEN, pline+curoffset);
 
         return buf;
 }
@@ -1953,7 +1953,7 @@ procprt_BANDWI_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[16];
 	count_t     rkbps = (curstat->net.tcprsz+curstat->net.udprsz)/125/nsecs;
 
-	format_bandw(buf, rkbps);
+	format_bandw(buf, sizeof buf, rkbps);
         return buf;
 }
 
@@ -1966,7 +1966,7 @@ procprt_BANDWI_e(struct tstat *curstat, int avgval, int nsecs)
 		count_t     rkbps = (curstat->net.tcprsz + curstat->net.udprsz)
 								/125/nsecs;
 
-		format_bandw(buf, rkbps);
+		format_bandw(buf, sizeof buf, rkbps);
         	return buf;
 	}
 	else
@@ -1982,7 +1982,7 @@ procprt_BANDWO_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[16];
 	count_t     skbps = (curstat->net.tcpssz+curstat->net.udpssz)/125/nsecs;
 
-	format_bandw(buf, skbps);
+	format_bandw(buf, sizeof buf, skbps);
         return buf;
 }
 
@@ -1995,7 +1995,7 @@ procprt_BANDWO_e(struct tstat *curstat, int avgval, int nsecs)
 		count_t     skbps = (curstat->net.tcpssz + curstat->net.udpssz)
 								/125/nsecs;
 
-		format_bandw(buf, skbps);
+		format_bandw(buf, sizeof buf, skbps);
        		return buf;
 	}
 	else
@@ -2006,7 +2006,7 @@ detail_printdef procprt_BANDWO =
    { "   BANDWO", "BANDWO", .ac.doactiveconverts = procprt_BANDWO_a, procprt_BANDWO_e, ' ', 9};
 /***************************************************************/
 static void
-format_bandw(char *buf, count_t kbps)
+format_bandw(char *buf, int bufsize, count_t kbps)
 {
 	char        c;
 
@@ -2030,7 +2030,7 @@ format_bandw(char *buf, count_t kbps)
                 c = 'T';
         }
 
-        sprintf(buf, "%4lld %cbps", kbps%100000, c);
+        snprintf(buf, bufsize, "%4lld %cbps", kbps%100000, c);
 }
 /***************************************************************/
 char *
@@ -2323,7 +2323,7 @@ showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showord
                 }
                 else
                 {
-                        col += sprintf(buf+col, "%s%s ", "", chead);
+                        col += snprintf(buf+col, sizeof buf-col,"%s%s ", "", chead);
                 }
                               
                 elemptr++;
@@ -2332,7 +2332,7 @@ showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showord
 
         if (screen)   // add page number, eat from last header if needed...
         {
-                pagindiclen = sprintf(pagindic,"%d/%d", curlist, totlist);
+                pagindiclen = snprintf(pagindic, sizeof pagindic, "%d/%d", curlist, totlist);
 		move(curline, COLS-pagindiclen);
                 printg("%s", pagindic);
         }
@@ -2459,7 +2459,7 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
 		switch (cgrdepth)
 		{
 		   case 0:
-			sprintf(buf, "%-*s", cgroupprt_CGROUP_PATH.width, "/");
+			snprintf(buf, sizeof buf, "%-*s", cgroupprt_CGROUP_PATH.width, "/");
 			break;
 
 		   default:
@@ -2496,13 +2496,13 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
 				addch(' ');
 			}
 
-   			sprintf(buf, " %-*.*s", maxnamelen, maxnamelen,
+   			snprintf(buf, sizeof buf, " %-*.*s", maxnamelen, maxnamelen,
 						cgrname+curoffset);
 		}
 	}
         else
 	{
-                sprintf(buf, "%*s%-*.*s", cgrdepth*2, "",
+                snprintf(buf, sizeof buf, "%*s%-*.*s", cgrdepth*2, "",
 				cgroupprt_CGROUP_PATH.width - cgrdepth*2,
 				cgroupprt_CGROUP_PATH.width - cgrdepth*2,
 				cgrname);
@@ -2926,9 +2926,9 @@ cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat,
         static char buf[64];
 
 	if (tstat)	// process info?
-        	sprintf(buf, "%*d", cgroupprt_CGRPID.width, tstat->gen.pid);
+        	snprintf(buf, sizeof buf, "%*d", cgroupprt_CGRPID.width, tstat->gen.pid);
 	else		// only cgroup info
-        	sprintf(buf, "%*s", cgroupprt_CGRPID.width, " ");
+        	snprintf(buf, sizeof buf, "%*s", cgroupprt_CGRPID.width, " ");
 
         return buf;
 }
@@ -2944,18 +2944,18 @@ cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat,
 
 	if (tstat)	// process info?
 	{
-        	sprintf(buf, "%-14.14s", tstat->gen.name);
+        	snprintf(buf, sizeof buf, "%-14.14s", tstat->gen.name);
 	}
 	else		// cgroup info
 	{
 		if (cgroupdepth == 8 && cgchain->cstat->gen.depth == 0)
 		{
-			sprintf(buf, "[suppressed]");
+			snprintf(buf, sizeof buf, "[suppressed]");
 			*color = FGCOLORBORDER;
 		}
 		else
 		{
-        		sprintf(buf, "%-14.14s", " ");
+        		snprintf(buf, sizeof buf, "%-14.14s", " ");
 		}
 	}
 

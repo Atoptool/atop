@@ -704,7 +704,7 @@ init_proc_prints(count_t numcpu)
 
 			ptrverify(p, "Malloc failed for formatted header\n");
 
-			sprintf(p, "%*s", pidwidth, idprocpdefs[i]->head);
+			snprintf(p, pidwidth+1, "%*s", pidwidth, idprocpdefs[i]->head);
 			idprocpdefs[i]->head = p;
 		}
 	}
@@ -1969,7 +1969,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	/*
 	** memory info related for per NUMA
 	*/
-	if (sstat->memnuma.nrnuma > 1)
+	if (sstat->memnuma.nrnuma > 1 && uses_realnuma())
 	{
 		for (extra.index=lin=0;
 		     extra.index < sstat->memnuma.nrnuma && lin < maxnumalines;
@@ -2005,7 +2005,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	/*
 	** Accumulate each cpu statistic for per NUMA
 	*/
-	if (sstat->cpunuma.nrnuma > 1)
+	if (sstat->cpunuma.nrnuma > 1 && uses_realnuma())
 	{
 		for (extra.index=lin=0;
 		     extra.index < sstat->cpunuma.nrnuma && lin < maxnumalines;
@@ -2045,8 +2045,12 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				*highorderp = MSORTCPU;
 			}
 
-			extra.percputot = extra.pernumacputot /
-						(sstat->cpu.nrcpu/sstat->cpunuma.nrnuma);
+			if (sstat->cpunuma.numa[extra.index].nrcpu)
+				extra.percputot = extra.pernumacputot /
+					sstat->cpunuma.numa[extra.index].nrcpu;
+			else
+				extra.percputot = 1;
+
 			if (extra.percputot == 0)
 				extra.percputot = 1; /* avoid divide-by-zero */
 
