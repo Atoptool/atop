@@ -34,13 +34,17 @@
 **
 ** layout raw file:    rawheader
 **
-**                     rawrecord                           \
-**                     compressed system-level statistics   | sample 1
-**                     compressed process-level statistics /
+**                     rawrecord                                       \
+**                     compressed system-level statistics               |
+**                     compressed process-level statistics              | sample 1
+**                     compressed cgroupv2-level statistics (optional)  |
+**                     compressed cgroupv2 pidlist          (optional) /
 **
-**                     rawrecord                           \
-**                     compressed system-level statistics   | sample 2
-**                     compressed process-level statistics /
+**                     rawrecord                                       \
+**                     compressed system-level statistics               |
+**                     compressed process-level statistics              | sample 2
+**                     compressed cgroupv2-level statistics (optional)  |
+**                     compressed cgroupv2 pidlist          (optional) /
 **
 ** etcetera .....
 */
