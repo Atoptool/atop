@@ -3057,13 +3057,16 @@ sysprt_IFBNAME(struct sstat *sstat, extraparam *as, int badness, int *color)
         count_t ival = sstat->ifb.ifb[as->index].rcvb/125/as->nsecs;
         count_t oval = sstat->ifb.ifb[as->index].sndb/125/as->nsecs;
 	int     len;
-        static char buf[16] = "ethxxxx ----", tmp[32], *ps=tmp;
+        static char buf[32] = "ethxxxx ----", tmp[32], *ps=tmp;
                       //       012345678901
 
 	*color = -1;
 
-	busy = (ival > oval ? ival : oval) * sstat->ifb.ifb[as->index].lanes /
+	if (sstat->ifb.ifb[as->index].rate)
+		busy = (ival > oval ? ival : oval) * sstat->ifb.ifb[as->index].lanes /
                                (sstat->ifb.ifb[as->index].rate * 10);
+	else
+		busy = 0;
 
 	snprintf(tmp, sizeof tmp, "%s/%d",
                  sstat->ifb.ifb[as->index].ibname,
@@ -3074,6 +3077,7 @@ sysprt_IFBNAME(struct sstat *sstat, extraparam *as, int badness, int *color)
 		ps = ps + len - 7;
 
 	snprintf(buf, sizeof buf, "%-7.7s %3lld%%", ps, busy);
+
         return buf;
 }
 
