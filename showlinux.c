@@ -1969,7 +1969,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	/*
 	** memory info related for per NUMA
 	*/
-	if (sstat->memnuma.nrnuma > 1 && uses_realnuma())
+	if (sstat->memnuma.nrnuma > 1 && supportflags&REALNUMA)
 	{
 		for (extra.index=lin=0;
 		     extra.index < sstat->memnuma.nrnuma && lin < maxnumalines;
@@ -2005,7 +2005,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	/*
 	** Accumulate each cpu statistic for per NUMA
 	*/
-	if (sstat->cpunuma.nrnuma > 1 && uses_realnuma())
+	if (sstat->cpunuma.nrnuma > 1 && supportflags&REALNUMA)
 	{
 		for (extra.index=lin=0;
 		     extra.index < sstat->cpunuma.nrnuma && lin < maxnumalines;

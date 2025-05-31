@@ -141,6 +141,7 @@ extern int		almostcrit;
 #define	GPUSTAT		0x00000080
 #define	CGROUPV2	0x00000100
 #define	NETATOPBPF	0x00001000
+#define	REALNUMA	0x00002000
 
 
 /*

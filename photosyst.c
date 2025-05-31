@@ -2652,52 +2652,40 @@ get_ksm(struct sstat *si)
 
 /*
 ** determine if this system uses *real* NUMA rather than *fake* NUMA
-** that is the case when not all node distances have the same value
+** which is the case when not all node distances have the same value
 */
 #define	NUMADISTANCE0	"/sys/devices/system/node/node0/distance"
 
-int
-uses_realnuma(void)
+void
+realnumasupport(void)
 {
-	static int	realnuma = -1;
 	FILE		*fp;
 	int		i, total, nr=0, dist[10];
 	char		linebuf[1024];
 
-	if (realnuma == -1)	// first call?
+	if ( (fp = fopen(NUMADISTANCE0, "r")) == NULL)
+		return;		// open failed
+
+	if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 	{
-		if ( (fp = fopen(NUMADISTANCE0, "r")) != NULL)
-		{
-			if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, "%d %d %d %d %d %d %d %d %d %d",
-					&dist[0], &dist[1], &dist[2], &dist[3],
-					&dist[4], &dist[5], &dist[6], &dist[7],
-					&dist[8], &dist[9]);
-			}
-
-			fclose(fp);
-		}
-
-		if (nr <= 0)
-		{
-			realnuma = 0;	// probably fake NUMA
-		}
-		else
-		{
-			// totalize all distances
-        		for (i=0, total=0; i < nr; i++)
-				total += dist[i];
-
-			// average distance not equal to the first distance?
-			if (total / i != dist[0])
-				realnuma = 1;	// real NUMA
-			else
-				realnuma = 0;	// fake NUMA
-		}
+		nr = sscanf(linebuf, "%d %d %d %d %d %d %d %d %d %d",
+			&dist[0], &dist[1], &dist[2], &dist[3],
+			&dist[4], &dist[5], &dist[6], &dist[7],
+			&dist[8], &dist[9]);
 	}
 
-	return realnuma;
+	fclose(fp);
+
+	if (nr <= 0)	// any recognized numerical distances?
+		return;
+
+	// totalize all distances
+       	for (i=0, total=0; i < nr; i++)
+		total += dist[i];
+
+	// average distance not equal to the first distance?
+	if (total / i != dist[0])
+		supportflags |= REALNUMA;
 }
 
 

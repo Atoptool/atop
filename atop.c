@@ -690,6 +690,11 @@ main(int argc, char *argv[])
 	cgroupv2support();
 
 	/*
+	** determine if real NUMA is used
+	*/
+	realnumasupport();
+
+	/*
 	** start the engine now .....
 	*/
 	engine();
