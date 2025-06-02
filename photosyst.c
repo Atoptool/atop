@@ -2657,7 +2657,7 @@ get_ksm(struct sstat *si)
 #define	NUMADISTANCE0	"/sys/devices/system/node/node0/distance"
 
 void
-realnumasupport(void)
+realnuma_support(void)
 {
 	FILE		*fp;
 	int		i, total, nr=0, dist[10];
@@ -2686,6 +2686,25 @@ realnumasupport(void)
 	// average distance not equal to the first distance?
 	if (total / i != dist[0])
 		supportflags |= REALNUMA;
+}
+
+
+/*
+** determine if this system uses zswap
+*/
+void
+zswap_support(void)
+{
+	FILE *fp;
+	char  state;
+
+	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) == NULL)
+		return;		// open failed
+
+	if (fscanf(fp, "%c", &state) == 1 && state == 'Y')
+		supportflags |= ZSWAP;
+
+	fclose(fp);
 }
 
 

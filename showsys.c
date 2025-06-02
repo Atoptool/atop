@@ -1742,27 +1742,7 @@ sysprt_PAGZSWIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 static int
 sysval_ZSWAP(struct sstat *sstat)
 {
-	FILE *fp;
-	char  state;
-
-	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) != 0)
-	{
-		if (fscanf(fp, "%c", &state) == 1)
-		{
-			if (state != 'Y')
-			{
-				fclose(fp);
-				return 0; 	// zswap not enabled
-			}
-		}
-
-		fclose(fp);
-		return 1;			// zswap enabled
-	}
-	else
-	{
-		return 0;			// zswap not existing
-	}
+	return supportflags & ZSWAP;
 }
 
 sys_printdef syspdef_PAGZSWIN = {"PAGZSWIN", sysprt_PAGZSWIN, sysval_ZSWAP};

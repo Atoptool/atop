@@ -692,7 +692,12 @@ main(int argc, char *argv[])
 	/*
 	** determine if real NUMA is used
 	*/
-	realnumasupport();
+	realnuma_support();
+
+	/*
+	** determine if zswap is used
+	*/
+	zswap_support();
 
 	/*
 	** start the engine now .....

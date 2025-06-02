@@ -468,7 +468,8 @@ void	deviatsyst(struct sstat *, struct sstat *, struct sstat *, long);
 void	totalsyst (char,           struct sstat *, struct sstat *);
 void	do_perfevents(char *, char *);
 int     isdisk_major(unsigned int);
-void	realnumasupport(void);
+void	realnuma_support(void);
+void	zswap_support(void);
 
 /*
 ** return value of isdisk_...()
