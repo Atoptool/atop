@@ -864,6 +864,7 @@ proccmd(struct tstat *curtask)
 				{
 				   case '\0':
 				   case '\n':
+				   case '\r':
 				   case '\t':
 					*pc = ' ';
 				}
