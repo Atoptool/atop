@@ -408,6 +408,8 @@ photoproc(struct tstat *tasklist, int maxtask)
 ** count number of tasks in the system, i.e.
 ** the number of processes plus the total number of threads
 */
+#define	TPTOLERANCE	2
+
 unsigned long
 counttasks(void)
 {
@@ -462,9 +464,28 @@ counttasks(void)
 	if ( chdir(origdir) == -1)
 		mcleanstop(53, "cannot change to %s\n", origdir);
 
+	/*
+	** In a normal situation the number of threads will be far more
+	** than the number of processes since every process consists of
+	** at least one thread (even zombie processes) while many processes
+	** consist of multiple threads. Some malicious kernel versions in
+	** the past did not provide correct information about the number of
+	** threads for which a sanity check was added at this point.
+	**
+	** However, in the early boot phase (when the atop daemon is started)
+	** only single-threaded processes might run. Since the gathering of
+	** the number of threads and the number of processes is not one atomic
+	** operation, the number of threads might be 1 or 2 less than the number
+	** of processes. This should not lead to a preliminary termination.
+	*/
 	if (nrthread < nrproc)
-		mcleanstop(53, "#threads (%ld) < #procs (%ld)\n",
+	{
+		if (nrproc - nrthread > TPTOLERANCE)
+			mcleanstop(53, "#threads (%ld) < #procs (%ld)\n",
 					nrthread, nrproc);
+
+		nrthread = nrproc;	// correct number of threads
+	}
 
 	return nrproc + nrthread;
 }
