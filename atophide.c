@@ -292,15 +292,15 @@ main(int argc, char *argv[])
                 if ( !getrawtstat(ifd, tstatp, rr.pcomplen, rr.ndeviat) )
                         exit(7);
 
-                // get compressed cgroup-level statistics
+                // read compressed cgroup-level statistics (no need to decompress)
                 //
                 cstatp = malloc(rr.ccomplen);
 
-                ptrverify(cstatp, "Malloc failed for compressed pidlist\n");
+                ptrverify(cstatp, "Malloc failed for compressed cgroup stats\n");
 
 		readin(ifd, cstatp, rr.ccomplen);
 
-                // get compressed pidlist
+                // read compressed pidlist (no need to decompress)
                 //
                 istatp = malloc(rr.icomplen);
 
@@ -639,37 +639,6 @@ getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 	return 1;
 }
 
-
-#if 0
-// Function to read the cgroup-level statistics
-// from the current offset
-//
-static struct cstat *
-getrawcstat(int rawfd, unsigned long ccomplen, unsigned long coriglen)
-{
-	Byte		*ccompbuf, *corigbuf;
-	int		rv;
-
-	/*
-	** read all cstat structs
-	*/
-	ccompbuf = malloc(ccomplen);
-	corigbuf = malloc(coriglen);
-
-	ptrverify(ccompbuf, "Malloc failed for reading compressed cgroups\n");
-	ptrverify(corigbuf, "Malloc failed for decompressing cgroups\n");
-
-	readin(rawfd, ccompbuf, ccomplen);
-
-	rv = uncompress((Byte *)corigbuf, &coriglen, ccompbuf, ccomplen);
-
-	testcompval(rv, "uncompress cgroups");
-
-	free(ccompbuf);
-
-	return (struct cstat *)corigbuf;
-}
-#endif
 
 // Function to write a new output sample from the current offset
 //
