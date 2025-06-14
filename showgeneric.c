@@ -1397,8 +1397,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MSORTNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF))
 				{
-					statmsg = "Module 'netatop' or 'netatop-bpf' not "
-					          "active or no root privs";
+					statmsg = "Ignored: 'netatop' or 'netatop-bpf' not "
+					          "active, no -K specified or no root privs";
 					break;
 				}
 				showorder = MSORTNET;
@@ -1411,8 +1411,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MSORTGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "No GPU activity figures "
-					          "available; request ignored!";
+					statmsg = "Ignored: no GPU daemon running or "
+					          "no -k specified";
 					break;
 				}
 				showorder = MSORTGPU;
@@ -1461,9 +1461,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
 				{
-					statmsg = "Module 'netatop' or 'netatop-bpf' not "
-					          "active or no root privs; "
-					          "request ignored!";
+					statmsg = "Ignored: 'netatop' or 'netatop-bpf' not "
+					          "active, no -K specified or no root privs";
 					break;
 				}
 
@@ -1481,10 +1480,8 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "No GPU activity figures "
-					          "available (atopgpud might "
-					          "not be running); "
-					          "request ignored!";
+					statmsg = "Ignored: no GPU daemon running or "
+					          "no -k specified";
 					break;
 				}
 
@@ -3204,8 +3201,8 @@ generic_init(void)
 		   case MPROCNET:
 			if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
 			{
-				fprintf(stderr, "Module 'netatop' or 'netatop-bpf' not "
-					          "active; request ignored!");
+				fprintf(stderr, "Ignored: 'netatop' or 'netatop-bpf' not "
+					        "active, no -K specified or no root privs");
 				sleep(3);
 				break;
 			}
