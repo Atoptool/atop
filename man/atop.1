@@ -2000,6 +2000,14 @@ is loaded.
 .TP 9
 .B BDELAY
 Aggregated block I/O delay, i.e. time waiting for disk I/O.
+.br
+On modern kernels this value is only maintained when the kernel
+parameter
+.I /proc/sys/kernel/task_delayacct
+is set to 1 (which can be managed by setting 'kernel.task_delayacct=1'
+with the
+.I sysctl
+command). Otherwise, this value always contains zero.
 .PP
 .TP 9
 .B CID/POD
