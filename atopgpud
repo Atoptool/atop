@@ -66,7 +66,7 @@ cliterm = {}			# dict with one entry per client (client
 				# that still have to be received by this client
                                 # (pid of terminated process as key)
 
-gpulock = threading.Lock()	# mutex for access to gpulist/cliterm
+gpulock = None
 
 
 # =================================
@@ -275,15 +275,8 @@ def main():
         logging.error("Socket binding to port %d fails", GPUDPORT)
         sys.exit(1)
 
-    # -----------------------------
-    # release parent process
-    # (daemonize)
-    # -----------------------------
-    try:
-        if os.fork():
-            sys.exit(0)	# parent process exits; child continues...
-    except Exception:
-        logging.error("Failed to fork child")
+    global gpulock
+    gpulock = threading.Lock()	# mutex for access to gpulist/cliterm
 
     # -----------------------------
     # initialize GPU access for the
@@ -588,6 +581,16 @@ fh.setLevel(loglevel)
 lg = logging.getLogger()		# root logger
 lg.addHandler(fh)
 lg.setLevel(loglevel)
+
+# -----------------------------
+# release parent process
+# (daemonize)
+# -----------------------------
+try:
+    if os.fork():
+        sys.exit(0)	# parent process exits; child continues...
+except Exception:
+    logging.error("Failed to fork child")
 
 # -----------------------------
 # load module pynvml
