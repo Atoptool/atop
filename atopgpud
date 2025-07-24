@@ -582,15 +582,16 @@ lg = logging.getLogger()		# root logger
 lg.addHandler(fh)
 lg.setLevel(loglevel)
 
-# -----------------------------
-# release parent process
-# (daemonize)
-# -----------------------------
-try:
-    if os.fork():
-        sys.exit(0)	# parent process exits; child continues...
-except Exception:
-    logging.error("Failed to fork child")
+if '-f' not in sys.argv:
+    # -----------------------------
+    # release parent process
+    # (daemonize)
+    # -----------------------------
+    try:
+        if os.fork():
+            sys.exit(0)	# parent process exits; child continues...
+    except Exception:
+        logging.error("Failed to fork child")
 
 # -----------------------------
 # load module pynvml
