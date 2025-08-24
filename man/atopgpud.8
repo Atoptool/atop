@@ -16,8 +16,8 @@ When
 .I atopgpud
 is active on the target system,
 .I atop
-connects to this daemon via a TCP socket and obtains all GPU statistics
-with every interval.
+(with the flag -k) connects to this daemon via a UNIX domain socket and
+obtains GPU statistics for each interval.
 .PP
 The approach to gather all GPU statistics in a separate daemon is required,
 because the Nvidia driver only offers the GPU busy
@@ -33,11 +33,9 @@ into a counter that can be retrieved by
 .I atop
 regularly. The same approach applies to other GPU statistics.
 .PP
-When the
+There is no need to run the
 .I atopgpud
-daemon runs with root privileges, more process level counters (i.e.
-GPU busy and GPU memory busy per process) are provided that are
-otherwise not applicable.
+daemon with root privileges.
 .PP
 Notice that certain GPU statistics are only delivered for specific GPU types.
 For older or less sophisticated GPUs, the value -1 is returned for counters
@@ -60,17 +58,8 @@ also logs debug messages.
 The
 .I atopgpud
 daemon is written in Python, so
-a Python interpreter should be installed on the target system.
-This can  either be Python version 2 or Python version 3 (the code of
-.I atopgpud
-is written in a generic way). Take care that the first line of the
-.I atopgpud
-script contains the proper command name to activate a Python interpreter
-that is installed on the target system!
-.PP
-The
-.I atopgpud
-daemon depends on the Python module
+a Python 3 interpreter should be installed on the target system.
+The daemon depends on the Python module
 .I pynvml
 to interface with the Nvidia driver.
 This module can be installed by the
@@ -80,7 +69,7 @@ or
 command and is usually packaged under the name 
 .I nvidia-ml-py
 .br
-Finally, the
+The
 .I pynvml
 module is a Python wrapper around the
 .I libnvidia-ml
@@ -102,7 +91,7 @@ enter the following commands (as root):
 .SH INTERFACE DESCRIPTION
 Client processes can connect to the
 .I atopgpud
-daemon on TCP port 59123.
+daemon using the abstract socket name 'atopgpud_nvidia'.
 Subsequently, such client can send a request of two bytes,
 consisting of one byte request code followed by one byte
 integer being the API version number.

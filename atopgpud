@@ -2,13 +2,15 @@
 
 # ==============================================================
 # Daemon that gathers statistical information from all 
-# Nvidia GPUs in the current system. Every second, it gathers 
-# the statistics of every GPU and maintains cumulative counters,
+# Nvidia GPUs in the current system. Since the GPU maintains the
+# busy percentages only over the last second, this daemon gathers
+# the statistics each second and maintains cumulative counters,
 # globally and per process.
 #
-# Client processes can connect to this daemon on TCP port 59123.
-# Clients can send requests of two bytes, consisting of one byte
-# request code followed by one byte integer version number.
+# Client processes can connect to this daemon via a UNIX domain
+# socket with the abstract path name "atopgpud_nvidia" and send
+# requests of two bytes, consisting of one byte
+# request code followed by one byte API version number.
 # The request code can be 'T' to obtain the GPU types or 'S' to
 # obtain all statistical counters.
 # The response of the daemon starts with a 4-byte integer. The
@@ -18,14 +20,12 @@
 # of the response string, later on in this source code.
 #
 # Dependencies: pip/pip3 install nvidia-ml-py
-#
-# This program can be executed by python2 or python3 (just change
-# the first line of this source file).
 # --------------------------------------------------------------
 # Author: Gerlof Langeveld
-# Date:   July 2018 (initial)
+# Date:   July   2018 - initial
+#         August 2025 - UNIX domain socket instead of IPv6 socket
 #
-# Copyright (C) 2018 Gerlof Langeveld
+# Copyright (C) 2018, 2025 Gerlof Langeveld
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -51,7 +51,7 @@ import logging
 import logging.handlers as loghand
 import threading
 
-GPUDPORT     = 59123		# TCP port number server
+SOCKPATH    = b"\0atopgpud_nvidia"
 
 COMPUTE      = 1		# task support bit value
 ACCOUNT      = 2		# task support bit value
@@ -253,26 +253,23 @@ def main():
         sys.exit()
 
     # -----------------------------
-    #   open IPv6 stream socket 
+    #  open UNIX domain stream socket
     # -----------------------------
     try:
-        mysock = socket.socket(socket.AF_INET6,  socket.SOCK_STREAM, 0)
+        mysock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
     except Exception as sockex:
-        try:
-            mysock = socket.socket(socket.AF_INET,  socket.SOCK_STREAM, 0)
-        except Exception as sockex:
-            logging.error("Socket creation fails")
-            sys.exit(1)
+        logging.error("Socket creation fails")
+        sys.exit(1)
 
     # -----------------------------
-    #   bind to local port and
-    #   make socket passive
+    #  bind to abstract pathname and
+    #  make socket passive
     # -----------------------------
     try:
-        mysock.bind( ("", GPUDPORT) )
+        mysock.bind(SOCKPATH)
         mysock.listen(32)
     except Exception as sockex:
-        logging.error("Socket binding to port %d fails", GPUDPORT)
+        logging.error("Socket binding to path %s fails", SOCKPATH)
         sys.exit(1)
 
     # -----------------------------
@@ -413,12 +410,8 @@ def serveclient(sock, peer):
         # valid request:
         #     get statistical counters?
         # -------------------------
-        try:
-            command = chr(rcvbuf[0])	# Python3
-            version = rcvbuf[1]
-        except Exception:
-            command = rcvbuf[0]		# Python2
-            version = ord(rcvbuf[1])
+        command = chr(rcvbuf[0])
+        version = rcvbuf[1]
 
         if command == 'S':
              if version == 0 or version >= len(gpuformatters):

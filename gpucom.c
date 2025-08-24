@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/un.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -45,7 +46,7 @@
 #define	GPUDELIM	'@'
 #define	PIDDELIM	'#'
 
-#define	GPUDPORT	59123
+#define SOCKPATH        "atopgpud_nvidia"
 
 static int	gputype_parse(char *);
 
@@ -63,8 +64,8 @@ static char	**gputypes;	// array with char* to type strings
 static char	*gputasks;	// array with chars with tasksupport booleans
 
 /*
-** Open TCP connection to port of atopgpud and
-** obtain type information of every GPU.
+** Open UNIX domain socket to atopgpud_nvidia to
+** obtain metrics of every NVIDIA GPU.
 **
 ** Return value:
 **	number of GPUs
@@ -72,8 +73,8 @@ static char	*gputasks;	// array with chars with tasksupport booleans
 int
 gpud_init(void)
 {
-	struct sockaddr_in	name;
-	socklen_t		namelen = sizeof name;
+	struct sockaddr_un	name;
+	socklen_t		namelen = sizeof name.sun_family + sizeof SOCKPATH;
 	char			typereq[] = {'T', APIVERSION};
 	uint32_t		prelude;
 	char			*buf;
@@ -82,21 +83,20 @@ gpud_init(void)
 	struct timeval		rcvtimeout = {2, 0};	// 2 seconds
 
 	/*
-	** get local socket
+	** get UNIX domain socket
 	*/
-	if ( (actsock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	if ( (actsock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
 	{
 		perror("socket creation");
 		return 0;
 	}
 
 	/*
-	** connect to server port
+	** connect to abstract path name
 	*/
 	memset(&name, 0, sizeof name);
-	name.sin_family      = AF_INET;
-	name.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	name.sin_port        = htons(GPUDPORT);
+	name.sun_family = AF_UNIX;
+	strncpy(name.sun_path+1, SOCKPATH, sizeof name.sun_path -2);
 
 	if (connect(actsock, (struct sockaddr *)&name, namelen) == -1)
 		goto close_and_return;
