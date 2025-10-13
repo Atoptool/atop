@@ -29,7 +29,7 @@
 #ifndef	__GPUCOM__
 #define	__GPUCOM__
 
-#define APIVERSION	1
+#define APIVERSION	2
 
 struct gpupidstat {
 	long		pid;

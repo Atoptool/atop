@@ -1451,9 +1451,11 @@ json_print_PRN(char *hp, struct sstat *ss,
 	for (i = 0; i < nact; i++, ps++) {
 		if (ps->gen.tgid == ps->gen.pid && !ps->gen.isproc)
 			continue;
+
 		if (i > 0) {
 			printf(", ");
 		}
+
 		printf("{\"pid\": %d, "
 			"\"cmd\": \"%.19s\", "
 			"\"tcpsnd\": \"%lld\", "
@@ -1483,23 +1485,27 @@ json_print_PRE(char *hp, struct sstat *ss,
 	if ( !(supportflags & GPUSTAT) )
 		return;
 
-	register int i;
+	register int i, samples;
 
         printf(", %s: [", hp);
 
 	for (i = 0; i < nact; i++, ps++) {
 		if (ps->gen.tgid == ps->gen.pid && !ps->gen.isproc)
 			continue;
+
 		if (i > 0) {
 			printf(", ");
 		}
+
+	        samples = ps->gpu.samples ? ps->gpu.samples : 1;
+	
 		printf("{\"pid\": %d, "
 			"\"cmd\": \"%.19s\", "
 			"\"gpustate\": \"%c\", "
 			"\"nrgpus\": %d, "
 			"\"gpulist\": \"%x\", "
-			"\"gpubusy\": %d, "
-			"\"membusy\": %d, "
+			"\"gpubusy\": %lld, "
+			"\"membusy\": %lld, "
 			"\"memnow\": %lld, "
 			"\"memcum\": %lld, "
 			"\"sample\": %lld}",
@@ -1508,11 +1514,11 @@ json_print_PRE(char *hp, struct sstat *ss,
 			ps->gpu.state == '\0' ? 'N':ps->gpu.state,
 			ps->gpu.nrgpus,
 			ps->gpu.gpulist,
-			ps->gpu.gpubusy,
-			ps->gpu.membusy,
+			ps->gpu.gpubusycum/samples,
+			ps->gpu.membusycum/samples,
 			ps->gpu.memnow,
 			ps->gpu.memcum,
-			ps->gpu.sample);
+			ps->gpu.samples);
 	}
 
 	printf("]");

@@ -463,6 +463,7 @@ extern detail_printdef procprt_RNET;
 extern detail_printdef procprt_SNET;
 extern detail_printdef procprt_BANDWI;
 extern detail_printdef procprt_BANDWO;
+extern detail_printdef procprt_GPUPROCTYPE;
 extern detail_printdef procprt_GPULIST;
 extern detail_printdef procprt_GPUMEMNOW;
 extern detail_printdef procprt_GPUMEMAVG;

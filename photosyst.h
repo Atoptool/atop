@@ -395,7 +395,8 @@ struct pergpu {
 					// -1 if not supported
 	count_t	memtotnow;		// total memory in KiB
 	count_t	memusenow;		// used  memory in KiB
-	count_t	samples;		// number of samples
+	count_t	samples;		// number of samples for this GPU
+					// (once per second on wall clock)
 	count_t	gpuperccum;		// cumulative processor busy percentage
 					// -1 if not supported
 	count_t	memperccum;		// cumulative memory percentage 

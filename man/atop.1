@@ -1,6 +1,6 @@
 .TH ATOP 1 "July 2024" "Linux"
 .SH NAME
-.B atop 
+.B atop
 - Advanced System & Process Monitor
 
 .SH SYNOPSIS
@@ -67,7 +67,7 @@ BPF module has been installed.
 .SH TWIN MODE
 With the
 .I -t
-flag you can run 
+flag you can run
 .I atop
 interactively in 'twin mode'.
 This mode allows to run a live measurement with the possibility to
@@ -93,7 +93,7 @@ begin of measurement), 'Z' (fast-forward to end of measurement)
 and 'b' (branch to timestamp), the live measurement can be continued
 by pressing key 'z' (resume after pause).
 
-The temporary raw file will be written in the 
+The temporary raw file will be written in the
 .B /tmp
 directory by default. Optionally the absolute path name of an alternative
 directory can be added behind the
@@ -114,10 +114,10 @@ want to view the resource consumption on process or thread level, you can switch
 to text mode by pressing the 'B' key. Alternatively, you can use the 'B' key
 (again) to switch from text mode to bar graph mode.
 .br
-By default, 
+By default,
 .I atop
 starts in text mode unless the
-.I -B 
+.I -B
 flag is used or unless 'B' has been configured as a default flag in the
 .I .atoprc
 file (for further information about default flags, refer to the
@@ -155,7 +155,7 @@ with the '-H' flag, no categories are shown.
 
 A red line is drawn in the bar graph as critical threshold.
 By default this value is 90% and can be modified by the 'cpucritperc'
-option in the configuration file (see separate 
+option in the configuration file (see separate
 .B atoprc
 man page). When this value is set to zero, no threshold line will be drawn.
 .TP 5
@@ -168,7 +168,7 @@ static huge pages, page cache and free memory.
 .br
 Swap space (if present) is also presented as a column in which the
 categories processes/tmpfs, shared memory and free space are shown.
- 
+
 At the right side memory-related event counters are shown.
 .br
 The bottom three counters are colored green when there is no memory pressure.
@@ -185,7 +185,7 @@ it reflects the number of processes that are killed due to lack of memory
 of processes being killed during the last interval and will immediately
 be colored red when it is 1 or more.  Besides, after
 .I atop
-has noticed OOM killing the 'oomkills' counter remains orange for the next 
+has noticed OOM killing the 'oomkills' counter remains orange for the next
 15 minutes, just in case that you have missed the OOM killing event itself.
 .br
 When there is enough vertical space in the memory window, event counters
@@ -222,7 +222,7 @@ with the '-H' flag, no categories are shown.
 
 A red line is drawn in the bar graph as critical threshold.
 By default this value is 90% and can be modified by the 'dskcritperc'
-option in the configuration file (see separate 
+option in the configuration file (see separate
 .B atoprc
 man page). When this value is set to zero, no threshold line will be drawn.
 .TP 5
@@ -233,13 +233,13 @@ the transmit rate ('TX') and the other bar the receive rate ('RX').
 The traffic scale of each network interface remains at its highest level.
 All interface scales can be reset during the measurement by pressing
 the 'L' key.
- 
+
 Most often the real speed (maximum bandwidth) of network interfaces is
 not known, e.g. in case of the network interfaces of virtual machines.
 Therefore it is not possible to show the interface utilization as a
 percentage. However, when the real speed of an interface is known it will
 be shown underneath the concerning bar graph.
- 
+
 When there is not enough horizontal space to show all network interfaces,
 only the most busy interfaces per sample will be shown.
 .PP
@@ -285,14 +285,14 @@ The intervals are repeated till the number of
 (specified as command argument) is reached, or till the key 'q' is pressed
 in interactive mode.
 .PP
-When 
+When
 .I atop
 is started, it checks whether the standard output channel is connected to a
-screen, or to a file/pipe. In the first case it produces screen control 
+screen, or to a file/pipe. In the first case it produces screen control
 codes (via the ncurses library) and behaves interactively. In the second case
 it produces flat text output.
 .PP
-In interactive mode, the output of 
+In interactive mode, the output of
 .I atop
 scales dynamically to the current dimensions of the screen/window.
 .br
@@ -301,17 +301,17 @@ automatically. For this purpose, every column has a particular weight. The
 columns with the highest weights that fit within the current width will
 be shown.
 .br
-If the window is resized vertically, lines of the process/thread list 
+If the window is resized vertically, lines of the process/thread list
 will be added or removed automatically.
 .PP
-In interactive mode the output of 
+In interactive mode the output of
 .I atop
 can be controlled by pressing particular keys.
 However it is also possible to specify such key as
 .B flag
 on the command line. In that case
 .I atop
-switches to the indicated mode on beforehand. This mode can 
+switches to the indicated mode on beforehand. This mode can
 be modified again interactively. Specifying such key as flag
 is especially useful when running
 .I atop
@@ -319,7 +319,7 @@ with output to a pipe or file (non-interactively).
 These flags are the same as the keys that can be pressed in interactive
 mode (see section INTERACTIVE COMMANDS).
 .br
-Additional flags are available to support storage of atop-data in raw 
+Additional flags are available to support storage of atop-data in raw
 format (see section RAW DATA STORAGE).
 
 By default,
@@ -399,7 +399,7 @@ service to enable
 .I atop
 to detect that process accounting is managed by the
 .I atopacctd
-daemon. As a forking service, 
+daemon. As a forking service,
 .I atopacctd
 takes care that all directories and files are initialized before the
 parent process dies. The child process continues as the daemon process.
@@ -412,7 +412,7 @@ man page.
 3.
 When the
 .I atopacctd
-daemon is not active, 
+daemon is not active,
 .I atop
 verifies if the process accounting mechanism has been switched on
 via the separate
@@ -425,7 +425,7 @@ one of the files
 .B /var/account/pacct
 or
 .B /var/log/account/pacct
-is in use as process accounting file and 
+is in use as process accounting file and
 .I atop
 opens this file for reading.
 .PP
@@ -448,7 +448,7 @@ process stops (either by pressing 'q' or by 'kill \-15'), it deactivates the
 process accounting mechanism again. Therefore you should never terminate
 .I atop
 by 'kill \-9', because then it has no chance to stop process accounting.
-As a result, the accounting file may consume a lot of 
+As a result, the accounting file may consume a lot of
 disk space after a while.
 .br
 To avoid that the process accounting file consumes too much disk space,
@@ -489,7 +489,7 @@ for this reason.
 For the resource consumption on system level,
 .I atop
 uses colors in text mode to indicate that a critical occupation
-percentage has been (almost) reached. 
+percentage has been (almost) reached.
 A critical occupation percentage means that is likely that this load
 causes a noticeable negative performance influence for applications using
 this resource. The critical percentage depends on the type of resource:
@@ -534,7 +534,7 @@ because swap space might be completely exhausted in the near future.
 It is not critical from a performance point-of-view.
 .PP
 These default values can be modified in the configuration file
-(see separate 
+(see separate
 .B atoprc
 man page).
 .PP
@@ -545,7 +545,7 @@ When a resource exceeds (by default) 80% of its critical percentage
 (so it is almost critical), the concerning values in the screen line
 are colored cyan by default. This 'almost critical percentage' (one value
 for all resources) can be also modified in the configuration file
-(see separate 
+(see separate
 .B atoprc
 man page).
 .br
@@ -567,7 +567,7 @@ When
 .I atop
 has been started with the '-K' flag, it verifies if the
 .I netatop
-or 
+or
 .I netatop-bpf
 module is currently active. If so,
 .I atop
@@ -597,8 +597,8 @@ GPU statistics can be gathered by
 .I atopgpud
 which is a separate data collection daemon process.
 It gathers cumulative utilization counters of every Nvidia GPU
-in the system, as well as utilization counters of every 
-process that uses a GPU.
+in the system, as well as utilization counters of every
+process that uses a NVIDIA GPU.
 When
 .I atop
 has been started with the '-k' flag, it reads these
@@ -623,7 +623,7 @@ The
 .I atopgpud
 daemon is installed by default as part of the
 .B atop
-package, but it is 
+package, but it is
 .I not
 automatically enabled.
 The daemon can be enabled and started now by running the following commands
@@ -678,7 +678,7 @@ Show memory related output.
 Per process the following fields are shown in case of a window width
 of 80 positions:
 process-id, minor and major
-memory faults, size of virtual shared text, total virtual 
+memory faults, size of virtual shared text, total virtual
 process size, total resident process size, virtual and resident growth during
 last interval, memory occupation percentage and process name.
 
@@ -792,14 +792,6 @@ memory busy percentage (i.e. read and write accesses on memory) on all GPUs,
 memory occupation at the moment of the sample,
 average memory occupation during the sample, and
 GPU percentage.
-
-When the
-.I atopgpud
-daemon does not run with root privileges, the GPU busy percentage and
-the memory busy percentage are not available on process level.
-In that case, the GPU percentage on process level reflects the
-GPU memory occupation instead of the GPU busy percentage (which
-is preferred).
 .PP
 .TP 5
 .B o
@@ -841,7 +833,7 @@ Per user the following fields are shown: number of processes active
 or terminated during last interval (or in total if combined with command 'a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a'). 
+(or all processes of the user if combined with command 'a').
 .br
 When
 .I atop
@@ -865,7 +857,7 @@ Per program the following fields are shown: number of processes active
 or terminated during last interval (or in total if combined with command 'a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a'). 
+(or all processes of the user if combined with command 'a').
 .br
 When
 .I atop
@@ -890,7 +882,7 @@ are shown: number of processes active
 or terminated during last interval (or in total if combined with command 'a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a'). 
+(or all processes of the user if combined with command 'a').
 .br
 When
 .I atop
@@ -907,22 +899,17 @@ The last columns contain the accumulated occupation percentage for the
 chosen resource (default: CPU) and the container/pod name (CID/POD).
 .PP
 .TP 5
-.B C 
+.B C
 Sort the current list in the order of CPU consumption (default).
 The one-but-last column changes to 'CPU'.
 .PP
 .TP 5
 .B E
-Sort the current list in the order of GPU utilization
-(preferred, but only applicable
-when the
-.I atopgpud
-daemon runs under root privileges) or the order of
-GPU memory occupation).
+Sort the current list in the order of GPU utilization.
 The one-but-last column changes to 'GPU'.
 .PP
 .TP 5
-.B M 
+.B M
 Sort the current list in the order of resident memory consumption.
 The one-but-last column changes to 'MEM'. In case of sorting on memory,
 the full process list will be shown (not only the active processes).
@@ -994,7 +981,7 @@ Whether this key is active or not can be seen in the header line.
 .TP 5
 .B z
 The pause key can be used to freeze the current situation in order to
-investigate the output on the screen. While 
+investigate the output on the screen. While
 .I atop
 is paused, the keys described above can be pressed to show other
 information about the current list of processes.
@@ -1151,7 +1138,7 @@ Whether this key is active or not can be seen in the header line.
 .PP
 .TP 5
 .B X
-By default, 
+By default,
 .I atop
 shows/accumulates the processes that are alive and the processes
 that are exited during the last interval. With this key (toggle),
@@ -1257,7 +1244,7 @@ will append new samples to the file (starting with a sample which reflects
 the activity since boot). If the file does not exist, it will be created.
 .br
 All information about system, processes and thread activity is stored in
-the raw file. 
+the raw file.
 .br
 The interval (default: 10 seconds) and number of samples (default: infinite)
 can be passed as last arguments. Instead of the number of samples, the flag
@@ -1280,7 +1267,7 @@ is opened.
 If a filename with the symbolic name
 .BI y
 is specified, yesterday's daily logfile is opened
-(this can be repeated so 'yyyy' indicates the logfile of four days ago). 
+(this can be repeated so 'yyyy' indicates the logfile of four days ago).
 If the filename
 .BI -
 is used, stdin will be read.
@@ -1386,7 +1373,7 @@ of the following output lines:
 .B PRC
 Process and thread level totals.
 .br
-This line contains the total CPU time consumed 
+This line contains the total CPU time consumed
 in system mode ('sys') and in user mode ('user'),
 the total number of processes present at this moment ('#proc'),
 the total number of threads present at this moment in state 'running'
@@ -1414,8 +1401,8 @@ sorted on activity. Inactive CPUs will not be shown by default.
 The lines showing the per-cpu occupation contain the CPU number in
 the field combined with the wait percentage.
 
-Every line contains the percentage of CPU time spent in 
-kernel mode by all active processes ('sys'), 
+Every line contains the percentage of CPU time spent in
+kernel mode by all active processes ('sys'),
 the percentage of CPU time consumed in user mode ('user') for all
 active processes (including processes running with a nice value larger than
 zero), the percentage of CPU time spent for interrupt handling ('irq')
@@ -1428,12 +1415,12 @@ In case of per-cpu occupation, the CPU number and
 the wait percentage ('w') for that CPU.
 The number of lines showing the per-cpu occupation can be limited.
 
-For virtual machines, the steal-percentage ('steal') shows 
+For virtual machines, the steal-percentage ('steal') shows
 the percentage of CPU time stolen by other virtual machines
 running on the same hardware.
 .br
 For physical machines hosting one or more virtual machines,
-the guest percentage ('guest') shows 
+the guest percentage ('guest') shows
 the percentage of CPU time used by the virtual machines. Notice that
 this percentage overlaps the user percentage!
 
@@ -1518,7 +1505,7 @@ only a relevant subset is shown.
 .PP
 .TP 5
 .B GPU
-GPU utilization (Nvidia).
+GPU utilization (NVIDIA).
 .br
 Read the section GPU STATISTICS GATHERING in this document to find the details
 about the activation of the
@@ -1586,7 +1573,7 @@ the real (decompressed) size of the pages stored in zswap ('zstor'),
 the total size of the memory used for KSM ('ksuse', i.e. shared), and
 the total size of the memory saved (deduped) by KSM ('kssav', i.e. sharing).
 .br
-Furthermore the committed virtual memory space ('vmcom') and the maximum 
+Furthermore the committed virtual memory space ('vmcom') and the maximum
 limit of the committed space ('vmlim', which is by default swap size
 plus 50% of memory size) is shown.
 The committed space is the reserved virtual space for all allocations of
@@ -1691,11 +1678,11 @@ parallel, such as RAID arrays, SSD and NVMe, this number does not reflect their
 performance limits), the number of read requests issued
 ('read'), the number of write requests issued ('write'),
 the number of discard requests issued ('discrd') if supported by kernel version,
-the number of KiBytes per read ('KiB/r'), 
-the number of KiBytes per write ('KiB/w'), 
+the number of KiBytes per read ('KiB/r'),
+the number of KiBytes per write ('KiB/w'),
 the number of KiBytes per discard ('KiB/d') if supported by kernel version,
-the number of MiBytes per second throughput for reads ('MBr/s'), 
-the number of MiBytes per second throughput for writes ('MBw/s'), 
+the number of MiBytes per second throughput for reads ('MBr/s'),
+the number of MiBytes per second throughput for writes ('MBw/s'),
 requests issued to the device driver but not completed ('inflt'),
 the average queue depth while busy ('avq')
 and the average number of milliseconds needed by a request ('avio')
@@ -1713,7 +1700,7 @@ shown any more for that class.
 .B NFM
 Network Filesystem (NFS) mount at the client side.
 .br
-For each NFS-mounted filesystem, a line is shown that contains 
+For each NFS-mounted filesystem, a line is shown that contains
 the mounted server directory, the name of the server ('srv'),
 the total number of bytes physically read from the server ('read') and
 the total number of bytes physically written to the server ('write').
@@ -1729,7 +1716,7 @@ the number of bytes written via memory mapped I/O pages ('mwrit').
 .B NFC
 Network Filesystem (NFS) client side counters.
 .br
-This line contains the number of RPC calls issues by local processes 
+This line contains the number of RPC calls issues by local processes
 ('rpc'), the number of read RPC calls ('read') and
 write RPC calls ('rpwrite') issued to the NFS server,
 the number of RPC calls being retransmitted ('retxmit')
@@ -1739,13 +1726,13 @@ and the number of authorization refreshes ('autref').
 .B NFS
 Network Filesystem (NFS) server side counters.
 .br
-This line contains the number of RPC calls received from 
+This line contains the number of RPC calls received from
 NFS clients ('rpc'),
 the number of read RPC calls received ('cread'),
 the number of write RPC calls received ('cwrit'),
 the number of Megabytes/second returned to read requests by clients ('MBcr/s'),
 the number of Megabytes/second passed in write requests by clients ('MBcw/s'),
-the number of network requests handled via TCP ('nettcp'), 
+the number of network requests handled via TCP ('nettcp'),
 the number of network requests handled via UDP ('netudp'),
 the number of reply cache hits ('rchits'),
 the number of reply cache misses ('rcmiss') and
@@ -1756,7 +1743,7 @@ counter indicating the number of bad clients ('badcln').
 .PP
 .TP 5
 .B NET
-Network utilization (TCP/IP). 
+Network utilization (TCP/IP).
 .br
 One line is shown for activity of the transport layer (TCP and UDP), one line
 for the IP layer and one line per active interface.
@@ -1894,7 +1881,7 @@ on the kernel command line during boot.
 .PP
 .TP 9
 .B CPUWGT
-The 'cpu.weight' value of this cgroup (version 2). 
+The 'cpu.weight' value of this cgroup (version 2).
 Value -2 means undefined.
 .PP
 .TP 9
@@ -1951,7 +1938,7 @@ The 'memory.swap.max' value of this cgroup (version 2).
 Value -1 means maximum, while value -2 means undefined.
 
 .SH OUTPUT DESCRIPTION - PROCESS LEVEL
-In the bottom part of the screen, a list of processes can be shown 
+In the bottom part of the screen, a list of processes can be shown
 from which the resource utilization has changed during the last
 interval. These processes
 might have used CPU time or might have issued disk or network requests.
@@ -2028,7 +2015,7 @@ process is detected.
 .TP 9
 .B CMD
 The name of the process.
-This name can be surrounded by "less/greater than" 
+This name can be surrounded by "less/greater than"
 signs ('<name>') which means that the process has finished during the last
 interval. A single accounting record is written for the
 entire process on termination of the last thread in the process. When the
@@ -2040,7 +2027,7 @@ the total number of pages of the process/thread list are shown.
 .TP 9
 .B COMMAND-LINE
 The full command line of the process (including arguments). If the length of
-the command line exceeds the length of the screen line, the arrow 
+the command line exceeds the length of the screen line, the arrow
 keys -> and <- can be used for horizontal scroll.
 
 The '-z <regex>' command
@@ -2051,7 +2038,7 @@ the buffer that should contain the command line), it will be truncated.
 Usually only the environment variables will be shown of the processes that
 are running under your own user ID, unless you are a privileged user.
 .br
-WARNING: Don't use this flag when 
+WARNING: Don't use this flag when
 .I writing
 to a (publicly readable) raw file!
 You might expose sensitive environment variables to the readers of that raw file.
@@ -2067,7 +2054,7 @@ for this resource on system level.
 .TP 9
 .B CPUNR
 The identification of the CPU the (main) thread is running on
-or has recently been running on.  
+or has recently been running on.
 .PP
 .TP 9
 .B CTID
@@ -2134,27 +2121,15 @@ flag is used, the number is shown instead of the name.
 .PP
 .TP 9
 .B GPU
-When the
-.I atopgpud
-daemon does not run with root privileges, the GPU percentage
-reflects the GPU memory occupation percentage (memory of all GPUs is 100%).
-.br
-When the
-.I atopgpud
-daemon runs with root privileges, the GPU percentage
-reflects the GPU busy percentage.
+The GPU percentage reflects the GPU busy percentage.
 .PP
 .TP 9
 .B GPUBUSY
 Busy percentage on all GPUs (one GPU is 100%).
-.br
-When the
-.I atopgpud
-daemon does not run with root privileges, this value is not available.
 .PP
 .TP 9
 .B GPUNUMS
-Comma-separated list of GPUs used by the process 
+Comma-separated list of GPUs used by the process
 during the interval. When the comma-separated list exceeds
 the width of the column, a hexadecimal value is shown.
 .PP
@@ -2180,10 +2155,6 @@ Average memory occupation during the interval on all used GPUs.
 .B MEMBUSY
 Busy percentage of memory on all GPUs (one GPU is 100%), i.e.
 the time needed for read and write accesses on memory.
-.br
-When the
-.I atopgpud
-daemon does not run with root privileges, this value is not available.
 .PP
 .TP 9
 .B MEMNOW
@@ -2281,7 +2252,7 @@ since the proportional memory size is not part of the standard
 process accounting record.
 .PP
 .TP 9
-.B RDDSK 
+.B RDDSK
 The read data transfer issued physically on disk (so reading from the
 disk cache is not accounted for).
 .br
@@ -2296,18 +2267,18 @@ Runqueue delay, i.e. time spent waiting on a runqueue.
 .PP
 .TP 9
 .B RGID
-The real group-id under which the process executes. 
+The real group-id under which the process executes.
 When the name is longer than 8 or when the
 .I -I
 flag is used, the number is shown instead of the name.
 .PP
 .TP 9
-.B RGROW 
+.B RGROW
 The amount of resident memory that the process has grown during the last
 interval. A resident growth can be caused by touching memory pages which
-were not physically created/loaded before (load-on-demand). 
+were not physically created/loaded before (load-on-demand).
 Note that a resident growth can also be negative e.g. when part of the process
-is paged out due to lack of memory or when the process frees dynamically 
+is paged out due to lack of memory or when the process frees dynamically
 allocated memory.
 For a process which started during the last interval, the resident growth
 reflects the total resident size of the process at that moment.
@@ -2317,7 +2288,7 @@ since resident memory occupation is not part of the standard
 process accounting record.
 .PP
 .TP 9
-.B RNET 
+.B RNET
 The number of TCP- and UDP packets received by this process.
 This information will only be shown when the optional module
 .I netatop
@@ -2348,7 +2319,7 @@ or ranges from 1 (lowest) till 99 (highest) for a realtime process
 .PP
 .TP 9
 .B RUID
-The real user-id under which the process executes. 
+The real user-id under which the process executes.
 When the name is longer than 8 or when the
 .I -I
 flag is used, the number is shown instead of the name.
@@ -2370,7 +2341,7 @@ When the name is longer than 8 or when the
 flag is used, the number is shown instead of the name.
 .PP
 .TP 9
-.B SNET 
+.B SNET
 The number of TCP and UDP packets transmitted by this process.
 This information will only be shown when the optional module
 .I netatop
@@ -2383,7 +2354,7 @@ is installed.
 The status of a process.
 .br
 The first position indicates if the process has been
-started during the last interval (the value 
+started during the last interval (the value
 .I N
 means 'new process').
 
@@ -2397,12 +2368,12 @@ in the column 'EXC'.
 .br
 The value
 .I S
-means that the process has been terminated unvoluntarily 
+means that the process has been terminated unvoluntarily
 by a signal; the signal number is displayed in the in the column 'EXC'.
 .br
 The value
 .I C
-means that the process has been terminated unvoluntarily 
+means that the process has been terminated unvoluntarily
 by a signal, producing a core dump in its current directory;
 the signal number is displayed in the column 'EXC'.
 .PP
@@ -2432,7 +2403,7 @@ due to system call handling.
 .PP
 .TP 9
 .B TCPRASZ
-The average size of a received TCP buffer in bytes. 
+The average size of a received TCP buffer in bytes.
 This information will only be shown when the optional module
 .I netatop
 or
@@ -2552,7 +2523,7 @@ The virtual memory size of the private data used by this process
 (including heap and shared library data).
 .PP
 .TP 9
-.B VGROW 
+.B VGROW
 The amount of virtual memory that the process has grown during the last
 interval. A virtual growth can be caused by e.g. issuing a malloc()
 or attaching a shared memory segment. Note that a virtual growth can also
@@ -2602,7 +2573,7 @@ relatively time-consuming task, the 'W' key (or '-W' flag) should
 be active.
 .PP
 .TP 9
-.B WRDSK 
+.B WRDSK
 The write data transfer issued physically on disk (so writing to the
 disk cache is not accounted for).
 This counter is maintained for the application process that writes its
@@ -2726,7 +2697,7 @@ number of device interrupts.
 .TP 9
 .B GPU
 Subsequent fields:
-GPU number, bus-id string, type of GPU string, 
+GPU number, bus-id string, type of GPU string,
 GPU busy percentage during last second (-1 if not available),
 memory busy percentage during last second (-1 if not available),
 total memory size (KiB), used memory (KiB) at this moment,
@@ -2765,7 +2736,7 @@ size of memory used for UDP sockets (pages),
 size of pagetables (pages),
 larger huge page size (in bytes),
 total size of larger huge pages (huge pages),
-size of free larger huge pages (huge pages), 
+size of free larger huge pages (huge pages),
 size of available memory (pages) for new workloads without swapping, and
 size of anonymous transparent huge pages ('normal' pages).
 .TP 9
@@ -2775,7 +2746,7 @@ page size for this machine (in bytes),
 size of swap (pages),
 size of free swap (pages),
 size of swap cache (pages),
-size of committed space (pages), 
+size of committed space (pages),
 limit for committed space (pages),
 size of the swap cache (pages),
 the real (decompressed) size of the pages stored
@@ -2814,7 +2785,7 @@ memory some avg10, memory some avg60, memory some avg300,
 memory some accumulated microseconds during interval,
 memory full avg10, memory full avg60, memory full avg300,
 memory full accumulated microseconds during interval,
-I/O some avg10, I/O some avg60, I/O some avg300, 
+I/O some avg10, I/O some avg60, I/O some avg300,
 I/O some accumulated microseconds during interval,
 I/O full avg10, I/O full avg60, I/O full avg300, and
 I/O full accumulated microseconds during interval.
@@ -2916,7 +2887,7 @@ transmit collisions, and transmit carrier.
 .B IFB
 Subsequent fields:
 name of the InfiniBand interface, port number,
-number of lanes, maximum rate (Mbps), 
+number of lanes, maximum rate (Mbps),
 number of bytes received,
 number of bytes transmitted,
 number of packets received, and
@@ -2967,7 +2938,7 @@ current memory usage (pages),
 anonymous memory usage (pages), file memory usage (pages),
 kernel memory usage (pages), shared memory usage (pages),
 memory max (pages), swap max (pages),
-number of bytes read from disk, number of bytes written to disk, 
+number of bytes read from disk, number of bytes written to disk,
 number of read requests from disk, number of write requests to disk,
 the disk weight,
 cpu some pressure (microseconds), cpu total pressure (microseconds),
@@ -3030,9 +3001,11 @@ number of GPUs used by this process,
 bitlist reflecting used GPUs,
 GPU busy percentage during interval,
 memory busy percentage during interval,
-memory occupation (KiB) at this moment 
-cumulative memory occupation (KiB) during interval, and
-number of samples taken during interval.
+memory occupation (KiB) at this moment
+cumulative memory occupation (KiB) during interval,
+number of samples taken during interval,
+is_process (y/n), and type of process (C for computing,
+G for graphics and U for unknown).
 .TP 9
 .B PRM
 For every process one line is shown.
@@ -3055,7 +3028,7 @@ TGID (group number of related tasks/threads), is_process (y/n),
 proportional set size (KiB) if in 'R' option is specified,
 virtually locked memory space (KiB),
 cgroup v2 'memory.max' in KiB (-3 means no cgroup v2 support,
--2 means undefined and -1 means maximum), 
+-2 means undefined and -1 means maximum),
 cgroup v2 most restrictive 'memory.max' in upper directories in KiB
 (-3 means no cgroup v2 support, -2 means undefined and -1 means maximum),
 cgroup v2 'memory.swap.max' in KiB (-3 means no cgroup v2 support,
@@ -3072,7 +3045,7 @@ obsoleted kernel patch installed ('n'),
 standard io statistics used ('y' or 'n'),
 number of reads on disk,
 cumulative number of sectors read,
-number of writes on disk, 
+number of writes on disk,
 cumulative number of sectors written,
 cancelled number of written sectors,
 TGID (group number of related tasks/threads),
@@ -3141,7 +3114,7 @@ continues (twin mode):
 .B \  atop -t 4
 .PP
 Live monitoring of the current system load while writing the measurement
-to a raw log in parallel (to be viewed later on): 
+to a raw log in parallel (to be viewed later on):
 .PP
 .TP 12
 .B \  atop -g -w /tmp/sessionx
@@ -3250,7 +3223,7 @@ Raw file, where
 .I YYYYMMDD
 are digits representing the current date.
 This name is used by
-.B atop 
+.B atop
 running in the background as default name for the output file, and by
 .B atop
 as default name for the input file when using the
@@ -3258,7 +3231,7 @@ as default name for the input file when using the
 flag.
 .br
 All binary system and process level data in this file has been stored
-in compressed format. 
+in compressed format.
 .PP
 .TP 5
 .BI /var/run/netatop.log

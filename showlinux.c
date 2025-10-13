@@ -462,6 +462,7 @@ detail_printdef *alldetaildefs[]=
 	&procprt_SNET,
 	&procprt_BANDWI,
 	&procprt_BANDWO,
+	&procprt_GPUPROCTYPE,
 	&procprt_GPULIST,
 	&procprt_GPUMEMNOW,
 	&procprt_GPUMEMAVG,
@@ -1323,7 +1324,7 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 
                 make_detail_prints(gpuprocs, MAXITEMS, 
                         "PID:10 TID:5 CID:4 GPULIST:8 GPUGPUBUSY:8 GPUMEMBUSY:8 "
-			"GPUMEM:7 GPUMEMAVG:6 S:8 SORTITEM:10 CMD:10", 
+			"GPUMEM:6 GPUMEMAVG:5 GPUPROCTYPE:7 S:8 SORTITEM:10 CMD:10", 
                         "built-in gpuprocs");
 
                 make_detail_prints(varprocs, MAXITEMS,
@@ -1653,9 +1654,12 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 			if (!curstat->gpu.state)
 				break;
 
-                        if (curstat->gpu.gpubusy != -1)
+                        if (curstat->gpu.gpubusycum != -1)
 			{
-                        	perc = curstat->gpu.gpubusy;
+				if (nsecs)
+					perc = curstat->gpu.gpubusycum / nsecs;
+				else
+					perc = 0.0;
 			}
 			else
 			{
@@ -2555,8 +2559,8 @@ compgpu(const void *a, const void *b)
 {
         register char 	 astate = (*(struct tstat **)a)->gpu.state;
         register char 	 bstate = (*(struct tstat **)b)->gpu.state;
-        register count_t abusy  = (*(struct tstat **)a)->gpu.gpubusy;
-        register count_t bbusy  = (*(struct tstat **)b)->gpu.gpubusy;
+        register count_t abusy  = (*(struct tstat **)a)->gpu.gpubusycum;
+        register count_t bbusy  = (*(struct tstat **)b)->gpu.gpubusycum;
         register count_t amem   = (*(struct tstat **)a)->gpu.memnow;
         register count_t bmem   = (*(struct tstat **)b)->gpu.memnow;
 
