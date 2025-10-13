@@ -160,6 +160,7 @@ char *procprt_BANDWI_a(struct tstat *, int, int);
 char *procprt_BANDWI_e(struct tstat *, int, int);
 char *procprt_BANDWO_a(struct tstat *, int, int);
 char *procprt_BANDWO_e(struct tstat *, int, int);
+char *procprt_GPUPROCTYPE_ae(struct tstat *, int, int);
 char *procprt_GPULIST_ae(struct tstat *, int, int);
 char *procprt_GPUMEMNOW_ae(struct tstat *, int, int);
 char *procprt_GPUMEMAVG_ae(struct tstat *, int, int);
@@ -2034,6 +2035,22 @@ format_bandw(char *buf, int bufsize, count_t kbps)
 }
 /***************************************************************/
 char *
+procprt_GPUPROCTYPE_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+	static char buf[2];
+
+	if (!curstat->gpu.state)
+		return "-";
+
+        snprintf(buf, sizeof buf, "%c", curstat->gpu.type);
+
+        return buf;
+}
+
+detail_printdef procprt_GPUPROCTYPE = 
+   { "T", "GPUPROCTYPE", .ac.doactiveconverts = procprt_GPUPROCTYPE_ae, procprt_GPUPROCTYPE_ae, ' ', 1};
+/***************************************************************/
+char *
 procprt_GPULIST_ae(struct tstat *curstat, int avgval, int nsecs)
 {
         static char	buf[64];
@@ -2094,11 +2111,10 @@ procprt_GPUMEMAVG_ae(struct tstat *curstat, int avgval, int nsecs)
 	if (!curstat->gpu.state)
 		return "     -";
 
-	if (curstat->gpu.sample == 0)
+	if (curstat->gpu.samples == 0)
 		return("    0K");
 
-       	val2memstr(curstat->gpu.nrgpus * curstat->gpu.memcum /
-	           curstat->gpu.sample*1024, buf, BFORMAT, 0, 0);
+       	val2memstr(curstat->gpu.memcum/curstat->gpu.samples*1024, buf, BFORMAT, 0, 0);
        	return buf;
 }
 
@@ -2108,15 +2124,24 @@ detail_printdef procprt_GPUMEMAVG =
 char *
 procprt_GPUGPUBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char 	buf[16];
+        static char 	buf[16], perc[10];
 
 	if (!curstat->gpu.state)
 		return "      -";
 
-	if (curstat->gpu.gpubusy == -1)
+	if (curstat->gpu.gpubusycum == -1)
 		return "    N/A";
 
-       	snprintf(buf, sizeof buf, "%6d%%", curstat->gpu.gpubusy);
+	if (nsecs)
+	{
+       		val2valstr(curstat->gpu.gpubusycum / nsecs, perc, 6, 0, 0);
+       		snprintf(buf, sizeof buf, "%6s%%", perc);
+	}
+	else
+	{
+		snprintf(buf, sizeof buf, "%6d%%", 0);
+	}
+
        	return buf;
 }
 
@@ -2126,15 +2151,24 @@ detail_printdef procprt_GPUGPUBUSY =
 char *
 procprt_GPUMEMBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char 	buf[16];
+        static char 	buf[16], perc[10];
 
 	if (!curstat->gpu.state)
 		return "      -";
 
-	if (curstat->gpu.membusy == -1)
+	if (curstat->gpu.membusycum == -1)
 		return "    N/A";
 
-        snprintf(buf, sizeof buf, "%6d%%", curstat->gpu.membusy);
+	if (nsecs)
+	{
+       		val2valstr(curstat->gpu.membusycum / nsecs, perc, 6, 0, 0);
+       		snprintf(buf, sizeof buf, "%6s%%", perc);
+	}
+	else
+	{
+		snprintf(buf, sizeof buf, "%6d%%", 0);
+	}
+
         return buf;
 }
 

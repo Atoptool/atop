@@ -1155,12 +1155,17 @@ print_PRE(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	register int	i;
+	register int	i, samples;
 	char		namout[PNAMLEN+1+2];
 
 	for (i=0; i < nact; i++, ps++)
 	{
-		printf("%s %d %s %c %c %d %x %d %d %lld %lld %lld\n",
+		samples = ps->gpu.samples ? ps->gpu.samples : 1;
+
+		if (!ps->gen.isproc)	// GPU stats only on process level
+			memset(&(ps->gpu), '\0', sizeof ps->gpu);
+
+		printf("%s %d %s %c %c %d %x %lld %lld %lld %lld %lld %c %c\n",
 			hp,
 			ps->gen.pid,
 			spaceformat(ps->gen.name, namout),
@@ -1168,11 +1173,13 @@ print_PRE(char *hp, struct sstat *ss,
 			ps->gpu.state == '\0' ? 'N':ps->gpu.state,
 			ps->gpu.nrgpus,
 			ps->gpu.gpulist,
-			ps->gpu.gpubusy,
-			ps->gpu.membusy,
+			ps->gpu.gpubusycum/samples,
+			ps->gpu.membusycum/samples,
 			ps->gpu.memnow,
 			ps->gpu.memcum,
-			ps->gpu.sample);
+			ps->gpu.samples,
+			ps->gen.isproc ? 'y':'n',
+			!ps->gpu.state || !ps->gpu.type ? 'U':ps->gpu.type);
 	}
 }
 

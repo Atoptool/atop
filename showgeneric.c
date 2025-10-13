@@ -2883,15 +2883,15 @@ accumulate(struct tstat *curproc, struct tstat *curstat)
 
 			curstat->gpu.state = 'A';
 
-			if (curproc->gpu.gpubusy == -1)
-				curstat->gpu.gpubusy  = -1;
+			if (curproc->gpu.gpubusycum == -1)
+				curstat->gpu.gpubusycum  = -1;
 			else
-				curstat->gpu.gpubusy += curproc->gpu.gpubusy;
+				curstat->gpu.gpubusycum += curproc->gpu.gpubusycum;
 
-			if (curproc->gpu.membusy == -1)
-				curstat->gpu.membusy  = -1;
+			if (curproc->gpu.membusycum == -1)
+				curstat->gpu.membusycum  = -1;
 			else
-				curstat->gpu.membusy += curproc->gpu.membusy;
+				curstat->gpu.membusycum += curproc->gpu.membusycum;
 
 			curstat->gpu.memnow  += curproc->gpu.memnow;
 			curstat->gpu.gpulist |= curproc->gpu.gpulist;

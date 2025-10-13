@@ -55,7 +55,7 @@ static 		void calcdiff(struct tstat *, const struct tstat *,
 static inline	count_t subcount(count_t, count_t);
 
 /*
-** calculate the process-activity during the last sample
+** calculate the process activity during the last sample
 */
 void
 deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
@@ -147,8 +147,7 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 			** further calculations) and store new statistics
 			** in task-database
 			*/
-			if (memcmp(curstat, &pinfo->tstat, 
-					           sizeof(struct tstat)) == EQ)
+			if (memcmp(curstat, &pinfo->tstat, sizeof(struct tstat)) == EQ)
 			{
 				/*
  				** no activity for task
@@ -367,21 +366,37 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		if (curstat->gpu.state || prestat.gpu.state) // GPU use?
 		{
 			if (curstat->gpu.state)
+			{
 				devstat->gpu.state = curstat->gpu.state;
+				devstat->gpu.type  = curstat->gpu.type;
+			}
 			else
+			{
 				devstat->gpu.state = prestat.gpu.state;
+				devstat->gpu.type  = curstat->gpu.type;
+			}
 
 			devstat->gpu.nrgpus	= curstat->gpu.nrgpus;
 			devstat->gpu.gpulist	= curstat->gpu.gpulist;
-			devstat->gpu.gpubusy 	= curstat->gpu.gpubusy;
-			devstat->gpu.membusy	= curstat->gpu.membusy;
-			devstat->gpu.timems	= curstat->gpu.timems;
 
 			devstat->gpu.memnow	= curstat->gpu.memnow;
 			devstat->gpu.memcum	= curstat->gpu.memcum -
 						  prestat.gpu.memcum;
-			devstat->gpu.sample	= curstat->gpu.sample -
-						  prestat.gpu.sample;
+
+			if (devstat->gpu.gpubusycum != -1)
+				devstat->gpu.gpubusycum = curstat->gpu.gpubusycum -
+						          prestat.gpu.gpubusycum;
+			else
+				devstat->gpu.gpubusycum = -1;
+
+			if (curstat->gpu.membusycum != -1)
+				devstat->gpu.membusycum = curstat->gpu.membusycum -
+						          prestat.gpu.membusycum;
+			else
+				devstat->gpu.membusycum = -1;
+
+			devstat->gpu.samples    = curstat->gpu.samples -
+			                          prestat.gpu.samples;
 		}
 		else
 		{
@@ -481,12 +496,10 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 		else
 			devstat->gpu.state = prestat->gpu.state;
 
+		devstat->gpu.type    = curstat->gpu.type;
 		devstat->gpu.nrgpus  = curstat->gpu.nrgpus;
 		devstat->gpu.gpulist = curstat->gpu.gpulist;
-		devstat->gpu.gpubusy = curstat->gpu.gpubusy;
-		devstat->gpu.membusy = curstat->gpu.membusy;
 		devstat->gpu.memnow  = curstat->gpu.memnow;
-		devstat->gpu.timems  = curstat->gpu.timems;
 	}
 	else
 	{
@@ -610,11 +623,25 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	else
 		devstat->net.udprsz = curstat->net.udprsz;
 
-
+	/*
+	** GPU counters
+	*/
 	if (curstat->gpu.state)
 	{
-		devstat->gpu.memcum = curstat->gpu.memcum - prestat->gpu.memcum;
-		devstat->gpu.sample = curstat->gpu.sample - prestat->gpu.sample;
+		if (curstat->gpu.gpubusycum != -1)
+			devstat->gpu.gpubusycum = curstat->gpu.gpubusycum -
+			                          prestat->gpu.gpubusycum;
+		else
+			devstat->gpu.gpubusycum = -1;
+
+		if (curstat->gpu.membusycum != -1)
+			devstat->gpu.membusycum = curstat->gpu.membusycum -
+			                          prestat->gpu.membusycum;
+		else
+			devstat->gpu.membusycum = -1;
+
+		devstat->gpu.memcum     = curstat->gpu.memcum     - prestat->gpu.memcum;
+		devstat->gpu.samples    = curstat->gpu.samples    - prestat->gpu.samples;
 	}
 }
 

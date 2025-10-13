@@ -138,20 +138,19 @@ struct tstat {
 	} net;
 
 	struct gpu {
-		char	state;		// A - active, E - Exit, '\0' - no use
-		char	bfuture[3];	//
+		char	state;		// A - active,  E - Exit, '\0' - no use
+		char	type;		// C - compute, G - graphic, U - unknown
+		char	bfuture[2];	//
 		short	nrgpus;		// number of GPUs for this process
 		int32_t	gpulist;	// bitlist with GPU numbers
 
-		int	gpubusy;	// gpu busy perc process lifetime      -1 = n/a
-		int	membusy;	// memory busy perc process lifetime   -1 = n/a
-		count_t	timems;		// milliseconds accounting   -1 = n/a
-					// value 0   for active process,
-					// value > 0 after termination
+		count_t	gpubusycum;	// cumulative gpu busy perc      -1 = n/a
+		count_t	membusycum;	// cumulative memory busy perc   -1 = n/a
 
 		count_t	memnow;		// current    memory consumption in KiB
 		count_t	memcum;		// cumulative memory consumption in KiB
-		count_t	sample;		// number of samples
+		count_t	samples;	// number of samples that this process
+					// was really active
 		count_t	cfuture[3];	//
 	} gpu;
 };

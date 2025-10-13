@@ -119,6 +119,8 @@ static char     reportraw (time_t, int,
 
 static void	reportheader(struct utsname *, time_t);
 static time_t	daylimit(time_t);
+static void	gpuhead(int, int, int);
+
 
 int
 atopsar(int argc, char *argv[])
@@ -415,7 +417,7 @@ engine(void)
 {
 	struct sigaction 	sigact;
 
-	int			nrgpus;         /* number of GPUs        */
+	int			i, nrgpus;      /* number of GPUs        */
 	int			nrgpuproc,	/* number of GPU procs   */
 				gpustats=0;	/* boolean: request sent */
 
@@ -460,8 +462,16 @@ engine(void)
 
 	/*
 	** open socket to the atopgpud daemon for GPU statistics
+	** when GPU statistics have to be shown
 	*/
-	nrgpus = gpud_init();
+	for (i=0, nrgpus=0; i < pricnt; i++)
+	{
+		if (pridef[i].prihead == gpuhead && pridef[i].wanted)
+		{
+			nrgpus = gpud_init();
+			break;
+		}
+	}
 
 	/*
 	** MAIN-LOOP:
@@ -1340,8 +1350,9 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 {
 	static char	firstcall = 1;
 	register long	i, nlines = 0;
-	char		fmt1[16], fmt2[16];
+	char		fmt1[16], fmt2[16], *pn;
 	count_t		avgmemuse;
+	int		len;
 
 	for (i=0; i < ss->gpu.nrgpus; i++)	/* per GPU */
 	{
@@ -1397,8 +1408,13 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		if (ss->gpu.gpu[i].memtotnow == 0)
 			ss->gpu.gpu[i].memtotnow = 1;
 
+		if ( (len = strlen(ss->gpu.gpu[i].busid)) > 9)
+			pn = ss->gpu.gpu[i].busid + len - 9;
+		else
+			pn = ss->gpu.gpu[i].busid;
+
 		printf("%2ld/%9.9s %7s  %7s  %5lld%%  %5lldM %5lldM  %s\n",
-			i, ss->gpu.gpu[i].busid,
+			i, pn,
 			fmt1, fmt2,
 			ss->gpu.gpu[i].memusenow*100/ss->gpu.gpu[i].memtotnow,
 			ss->gpu.gpu[i].memtotnow / 1024,

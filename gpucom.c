@@ -8,9 +8,10 @@
 ** daemon that maintains statistics about the processor and memory
 ** utilization of the GPUs.
 ** ================================================================
-** Author:      Gerlof Langeveld
-** E-mail:      gerlof.langeveld@atoptool.nl
-** Initial:     April/August 2018
+** Author:      		Gerlof Langeveld
+** E-mail:      		gerlof.langeveld@atoptool.nl
+** Initial:     		April/August 2018
+** Use UNIX domain sockets:     August 2025
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -36,6 +37,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <stdint.h>
 
 #include "atop.h"
 #include "photosyst.h"
@@ -46,7 +48,7 @@
 #define	GPUDELIM	'@'
 #define	PIDDELIM	'#'
 
-#define SOCKPATH        "atopgpud_nvidia"
+#define	SOCKPATH	"atopgpud_nvidia"
 
 static int	gputype_parse(char *);
 
@@ -98,7 +100,7 @@ gpud_init(void)
 	name.sun_family = AF_UNIX;
 	strncpy(name.sun_path+1, SOCKPATH, sizeof name.sun_path -2);
 
-	if (connect(actsock, (struct sockaddr *)&name, namelen) == -1)
+	if ( connect(actsock, (struct sockaddr *)&name, namelen) == -1)
 		goto close_and_return;
 
 	/*
@@ -555,7 +557,7 @@ gpustat_parse(int version, char *buf, int maxgpu,
 					return -1;
 
 				gp->gpu.nrgpus++;
-				gp->gpu.gpulist = 1<<gpunum;
+				gp->gpu.gpulist    = 1<<gpunum;
 				gp++;
 
 				gg->nrprocs++;	// per GPU
@@ -590,6 +592,9 @@ gpuparse(int version, char *p, struct pergpu *gg)
 	switch (version)
 	{
 	   case 1:
+	   case 2:
+		// notice: samples per process later on overruled
+		//
 		nr = sscanf(p, "%d %d %lld %lld %lld %lld %lld %lld", 
 			&(gg->gpupercnow), &(gg->mempercnow),
 			&(gg->memtotnow),  &(gg->memusenow),
@@ -617,17 +622,36 @@ gpuparse(int version, char *p, struct pergpu *gg)
 static int
 pidparse(int version, char *p, struct gpupidstat *gp)
 {
-	int nr;
+	int	nr;
+	count_t	dummy;
 
 	switch (version)
 	{
 	   case 1:
-		nr = sscanf(p, "%c %ld %d %d %lld %lld %lld %lld",
-			&(gp->gpu.state),   &(gp->pid),    
-			&(gp->gpu.gpubusy), &(gp->gpu.membusy),
-			&(gp->gpu.timems),
-			&(gp->gpu.memnow), &(gp->gpu.memcum),
-		        &(gp->gpu.sample));
+		nr = sscanf(p, "%c %ld %lld %lld %lld %lld %lld %lld",
+			&(gp->gpu.state),      &(gp->pid),    
+			&(gp->gpu.gpubusycum), &(gp->gpu.membusycum),
+			&dummy,
+			&(gp->gpu.memnow),     &(gp->gpu.memcum),
+		        &(gp->gpu.samples));
+
+		if (nr < 8)	// parse error: unexpected data
+	 		return 0;
+
+		if (gp->gpu.gpubusycum != -1)
+			gp->gpu.gpubusycum *= gp->gpu.samples;	// compatibility
+
+		if (gp->gpu.membusycum != -1)
+			gp->gpu.membusycum *= gp->gpu.samples;	// compatibility
+
+		break;
+
+	   case 2:
+		nr = sscanf(p, "%c %ld %c %lld %lld %lld %lld %lld",
+			&(gp->gpu.state), &(gp->pid), &(gp->gpu.type),
+			&(gp->gpu.gpubusycum), &(gp->gpu.membusycum),
+			&(gp->gpu.memnow),     &(gp->gpu.memcum),
+		        &(gp->gpu.samples));
 
 		if (nr < 8)	// parse error: unexpected data
 	 		return 0;
@@ -650,7 +674,7 @@ gpumergeproc(struct tstat      *curtpres, int ntaskpres,
              struct gpupidstat *gpuproc,  int nrgpuproc)
 {
 	struct gpupidstat	**gpp;
-	int 			t, g, gpuleft = nrgpuproc;
+	int 			t, g, gpuleft;
 
 	/*
  	** make pointer list for elements in gpuproc
@@ -677,27 +701,30 @@ gpumergeproc(struct tstat      *curtpres, int ntaskpres,
 	{
 		if (gpp[g-1]->pid == gpp[g]->pid)
 		{
+			/*
+			**  merge current entry with previous entry
+			*/
 			struct gpupidstat *p = gpp[g-1], *q = gpp[g];
 
 			p->gpu.nrgpus  += q->gpu.nrgpus;
 			p->gpu.gpulist |= q->gpu.gpulist;
 
-			if (p->gpu.gpubusy != -1)
-				p->gpu.gpubusy += q->gpu.gpubusy;
+			if (p->gpu.gpubusycum != -1 && q->gpu.gpubusycum != -1)
+				p->gpu.gpubusycum += q->gpu.gpubusycum;
 
-			if (p->gpu.membusy != -1)
-				p->gpu.membusy += q->gpu.membusy;
+			if (p->gpu.membusycum != -1 && q->gpu.membusycum != -1)
+				p->gpu.membusycum += q->gpu.membusycum;
 
-			if (p->gpu.timems != -1)
-				p->gpu.timems += q->gpu.timems;
+			p->gpu.memnow  += q->gpu.memnow;
+			p->gpu.memcum  += q->gpu.memcum;
+			p->gpu.samples += q->gpu.samples;
 
-			p->gpu.memnow += q->gpu.memnow;
-			p->gpu.memcum += q->gpu.memcum;
-			p->gpu.sample += q->gpu.sample;
-
+			/*
+			** shift all remaining pointers one entry
+			** in the pointer list gpp
+			*/
 			if (nrgpuproc-g-1 > 0)
-				memmove(&(gpp[g]), &(gpp[g+1]),
-					(nrgpuproc-g-1) * sizeof p);
+				memmove(&(gpp[g]), &(gpp[g+1]), (nrgpuproc-g-1) * sizeof p);
 
 			nrgpuproc--;
 			g--;
@@ -707,6 +734,8 @@ gpumergeproc(struct tstat      *curtpres, int ntaskpres,
 	/*
  	** merge gpu stats with sorted task list of active processes
 	*/
+	gpuleft = nrgpuproc;
+
 	for (t=g=0; t < ntaskpres && g < nrgpuproc; t++)
 	{
 		if (curtpres[t].gen.isproc)
@@ -742,7 +771,7 @@ gpumergeproc(struct tstat      *curtpres, int ntaskpres,
 	{
 		if (gpp[g] == NULL)
 		{
-			for (; t < nrgpuproc; t++)
+			for (t=g+1; t < nrgpuproc; t++)
 			{
 				if (gpp[t])
 				{
@@ -769,8 +798,7 @@ gpumergeproc(struct tstat      *curtpres, int ntaskpres,
 				if (curpexit[t].gen.pid == gpp[g]->pid)
 				{
 					curpexit[t].gpu = gpp[g]->gpu;
-					gpp[g] = NULL;
-					gpuleft--;
+					gpp[g] = NULL;  // invalidate
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-.TH ATOPGPUD 8 "January 2024" "Linux"
+.TH ATOPGPUD 8 "September 2025" "Linux"
 .SH NAME
 .B atopgpud
 - GPU statistics daemon
@@ -9,7 +9,7 @@
 .SH DESCRIPTION
 The
 .I atopgpud
-daemon gathers statistical information from all Nvidia GPUs in the
+daemon gathers statistical information from all NVIDIA GPUs in the
 current system. With a sampling rate of one second, it maintains
 the statistics of every GPU, globally (system level) and per process.
 When 
@@ -20,11 +20,11 @@ is active on the target system,
 obtains GPU statistics for each interval.
 .PP
 The approach to gather all GPU statistics in a separate daemon is required,
-because the Nvidia driver only offers the GPU busy
+because the NVIDIA driver only offers the GPU busy
 percentage of the last second. Suppose that
 .I atop
 runs with a 10-minute interval and would fetch the GPU busy percentage
-directly from the Nvidia driver, it would reflect the busy percentage of
+directly from the NVIDIA driver, it would reflect the busy percentage of
 the last second instead of the average busy percentage during 600 seconds.
 Therefore, the
 .I atopgpud
@@ -43,7 +43,7 @@ that are not maintained. In the output of
 .I atop
 these counters are shown as 'N/A'.
 .PP
-When no (Nvidia) GPUs can be found in the target system,
+When no NVIDIA GPUs can be found in the target system,
 .I atopgpud
 immediately terminates with exit code 0.
 .PP

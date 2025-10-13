@@ -1,8 +1,8 @@
 #!/usr/bin/python3 -Es
 
 # ==============================================================
-# Daemon that gathers statistical information from all 
-# Nvidia GPUs in the current system. Since the GPU maintains the
+# Daemon that gathers statistical information from all
+# NVIDIA GPUs in the current system. Since the GPU maintains the
 # busy percentages only over the last second, this daemon gathers
 # the statistics each second and maintains cumulative counters,
 # globally and per process.
@@ -14,7 +14,7 @@
 # The request code can be 'T' to obtain the GPU types or 'S' to
 # obtain all statistical counters.
 # The response of the daemon starts with a 4-byte integer. The
-# first byte is the version of the response format and the 
+# first byte is the version of the response format and the
 # subsequent three bytes indicate the length (big endian) of the
 # response string that follows. See the formatters for the layout
 # of the response string, later on in this source code.
@@ -24,8 +24,10 @@
 # Author: Gerlof Langeveld
 # Date:   July   2018 - initial
 #         August 2025 - UNIX domain socket instead of IPv6 socket
+#         August 2025 - redesign of GPU busy percentage gathering
+#         August 2025 - no need to run with specific privileges
 #
-# Copyright (C) 2018, 2025 Gerlof Langeveld
+# Copyright (C) 2018,2025 Gerlof Langeveld
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -51,20 +53,22 @@ import logging
 import logging.handlers as loghand
 import threading
 
-SOCKPATH    = b"\0atopgpud_nvidia"
+SOCKPATH     = b"\0atopgpud_nvidia"
 
 COMPUTE      = 1		# task support bit value
-ACCOUNT      = 2		# task support bit value
+GRAPHIC      = 2        # task support bit value
+
+HIGHSTAMP    = 1000
 
 # =================================
 # GPU related bookkeeping
 # =================================
-gpulist = []			# list with per-GPU bookkeeping
-cliterm = {}			# dict with one entry per client (client
-				# socket as key), that contains a dict with
-				# the terminated per-process bookkeepings
-				# that still have to be received by this client
-                                # (pid of terminated process as key)
+gpulist = []    # list with per-GPU bookkeeping
+cliterm = {}    # dict with one entry per client (client
+                # socket as key), that contains a dict with
+                # the terminated per-process bookkeepings
+                # that still have to be received by this client
+                # (pid of terminated process as key)
 
 gpulock = threading.Lock()	# mutex for access to gpulist/cliterm
 
@@ -86,15 +90,14 @@ class GpuProp(object):
         self.gpuhandle         = gpuhandle
         self.stats             = Stats()
 
-        
         self.stats.busid       = pciInfo.busId
         self.stats.devname     = pynvml.nvmlDeviceGetName(gpuhandle)
 
         # nvml backward compatibility
         if type(self.stats.busid) == bytes:
-            self.stats.busid = self.stats.busid.decode('ascii', errors='replace') 
+            self.stats.busid = self.stats.busid.decode('ascii', errors='replace')
         if type(self.stats.devname) == bytes:
-            self.stats.devname = self.stats.devname.decode('ascii', errors='replace') 
+            self.stats.devname = self.stats.devname.decode('ascii', errors='replace')
 
         self.stats.devname = self.stats.devname.replace(' ', '_')
 
@@ -102,16 +105,15 @@ class GpuProp(object):
 
         try:
             procinfo = pynvml.nvmlDeviceGetComputeRunningProcesses(gpuhandle)
-            self.stats.tasksupport |= COMPUTE	# compute support
+            self.stats.tasksupport |= COMPUTE # compute proces support
         except Exception:
-            pass				# no compute support
+            pass                              # no compute process support
 
         try:
-            pynvml.nvmlDeviceSetAccountingMode(gpuhandle, True)
-            pynvml.nvmlDeviceSetPersistenceMode(gpuhandle, True)  # NVIDIA advise
-            self.stats.tasksupport |= ACCOUNT	# account support
-        except Exception as e:
-            pass
+            procinfo = pynvml.nvmlDeviceGetGraphicsRunningProcesses(gpuhandle)
+            self.stats.tasksupport |= GRAPHIC # graphic process support
+        except Exception:
+            pass                              # no graphic process support
 
         self.stats.gpupercnow   = 0	# perc of time that GPU was busy
         self.stats.mempercnow   = 0	# perc of time that memory was rd/wr
@@ -123,13 +125,15 @@ class GpuProp(object):
         self.stats.gpuperccum   = 0	# perc of time that GPU was busy
         self.stats.memperccum   = 0	# perc of time that memory was rd/wr
         self.stats.memusedcum   = 0	# in KiB
- 
+
         self.stats.procstats    = {}	# stats of active processes (key = pid)
 
     ###############################
     # method to fetch counters and values
     ###############################
     def readstats(self):
+        global HIGHSTAMP
+
         self.stats.gpusamples += 1
 
         # -----------------------------
@@ -164,8 +168,19 @@ class GpuProp(object):
         # get per-process statistics
         # -----------------------------
         try:
-            procinfo = pynvml.nvmlDeviceGetComputeRunningProcesses(
-                                                        self.gpuhandle)
+            if self.stats.tasksupport & COMPUTE:
+                cprocinfo = pynvml.nvmlDeviceGetComputeRunningProcesses(self.gpuhandle)
+
+                for proc in cprocinfo:
+                    proc.type = 'C'
+
+            if self.stats.tasksupport & GRAPHIC:
+                gprocinfo = pynvml.nvmlDeviceGetGraphicsRunningProcesses(self.gpuhandle)
+
+                for proc in gprocinfo:
+                    proc.type = 'G'
+
+            procinfo = cprocinfo + gprocinfo
 
             # -------------------------
             # build list with pids from
@@ -181,43 +196,60 @@ class GpuProp(object):
                 pid = proc.pid
 
                 # ---------------------
-                # new process? 
-                #     create new stats 
+                # new process?
+                #     create new stats
                 # ---------------------
                 if pid not in actprocs:
                     self.stats.procstats[pid] = Stats()
 
-                    self.stats.procstats[pid].memnow  = 0	# in KiB
-                    self.stats.procstats[pid].memcum  = 0	# in KiB
-                    self.stats.procstats[pid].sample  = 0
+                    self.stats.procstats[pid].samples    = 0
+                    self.stats.procstats[pid].type       = 'U'  # unknown
 
-                    self.stats.procstats[pid].gpubusy = -1
-                    self.stats.procstats[pid].membusy = -1
-                    self.stats.procstats[pid].timems  = -1
+                    self.stats.procstats[pid].memnow     = 0	# in KiB
+                    self.stats.procstats[pid].memcum     = 0	# in KiB
+
+                    self.stats.procstats[pid].gpubusy    = -1
+                    self.stats.procstats[pid].membusy    = -1
+                    self.stats.procstats[pid].gpubusycum = -1
+                    self.stats.procstats[pid].membusycum = -1
                 else:
-                    actprocs.remove(pid)
+                    actprocs.remove(pid) # remove active pid from list
 
                 # ---------------------
                 # maintain proc stats
                 # ---------------------
+                self.stats.procstats[pid].samples    += 1
+                self.stats.procstats[pid].type        = proc.type
+
                 if proc.usedGpuMemory:
-                    self.stats.procstats[pid].memnow  = proc.usedGpuMemory//1024
-                    self.stats.procstats[pid].memcum +=	proc.usedGpuMemory//1024
-                    self.stats.procstats[pid].sample += 1
+                    self.stats.procstats[pid].memnow  = proc.usedGpuMemory // 1024
+                    self.stats.procstats[pid].memcum +=	proc.usedGpuMemory // 1024
 
-                if self.stats.tasksupport & ACCOUNT:
-                    try:
-                        stats = pynvml.nvmlDeviceGetAccountingStats(self.gpuhandle, pid)
+            # -------------------------
+            # get average GPU utilization
+            # and memory utiliation for
+            # all active processes on GPU
+            # -------------------------
+            try:
+                procutils = pynvml.nvmlDeviceGetProcessUtilization(self.gpuhandle, HIGHSTAMP)
 
-                        self.stats.procstats[pid].gpubusy = stats.gpuUtilization
-                        self.stats.procstats[pid].membusy = stats.memoryUtilization
-                        self.stats.procstats[pid].timems  = stats.time
-                    except Exception:
-                        pass
+                if procutils and len(procutils) > 0:
+                    for proc in procutils:
+                        if HIGHSTAMP < proc.timeStamp:
+                            HIGHSTAMP = proc.timeStamp
+
+                        if proc.pid in self.stats.procstats:
+                            self.stats.procstats[proc.pid].gpubusy     = proc.smUtil
+                            self.stats.procstats[proc.pid].membusy     = proc.memUtil
+
+                            self.stats.procstats[proc.pid].gpubusycum += proc.smUtil
+                            self.stats.procstats[proc.pid].membusycum += proc.memUtil
+            except Exception as e:
+                pass
 
             # -------------------------
             # determine which processes
-            # have terminated since 
+            # have terminated since
             # previous sample
             # -------------------------
             for pid in actprocs:
@@ -243,7 +275,7 @@ class GpuProp(object):
 def main():
     # -----------------------------
     # initialize GPU access,
-    # specifically to detect of it 
+    # specifically to detect of it
     # succeeds
     # -----------------------------
     try:
@@ -256,7 +288,7 @@ def main():
     #  open UNIX domain stream socket
     # -----------------------------
     try:
-        mysock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+        mysock = socket.socket(socket.AF_UNIX,  socket.SOCK_STREAM, 0)
     except Exception as sockex:
         logging.error("Socket creation fails")
         sys.exit(1)
@@ -300,7 +332,7 @@ def main():
 
     if gpunum == 0:
         logging.info("Terminated (no GPUs available)")
-        sys.exit() 
+        sys.exit()
 
     # -----------------------------
     # initialize per-GPU bookkeeping
@@ -333,16 +365,14 @@ def main():
         t.daemon = True
         t.start()
 
- 
+
 # ===========================================
 # Thread start function:
-# Serve new client that has just
-# connected.
-#
+# Serve new client that has just connected.
 # -------------------------------------------
 # Protocol between client and server:
 #
-# - client transmits request 
+# - client transmits request
 #   consisting of two bytes
 #
 #     byte 0: type of request
@@ -354,7 +384,7 @@ def main():
 #             so the client asks for a
 #             specific response version
 #
-# - server transmits response 
+# - server transmits response
 #   consisting of a four bytes integer
 #   in big endian byte order
 #
@@ -442,13 +472,13 @@ def serveclient(sock, peer):
         # transmit GPU statistics
         # as bytes
         # -------------------------
-        logging.debug("Send: %s", xmitbuf)
-
         prelude = struct.pack(">I", (version << 24) + len(xmitbuf))
 
         try:
             sock.send(prelude)
             sock.send(xmitbuf)
+
+            logging.debug("Send: %s", prelude + xmitbuf)
         except Exception as sockex:
             logging.error("Send error: %s", sockex)
             sock.close()
@@ -482,12 +512,11 @@ def gpudevname_v1():
     with gpulock:
         for i, gpu in enumerate(gpulist):
             s = gpu.getstats()
-            strbuf += "@{:s} {:s} {:d}".format(
-                                    s.busid, s.devname, s.tasksupport)
+            strbuf += "@{:s} {:s} {:d}".format(s.busid, s.devname, s.tasksupport)
 
     return strbuf
 
-gpudevnames = [None, gpudevname_v1]
+gpudevnames = [None, gpudevname_v1, gpudevname_v1]
 
 
 # =================================
@@ -522,8 +551,8 @@ def gpuformatter_v1(clisock):
             # ---------------------
             for pid, stat in s.procstats.items():
                 strbuf += "#A {:d} {:d} {:d} {:d} {:d} {:d} {:d}".format(pid,
-                           stat.gpubusy, stat.membusy, stat.timems,
-                           stat.memnow,  stat.memcum,  stat.sample)
+                           stat.gpubusy, stat.membusy, 0,
+                           stat.memnow,  stat.memcum,  stat.samples)
 
             # ---------------------
             # terminated processes
@@ -531,8 +560,8 @@ def gpuformatter_v1(clisock):
             # ---------------------
             for pid, stat in cliterm[clisock].items():
                 strbuf += "#E {:d} {:d} {:d} {:d} {:d} {:d} {:d}".format(pid,
-                           stat.gpubusy, stat.membusy, stat.timems,
-                           stat.memnow,  stat.memcum,  stat.sample)
+                           stat.gpubusy, stat.membusy, 0,
+                           stat.memnow,  stat.memcum,  stat.samples)
 
             cliterm[clisock].clear()
 
@@ -540,7 +569,53 @@ def gpuformatter_v1(clisock):
     return strbuf
 
 
-gpuformatters = [None, gpuformatter_v1]
+def gpuformatter_v2(clisock):
+    # -----------------------------
+    # main loop:
+    # - get statistics for every GPU
+    # - convert stats to one string
+    #   with format:
+    #      numgpus@gpu0 stats#pid stats#pid stats@gpu1 stats#pid stats@....
+    # -----------------------------
+    strbuf = ""
+
+    with gpulock:
+        for i, gpu in enumerate(gpulist):
+            s = gpu.getstats()
+
+            # ---------------------
+            # generic GPU stats
+            # ---------------------
+            strbuf += "@{:d} {:d} {:d} {:d} {:d} {:d} {:d} {:d}".format(
+                       s.gpupercnow,  s.mempercnow,
+                       s.memtotalnow, s.memusednow, s.gpusamples,
+                       s.gpuperccum,  s.memperccum, s.memusedcum);
+
+            # ---------------------
+            # active processes for
+            # this GPU
+            # ---------------------
+            for pid, stat in s.procstats.items():
+                strbuf += "#A {:d} {:s} {:d} {:d} {:d} {:d} {:d}".format(pid,
+                           stat.type,
+                           stat.gpubusycum, stat.membusycum,
+                           stat.memnow,     stat.memcum,  stat.samples)
+
+            # ---------------------
+            # terminated processes
+            # for this GPU
+            # ---------------------
+            for pid, stat in cliterm[clisock].items():
+                strbuf += "#E {:d} {:s} {:d} {:d} {:d} {:d} {:d}".format(pid,
+                           stat.type,
+                           stat.gpubusycum, stat.membusycum,
+                           stat.memnow,     stat.memcum,  stat.samples)
+
+            cliterm[clisock].clear()
+
+    return strbuf
+
+gpuformatters = [None, gpuformatter_v1, gpuformatter_v2]
 
 
 # =================================
@@ -549,17 +624,32 @@ gpuformatters = [None, gpuformatter_v1]
 # interval to obtain their stats
 # =================================
 def gpuscanner(scaninterval):
+    realtimenext = time.time() + scaninterval
+
     # -----------------------------
-    # main loop:
-    # - get statistics for every GPU
-    # - sleep for interval
+    # main loop
     # -----------------------------
     while True:
+        # -----------------------------
+        # gather the metrics per GPU
+        # -----------------------------
         with gpulock:
             for gpu in gpulist:
                 gpu.readstats()
 
-        time.sleep(scaninterval)
+        # -----------------------------
+        # handle wait time:
+        # wait before taking next sample
+        # unless gathering the metric took
+        # more than the required interval itself
+        # -----------------------------
+        sleeptime = realtimenext - time.time()
+
+        if sleeptime > 0:
+            time.sleep(sleeptime)
+
+        realtimenext += scaninterval
+
 
 # ==========================================================================
 
@@ -573,7 +663,7 @@ else:
 
 fm = logging.Formatter('atopgpud %(levelname)s: %(message)s')
 
-fh = loghand.SysLogHandler('/dev/log', 
+fh = loghand.SysLogHandler('/dev/log',
              facility=loghand.SysLogHandler.LOG_DAEMON)
 fh.setFormatter(fm)
 fh.setLevel(loglevel)
