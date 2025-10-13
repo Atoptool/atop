@@ -349,8 +349,8 @@ rawwopen()
 				cleanstop(7);
 			}
 
-			if (rh.supportflags != (supportflags | RAWLOGNG))
-				mcleanstop(7, "%s - different features in existing raw log\n", orawname);
+			if ((rh.supportflags&CGROUPV2) != (supportflags&CGROUPV2))
+				mcleanstop(7, "%s - different cgroup version in existing raw log\n", orawname);
 
 			if (rh.hertz != hertz)
 				mcleanstop(7, "%s - different hertz in existing raw log\n", orawname);
@@ -366,7 +366,7 @@ rawwopen()
 			*/
 			while ( (rv = getrawrec(fd, &rr, rh.rawreclen, 1)) == rh.rawreclen)
 			{
-				if (	rr.curtime <= prevtime			||
+				if (	rr.curtime  < prevtime			||
 					rr.ccomplen > rr.coriglen		||
 					rr.scomplen > sizeof(struct sstat)	||
 					rr.pcomplen > sizeof(struct tstat) * rr.ndeviat)
