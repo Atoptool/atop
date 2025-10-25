@@ -70,7 +70,7 @@ cliterm = {}    # dict with one entry per client (client
                 # that still have to be received by this client
                 # (pid of terminated process as key)
 
-gpulock = threading.Lock()	# mutex for access to gpulist/cliterm
+gpulock = None	# mutex for access to gpulist/cliterm
 
 
 # =================================
@@ -273,6 +273,9 @@ class GpuProp(object):
 # Main function
 # =================================
 def main():
+    global gpulock
+    gpulock = threading.Lock()	# mutex for access to gpulist/cliterm
+
     # -----------------------------
     # initialize GPU access,
     # specifically to detect of it
@@ -303,16 +306,6 @@ def main():
     except Exception as sockex:
         logging.error("Socket binding to path %s fails", SOCKPATH)
         sys.exit(1)
-
-    # -----------------------------
-    # release parent process
-    # (daemonize)
-    # -----------------------------
-    try:
-        if os.fork():
-            sys.exit(0)	# parent process exits; child continues...
-    except Exception:
-        logging.error("Failed to fork child")
 
     # -----------------------------
     # initialize GPU access for the
@@ -671,6 +664,17 @@ fh.setLevel(loglevel)
 lg = logging.getLogger()		# root logger
 lg.addHandler(fh)
 lg.setLevel(loglevel)
+
+if '-f' not in sys.argv:
+    # -----------------------------
+    # release parent process
+    # (daemonize)
+    # -----------------------------
+    try:
+        if os.fork():
+            sys.exit(0)	# parent process exits; child continues...
+    except Exception:
+        logging.error("Failed to fork child")
 
 # -----------------------------
 # load module pynvml
