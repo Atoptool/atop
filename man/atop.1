@@ -643,7 +643,7 @@ for the active processes.  Some of these keys can also be used to switch
 directly from bar graph mode to particular detailed process information
 in text mode.
 Other keys can be used to influence the sort order of the active process/thread
-list (keys 'C', 'M', 'D', 'N', 'E' or 'o').
+list (keys 'C', 'M', 'D', 'N', 'E' or 'O').
 .PP
 .TP 5
 .B g
@@ -795,8 +795,8 @@ average memory occupation during the sample, and
 GPU percentage.
 .PP
 .TP 5
-.B O
-Show the user-defined line of the process.
+.B o
+Show the user-defined line in the process list.
 
 In the configuration file the keyword
 .I ownprocline
@@ -900,11 +900,12 @@ The last columns contain the accumulated occupation percentage for the
 chosen resource (default: CPU) and the container/pod name (CID/POD).
 .PP
 .TP 5
-.B o
+.B O
 Define sorting order of process list based on a specific column
 (case insensitive) and define whether sorting should be done ascending
-or descending. The selected column must be part of the current process
-view, either visible or unvisible (when the screen is too narrow to
+or descending (most logical choice is default).
+The selected column must be part of the current process view,
+either visible or unvisible (when the screen is too narrow to
 show the column).
 
 Selecting column 'CPU' in descending order is equivalent to pressing 'C', 
