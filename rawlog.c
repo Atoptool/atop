@@ -57,6 +57,7 @@
 #include "photosyst.h"
 #include "cgroups.h"
 #include "showgeneric.h"
+#include "showlinux.h"
 #include "rawlog.h"
 
 #define	BASEPATH	"/var/log/atop"  

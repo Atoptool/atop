@@ -19,6 +19,12 @@
 **
 ** Additions for cgroups
 ** --------------------------------------------------------------------------
+** Author:      Gerlof Langeveld
+** E-mail:      gerlof.langeveld@atoptool.nl
+** Date:        November 2025
+**
+** Sort on any column
+** --------------------------------------------------------------------------
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -50,6 +56,7 @@
 #include <stdarg.h>
 #include <curses.h>
 #include <regex.h>
+#include <limits.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -176,7 +183,7 @@ char *procprt_NVCSW_a(struct tstat *, int, int);
 char *procprt_NVCSW_e(struct tstat *, int, int);
 char *procprt_NIVCSW_a(struct tstat *, int, int);
 char *procprt_NIVCSW_e(struct tstat *, int, int);
-char *procprt_SORTITEM_ae(struct tstat *, int, int);
+char *procprt_RESOURCE_ae(struct tstat *, int, int);
 
 char *cgroup_CGROUP_PATH(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
@@ -212,10 +219,14 @@ char *cgroup_CGRCMD(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 
 
-static char     *columnhead[] = {
-	[MSORTCPU]= "ACPU", [MSORTMEM]= "AMEM",
-	[MSORTDSK]= "ADSK", [MSORTNET]= "ANET",
-	[MSORTGPU]= "AGPU",
+// AND with 0x1f to saving entries in table
+//
+static char *columnhead[] = {
+	[MPERCCPU&0x1f] = "CPU",
+	[MPERCDSK&0x1f] = "DSK",
+	[MPERCGPU&0x1f] = "GPU",
+	[MPERCMEM&0x1f] = "MEM",
+	[MPERCNET&0x1f] = "NET",
 };
 
 /***************************************************************/
@@ -374,13 +385,12 @@ getspacings(detail_printpair *elemptr)
  * if in interactive mode, columns are aligned to fill out rows
  */
 void
-showprochead(detail_printpair* elemptr, int curlist, int totlist, 
-                  char showorder, char autosort) 
+showprochead(detail_printpair *elemptr, int curlist, int totlist, struct procview *pv)
 {
         detail_printpair curelem;
 
         char *chead="";
-        int  order=showorder;
+        int  resource = pv->showresource;
         int  curline, col;
         char pagindic[10];
         int  pagindiclen;
@@ -401,13 +411,12 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
                 printg("\n");
 	}
 
-        while ((curelem=*elemptr).pf != 0) 
+        while ((curelem=*elemptr).pf != NULL) 
         {
-                if (curelem.pf->head == 0)     // empty header==special: SORTITEM
+                if (curelem.pf->elementnr == 0)     // empty header==special: RESOURCE
                 {
-			snprintf(buf, sizeof buf, "%*s", procprt_SORTITEM.width,
-				autosort ? columnhead[order] : columnhead[order]+1);
-
+			snprintf(buf, sizeof buf, "%*s", procprt_RESOURCE.width,
+						columnhead[resource&0x1f]);
                         chead = buf;
                 } 
                 else 
@@ -419,7 +428,7 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
                 {
 			// print sort criterium column? then switch on color
 			//
-			if (curelem.pf->head == 0)
+			if (curelem.pf->elementnr == pv->sortcolumn)
 			{
 				if (usecolors)
 					attron(COLOR_PAIR(FGCOLORINFO));
@@ -433,7 +442,7 @@ showprochead(detail_printpair* elemptr, int curlist, int totlist,
 
 			// print sort criterium column? then switch off color
 			//
-			if (curelem.pf->head == 0)
+			if (curelem.pf->elementnr == pv->sortcolumn)
 			{
 				if (usecolors)
 					attroff(COLOR_PAIR(FGCOLORINFO));
@@ -502,12 +511,12 @@ showprocline(detail_printpair* elemptr, struct tstat *curstat,
 
         while ((curelem=*elemptr).pf!=0) 
         {
-                // what to print?  SORTITEM, or active process or
+                // what to print?  RESOURCE, or active process or
                 // exited process?
 
-                if (curelem.pf->head==0)                // empty string=sortitem
+                if (curelem.pf->elementnr == 0)     // empty header==special: RESOURCE
                 {
-                        printg("%*.0lf%%", procprt_SORTITEM.width-1, perc);
+                        printg("%*.0lf%%", procprt_RESOURCE.width-1, perc);
                 }
                 else if (curstat->gen.state != 'E')  // active process
                 {
@@ -610,6 +619,140 @@ procprt_NOTAVAIL_7(struct tstat *curstat, int avgval, int nsecs)
         return "      ?";
 }
 /***************************************************************/
+/* Definition of column that shows specific resource           */
+/* percentage to be influenced by keys C, M, D, N, E.          */
+/***************************************************************/
+char *
+procprt_RESOURCE_ae(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "";   // dummy function
+}
+
+int
+compcpu(const void *a, const void *b, void *dir)
+{
+        register count_t acpu = (*(struct tstat **)a)->cpu.stime +
+ 	                        (*(struct tstat **)a)->cpu.utime;
+        register count_t bcpu = (*(struct tstat **)b)->cpu.stime +
+ 	                        (*(struct tstat **)b)->cpu.utime;
+
+        if (acpu > bcpu)
+		return   1 * *(int *)dir;
+
+        if (acpu < bcpu)
+		return  -1 * *(int *)dir;
+
+        return compmem(a, b, dir);
+}
+
+int
+compmem(const void *a, const void *b, void *dir)
+{
+        register count_t amem = (*(struct tstat **)a)->mem.rmem;
+        register count_t bmem = (*(struct tstat **)b)->mem.rmem;
+
+        if (amem > bmem)
+		return   1 * *(int *)dir;
+
+        if (amem < bmem)
+		return  -1 * *(int *)dir;
+
+        return  0;
+}
+
+int
+compdsk(const void *a, const void *b, void *dir)
+{
+	struct tstat	*ta = *(struct tstat **)a;
+	struct tstat	*tb = *(struct tstat **)b;
+
+        count_t	adsk;
+        count_t bdsk;
+
+	if (ta->dsk.wsz > ta->dsk.cwsz)
+		adsk = ta->dsk.rio + ta->dsk.wsz - ta->dsk.cwsz;
+	else
+		adsk = ta->dsk.rio;
+
+	if (tb->dsk.wsz > tb->dsk.cwsz)
+		bdsk = tb->dsk.rio + tb->dsk.wsz - tb->dsk.cwsz;
+	else
+		bdsk = tb->dsk.rio;
+
+        if (adsk > bdsk)
+		return   1 * *(int *)dir;
+
+        if (adsk < bdsk)
+		return  -1 * *(int *)dir;
+
+        return compcpu(a, b, dir);
+}
+
+int
+compnet(const void *a, const void *b, void *dir)
+{
+        register count_t anet = (*(struct tstat **)a)->net.tcpssz +
+                                (*(struct tstat **)a)->net.tcprsz +
+                                (*(struct tstat **)a)->net.udpssz +
+                                (*(struct tstat **)a)->net.udprsz;
+        register count_t bnet = (*(struct tstat **)b)->net.tcpssz +
+                                (*(struct tstat **)b)->net.tcprsz +
+                                (*(struct tstat **)b)->net.udpssz +
+                                (*(struct tstat **)b)->net.udprsz;
+
+        if (anet > bnet)
+		return   1 * *(int *)dir;
+
+        if (anet < bnet)
+		return  -1 * *(int *)dir;
+
+	return compcpu(a, b, dir);
+}
+
+int
+compgpu(const void *a, const void *b, void *dir)	// always descending
+{
+        register char 	 astate = (*(struct tstat **)a)->gpu.state;
+        register char 	 bstate = (*(struct tstat **)b)->gpu.state;
+
+        register count_t abusy  = (*(struct tstat **)a)->gpu.gpubusycum;
+        register count_t bbusy  = (*(struct tstat **)b)->gpu.gpubusycum;
+        register count_t amem   = (*(struct tstat **)a)->gpu.memnow;
+        register count_t bmem   = (*(struct tstat **)b)->gpu.memnow;
+
+        if (!astate)		// no GPU usage?
+		abusy = amem = -2; 
+
+        if (!bstate)		// no GPU usage?
+		bbusy = bmem = -2; 
+
+	if (abusy == -1 || bbusy == -1)
+	{
+                if (amem > bmem)
+			return   1 * *(int *)dir;
+
+                if (amem < bmem) return -1;
+			return  -1 * *(int *)dir;
+
+                return  0;
+	}
+	else
+	{
+                if (abusy > bbusy)
+			return   1 * *(int *)dir;
+
+                if (abusy < bbusy)
+			return  -1 * *(int *)dir;
+
+       		return  0;
+	}
+}
+
+detail_printdef procprt_RESOURCE =   // width is dynamically defined!
+   {0, "", "RESOURCE", .ac.doactiveconverts = procprt_RESOURCE_ae, procprt_RESOURCE_ae, compcpu, -1, 4, 0};
+/***************************************************************/
+int comptid(const void *, const void *, void *);
+
 char *
 procprt_TID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -622,9 +765,20 @@ procprt_TID_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+comptid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.pid;
+        register int bval = (*(struct tstat **)b)->gen.pid;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TID = 
-   { "TID", "TID", .ac.doactiveconverts = procprt_TID_ae, procprt_TID_ae, ' ', 5}; //DYNAMIC WIDTH!
+   {0, "TID", "TID", .ac.doactiveconverts = procprt_TID_ae, procprt_TID_ae, comptid, 1, 5, 0}; //DYNAMIC WIDTH!
 /***************************************************************/
+int comppid(const void *, const void *, void *);
+
 char *
 procprt_PID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -646,9 +800,32 @@ procprt_PID_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+comppid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.tgid;
+        register int bval = (*(struct tstat **)b)->gen.tgid;
+
+        register int apid = (*(struct tstat **)a)->gen.pid;
+        register int bpid = (*(struct tstat **)b)->gen.pid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && apid == 0)
+		aval = 0;
+
+	if (bstate == 'E' && bpid == 0)
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_PID = 
-   { "PID", "PID", .ac.doactiveconverts = procprt_PID_a, procprt_PID_e, ' ', 5}; //DYNAMIC WIDTH!
+   {0, "PID", "PID", .ac.doactiveconverts = procprt_PID_a, procprt_PID_e, comppid, 1, 5}; //DYNAMIC WIDTH!
 /***************************************************************/
+int compppid(const void *, const void *, void *);
+
 char *
 procprt_PPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -670,9 +847,20 @@ procprt_PPID_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compppid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.ppid;
+        register int bval = (*(struct tstat **)b)->gen.ppid;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_PPID = 
-   { "PPID", "PPID", .ac.doactiveconverts = procprt_PPID_a, procprt_PPID_e, ' ', 5}; //DYNAMIC WIDTH!
+   {0, "PPID", "PPID", .ac.doactiveconverts = procprt_PPID_a, procprt_PPID_e, compppid, 1, 5, 0}; //DYNAMIC WIDTH!
 /***************************************************************/
+int compvpid(const void *, const void *, void *);
+
 char *
 procprt_VPID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -691,9 +879,29 @@ procprt_VPID_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compvpid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.vpid;
+        register int bval = (*(struct tstat **)b)->gen.vpid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VPID = 
-   { "VPID", "VPID", .ac.doactiveconverts = procprt_VPID_a, procprt_VPID_e, ' ', 5}; //DYNAMIC WIDTH!
+   {0, "VPID", "VPID", .ac.doactiveconverts = procprt_VPID_a, procprt_VPID_e, compvpid, 1, 5, 0}; //DYNAMIC WIDTH!
 /***************************************************************/
+int compctid(const void *, const void *, void *);
+
 char *
 procprt_CTID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -709,9 +917,31 @@ procprt_CTID_e(struct tstat *curstat, int avgval, int nsecs)
         return "    -";
 }
 
+int
+compctid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.ctid;
+        register int bval = (*(struct tstat **)b)->gen.ctid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_CTID = 
-   { " CTID", "CTID", .ac.doactiveconverts = procprt_CTID_a, procprt_CTID_e, ' ', 5};
+   {0, " CTID", "CTID", .ac.doactiveconverts = procprt_CTID_a, procprt_CTID_e, compctid, 1, 5, 0};
 /***************************************************************/
+#define HOSTUTS		"-----host-----"
+
+int compcid(const void *, const void *, void *);
+
 char *
 procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -720,7 +950,7 @@ procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
 	if (curstat->gen.utsname[0])
         	snprintf(buf, sizeof buf, "%-15s", curstat->gen.utsname);
 	else
-        	snprintf(buf, sizeof buf, "%-15s", "host-----------");
+        	snprintf(buf, sizeof buf, "%-15s", HOSTUTS);
 
         return buf;
 }
@@ -738,9 +968,31 @@ procprt_CID_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compcid(const void *a, const void *b, void *dir)
+{
+        register char *aval = (*(struct tstat **)a)->gen.utsname;
+        register char *bval = (*(struct tstat **)b)->gen.utsname;
+
+	if (*aval == 0 && *bval == 0)
+		return 0;
+
+	if (*aval == 0)
+		aval = HOSTUTS;
+
+	if (*bval == 0)
+		bval = HOSTUTS;
+
+	// empty string means 'host' 
+	//
+	return strcmp(aval, bval) * *(int *)dir;
+}
+
 detail_printdef procprt_CID = 
-   { "CID/POD        ", "CID", .ac.doactiveconverts = procprt_CID_a, procprt_CID_e, ' ', 15};
+   {0, "CID/POD        ", "CID", .ac.doactiveconverts = procprt_CID_a, procprt_CID_e, compcid, -1, 15, 0};
 /***************************************************************/
+int compsyscpu(const void *, const void *, void *);
+
 char *
 procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -750,9 +1002,20 @@ procprt_SYSCPU_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compsyscpu(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->cpu.stime;
+        register count_t bval = (*(struct tstat **)b)->cpu.stime;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_SYSCPU = 
-   { "SYSCPU", "SYSCPU", .ac.doactiveconverts = procprt_SYSCPU_ae, procprt_SYSCPU_ae, ' ', 6};
+   {0, "SYSCPU", "SYSCPU", .ac.doactiveconverts = procprt_SYSCPU_ae, procprt_SYSCPU_ae, compsyscpu, -1, 6, 0};
 /***************************************************************/
+int compusrcpu(const void *, const void *, void *);
+
 char *
 procprt_USRCPU_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -762,9 +1025,20 @@ procprt_USRCPU_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compusrcpu(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->cpu.utime;
+        register count_t bval = (*(struct tstat **)b)->cpu.utime;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_USRCPU = 
-   { "USRCPU", "USRCPU", .ac.doactiveconverts = procprt_USRCPU_ae, procprt_USRCPU_ae, ' ', 6};
+   {0, "USRCPU", "USRCPU", .ac.doactiveconverts = procprt_USRCPU_ae, procprt_USRCPU_ae, compusrcpu, -1, 6, 0};
 /***************************************************************/
+int compvgrow(const void *, const void *, void *);
+
 char *
 procprt_VGROW_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -780,9 +1054,29 @@ procprt_VGROW_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvgrow(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vgrow;
+        register count_t bval = (*(struct tstat **)b)->mem.vgrow;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VGROW = 
-   { " VGROW", "VGROW", .ac.doactiveconverts = procprt_VGROW_a, procprt_VGROW_e, ' ', 6};
+   {0, " VGROW", "VGROW", .ac.doactiveconverts = procprt_VGROW_a, procprt_VGROW_e, compvgrow, -1, 6, 0};
 /***************************************************************/
+int comprgrow(const void *, const void *, void *);
+
 char *
 procprt_RGROW_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -798,9 +1092,29 @@ procprt_RGROW_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+comprgrow(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.rgrow;
+        register count_t bval = (*(struct tstat **)b)->mem.rgrow;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RGROW = 
-   { " RGROW", "RGROW", .ac.doactiveconverts = procprt_RGROW_a, procprt_RGROW_e, ' ', 6};
+   {0, " RGROW", "RGROW", .ac.doactiveconverts = procprt_RGROW_a, procprt_RGROW_e, comprgrow, -1, 6, 0};
 /***************************************************************/
+int compminflt(const void *, const void *, void *);
+
 char *
 procprt_MINFLT_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -810,9 +1124,20 @@ procprt_MINFLT_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compminflt(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.minflt;
+        register count_t bval = (*(struct tstat **)b)->mem.minflt;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_MINFLT = 
-   { "MINFLT", "MINFLT", .ac.doactiveconverts = procprt_MINFLT_ae, procprt_MINFLT_ae, ' ', 6};
+   {0, "MINFLT", "MINFLT", .ac.doactiveconverts = procprt_MINFLT_ae, procprt_MINFLT_ae, compminflt, -1, 6, 0};
 /***************************************************************/
+int compmajflt(const void *, const void *, void *);
+
 char *
 procprt_MAJFLT_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -822,9 +1147,20 @@ procprt_MAJFLT_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compmajflt(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.majflt;
+        register count_t bval = (*(struct tstat **)b)->mem.majflt;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_MAJFLT = 
-   { "MAJFLT", "MAJFLT", .ac.doactiveconverts = procprt_MAJFLT_ae, procprt_MAJFLT_ae, ' ', 6};
+   {0, "MAJFLT", "MAJFLT", .ac.doactiveconverts = procprt_MAJFLT_ae, procprt_MAJFLT_ae, compmajflt, -1, 6, 0};
 /***************************************************************/
+int compvstext(const void *, const void *, void *);
+
 char *
 procprt_VSTEXT_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -840,9 +1176,29 @@ procprt_VSTEXT_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvstext(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vexec;
+        register count_t bval = (*(struct tstat **)b)->mem.vexec;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VSTEXT = 
-   { "VSTEXT", "VSTEXT", .ac.doactiveconverts = procprt_VSTEXT_a, procprt_VSTEXT_e, ' ', 6};
+   {0, "VSTEXT", "VSTEXT", .ac.doactiveconverts = procprt_VSTEXT_a, procprt_VSTEXT_e, compvstext, -1, 6, 0};
 /***************************************************************/
+int compvsize(const void *a, const void *b, void *dir);
+
 char *
 procprt_VSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -858,9 +1214,29 @@ procprt_VSIZE_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvsize(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vmem;
+        register count_t bval = (*(struct tstat **)b)->mem.vmem;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VSIZE = 
-   { " VSIZE", "VSIZE", .ac.doactiveconverts = procprt_VSIZE_a, procprt_VSIZE_e, ' ', 6};
+   {0, " VSIZE", "VSIZE", .ac.doactiveconverts = procprt_VSIZE_a, procprt_VSIZE_e, compvsize, -1, 6, 0};
 /***************************************************************/
+int comprsize(const void *a, const void *b, void *dir);
+
 char *
 procprt_RSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -876,9 +1252,29 @@ procprt_RSIZE_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+comprsize(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.rmem;
+        register count_t bval = (*(struct tstat **)b)->mem.rmem;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RSIZE = 
-   { " RSIZE", "RSIZE", .ac.doactiveconverts = procprt_RSIZE_a, procprt_RSIZE_e, ' ', 6};
+   {0, " RSIZE", "RSIZE", .ac.doactiveconverts = procprt_RSIZE_a, procprt_RSIZE_e, comprsize, -1, 6, 0};
 /***************************************************************/
+int comppsize(const void *, const void *, void *);
+
 char *
 procprt_PSIZE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -897,9 +1293,29 @@ procprt_PSIZE_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+comppsize(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.pmem;
+        register count_t bval = (*(struct tstat **)b)->mem.pmem;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_PSIZE = 
-   { " PSIZE", "PSIZE", .ac.doactiveconverts = procprt_PSIZE_a, procprt_PSIZE_e, ' ', 6};
+   {0, " PSIZE", "PSIZE", .ac.doactiveconverts = procprt_PSIZE_a, procprt_PSIZE_e, comppsize, -1, 6, 0};
 /***************************************************************/
+int compvlibs(const void *, const void *, void *);
+
 char *
 procprt_VSLIBS_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -915,9 +1331,29 @@ procprt_VSLIBS_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvlibs(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vlibs;
+        register count_t bval = (*(struct tstat **)b)->mem.vlibs;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VSLIBS = 
-   { "VSLIBS", "VSLIBS", .ac.doactiveconverts = procprt_VSLIBS_a, procprt_VSLIBS_e, ' ', 6};
+   {0, "VSLIBS", "VSLIBS", .ac.doactiveconverts = procprt_VSLIBS_a, procprt_VSLIBS_e, compvlibs, -1, 6, 0};
 /***************************************************************/
+int compvdata(const void *, const void *, void *);
+
 char *
 procprt_VDATA_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -933,9 +1369,29 @@ procprt_VDATA_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvdata(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vdata;
+        register count_t bval = (*(struct tstat **)b)->mem.vdata;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VDATA = 
-   { " VDATA", "VDATA", .ac.doactiveconverts = procprt_VDATA_a, procprt_VDATA_e, ' ', 6};
+   {0, " VDATA", "VDATA", .ac.doactiveconverts = procprt_VDATA_a, procprt_VDATA_e, compvdata, -1, 6, 0};
 /***************************************************************/
+int compvstack(const void *, const void *, void *);
+
 char *
 procprt_VSTACK_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -951,9 +1407,29 @@ procprt_VSTACK_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compvstack(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vstack;
+        register count_t bval = (*(struct tstat **)b)->mem.vstack;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_VSTACK = 
-   { "VSTACK", "VSTACK", .ac.doactiveconverts = procprt_VSTACK_a, procprt_VSTACK_e, ' ', 6};
+   {0, "VSTACK", "VSTACK", .ac.doactiveconverts = procprt_VSTACK_a, procprt_VSTACK_e, compvstack, -1, 6, 0};
 /***************************************************************/
+int compswapsz(const void *, const void *, void *);
+
 char *
 procprt_SWAPSZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -969,9 +1445,29 @@ procprt_SWAPSZ_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+compswapsz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vswap;
+        register count_t bval = (*(struct tstat **)b)->mem.vswap;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_SWAPSZ = 
-   { "SWAPSZ", "SWAPSZ", .ac.doactiveconverts = procprt_SWAPSZ_a, procprt_SWAPSZ_e, ' ', 6};
+   {0, "SWAPSZ", "SWAPSZ", .ac.doactiveconverts = procprt_SWAPSZ_a, procprt_SWAPSZ_e, compswapsz, -1, 6, 0};
 /***************************************************************/
+int complocksz(const void *, const void *, void *);
+
 char *
 procprt_LOCKSZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -987,9 +1483,29 @@ procprt_LOCKSZ_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0K";
 }
 
+int
+complocksz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.vlock;
+        register count_t bval = (*(struct tstat **)b)->mem.vlock;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_LOCKSZ = 
-   { "LOCKSZ", "LOCKSZ", .ac.doactiveconverts = procprt_LOCKSZ_a, procprt_LOCKSZ_e, ' ', 6};
+   {0, "LOCKSZ", "LOCKSZ", .ac.doactiveconverts = procprt_LOCKSZ_a, procprt_LOCKSZ_e, complocksz, -1, 6, 0};
 /***************************************************************/
+int compcmd(const void *, const void *, void *);
+
 char *
 procprt_CMD_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1010,9 +1526,20 @@ procprt_CMD_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compcmd(const void *a, const void *b, void *dir)
+{
+        register char *aval = (*(struct tstat **)a)->gen.name;
+        register char *bval = (*(struct tstat **)b)->gen.name;
+
+	return strcmp(aval, bval) * *(int *)dir;
+}
+
 detail_printdef procprt_CMD = 
-   { "CMD           ", "CMD", .ac.doactiveconverts = procprt_CMD_a, procprt_CMD_e, ' ', 14};
+   {0, "CMD           ", "CMD", .ac.doactiveconverts = procprt_CMD_a, procprt_CMD_e, compcmd, 1, 14, 0};
 /***************************************************************/
+int compruid(const void *, const void *, void *);
+
 char *
 procprt_RUID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1023,9 +1550,25 @@ procprt_RUID_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compruid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.ruid;
+        register int bval = (*(struct tstat **)b)->gen.ruid;
+
+        static char abuf[9], bbuf[9];
+
+	uid2str(aval, abuf);
+	uid2str(bval, bbuf);
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_RUID = 
-   { "RUID    ", "RUID", .ac.doactiveconverts = procprt_RUID_ae, procprt_RUID_ae, ' ', 8};
+   {0, "RUID    ", "RUID", .ac.doactiveconverts = procprt_RUID_ae, procprt_RUID_ae, compruid, 1, 8, 0};
 /***************************************************************/
+int compeuid(const void *, const void *, void *);
+
 char *
 procprt_EUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1042,9 +1585,40 @@ procprt_EUID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compeuid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.euid;
+        register int bval = (*(struct tstat **)b)->gen.euid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	uid2str(aval, abuf);
+	uid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_EUID = 
-   { "EUID    ", "EUID", .ac.doactiveconverts = procprt_EUID_a, procprt_EUID_e, ' ', 8};
+   {0, "EUID    ", "EUID", .ac.doactiveconverts = procprt_EUID_a, procprt_EUID_e, compeuid, 1, 8, 0};
 /***************************************************************/
+int compsuid(const void *, const void *, void *);
+
 char *
 procprt_SUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1061,9 +1635,40 @@ procprt_SUID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compsuid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.suid;
+        register int bval = (*(struct tstat **)b)->gen.suid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	uid2str(aval, abuf);
+	uid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_SUID = 
-   { "SUID    ", "SUID", .ac.doactiveconverts = procprt_SUID_a, procprt_SUID_e, ' ', 8};
+   {0, "SUID    ", "SUID", .ac.doactiveconverts = procprt_SUID_a, procprt_SUID_e, compsuid, 1, 8, 0};
 /***************************************************************/
+int compfsuid(const void *, const void *, void *);
+
 char *
 procprt_FSUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1080,9 +1685,40 @@ procprt_FSUID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compfsuid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.fsuid;
+        register int bval = (*(struct tstat **)b)->gen.fsuid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	uid2str(aval, abuf);
+	uid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_FSUID = 
-   { "FSUID   ", "FSUID", .ac.doactiveconverts = procprt_FSUID_a, procprt_FSUID_e, ' ', 8};
+   {0, "FSUID   ", "FSUID", .ac.doactiveconverts = procprt_FSUID_a, procprt_FSUID_e, compfsuid, 1, 8, 0};
 /***************************************************************/
+int comprgid(const void *, const void *, void *);
+
 char *
 procprt_RGID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1093,9 +1729,25 @@ procprt_RGID_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+comprgid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.rgid;
+        register int bval = (*(struct tstat **)b)->gen.rgid;
+
+        static char abuf[9], bbuf[9];
+
+	gid2str(aval, abuf);
+	gid2str(bval, bbuf);
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_RGID = 
-   { "RGID    ", "RGID", .ac.doactiveconverts = procprt_RGID_ae, procprt_RGID_ae, ' ', 8};
+   {0, "RGID    ", "RGID", .ac.doactiveconverts = procprt_RGID_ae, procprt_RGID_ae, comprgid, 1, 8, 0};
 /***************************************************************/
+int compegid(const void *, const void *, void *);
+
 char *
 procprt_EGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1112,9 +1764,40 @@ procprt_EGID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compegid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.egid;
+        register int bval = (*(struct tstat **)b)->gen.egid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	gid2str(aval, abuf);
+	gid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_EGID = 
-   { "EGID    ", "EGID", .ac.doactiveconverts = procprt_EGID_a, procprt_EGID_e, ' ', 8};
+   {0, "EGID    ", "EGID", .ac.doactiveconverts = procprt_EGID_a, procprt_EGID_e, compegid, 1, 8, 0};
 /***************************************************************/
+int compsgid(const void *, const void *, void *);
+
 char *
 procprt_SGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1131,9 +1814,40 @@ procprt_SGID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compsgid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.sgid;
+        register int bval = (*(struct tstat **)b)->gen.sgid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	gid2str(aval, abuf);
+	gid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_SGID = 
-   { "SGID    ", "SGID", .ac.doactiveconverts = procprt_SGID_a, procprt_SGID_e, ' ', 8};
+   {0, "SGID    ", "SGID", .ac.doactiveconverts = procprt_SGID_a, procprt_SGID_e, compsgid, 1, 8, 0};
 /***************************************************************/
+int compfsgid(const void *, const void *, void *);
+
 char *
 procprt_FSGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1150,9 +1864,40 @@ procprt_FSGID_e(struct tstat *curstat, int avgval, int nsecs)
 	return "-       ";
 }
 
+int
+compfsgid(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.fsgid;
+        register int bval = (*(struct tstat **)b)->gen.fsgid;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+	gid2str(aval, abuf);
+	gid2str(bval, bbuf);
+
+	if (astate == 'E')
+	{
+		memset(abuf, 'z', sizeof(abuf)-1);
+		abuf[sizeof(abuf)-1] = '\0';
+	}
+
+	if (bstate == 'E')
+	{
+		memset(bbuf, 'z', sizeof(bbuf)-1);
+		bbuf[sizeof(bbuf)-1] = '\0';
+	}
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_FSGID = 
-   { "FSGID   ", "FSGID", .ac.doactiveconverts = procprt_FSGID_a, procprt_FSGID_e, ' ', 8};
+   {0, "FSGID   ", "FSGID", .ac.doactiveconverts = procprt_FSGID_a, procprt_FSGID_e, compfsgid, 1, 8, 0};
 /***************************************************************/
+int compdate(const void *, const void *, void *);
+
 char *
 procprt_STDATE_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1162,9 +1907,31 @@ procprt_STDATE_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compdate(const void *a, const void *b, void *dir)
+{
+        register time_t aval = (*(struct tstat **)a)->gen.btime;
+        register time_t bval = (*(struct tstat **)b)->gen.btime;
+
+        static char abuf[32], bbuf[32];
+
+	// concatenate date and time strings to order time
+	// with the same date as well
+	//
+        convdate(aval, abuf);
+        convdate(bval, bbuf);
+
+        convtime(aval, abuf+10);
+        convtime(bval, bbuf+10);
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_STDATE = 
-   { "  STDATE  ", "STDATE", .ac.doactiveconverts = procprt_STDATE_ae, procprt_STDATE_ae, ' ', 10};
+   {0, "  STDATE  ", "STDATE", .ac.doactiveconverts = procprt_STDATE_ae, procprt_STDATE_ae, compdate, 1, 10, 0};
 /***************************************************************/
+int comptime(const void *, const void *, void *);
+
 char *
 procprt_STTIME_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1174,9 +1941,25 @@ procprt_STTIME_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+comptime(const void *a, const void *b, void *dir)
+{
+        register time_t aval = (*(struct tstat **)a)->gen.btime;
+        register time_t bval = (*(struct tstat **)b)->gen.btime;
+
+        static char abuf[11], bbuf[11];
+
+        convtime(aval, abuf);
+        convtime(bval, bbuf);
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_STTIME = 
-   { " STTIME ", "STTIME", .ac.doactiveconverts = procprt_STTIME_ae, procprt_STTIME_ae, ' ', 8};
+   {0, " STTIME ", "STTIME", .ac.doactiveconverts = procprt_STTIME_ae, procprt_STTIME_ae, comptime, 1, 8, 0};
 /***************************************************************/
+int compendate(const void *, const void *, void *);
+
 char *
 procprt_ENDATE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1197,9 +1980,42 @@ procprt_ENDATE_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compendate(const void *a, const void *b, void *dir)
+{
+        register time_t aval =	(*(struct tstat **)a)->gen.btime +
+        			(*(struct tstat **)a)->gen.elaps/hertz;
+        register time_t bval = 	(*(struct tstat **)b)->gen.btime +
+        			(*(struct tstat **)b)->gen.elaps/hertz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[32], bbuf[32];
+
+	if (astate != 'E')
+		aval = INT_MAX;
+
+	if (bstate != 'E')
+		bval = INT_MAX;
+
+	// concatenate date and time strings to order time
+	// with the same date as well
+	//
+        convdate(aval, abuf);
+        convdate(bval, bbuf);
+
+        convtime(aval, abuf+10);
+        convtime(bval, bbuf+10);
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_ENDATE = 
-   { "  ENDATE  ", "ENDATE", .ac.doactiveconverts = procprt_ENDATE_a, procprt_ENDATE_e, ' ', 10};
+   {0, "  ENDATE  ", "ENDATE", .ac.doactiveconverts = procprt_ENDATE_a, procprt_ENDATE_e, compendate, 1, 10, 0};
 /***************************************************************/
+int compentime(const void *, const void *, void *);
+
 char *
 procprt_ENTIME_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1220,9 +2036,36 @@ procprt_ENTIME_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compentime(const void *a, const void *b, void *dir)
+{
+        register time_t aval =	(*(struct tstat **)a)->gen.btime +
+        			(*(struct tstat **)a)->gen.elaps/hertz;
+        register time_t bval = 	(*(struct tstat **)b)->gen.btime +
+        			(*(struct tstat **)b)->gen.elaps/hertz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+        static char abuf[9], bbuf[9];
+
+        convtime(aval, abuf);
+        convtime(bval, bbuf);
+
+	if (astate != 'E')
+		strcpy(abuf, "99:99:99");
+
+	if (bstate != 'E')
+		strcpy(bbuf, "99:99:99");
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_ENTIME = 
-   { " ENTIME ", "ENTIME", .ac.doactiveconverts = procprt_ENTIME_a, procprt_ENTIME_e, ' ', 8};
+   {0, " ENTIME ", "ENTIME", .ac.doactiveconverts = procprt_ENTIME_a, procprt_ENTIME_e, compentime, 1, 8, 0};
 /***************************************************************/
+int compthr(const void *, const void *, void *);
+
 char *
 procprt_THR_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1238,9 +2081,29 @@ procprt_THR_e(struct tstat *curstat, int avgval, int nsecs)
         return "   0";
 }
 
+int
+compthr(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.nthr;
+        register int bval = (*(struct tstat **)b)->gen.nthr;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_THR = 
-   { " THR", "THR", .ac.doactiveconverts = procprt_THR_a, procprt_THR_e, ' ', 4};
+   {0, " THR", "THR", .ac.doactiveconverts = procprt_THR_a, procprt_THR_e, compthr, -1, 4, 0};
 /***************************************************************/
+int compthrr(const void *, const void *, void *);
+
 char *
 procprt_TRUN_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1256,9 +2119,29 @@ procprt_TRUN_e(struct tstat *curstat, int avgval, int nsecs)
         return "   0";
 }
 
+int
+compthrr(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.nthrrun;
+        register int bval = (*(struct tstat **)b)->gen.nthrrun;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TRUN = 
-   { "TRUN", "TRUN", .ac.doactiveconverts = procprt_TRUN_a, procprt_TRUN_e, ' ', 4};
+   {0, "TRUN", "TRUN", .ac.doactiveconverts = procprt_TRUN_a, procprt_TRUN_e, compthrr, -1, 4, 0};
 /***************************************************************/
+int compthrs(const void *, const void *, void *);
+
 char *
 procprt_TSLPI_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1274,9 +2157,29 @@ procprt_TSLPI_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0";
 }
 
+int
+compthrs(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.nthrslpi;
+        register int bval = (*(struct tstat **)b)->gen.nthrslpi;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TSLPI = 
-   { "TSLPI", "TSLPI", .ac.doactiveconverts = procprt_TSLPI_a, procprt_TSLPI_e, ' ', 5};
+   {0, "TSLPI", "TSLPI", .ac.doactiveconverts = procprt_TSLPI_a, procprt_TSLPI_e, compthrs, -1, 5, 0};
 /***************************************************************/
+int compthru(const void *, const void *, void *);
+
 char *
 procprt_TSLPU_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1292,9 +2195,29 @@ procprt_TSLPU_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0";
 }
 
+int
+compthru(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.nthrslpu;
+        register int bval = (*(struct tstat **)b)->gen.nthrslpu;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TSLPU = 
-   { "TSLPU", "TSLPU", .ac.doactiveconverts = procprt_TSLPU_a, procprt_TSLPU_e, ' ', 5};
+   {0, "TSLPU", "TSLPU", .ac.doactiveconverts = procprt_TSLPU_a, procprt_TSLPU_e, compthru, -1, 5, 0};
 /***************************************************************/
+int compthri(const void *, const void *, void *);
+
 char *
 procprt_TIDLE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1310,9 +2233,29 @@ procprt_TIDLE_e(struct tstat *curstat, int avgval, int nsecs)
         return "    0";
 }
 
+int
+compthri(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.nthridle;
+        register int bval = (*(struct tstat **)b)->gen.nthridle;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 0;
+
+	if (bstate == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TIDLE = 
-   { "TIDLE", "TIDLE", .ac.doactiveconverts = procprt_TIDLE_a, procprt_TIDLE_e, ' ', 5};
+   {0, "TIDLE", "TIDLE", .ac.doactiveconverts = procprt_TIDLE_a, procprt_TIDLE_e, compthri, -1, 5, 0};
 /***************************************************************/
+int comppoli(const void *, const void *, void *);
+
 #define SCHED_NORMAL	0
 #define SCHED_FIFO	1
 #define SCHED_RR	2
@@ -1320,35 +2263,30 @@ detail_printdef procprt_TIDLE =
 #define SCHED_ISO	4
 #define SCHED_IDLE	5
 #define SCHED_DEADLINE	6
+#define SCHED_UNKNOWN1	7
+#define SCHED_UNKNOWN2	8
+#define SCHED_UNKNOWN3	9
+
+static char *policies[] = {
+	[SCHED_NORMAL]   = "norm",
+	[SCHED_FIFO]     = "fifo",
+	[SCHED_RR]       = "rr  ",
+	[SCHED_BATCH]    = "btch",
+	[SCHED_ISO]      = "iso ",
+	[SCHED_IDLE]     = "idle",
+	[SCHED_DEADLINE] = "dead",
+	[SCHED_UNKNOWN1] = "7   ",
+	[SCHED_UNKNOWN2] = "8   ",
+	[SCHED_UNKNOWN3] = "9   ",
+};
 
 char *
 procprt_POLI_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        switch (curstat->cpu.policy)
-        {
-                case SCHED_NORMAL:
-                        return "norm";
-                        break;
-                case SCHED_FIFO:
-                        return "fifo";
-                        break;
-                case SCHED_RR:
-                        return "rr  ";
-                        break;
-                case SCHED_BATCH:
-                        return "btch";
-                        break;
-                case SCHED_ISO:
-                        return "iso ";
-                        break;
-                case SCHED_IDLE:
-                        return "idle";
-                        break;
-                case SCHED_DEADLINE:
-                        return "dead";
-                        break;
-        }
-        return "?   ";
+        if (curstat->cpu.policy <= SCHED_UNKNOWN3)
+        	return policies[curstat->cpu.policy];
+	else
+        	return "?   ";
 }
 
 char *
@@ -1357,9 +2295,41 @@ procprt_POLI_e(struct tstat *curstat, int avgval, int nsecs)
         return "-   ";
 }
 
+int
+comppoli(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->cpu.policy;
+        register int bval = (*(struct tstat **)b)->cpu.policy;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	char *abuf, *bbuf;
+
+        if (aval < SCHED_UNKNOWN1)
+		abuf = policies[aval];
+	else
+		abuf = "zzzz";
+
+        if (bval < SCHED_UNKNOWN1)
+		bbuf = policies[bval];
+	else
+		bbuf = "zzzz";
+
+	if (astate == 'E')
+		abuf = "zzzz";
+
+	if (bstate == 'E')
+		bbuf = "zzzz";
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_POLI = 
-   { "POLI", "POLI", .ac.doactiveconverts = procprt_POLI_a, procprt_POLI_e, ' ', 4};
+   {0, "POLI", "POLI", .ac.doactiveconverts = procprt_POLI_a, procprt_POLI_e, comppoli, 1, 4, 0};
 /***************************************************************/
+int compnice(const void *, const void *, void *);
+
 char *
 procprt_NICE_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1375,9 +2345,29 @@ procprt_NICE_e(struct tstat *curstat, int avgval, int nsecs)
         return "   -";
 }
 
+int
+compnice(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->cpu.nice;
+        register int bval = (*(struct tstat **)b)->cpu.nice;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 99;	// anyhow higher than 19
+
+	if (bstate == 'E')
+		bval = 99;	// anyhow higher than 19
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_NICE = 
-   { "NICE", "NICE", .ac.doactiveconverts = procprt_NICE_a, procprt_NICE_e, ' ', 4};
+   {0, "NICE", "NICE", .ac.doactiveconverts = procprt_NICE_a, procprt_NICE_e, compnice, 1, 4, 0};
 /***************************************************************/
+int comppri(const void *, const void *, void *);
+
 char *
 procprt_PRI_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1393,9 +2383,29 @@ procprt_PRI_e(struct tstat *curstat, int avgval, int nsecs)
         return "  -";
 }
 
+int
+comppri(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->cpu.prio;
+        register int bval = (*(struct tstat **)b)->cpu.prio;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 9999;
+
+	if (bstate == 'E')
+		bval = 9999;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_PRI = 
-   { "PRI", "PRI", .ac.doactiveconverts = procprt_PRI_a, procprt_PRI_e, ' ', 3};
+   {0, "PRI", "PRI", .ac.doactiveconverts = procprt_PRI_a, procprt_PRI_e, comppri, 1, 3, 0};
 /***************************************************************/
+int comprtpr(const void *, const void *, void *);
+
 char *
 procprt_RTPR_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1411,9 +2421,29 @@ procprt_RTPR_e(struct tstat *curstat, int avgval, int nsecs)
         return "   -";
 }
 
+int
+comprtpr(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->cpu.rtprio;
+        register int bval = (*(struct tstat **)b)->cpu.rtprio;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = -1;
+
+	if (bstate == 'E')
+		bval = -1;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RTPR = 
-   { "RTPR", "RTPR", .ac.doactiveconverts = procprt_RTPR_a, procprt_RTPR_e, ' ', 4};
+   {0, "RTPR", "RTPR", .ac.doactiveconverts = procprt_RTPR_a, procprt_RTPR_e, comprtpr, -1, 4, 0};
 /***************************************************************/
+int compcpunr(const void *, const void *, void *);
+
 char *
 procprt_CURCPU_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1429,13 +2459,34 @@ procprt_CURCPU_e(struct tstat *curstat, int avgval, int nsecs)
         return "    -";
 }
 
+int
+compcpunr(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->cpu.curcpu;
+        register int bval = (*(struct tstat **)b)->cpu.curcpu;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E')
+		aval = 999999;
+
+	if (bstate == 'E')
+		bval = 999999;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_CURCPU = 
-   { "CPUNR", "CPUNR", .ac.doactiveconverts = procprt_CURCPU_a, procprt_CURCPU_e, ' ', 5};
+   {0, "CPUNR", "CPUNR", .ac.doactiveconverts = procprt_CURCPU_a, procprt_CURCPU_e, compcpunr, 1, 5, 0};
 /***************************************************************/
+int compst(const void *, const void *, void *);
+
 char *
 procprt_ST_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[3]="--";
+
         if (curstat->gen.excode & ~(INT_MAX))
         {
                 buf[0]='N';
@@ -1444,6 +2495,7 @@ procprt_ST_a(struct tstat *curstat, int avgval, int nsecs)
         { 
                 buf[0]='-';
         }
+
         return buf;
 }
 
@@ -1451,6 +2503,7 @@ char *
 procprt_ST_e(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[3];
+
         if (curstat->gen.excode & ~(INT_MAX))
         {
                 buf[0]='N';
@@ -1459,6 +2512,7 @@ procprt_ST_e(struct tstat *curstat, int avgval, int nsecs)
         { 
                 buf[0]='-';
         }
+
         if (curstat->gen.excode & 0xff) 
         {
                 if (curstat->gen.excode & 0x80)
@@ -1470,12 +2524,40 @@ procprt_ST_e(struct tstat *curstat, int avgval, int nsecs)
         {
                 buf[1] = 'E';
         }
+
         return buf;
 }
 
+int
+compst(const void *a, const void *b, void *dir)
+{
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	char	abuf[5], bbuf[5];
+
+	if (astate == 'E')
+		strncpy(abuf, procprt_ST_e(*(struct tstat **)a, 0, 0), 3);
+	else
+		strncpy(abuf, procprt_ST_a(*(struct tstat **)a, 0, 0), 3);
+
+	abuf[2] = '\0';
+
+	if (bstate == 'E')
+		strncpy(bbuf, procprt_ST_e(*(struct tstat **)b, 0, 0), 3);
+	else
+		strncpy(bbuf, procprt_ST_a(*(struct tstat **)b, 0, 0), 3);
+
+	bbuf[2] = '\0';
+
+	return strcmp(abuf, bbuf) * *(int *)dir;
+}
+
 detail_printdef procprt_ST = 
-   { "ST", "ST", .ac.doactiveconverts = procprt_ST_a, procprt_ST_e, ' ', 2};
+   {0, "ST", "ST", .ac.doactiveconverts = procprt_ST_a, procprt_ST_e, compst, -1, 2, 0};
 /***************************************************************/
+int compexc(const void *, const void *, void *);
+
 char *
 procprt_EXC_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1495,16 +2577,38 @@ procprt_EXC_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compexc(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.excode;
+        register int bval = (*(struct tstat **)b)->gen.excode;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval & 0xff ? aval & 0x7f : (aval>>8) & 0xff;
+	bval = bval & 0xff ? bval & 0x7f : (bval>>8) & 0xff;
+
+	if (astate != 'E')
+		aval = -1;
+
+	if (bstate != 'E')
+		bval = -1;
+
+	return (aval - bval) * *(int *)dir;
+}
 
 detail_printdef procprt_EXC = 
-   { "EXC", "EXC", .ac.doactiveconverts = procprt_EXC_a, procprt_EXC_e, ' ', 3};
+   {0, "EXC", "EXC", .ac.doactiveconverts = procprt_EXC_a, procprt_EXC_e, compexc, -1, 3, 0};
 /***************************************************************/
+int compstate(const void *, const void *, void *);
+
 char *
 procprt_S_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[2]="E";
+        static char buf[2] = "E";
 
-        buf[0]=curstat->gen.state;
+        buf[0] = curstat->gen.state;
         return buf;
 }
 
@@ -1512,13 +2616,22 @@ char *
 procprt_S_e(struct tstat *curstat, int avgval, int nsecs)
 {
         return "E";
+}
 
+int
+compstate(const void *a, const void *b, void *dir)
+{
+        register unsigned char aval = (*(struct tstat **)a)->gen.state;
+        register unsigned char bval = (*(struct tstat **)b)->gen.state;
+
+	return (aval - bval) * *(int *)dir;
 }
 
 detail_printdef procprt_S = 
-   { "S", "S", .ac.doactiveconverts = procprt_S_a, procprt_S_e, ' ', 1};
-
+   {0, "S", "S", .ac.doactiveconverts = procprt_S_a, procprt_S_e, compstate, -1, 1, 0};
 /***************************************************************/
+int compcmdline(const void *, const void *, void *);
+
 char *
 procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1544,11 +2657,27 @@ procprt_COMMAND_LINE_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compcmdline(const void *a, const void *b, void *dir)
+{
+        register char *acmdline = (*(struct tstat **)a)->gen.cmdline;
+        register char *bcmdline = (*(struct tstat **)b)->gen.cmdline;
+
+        register char *acmdname = (*(struct tstat **)a)->gen.name;
+        register char *bcmdname = (*(struct tstat **)b)->gen.name;
+
+        register char *acmd = *acmdline ? acmdline : acmdname;
+        register char *bcmd = *bcmdline ? bcmdline : bcmdname;
+
+	return strcmp(acmd, bcmd) * *(int *)dir;
+}
+
 detail_printdef procprt_COMMAND_LINE = 
-       { "COMMAND-LINE (horizontal scroll with <- and -> keys)",
-	"COMMAND-LINE", 
-        .ac.doactiveconverts = procprt_COMMAND_LINE_ae, procprt_COMMAND_LINE_ae, ' ', 0, 1};
+    {0, "COMMAND-LINE (horizontal scroll with <- and -> keys)", "COMMAND-LINE", 
+        .ac.doactiveconverts = procprt_COMMAND_LINE_ae, procprt_COMMAND_LINE_ae, compcmdline, 1, 0, 1};
 /***************************************************************/
+int compnprocs(const void *, const void *, void *);
+
 char *
 procprt_NPROCS_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1558,9 +2687,20 @@ procprt_NPROCS_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compnprocs(const void *a, const void *b, void *dir)
+{
+        register int aval = (*(struct tstat **)a)->gen.pid;
+        register int bval = (*(struct tstat **)b)->gen.pid;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_NPROCS = 
-   { "NPROCS", "NPROCS", .ac.doactiveconverts = procprt_NPROCS_ae, procprt_NPROCS_ae, ' ', 6};
-/***************************************************************/
+   {0, "NPROCS", "NPROCS", .ac.doactiveconverts = procprt_NPROCS_ae, procprt_NPROCS_ae, compnprocs, -1, 6, 0};
+/***************************************************************/ 
+int comprddsk(const void *, const void *, void *);
+
 char *
 procprt_RDDSK_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1580,9 +2720,29 @@ procprt_RDDSK_e(struct tstat *curstat, int avgval, int nsecs)
         return "     -";
 }
 
+int
+comprddsk(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->dsk.rsz;
+        register count_t bval = (*(struct tstat **)b)->dsk.rsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' || !(supportflags & IOSTAT))
+		aval = 0;
+
+	if (bstate == 'E' || !(supportflags & IOSTAT))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RDDSK = 
-   { " RDDSK", "RDDSK", .ac.doactiveconverts = procprt_RDDSK_a, procprt_RDDSK_e, ' ', 6};
+   {0, " RDDSK", "RDDSK", .ac.doactiveconverts = procprt_RDDSK_a, procprt_RDDSK_e, comprddsk, -1, 6, 0};
 /***************************************************************/
+int compwrdsk(const void *, const void *, void *);
+
 char *
 procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs) 
 {
@@ -1602,9 +2762,29 @@ procprt_WRDSK_e(struct tstat *curstat, int avgval, int nsecs)
         return "     -";
 }
 
+int
+compwrdsk(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->dsk.wsz;
+        register count_t bval = (*(struct tstat **)b)->dsk.wsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' || !(supportflags & IOSTAT))
+		aval = 0;
+
+	if (bstate == 'E' || !(supportflags & IOSTAT))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_WRDSK = 
-   { " WRDSK", "WRDSK", .ac.doactiveconverts = procprt_WRDSK_a, procprt_WRDSK_e, ' ', 6};
+   {0, " WRDSK", "WRDSK", .ac.doactiveconverts = procprt_WRDSK_a, procprt_WRDSK_e, compwrdsk, -1, 6, 0};
 /***************************************************************/
+int compcwrdsk(const void *, const void *, void *);
+
 char *
 procprt_CWRDSK_a(struct tstat *curstat, int avgval, int nsecs) 
 {
@@ -1621,9 +2801,35 @@ procprt_CWRDSK_a(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compcwrdsk(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->dsk.wsz;
+        register count_t bval = (*(struct tstat **)b)->dsk.wsz;
+
+        register count_t acal = (*(struct tstat **)a)->dsk.cwsz;
+        register count_t bcal = (*(struct tstat **)b)->dsk.cwsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval - acal;
+	bval = bval - bcal;
+
+	if (astate == 'E' || !(supportflags & IOSTAT) || aval < 0)
+		aval = 0;
+
+	if (bstate == 'E' || !(supportflags & IOSTAT) || bval < 0)
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_CWRDSK = 
-   {" WRDSK", "CWRDSK", .ac.doactiveconverts = procprt_CWRDSK_a, procprt_WRDSK_e, ' ', 6};
+   {0," CWRDSK", "CWRDSK", .ac.doactiveconverts = procprt_CWRDSK_a, procprt_WRDSK_e, compcwrdsk, -1, 6, 0};
 /***************************************************************/
+int compwcancel(const void *, const void *, void *);
+
 char *
 procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1643,9 +2849,29 @@ procprt_WCANCEL_e(struct tstat *curstat, int avgval, int nsecs)
         return "     -";
 }
 
+int
+compwcancel(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->dsk.cwsz;
+        register count_t bval = (*(struct tstat **)b)->dsk.cwsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' || !(supportflags & IOSTAT))
+		aval = 0;
+
+	if (bstate == 'E' || !(supportflags & IOSTAT))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_WCANCEL = 
-   {"WCANCL", "WCANCL", .ac.doactiveconverts = procprt_WCANCEL_a, procprt_WCANCEL_e, ' ', 6};
+   {0,"WCANCL", "WCANCL", .ac.doactiveconverts = procprt_WCANCEL_a, procprt_WCANCEL_e, compwcancel, -1, 6, 0};
 /***************************************************************/
+int comptcprcv(const void *, const void *, void *);
+
 char *
 procprt_TCPRCV_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1671,10 +2897,29 @@ procprt_TCPRCV_e(struct tstat *curstat, int avgval, int nsecs)
         	return "     -";
 }
 
+int
+comptcprcv(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcprcv;
+        register count_t bval = (*(struct tstat **)b)->net.tcprcv;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
 
 detail_printdef procprt_TCPRCV = 
-   { "TCPRCV", "TCPRCV", .ac.doactiveconverts = procprt_TCPRCV_a, procprt_TCPRCV_e, ' ', 6};
+   {0, "TCPRCV", "TCPRCV", .ac.doactiveconverts = procprt_TCPRCV_a, procprt_TCPRCV_e, comptcprcv, -1, 6, 0};
 /***************************************************************/
+int comptcprasz(const void *, const void *, void *);
+
 char *
 procprt_TCPRASZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1704,9 +2949,35 @@ procprt_TCPRASZ_e(struct tstat *curstat, int avgval, int nsecs)
         	return "      -";
 }
 
+int
+comptcprasz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcprcv;
+        register count_t bval = (*(struct tstat **)b)->net.tcprcv;
+
+        register count_t asiz = (*(struct tstat **)a)->net.tcprsz;
+        register count_t bsiz = (*(struct tstat **)b)->net.tcprsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval ? asiz/aval : 0;
+	bval = bval ? bsiz/bval : 0;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TCPRASZ = 
-   { "TCPRASZ", "TCPRASZ", .ac.doactiveconverts = procprt_TCPRASZ_a, procprt_TCPRASZ_e, ' ', 7};
+   {0, "TCPRASZ", "TCPRASZ", .ac.doactiveconverts = procprt_TCPRASZ_a, procprt_TCPRASZ_e, comptcprasz, -1, 7, 0};
 /***************************************************************/
+int comptcpsnd(const void *, const void *, void *);
+
 char *
 procprt_TCPSND_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1732,9 +3003,29 @@ procprt_TCPSND_e(struct tstat *curstat, int avgval, int nsecs)
         	return "     -";
 }
 
+int
+comptcpsnd(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcpsnd;
+        register count_t bval = (*(struct tstat **)b)->net.tcpsnd;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TCPSND = 
-   { "TCPSND", "TCPSND", .ac.doactiveconverts = procprt_TCPSND_a, procprt_TCPSND_e, ' ', 6};
+   {0, "TCPSND", "TCPSND", .ac.doactiveconverts = procprt_TCPSND_a, procprt_TCPSND_e, comptcpsnd, -1, 6, 0};
 /***************************************************************/
+int comptcpsasz(const void *, const void *, void *);
+
 char *
 procprt_TCPSASZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1764,9 +3055,35 @@ procprt_TCPSASZ_e(struct tstat *curstat, int avgval, int nsecs)
         	return "      -";
 }
 
+int
+comptcpsasz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcpsnd;
+        register count_t bval = (*(struct tstat **)b)->net.tcpsnd;
+
+        register count_t asiz = (*(struct tstat **)a)->net.tcpssz;
+        register count_t bsiz = (*(struct tstat **)b)->net.tcpssz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval ? asiz/aval : 0;
+	bval = bval ? bsiz/bval : 0;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_TCPSASZ = 
-   { "TCPSASZ", "TCPSASZ", .ac.doactiveconverts = procprt_TCPSASZ_a, procprt_TCPSASZ_e, ' ', 7};
+   {0, "TCPSASZ", "TCPSASZ", .ac.doactiveconverts = procprt_TCPSASZ_a, procprt_TCPSASZ_e, comptcpsasz, -1, 7, 0};
 /***************************************************************/
+int compudprcv(const void *, const void *, void *);
+
 char *
 procprt_UDPRCV_a(struct tstat *curstat, int avgval, int nsecs)        
 {
@@ -1793,9 +3110,29 @@ procprt_UDPRCV_e(struct tstat *curstat, int avgval, int nsecs)
 }
 
 
+int
+compudprcv(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.udprcv;
+        register count_t bval = (*(struct tstat **)b)->net.udprcv;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_UDPRCV = 
-   { "UDPRCV", "UDPRCV", .ac.doactiveconverts = procprt_UDPRCV_a, procprt_UDPRCV_e, ' ', 6};
+   {0, "UDPRCV", "UDPRCV", .ac.doactiveconverts = procprt_UDPRCV_a, procprt_UDPRCV_e, compudprcv, -1, 6, 0};
 /***************************************************************/
+int compudprasz(const void *, const void *, void *);
+
 char *
 procprt_UDPRASZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1825,10 +3162,35 @@ procprt_UDPRASZ_e(struct tstat *curstat, int avgval, int nsecs)
         	return "      -";
 }
 
+int
+compudprasz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.udprcv;
+        register count_t bval = (*(struct tstat **)b)->net.udprcv;
+
+        register count_t asiz = (*(struct tstat **)a)->net.udprsz;
+        register count_t bsiz = (*(struct tstat **)b)->net.udprsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval ? asiz/aval : 0;
+	bval = bval ? bsiz/bval : 0;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
 
 detail_printdef procprt_UDPRASZ = 
-   { "UDPRASZ", "UDPRASZ", .ac.doactiveconverts = procprt_UDPRASZ_a, procprt_UDPRASZ_e, ' ', 7};
+   {0, "UDPRASZ", "UDPRASZ", .ac.doactiveconverts = procprt_UDPRASZ_a, procprt_UDPRASZ_e, compudprasz, -1, 7, 0};
 /***************************************************************/
+int compudpsnd(const void *, const void *, void *);
+
 char *
 procprt_UDPSND_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1854,9 +3216,29 @@ procprt_UDPSND_e(struct tstat *curstat, int avgval, int nsecs)
         	return "     -";
 }
 
+int
+compudpsnd(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.udpsnd;
+        register count_t bval = (*(struct tstat **)b)->net.udpsnd;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_UDPSND = 
-   { "UDPSND", "UDPSND", .ac.doactiveconverts = procprt_UDPSND_a, procprt_UDPSND_e, ' ', 6};
+   {0, "UDPSND", "UDPSND", .ac.doactiveconverts = procprt_UDPSND_a, procprt_UDPSND_e, compudpsnd, -1, 6, 0};
 /***************************************************************/
+int compudpsasz(const void *, const void *, void *);
+
 char *
 procprt_UDPSASZ_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1886,10 +3268,35 @@ procprt_UDPSASZ_e(struct tstat *curstat, int avgval, int nsecs)
         	return "      -";
 }
 
+int
+compudpsasz(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.udpsnd;
+        register count_t bval = (*(struct tstat **)b)->net.udpsnd;
+
+        register count_t asiz = (*(struct tstat **)a)->net.udpssz;
+        register count_t bsiz = (*(struct tstat **)b)->net.udpssz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	aval = aval ? asiz/aval : 0;
+	bval = bval ? bsiz/bval : 0;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
 
 detail_printdef procprt_UDPSASZ = 
-   { "UDPSASZ", "UDPSASZ", .ac.doactiveconverts = procprt_UDPSASZ_a, procprt_UDPSASZ_e, ' ', 7};
+   {0, "UDPSASZ", "UDPSASZ", .ac.doactiveconverts = procprt_UDPSASZ_a, procprt_UDPSASZ_e, compudpsasz, -1, 7, 0};
 /***************************************************************/
+int comprnet(const void *, const void *, void *);
+
 char *
 procprt_RNET_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1917,9 +3324,31 @@ procprt_RNET_e(struct tstat *curstat, int avgval, int nsecs)
         	return "    -";
 }
 
+int
+comprnet(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcprcv +
+                                (*(struct tstat **)a)->net.udprcv;
+        register count_t bval = (*(struct tstat **)b)->net.tcprcv +
+                                (*(struct tstat **)b)->net.udprcv;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RNET = 
-   { " RNET", "RNET", .ac.doactiveconverts = procprt_RNET_a, procprt_RNET_e, ' ', 5};
+   {0, " RNET", "RNET", .ac.doactiveconverts = procprt_RNET_a, procprt_RNET_e, comprnet, -1, 5, 0};
 /***************************************************************/
+int compsnet(const void *, const void *, void *);
+
 char *
 procprt_SNET_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1945,9 +3374,31 @@ procprt_SNET_e(struct tstat *curstat, int avgval, int nsecs)
         	return "    -";
 }
 
+int
+compsnet(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcpsnd +
+                                (*(struct tstat **)a)->net.udpsnd;
+        register count_t bval = (*(struct tstat **)b)->net.tcpsnd +
+                                (*(struct tstat **)b)->net.udpsnd;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_SNET = 
-   { " SNET", "SNET", .ac.doactiveconverts = procprt_SNET_a, procprt_SNET_e, ' ', 5};
+   {0, " SNET", "SNET", .ac.doactiveconverts = procprt_SNET_a, procprt_SNET_e, compsnet, -1, 5, 0};
 /***************************************************************/
+int compbandwi(const void *, const void *, void *);
+
 char *
 procprt_BANDWI_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -1974,9 +3425,31 @@ procprt_BANDWI_e(struct tstat *curstat, int avgval, int nsecs)
         	return "        -";
 }
 
+int
+compbandwi(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcprsz +
+                                (*(struct tstat **)a)->net.udprsz;
+        register count_t bval = (*(struct tstat **)b)->net.tcprsz +
+                                (*(struct tstat **)b)->net.udprsz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_BANDWI = 
-   { "   BANDWI", "BANDWI", .ac.doactiveconverts = procprt_BANDWI_a, procprt_BANDWI_e, ' ', 9};
+   {0, "   BANDWI", "BANDWI", .ac.doactiveconverts = procprt_BANDWI_a, procprt_BANDWI_e, compbandwi, -1, 9, 0};
 /***************************************************************/
+int compbandwo(const void *, const void *, void *);
+
 char *
 procprt_BANDWO_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2003,8 +3476,28 @@ procprt_BANDWO_e(struct tstat *curstat, int avgval, int nsecs)
         	return "        -";
 }
 
+int
+compbandwo(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->net.tcpssz +
+                                (*(struct tstat **)a)->net.udpssz;
+        register count_t bval = (*(struct tstat **)b)->net.tcpssz +
+                                (*(struct tstat **)b)->net.udpssz;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		aval = 0;
+
+	if (bstate == 'E' && !(supportflags & (NETATOPD|NETATOPBPF)))
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_BANDWO = 
-   { "   BANDWO", "BANDWO", .ac.doactiveconverts = procprt_BANDWO_a, procprt_BANDWO_e, ' ', 9};
+   {0, "   BANDWO", "BANDWO", .ac.doactiveconverts = procprt_BANDWO_a, procprt_BANDWO_e, compbandwo, -1, 9, 0};
 /***************************************************************/
 static void
 format_bandw(char *buf, int bufsize, count_t kbps)
@@ -2034,6 +3527,8 @@ format_bandw(char *buf, int bufsize, count_t kbps)
         snprintf(buf, bufsize, "%4lld %cbps", kbps%100000, c);
 }
 /***************************************************************/
+int compgputype(const void *, const void *, void *);
+
 char *
 procprt_GPUPROCTYPE_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2047,8 +3542,26 @@ procprt_GPUPROCTYPE_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compgputype(const void *a, const void *b, void *dir)
+{
+        register char aval = (*(struct tstat **)a)->gpu.type;
+        register char bval = (*(struct tstat **)b)->gpu.type;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (!astat)
+		aval = 'z';;
+
+	if (!bstat)
+		bval = 'z';;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_GPUPROCTYPE = 
-   { "T", "GPUPROCTYPE", .ac.doactiveconverts = procprt_GPUPROCTYPE_ae, procprt_GPUPROCTYPE_ae, ' ', 1};
+   {0, "T", "GPUPROCTYPE", .ac.doactiveconverts = procprt_GPUPROCTYPE_ae, procprt_GPUPROCTYPE_ae, compgputype, 0, 1, 0};
 /***************************************************************/
 char *
 procprt_GPULIST_ae(struct tstat *curstat, int avgval, int nsecs)
@@ -2086,8 +3599,10 @@ procprt_GPULIST_ae(struct tstat *curstat, int avgval, int nsecs)
 }
 
 detail_printdef procprt_GPULIST = 
-   { " GPUNUMS", "GPULIST", .ac.doactiveconverts = procprt_GPULIST_ae, procprt_GPULIST_ae, ' ', 8};
+   {0, " GPUNUMS", "GPULIST", .ac.doactiveconverts = procprt_GPULIST_ae, procprt_GPULIST_ae, NULL, 0, 8, 0};
 /***************************************************************/
+int compgpumemnow(const void *, const void *, void *);
+
 char *
 procprt_GPUMEMNOW_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2100,9 +3615,29 @@ procprt_GPUMEMNOW_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compgpumemnow(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->gpu.memnow;
+        register count_t bval = (*(struct tstat **)b)->gpu.memnow;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (!astat)
+		aval = 0;
+
+	if (!bstat)
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_GPUMEMNOW = 
-   { "MEMNOW", "GPUMEM", .ac.doactiveconverts = procprt_GPUMEMNOW_ae, procprt_GPUMEMNOW_ae, ' ', 6};
+   {0, "MEMNOW", "GPUMEM", .ac.doactiveconverts = procprt_GPUMEMNOW_ae, procprt_GPUMEMNOW_ae, compgpumemnow, -1, 6, 0};
 /***************************************************************/
+int compgpumemavg(const void *, const void *, void *);
+
 char *
 procprt_GPUMEMAVG_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2118,9 +3653,36 @@ procprt_GPUMEMAVG_ae(struct tstat *curstat, int avgval, int nsecs)
        	return buf;
 }
 
+int
+compgpumemavg(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->gpu.memcum;
+        register count_t bval = (*(struct tstat **)b)->gpu.memcum;
+
+        register count_t asmp = (*(struct tstat **)a)->gpu.samples;
+        register count_t bsmp = (*(struct tstat **)b)->gpu.samples;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (!astat || !asmp)
+		aval = 0;
+	else
+		aval /= asmp;
+
+	if (!bstat || !bsmp)
+		bval = 0;
+	else
+		bval /= bsmp;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_GPUMEMAVG = 
-   { "MEMAVG", "GPUMEMAVG", .ac.doactiveconverts = procprt_GPUMEMAVG_ae, procprt_GPUMEMAVG_ae, ' ', 6};
+   {0, "MEMAVG", "GPUMEMAVG", .ac.doactiveconverts = procprt_GPUMEMAVG_ae, procprt_GPUMEMAVG_ae, compgpumemavg, -1, 6, 0};
 /***************************************************************/
+int compgpugpubusy(const void *, const void *, void *);
+
 char *
 procprt_GPUGPUBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2145,9 +3707,29 @@ procprt_GPUGPUBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
        	return buf;
 }
 
+int
+compgpugpubusy(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->gpu.gpubusycum;
+        register count_t bval = (*(struct tstat **)b)->gpu.gpubusycum;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (!astat || aval == -1)
+		aval = 0;
+
+	if (!bstat || bval == -1)
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_GPUGPUBUSY = 
-   { "GPUBUSY", "GPUGPUBUSY", .ac.doactiveconverts = procprt_GPUGPUBUSY_ae, procprt_GPUGPUBUSY_ae, ' ', 7};
+   {0, "GPUBUSY", "GPUGPUBUSY", .ac.doactiveconverts = procprt_GPUGPUBUSY_ae, procprt_GPUGPUBUSY_ae, compgpugpubusy, -1, 7, 0};
 /***************************************************************/
+int compgpumembusy(const void *, const void *, void *);
+
 char *
 procprt_GPUMEMBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2172,9 +3754,29 @@ procprt_GPUMEMBUSY_ae(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compgpumembusy(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->gpu.membusycum;
+        register count_t bval = (*(struct tstat **)b)->gpu.membusycum;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (!astat || aval == -1)
+		aval = 0;
+
+	if (!bstat || bval == -1)
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_GPUMEMBUSY = 
-   { "MEMBUSY", "GPUMEMBUSY", .ac.doactiveconverts = procprt_GPUMEMBUSY_ae, procprt_GPUMEMBUSY_ae, ' ', 7};
+   {0, "MEMBUSY", "GPUMEMBUSY", .ac.doactiveconverts = procprt_GPUMEMBUSY_ae, procprt_GPUMEMBUSY_ae, compgpumembusy, -1, 7, 0};
 /***************************************************************/
+int compwchan(const void *, const void *, void *);
+
 char *
 procprt_WCHAN_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2197,9 +3799,29 @@ procprt_WCHAN_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compwchan(const void *a, const void *b, void *dir)
+{
+        register char *aval  = (*(struct tstat **)a)->cpu.wchan;
+        register char *bval  = (*(struct tstat **)b)->cpu.wchan;
+
+        register char astate = (*(struct tstat **)a)->gen.state;
+        register char bstate = (*(struct tstat **)b)->gen.state;
+
+	if (astate == 'R')
+		aval = " ";
+
+	if (bstate == 'R')
+		bval = " ";
+
+	return strcmp(aval, bval) * *(int *)dir;
+}
+
 detail_printdef procprt_WCHAN =
-   { "WCHAN          ", "WCHAN", .ac.doactiveconverts = procprt_WCHAN_a, procprt_WCHAN_e, ' ', 15};
+   {0, "WCHAN          ", "WCHAN", .ac.doactiveconverts = procprt_WCHAN_a, procprt_WCHAN_e, compwchan, 1, 15, 0};
 /***************************************************************/
+int comprundelay(const void *, const void *, void *);
+
 char *
 procprt_RUNDELAY_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2218,9 +3840,29 @@ procprt_RUNDELAY_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+comprundelay(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->cpu.rundelay;
+        register count_t bval = (*(struct tstat **)b)->cpu.rundelay;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (astat == 'E')
+		aval = 0;
+
+	if (bstat == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_RUNDELAY =
-   { "RDELAY", "RDELAY", .ac.doactiveconverts = procprt_RUNDELAY_a, procprt_RUNDELAY_e, ' ', 6};
+   {0, "RDELAY", "RDELAY", .ac.doactiveconverts = procprt_RUNDELAY_a, procprt_RUNDELAY_e, comprundelay, -1, 6, 0};
 /***************************************************************/
+int compblkdelay(const void *, const void *, void *);
+
 char *
 procprt_BLKDELAY_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2239,9 +3881,29 @@ procprt_BLKDELAY_e(struct tstat *curstat, int avgval, int nsecs)
         return buf;
 }
 
+int
+compblkdelay(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->cpu.blkdelay;
+        register count_t bval = (*(struct tstat **)b)->cpu.blkdelay;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (astat == 'E')
+		aval = 0;
+
+	if (bstat == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_BLKDELAY =
-   { "BDELAY", "BDELAY", .ac.doactiveconverts = procprt_BLKDELAY_a, procprt_BLKDELAY_e, ' ', 6};
+   {0, "BDELAY", "BDELAY", .ac.doactiveconverts = procprt_BLKDELAY_a, procprt_BLKDELAY_e, compblkdelay, -1, 6, 0};
 /***************************************************************/
+int compnvcsw(const void *, const void *, void *);
+
 char *
 procprt_NVCSW_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2257,9 +3919,29 @@ procprt_NVCSW_e(struct tstat *curstat, int avgval, int nsecs)
 	return "     -";
 }
 
+int
+compnvcsw(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->cpu.nvcsw;
+        register count_t bval = (*(struct tstat **)b)->cpu.nvcsw;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (astat == 'E')
+		aval = 0;
+
+	if (bstat == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
+}
+
 detail_printdef procprt_NVCSW =
-   { " NVCSW", "NVCSW", .ac.doactiveconverts = procprt_NVCSW_a, procprt_NVCSW_e, ' ', 6};
+   {0, " NVCSW", "NVCSW", .ac.doactiveconverts = procprt_NVCSW_a, procprt_NVCSW_e, compnvcsw, -1, 6, 0};
 /***************************************************************/
+int compnivcsw(const void *, const void *, void *);
+
 char *
 procprt_NIVCSW_a(struct tstat *curstat, int avgval, int nsecs)
 {
@@ -2275,18 +3957,26 @@ procprt_NIVCSW_e(struct tstat *curstat, int avgval, int nsecs)
 	return "     -";
 }
 
-detail_printdef procprt_NIVCSW =
-   { "NIVCSW", "NIVCSW", .ac.doactiveconverts = procprt_NIVCSW_a, procprt_NIVCSW_e, ' ', 6};
-/***************************************************************/
-char *
-procprt_SORTITEM_ae(struct tstat *curstat, int avgval, int nsecs)
+int
+compnivcsw(const void *a, const void *b, void *dir)
 {
-        return "";   // dummy function
+        register count_t aval = (*(struct tstat **)a)->cpu.nivcsw;
+        register count_t bval = (*(struct tstat **)b)->cpu.nivcsw;
+
+        register char astat = (*(struct tstat **)a)->gpu.state;
+        register char bstat = (*(struct tstat **)b)->gpu.state;
+
+	if (astat == 'E')
+		aval = 0;
+
+	if (bstat == 'E')
+		bval = 0;
+
+	return (aval - bval) * *(int *)dir;
 }
 
-detail_printdef procprt_SORTITEM =   // width is dynamically defined!
-   { 0, "SORTITEM", .ac.doactiveconverts = procprt_SORTITEM_ae, procprt_SORTITEM_ae, ' ', 4};
-
+detail_printdef procprt_NIVCSW =
+   {0, "NIVCSW", "NIVCSW", .ac.doactiveconverts = procprt_NIVCSW_a, procprt_NIVCSW_e, compnivcsw, -1, 6, 0};
 
 /***************************************************************/
 /* CGROUP LEVEL FORMATTING                                     */
@@ -2298,7 +3988,7 @@ detail_printdef procprt_SORTITEM =   // width is dynamically defined!
  * if in interactive mode, columns are aligned to fill out rows
  */
 void
-showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showorder)
+showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, struct procview *pv)
 {
         detail_printpair curelem;
 
@@ -2324,7 +4014,7 @@ showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showord
 
 	// show column by column
 	//
-        while ((curelem=*elemptr).pf!=0) 
+        while ((curelem = *elemptr).pf != 0) 
         {
 		chead = curelem.pf->head;
 
@@ -2333,7 +4023,7 @@ showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showord
 			// print header, optionally colored when it is
 			// the current sort criterion
 			//
-			if (showorder == curelem.pf->sortcrit)
+			if (curelem.pf->elementnr == pv->sortcolumn)
 			{
 				if (usecolors)
 					attron(COLOR_PAIR(FGCOLORINFO));
@@ -2343,7 +4033,7 @@ showcgrouphead(detail_printpair *elemptr, int curlist, int totlist, char showord
 
                         printg("%s", chead);
 
-			if (showorder == curelem.pf->sortcrit)
+			if (curelem.pf->elementnr == pv->sortcolumn)
 			{
 				if (usecolors)
 					attroff(COLOR_PAIR(FGCOLORINFO));
@@ -2546,8 +4236,8 @@ cgroup_CGROUP_PATH(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGROUP_PATH = 
-       {"CGROUP (scroll: <- ->)    ", "CGRPATH", 
-	.ac.doactiveconvertc = cgroup_CGROUP_PATH, NULL, ' ', 26, 0};
+    {0, "CGROUP (scroll: <- ->)    ", "CGRPATH", 
+	.ac.doactiveconvertc = cgroup_CGROUP_PATH, NULL, NULL, 0, 26, 0};
 /***************************************************************/
 char *
 cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2564,7 +4254,7 @@ cgroup_CGRNPROCS(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRNPROCS = 
-   { "NPROCS", "CGRNPROCS", .ac.doactiveconvertc = cgroup_CGRNPROCS, NULL, ' ', 6};
+   {0, "NPROCS", "CGRNPROCS", .ac.doactiveconvertc = cgroup_CGRNPROCS, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRNPROCSB(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2581,7 +4271,7 @@ cgroup_CGRNPROCSB(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRNPROCSB = 
-   { "PBELOW", "CGRNPROCSB", .ac.doactiveconvertc = cgroup_CGRNPROCSB, NULL, ' ', 6};
+   {0, "PBELOW", "CGRNPROCSB", .ac.doactiveconvertc = cgroup_CGRNPROCSB, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2633,7 +4323,7 @@ cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCPUBUSY =
-   { "CPUBUSY", "CGRCPUBUSY", .ac.doactiveconvertc = cgroup_CGRCPUBUSY, NULL, 'C', 7};
+   {0, "CPUBUSY", "CGRCPUBUSY", .ac.doactiveconvertc = cgroup_CGRCPUBUSY, NULL, NULL, 0, 7, 0};
 /***************************************************************/
 char *
 cgroup_CGRCPUPSI(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2663,7 +4353,7 @@ cgroup_CGRCPUPSI(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCPUPSI =
-   { "CPUPS", "CGRCPUPSI", .ac.doactiveconvertc = cgroup_CGRCPUPSI, NULL, ' ', 5};
+   {0, "CPUPS", "CGRCPUPSI", .ac.doactiveconvertc = cgroup_CGRCPUPSI, NULL, NULL, 0, 5, 0};
 /***************************************************************/
 char *
 cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2706,7 +4396,7 @@ cgroup_CGRCPUMAX(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCPUMAX =
-   { "CPUMAX", "CGRCPUMAX", .ac.doactiveconvertc = cgroup_CGRCPUMAX, NULL, ' ', 6};
+   {0, "CPUMAX", "CGRCPUMAX", .ac.doactiveconvertc = cgroup_CGRCPUMAX, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRCPUWGT(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2729,7 +4419,7 @@ cgroup_CGRCPUWGT(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCPUWGT =
-   { "CPUWGT", "CGRCPUWGT", .ac.doactiveconvertc = cgroup_CGRCPUWGT, NULL, ' ', 6};
+   {0, "CPUWGT", "CGRCPUWGT", .ac.doactiveconvertc = cgroup_CGRCPUWGT, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2774,7 +4464,7 @@ cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRMEMORY =
-   { "MEMORY", "CGRMEMORY", .ac.doactiveconvertc = cgroup_CGRMEMORY, NULL, 'M', 6};
+   {0, "MEMORY", "CGRMEMORY", .ac.doactiveconvertc = cgroup_CGRMEMORY, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRMEMPSI(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2804,7 +4494,7 @@ cgroup_CGRMEMPSI(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRMEMPSI =
-   { "MEMPS", "CGRMEMPSI", .ac.doactiveconvertc = cgroup_CGRMEMPSI, NULL, ' ', 5};
+   {0, "MEMPS", "CGRMEMPSI", .ac.doactiveconvertc = cgroup_CGRMEMPSI, NULL, NULL, 0, 5, 0};
 /***************************************************************/
 char *
 cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2844,7 +4534,7 @@ cgroup_CGRMEMMAX(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRMEMMAX =
-   { "MEMMAX", "CGRMEMMAX", .ac.doactiveconvertc = cgroup_CGRMEMMAX, NULL, ' ', 6};
+   {0, "MEMMAX", "CGRMEMMAX", .ac.doactiveconvertc = cgroup_CGRMEMMAX, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRSWPMAX(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2869,7 +4559,7 @@ cgroup_CGRSWPMAX(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRSWPMAX =
-   { "SWPMAX", "CGRSWPMAX", .ac.doactiveconvertc = cgroup_CGRSWPMAX, NULL, ' ', 6};
+   {0, "SWPMAX", "CGRSWPMAX", .ac.doactiveconvertc = cgroup_CGRSWPMAX, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2898,7 +4588,7 @@ cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRDISKIO =
-   { "DISKIO", "CGRDISKIO", .ac.doactiveconvertc = cgroup_CGRDISKIO, NULL, 'D', 6};
+   {0, "DISKIO", "CGRDISKIO", .ac.doactiveconvertc = cgroup_CGRDISKIO, NULL, NULL, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRDSKPSI(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2928,7 +4618,7 @@ cgroup_CGRDSKPSI(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRDSKPSI =
-   { "DSKPS", "CGRDSKPSI", .ac.doactiveconvertc = cgroup_CGRDSKPSI, NULL, ' ', 5};
+   {0, "DSKPS", "CGRDSKPSI", .ac.doactiveconvertc = cgroup_CGRDSKPSI, NULL, NULL, 0, 5, 0};
 /***************************************************************/
 char *
 cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2951,7 +4641,7 @@ cgroup_CGRDSKWGT(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRDSKWGT =
-   { "IOWGT", "CGRDSKWGT", .ac.doactiveconvertc = cgroup_CGRDSKWGT, NULL, ' ', 5};
+   {0, "IOWGT", "CGRDSKWGT", .ac.doactiveconvertc = cgroup_CGRDSKWGT, NULL, NULL, 0, 5, 0};
 /***************************************************************/
 char *
 cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2968,7 +4658,7 @@ cgroup_CGRPID(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRPID = 
-   { "PID", "CGRPID", .ac.doactiveconvertc = cgroup_CGRPID, NULL, ' ', 5}; //DYNAMIC WIDTH!
+   {0, "PID", "CGRPID", .ac.doactiveconvertc = cgroup_CGRPID, NULL, NULL, 0, 5, 0}; //DYNAMIC WIDTH!
 /***************************************************************/
 char *
 cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat,
@@ -2997,5 +4687,5 @@ cgroup_CGRCMD(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCMD = 
-   { "CMD           ", "CGRCMD", .ac.doactiveconvertc = cgroup_CGRCMD, NULL, ' ', 14};
+   {0, "CMD           ", "CGRCMD", .ac.doactiveconvertc = cgroup_CGRCMD, NULL, NULL, 0, 14, 0};
 /***************************************************************/

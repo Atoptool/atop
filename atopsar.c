@@ -2586,7 +2586,7 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in cpu order
 	*/
-	qsort(ps, nactproc, sizeof(struct tstat *), compcpu);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compcpu, NULL);
 
 	availcpu  = ss->cpu.all.stime + ss->cpu.all.utime +
 	            ss->cpu.all.ntime + ss->cpu.all.itime +
@@ -2651,7 +2651,7 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in memory order
 	*/
-	qsort(ps, nactproc, sizeof(struct tstat *), compmem);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compmem, NULL);
 
 	availmem  = ss->mem.physmem * pagesize/1024;
 
@@ -2726,7 +2726,7 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in disk order
 	*/
-	qsort(ps, nactproc, sizeof(struct tstat *), compdsk);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compdsk, NULL);
 
         if (nactproc >= 1 && (ps[0])->dsk.rio + (ps[0])->dsk.wio > 0)
 	    printf("%5d %-8.8s %3.0lf%% | ",
@@ -2801,7 +2801,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in network order
 	*/
-	qsort(ps, nactproc, sizeof(struct tstat *), compnet);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compnet, NULL);
 
         if (nactproc >= 1)
 	{

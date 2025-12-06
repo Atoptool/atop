@@ -184,11 +184,12 @@ char		*gid2name(gid_t);
 
 void		safe_strcpy(char *, const char *, size_t);
 
-int		compcpu(const void *, const void *);
-int		compdsk(const void *, const void *);
-int		compmem(const void *, const void *);
-int		compnet(const void *, const void *);
-int		compgpu(const void *, const void *);
+int		compcpu(const void *, const void *, void *);
+int		compdsk(const void *, const void *, void *);
+int		compmem(const void *, const void *, void *);
+int		compnet(const void *, const void *, void *);
+int		compgpu(const void *, const void *, void *);
+
 int		compusr(const void *, const void *);
 int		compnam(const void *, const void *);
 int		compcon(const void *, const void *);

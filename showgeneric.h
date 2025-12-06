@@ -33,6 +33,14 @@
 #define MINLINES        24
 #define MINCOLUMNS      60
 
+struct procview {
+	unsigned char	showtype;	// type of process details
+	unsigned char	showresource;	// current resource percentage
+	unsigned char	sortcolumn;	// column index in alldetaildefs[]
+					// 0 = resource percentage
+	signed char	ascdesc;	// 1 (ascending) or -1 (descending)
+};
+
 
 struct syscap {
 	int	nrcpu;
@@ -178,12 +186,11 @@ struct sselection {
 #define	MCUMPROC	'p'
 #define	MCUMCONT	'j'
 
-#define	MSORTCPU	'C'
-#define	MSORTDSK	'D'
-#define	MSORTMEM	'M'
-#define	MSORTNET	'N'
-#define MSORTGPU	'E'
-#define	MSORTAUTO	'A'
+#define	MPERCCPU	'C'
+#define	MPERCDSK	'D'
+#define	MPERCMEM	'M'
+#define	MPERCNET	'N'
+#define MPERCGPU	'E'
 
 #define	MTHREAD		'y'
 #define	MTHRSORT	'Y'
@@ -206,6 +213,7 @@ struct sselection {
 
 #define	MALLACTIVE	'a'
 
+#define	MORDERPROC	'O'
 #define	MKILLPROC	'k'
 #define	MLISTFW		0x06
 #define	MLISTBW		0x02
@@ -251,15 +259,15 @@ void	showcmdproc(struct tstat *, double, int, int);
 
 void	printg(const char *, ...);
 int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
-			char *, int, int, int, int, int, int, int, int, int, int, int);
-void	prihead(int, int, char *, char *, char, count_t);
+			int, int, int, int, int, int, int, int, int, int, int);
+void	prihead(int, int, struct procview *, count_t);
 
 struct cglinesel;
 
 int	pricgroup(struct cglinesel *, int, int, int, int, int,
 	        struct syscap *, int, int);
 
-int	priproc(struct tstat  **, int, int, int, int, int, char, char,
+int	priproc(struct tstat  **, int, int, int, int, int, struct procview *,
 	        struct syscap *, int, int);
 
 char	draw_samp(time_t, int, struct sstat *, char, char);

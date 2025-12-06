@@ -74,8 +74,8 @@ static int	threadsort;	/* boolean: sort threads per process    */
 static int	avgval;		/* boolean: average values i.s.o. total */
 static int	suppressexit;	/* boolean: suppress terminated processes */
 
-static char	showtype  = MPROCGEN;
-static char	showorder = MSORTCPU;
+static struct procview		/* default process view, resource and sort */
+          	procview = {MPROCGEN, MPERCCPU, 0, -1};
 
 static int	maxcpulines = 999;  /* maximum cpu       lines          */
 static int	maxgpulines = 999;  /* maximum gpu       lines          */
@@ -100,6 +100,9 @@ static char	keywaiting;	// set after key has been pushed back
 int		paused;    		// boolean: currently in pause-mode
 int		cgroupdepth = 7;	// default: cgroups without processes
 
+static int	setprocview(unsigned char, unsigned char, signed char, int);
+static void	sortprocs(struct tstat **, int, int, unsigned char, int);
+
 static int	cumusers(struct tstat **, struct tstat *, int);
 static int	cumprogs(struct tstat **, struct tstat *, int);
 static int	cumconts(struct tstat **, struct tstat *, int);
@@ -107,19 +110,25 @@ static void	accumulate(struct tstat *, struct tstat *);
 
 static int	procsuppress(struct tstat *, struct pselection *);
 static void	limitedlines(void);
-static long	getnumval(char *, long, int);
+static long	getnumval(char *, long, int, char);
 static void	getsigwinch(int);
 static void	generic_init(void);
 static char	text_samp(time_t, int, struct devtstat *, struct sstat *,
 	   		struct cgchainer *, int, int, unsigned int, char);
+static void	sort_sysstats(struct sstat *);
 
-static int	(*procsort[])(const void *, const void *) = {
-			[MSORTCPU&0x1f]=compcpu, 
-			[MSORTMEM&0x1f]=compmem, 
-			[MSORTDSK&0x1f]=compdsk, 
-			[MSORTNET&0x1f]=compnet, 
-			[MSORTGPU&0x1f]=compgpu, 
-};
+static void	keyhandle_sortorder(int *, char **, short);
+static void	keyhandle_killpid(int *, char **);
+static void	keyhandle_seluser(int *, char **);
+static void	keyhandle_selproc(int *, char **);
+static void	keyhandle_selcont(int *, char **);
+static void	keyhandle_selpid(int *, char **);
+static void	keyhandle_selstate(int *, char **);
+static void	keyhandle_selarg(int *, char **);
+static void	keyhandle_selsysname(int *, char **);
+static void	keyhandle_selsyslim(int *, char **, struct sstat *);
+
+static char 	*colstrip(char *);
 
 extern detail_printpair ownprocs[];
 
@@ -180,93 +189,59 @@ generic_samp(time_t curtime, int nsecs,
 
 			   case MCGROUPS:	// switch to text mode: cgroups
 				if (supportflags & CGROUPV2)
-					showtype  = MCGROUPS;
+					setprocview(MCGROUPS, MPERCCPU, 0, -1);
 				else
-					showtype  = MPROCGEN;
+					setprocview(MPROCGEN, MPERCCPU, 0, -1);
 
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCGEN:	// switch to text mode: generic
-				showtype  = MPROCGEN;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTCPU;
-
+				setprocview(MPROCGEN, MPERCCPU, 0, -1);
 				displaymode = 'T';
 				break;
 
  			   case MPROCMEM:	// switch to text mode: memory
-				showtype  = MPROCMEM;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTMEM;
-
+				setprocview(MPROCMEM, MPERCMEM, 0, -1);
 				displaymode = 'T';
 				break;
 
 			   case MPROCDSK:	// switch to text mode: disk
-				showtype  = MPROCDSK;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTDSK;
-
+				setprocview(MPROCDSK, MPERCDSK, 0, -1);
 				displaymode = 'T';
 				break;
 
 			   case MPROCNET:	// switch to text mode: network
 				if (supportflags & NETATOP || supportflags & NETATOPBPF)
-				{
-					showtype  = MPROCNET;
-
-					if (showorder != MSORTAUTO)
-						showorder = MSORTNET;
-				}
+					setprocview(MPROCNET, MPERCNET, 0, -1);
 				else
-				{
-					showtype  = MPROCGEN;
-					showorder = MSORTCPU;
-				}
+					setprocview(MPROCGEN, MPERCCPU, 0, -1);
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCGPU:	// switch to text mode: GPU
 				if (supportflags & GPUSTAT)
-				{
-					showtype  = MPROCGPU;
-
-					if (showorder != MSORTAUTO)
-						showorder = MSORTGPU;
-				}
+					setprocview(MPROCGPU, MPERCGPU, 0, -1);
 				else
-				{
-					showtype  = MPROCGEN;
-					showorder = MSORTCPU;
-				}
+					setprocview(MPROCGEN, MPERCCPU, 0, -1);
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCSCH:	// switch to text mode: scheduling
-				showtype  = MPROCSCH;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTCPU;
-
+				setprocview(MPROCSCH, MPERCCPU, 0, -1);
 				displaymode = 'T';
 				break;
 
 			   case MPROCVAR:	// switch to text mode: various
-				showtype  = MPROCVAR;
-
+				setprocview(MPROCVAR, MPERCCPU, 0, -1);
 				displaymode = 'T';
 				break;
 
 			   case MPROCARG:	// switch to text mode: arguments
-				showtype  = MPROCARG;
-
+				setprocview(MPROCARG, MPERCCPU, 0, -1);
 				displaymode = 'T';
 				break;
 
@@ -281,20 +256,20 @@ generic_samp(time_t curtime, int nsecs,
 ** print the deviation-counters on process level, cgroups level and
 ** system level in text mode
 */
+#define	SORTHASH(x)	((x.ascdesc << 8)|(x.sortcolumn ? x.sortcolumn : x.showresource|0x80))
+
 static char
 text_samp(time_t curtime, int nsecs,
            struct devtstat *devtstat, struct sstat *sstat, 
 	   struct cgchainer *cgchainers, int ncgroups,
            int nexit, unsigned int noverflow, char flag)
 {
-	register int	i, curline, statline, nproc;
-	int		firstitem=0, slistsz, alistsz, killpid, killsig;
+	register int	i, curline, nproc;
+	int		statline, firstitem=0, slistsz, alistsz;
 	int		lastchar;
 	char		format1[16], format2[16], branchtime[32];
-	char		*statmsg = NULL, statbuf[80], genline[80];
-	char		 *lastsortp, curorder, autoorder;
-	char		buf[33];
-	struct passwd 	*pwd;
+	char		*statmsg = NULL, statbuf[80], buf[33];
+	short		sorthash = SORTHASH(procview), *lastsortp;
 	struct syscap	syscap;
 
 	fd_set		readfds;
@@ -317,7 +292,7 @@ text_samp(time_t curtime, int nsecs,
 	** cgroups visualization is requested
 	**
 	** cgroupsort refers to a list with cgchainer pointers in
-	** sorted order according to the current showorder
+	** sorted order according to the current showresource
 	*/
 	struct cglinesel *cgroupsel   = 0;
 	struct cgchainer **cgroupsort = 0;
@@ -342,17 +317,17 @@ text_samp(time_t curtime, int nsecs,
 	struct tstat	*tpcumlist = 0;		// per program accumulation
 	struct tstat	**pcumlist = 0;
 	int		npcum      = 0;
-	char		plastorder = 0;
+	short		plastorder = 0;
 
 	struct tstat	*tucumlist = 0;		// per user accumulation
 	struct tstat	**ucumlist = 0;
 	int		nucum      = 0;
-	char		ulastorder = 0;
+	short		ulastorder = 0;
 
 	struct tstat	*tccumlist = 0;		// per container/pod accumulation
 	struct tstat	**ccumlist = 0;
 	int		nccum      = 0;
-	char		clastorder = 0;
+	short		clastorder = 0;
 
 	/*
 	** tsklist contains the pointers to all structs in tstat
@@ -363,9 +338,9 @@ text_samp(time_t curtime, int nsecs,
 	*/
 	struct tstat	**tsklist  = 0;
 	int		ntsk       = 0;
-	char		tlastorder = 0;
 	char		zipagain   = 0;
 	char		tdeviate   = 0;
+	short	 	tlastorder = 0;
 
 	/*
 	** sellist contains the pointers to the structs in tstat
@@ -377,8 +352,8 @@ text_samp(time_t curtime, int nsecs,
 	*/
 	struct tstat	**sellist  = 0;
 	int		nsel       = 0;
-	char		slastorder = 0;
 	char		threadallowed = 0;
+	short		slastorder = 0;
 
 	startoffset = 0;
 
@@ -389,64 +364,12 @@ text_samp(time_t curtime, int nsecs,
 	totalcap(&syscap, sstat, devtstat->procactive, devtstat->nprocactive);
 
 	/*
-	** sort per-cpu       		statistics on busy percentage
-	** sort per-logical-volume      statistics on busy percentage
-	** sort per-multiple-device     statistics on busy percentage
-	** sort per-disk      		statistics on busy percentage
-	** sort per-interface 		statistics on busy percentage (if known)
+	** sort per-cpu, per-logical-volume, per-MD device, 
+	** per-disk, per-interface (if known), etcetera on
+	** busy pecentage
 	*/
 	if (!sysnosort)
-	{
-		if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
-			qsort(sstat->cpu.cpu, sstat->cpu.nrcpu,
-	 	               sizeof sstat->cpu.cpu[0], cpucompar);
-
-		if (sstat->gpu.nrgpus > 1 && maxgpulines > 0)
-			qsort(sstat->gpu.gpu, sstat->gpu.nrgpus,
-	 	               sizeof sstat->gpu.gpu[0], gpucompar);
-
-		if (sstat->dsk.nlvm > 1 && maxlvmlines > 0)
-			qsort(sstat->dsk.lvm, sstat->dsk.nlvm,
-			       sizeof sstat->dsk.lvm[0], diskcompar);
-
-		if (sstat->dsk.nmdd > 1 && maxmddlines > 0)
-			qsort(sstat->dsk.mdd, sstat->dsk.nmdd,
-			       sizeof sstat->dsk.mdd[0], diskcompar);
-
-		if (sstat->dsk.ndsk > 1 && maxdsklines > 0)
-			qsort(sstat->dsk.dsk, sstat->dsk.ndsk,
-			       sizeof sstat->dsk.dsk[0], diskcompar);
-
-		if (sstat->intf.nrintf > 1 && maxintlines > 0)
-			qsort(sstat->intf.intf, sstat->intf.nrintf,
-		  	       sizeof sstat->intf.intf[0], intfcompar);
-
-		if (sstat->ifb.nrports > 1 && maxifblines > 0)
-			qsort(sstat->ifb.ifb, sstat->ifb.nrports,
-		  	       sizeof sstat->ifb.ifb[0], ifbcompar);
-
-		if (sstat->nfs.nfsmounts.nrmounts > 1 && maxnfslines > 0)
-			qsort(sstat->nfs.nfsmounts.nfsmnt,
-		              sstat->nfs.nfsmounts.nrmounts,
-		  	      sizeof sstat->nfs.nfsmounts.nfsmnt[0],
-				nfsmcompar);
-
-		if (sstat->cfs.nrcontainer > 1 && maxcontlines > 0)
-			qsort(sstat->cfs.cont, sstat->cfs.nrcontainer,
-		  	       sizeof sstat->cfs.cont[0], contcompar);
-
-		if (sstat->memnuma.nrnuma > 1 && maxnumalines > 0)
-			qsort(sstat->memnuma.numa, sstat->memnuma.nrnuma,
-			       sizeof sstat->memnuma.numa[0], memnumacompar);
-
-		if (sstat->cpunuma.nrnuma > 1 && maxnumalines > 0)
-			qsort(sstat->cpunuma.numa, sstat->cpunuma.nrnuma,
-			       sizeof sstat->cpunuma.numa[0], cpunumacompar);
-
-		if (sstat->llc.nrllcs > 1 && maxllclines > 0)
-			qsort(sstat->llc.perllc, sstat->llc.nrllcs,
-				sizeof sstat->llc.perllc[0], llccompar);
-	}
+		sort_sysstats(sstat);
 
 	/*
 	** loop in which the system resources and the list of active
@@ -456,7 +379,6 @@ text_samp(time_t curtime, int nsecs,
 	while (1)
 	{
 		curline = 1;
-		genline[0] = '\0';
 
 	        /*
        	 	** prepare screen or file output for new sample
@@ -548,13 +470,8 @@ text_samp(time_t curtime, int nsecs,
 		/*
 		** print other lines of system-wide statistics
 		*/
-		if (showorder == MSORTAUTO)
-			autoorder = MSORTCPU;
-		else
-			autoorder = showorder;
-
 		curline = prisyst(sstat, curline, nsecs, avgval,
-		                  fixedhead, &syssel, &autoorder,
+		                  fixedhead, &syssel, 
 		                  maxcpulines, maxgpulines, maxdsklines,
 				  maxmddlines, maxlvmlines,
 		                  maxintlines, maxifblines, maxnfslines,
@@ -576,7 +493,7 @@ text_samp(time_t curtime, int nsecs,
 			limitedlines();
 			
 			curline = prisyst(sstat, curline, nsecs, avgval,
-					fixedhead,  &syssel, &autoorder,
+					fixedhead,  &syssel, 
 					maxcpulines, maxgpulines,
 					maxdsklines, maxmddlines,
 		                        maxlvmlines, maxintlines,
@@ -693,7 +610,9 @@ text_samp(time_t curtime, int nsecs,
 			}
 		}
 
-		if (showtype != MCGROUPS)
+		// print info about processes
+		//
+		if (procview.showtype != MCGROUPS)
 		{
 			/*
 			** select the required list with tasks to be shown
@@ -701,7 +620,7 @@ text_samp(time_t curtime, int nsecs,
 			** if cumulative figures required, accumulate resource
 			** consumption of all processes in the current list
 			*/
-			switch (showtype)
+			switch (procview.showtype)
 			{
 			   case MCUMUSER:
 				threadallowed = 0;
@@ -780,8 +699,7 @@ text_samp(time_t curtime, int nsecs,
 				}
 	
 				npcum = cumprogs(deviatonly ?
-							devtstat->procactive :
-							devtstat->procall,
+						devtstat->procactive : devtstat->procall,
 							tpcumlist, nproc);
 	
 				curlist   = pcumlist;
@@ -817,15 +735,11 @@ text_samp(time_t curtime, int nsecs,
 				        "Malloc failed for %d ccum ptrs\n",  nproc);
 	
 				for (i=0; i < nproc; i++)
-				{
-					/* fill pointers */
-					ccumlist[i] = tccumlist+i;
-				}
+					ccumlist[i] = tccumlist+i; // fill pointers
 	
 				nccum = cumconts(deviatonly ?
-							devtstat->procactive :
-							devtstat->procall,
-							tccumlist, nproc);
+						devtstat->procactive : devtstat->procall,
+						tccumlist, nproc);
 	
 				curlist   = ccumlist;
 				ncurlist  = nccum;
@@ -835,8 +749,8 @@ text_samp(time_t curtime, int nsecs,
 			   default:
 				threadallowed = 1;
 	
-				if (deviatonly && showtype  != MPROCMEM &&
-				                  showorder != MSORTMEM   )
+				if (deviatonly && procview.showtype     != MPROCMEM &&
+				                  procview.showresource != MPERCMEM   )
 				{
 					curlist   = devtstat->procactive;
 					ncurlist  = devtstat->nprocactive;
@@ -867,8 +781,7 @@ text_samp(time_t curtime, int nsecs,
 	
 				sellist = malloc(sizeof(struct tstat *) * ncurlist);
 	
-				ptrverify(sellist,
-				       "Malloc failed for %d select ptrs\n", ncurlist);
+				ptrverify(sellist, "Malloc failed for %d select ptrs\n", ncurlist);
 	
 				for (i=nsel=0; i < ncurlist; i++)
 				{
@@ -884,20 +797,17 @@ text_samp(time_t curtime, int nsecs,
 	
 				curlist    = sellist;
 				ncurlist   = nsel;
-				tlastorder = 0; /* new sort and zip normal view */
-				slastorder = 0;	/* new sort and zip now         */
+				tlastorder = 0;	// new sort and zip normal view 
+				slastorder = 0;	// new sort and zip now
 				lastsortp  = &slastorder;
 			}
 	
 			/*
 			** sort the list in required order 
-			** (default CPU-consumption) and print the list
+			** (by default CPU consumption) and print the list
 			*/
-			if (showorder == MSORTAUTO)
-				curorder = autoorder;
-			else
-				curorder = showorder;
-	
+			sorthash = SORTHASH(procview);
+
 			/*
  			** determine size of list to be displayed
 			*/
@@ -914,14 +824,11 @@ text_samp(time_t curtime, int nsecs,
 				/*
  				** if sorting order is changed, sort again
  				*/
-				if (*lastsortp != curorder)
+				if (*lastsortp != sorthash)
 				{
-					qsort(curlist, ncurlist,
-					        sizeof(struct tstat *),
-					        procsort[(int)curorder&0x1f]);
-	
-					*lastsortp = curorder;
-	
+					sortprocs(curlist, ncurlist, sizeof(struct tstat *),
+								procview.sortcolumn, procview.ascdesc);
+					*lastsortp = sorthash;
 					zipagain = 1;
 				}
 	
@@ -929,8 +836,8 @@ text_samp(time_t curtime, int nsecs,
 				{
 					int ntotal, j, t;
 	
-					if (deviatonly && showtype  != MPROCMEM &&
-				      	                  showorder != MSORTMEM   )
+					if (deviatonly && procview.showtype     != MPROCMEM &&
+				      	                  procview.showresource != MPERCMEM   )
 						ntotal = devtstat->ntaskactive;
 					else
 						ntotal = devtstat->ntaskall;
@@ -980,16 +887,14 @@ text_samp(time_t curtime, int nsecs,
 						    for (t = pcur - tall + 1;
 						         t < devtstat->ntaskall &&
 							 pcur->gen.tgid		&&
-						         pcur->gen.tgid == 
-						            (tall+t)->gen.tgid;
-						         t++)
+						         pcur->gen.tgid == (tall+t)->gen.tgid; t++)
 						    {
 							if (procsuppress(tall+t, &procsel))
 								continue;
 
 							if (deviatonly &&
-								showtype  != MPROCMEM &&
-							        showorder != MSORTMEM   )
+								procview.showtype     != MPROCMEM &&
+							        procview.showresource != MPERCMEM   )
 							{
 							   if (!(tall+t)->gen.wasinactive)
 								tsklist[j++] = tall+t;
@@ -1000,12 +905,13 @@ text_samp(time_t curtime, int nsecs,
 							}
 						    }
 	
-					            if (threadsort && j-n > 0 &&
-								curorder != MSORTMEM)
+						    // if required, sort threads of process in same
+						    // order as processes themselves
+						    //
+					            if (threadsort && j-n > 0)
 						    {
-							qsort(&tsklist[n], j-n,
-					                  sizeof(struct tstat *),
-					                  procsort[(int)curorder&0x1f]);
+							sortprocs(&tsklist[n], j-n, sizeof(struct tstat *),
+								procview.sortcolumn, procview.ascdesc);
 						    }
 						}
 	
@@ -1028,9 +934,7 @@ text_samp(time_t curtime, int nsecs,
        		                }
 	
 				prihead(firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
-			       		&showtype, &curorder,
-					showorder == MSORTAUTO ? 1 : 0,
-					sstat->cpu.nrcpu);
+			       		&procview, sstat->cpu.nrcpu);
 
 				if (screen)
 				{
@@ -1043,7 +947,7 @@ text_samp(time_t curtime, int nsecs,
 				*/
 				priproc(curlist, firstitem, ncurlist, curline+2,
 				        firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
-			        	showtype, curorder, &syscap, nsecs, avgval);
+			        	&procview, &syscap, nsecs, avgval);
 			}
 		}
 		else	// MCGROUPS: print cgroups
@@ -1051,20 +955,14 @@ text_samp(time_t curtime, int nsecs,
 			/*
 			** sort the list in required order 
 			** (default CPU-consumption) and print the list
-			*/
-			if (showorder == MSORTAUTO)
-				curorder = autoorder;
-			else
-				curorder = showorder;
-
-			/*
+			**
 			** make new list with a selection (if needed) of cgroups
 			** merged with processes related to those cgroups
 			*/
 			if (cgroupsel == NULL           ||	// not created yet
 			    cstatdeviate != deviatonly  ||	// or not the right contents?
 			    cstatdepth   != cgroupdepth ||
-			    cstatorder   != curorder      )
+			    cstatorder   != procview.showresource)
 			{
 				struct tstat **tp;
 
@@ -1076,13 +974,13 @@ text_samp(time_t curtime, int nsecs,
 				*/
 				free(cgroupsort);
 
-				cgroupsort = cgsort(cgchainers, ncgroups, curorder);
+				cgroupsort = cgsort(cgchainers, ncgroups, procview.showresource);
 
 				/*
 				** determine required list of processes (all or active)
 				** for memory usage even non-active processes are taken
 				*/
-				if (deviatonly && curorder != MSORTMEM)
+				if (deviatonly && procview.showresource != MPERCMEM)
 				{
 					nproc = devtstat->nprocactive;
 					tp    = devtstat->procactive;
@@ -1103,14 +1001,14 @@ text_samp(time_t curtime, int nsecs,
 				** create new merged list of cgroups and processes
 				*/
 				ncurlist = mergecgrouplist(&cgroupsel, cgroupdepth,
-						cgroupsort, ncgroups, tp, nproc, curorder);
+						cgroupsort, ncgroups, tp, nproc, procview.showresource);
 
 				/*
 				** preserve list characteristics
 				*/
 				cstatdeviate = deviatonly;
 				cstatdepth   = cgroupdepth;
-				cstatorder   = curorder;
+				cstatorder   = procview.showresource;
 			}
 
 			/*
@@ -1133,9 +1031,7 @@ text_samp(time_t curtime, int nsecs,
        		        	}
 
 				prihead(firstitem/slistsz+1, (ncurlist-1)/slistsz+1,
-			      		&showtype, &curorder,
-					curorder == MSORTAUTO ? 1 : 0,
-					sstat->cpu.nrcpu);
+			      		&procview, sstat->cpu.nrcpu);
 
 				if (screen)
 				{
@@ -1152,11 +1048,15 @@ text_samp(time_t curtime, int nsecs,
 			}
 		}
 
-		alistsz = ncurlist;	/* preserve size of active list */
+		// list of processes or cgroups has been printed
+		//
+		// preserve size of active list
+		//
+		alistsz = ncurlist;
 
 		/*
-		** in case of writing to a terminal, the user can also enter
-		** a character to switch options, etc
+		** in case of an interactive terminal run, the user can enter
+		** a character to switch options, etcetera
 		*/
 		if (screen)
 		{
@@ -1300,8 +1200,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MSAMPPREV:
 				if (!rawreadflag)
 				{
-					statmsg = "Only allowed in twin mode or "
-						  "when viewing raw file!";
+					statmsg = "Only allowed in twin mode or when viewing raw file!";
 					beep();
 					break;
 				}
@@ -1321,8 +1220,7 @@ text_samp(time_t curtime, int nsecs,
                            case MSAMPBRANCH:
                                 if (!rawreadflag)
                                 {
-					statmsg = "Only allowed in twin mode or "
-						  "when viewing raw file!";
+					statmsg = "Only allowed in twin mode or when viewing raw file!";
                                         beep();
                                         break;
                                 }
@@ -1337,8 +1235,7 @@ text_samp(time_t curtime, int nsecs,
                                 echo();
                                 move(statline, 0);
                                 clrtoeol();
-                                printw("Enter new time "
-				       "(format [YYYYMMDD]hhmm[ss]): ");
+                                printw("Enter new time (format [YYYYMMDD]hhmm[ss]): ");
 
                                 branchtime[0] = '\0';
                                 scanw("%31s\n", branchtime);
@@ -1359,75 +1256,63 @@ text_samp(time_t curtime, int nsecs,
 				goto free_and_return;	
 
 			   /*
-			   ** sort order automatically depending on
-			   ** most busy resource
+			   ** sort in cpu activity order
 			   */
-			   case MSORTAUTO:
-				showorder = MSORTAUTO;
-				firstitem = 0;
+			   case MPERCCPU:
+				setprocview(0, MPERCCPU, 0, -1);
+				firstitem    = 0;
 				break;
 
 			   /*
-			   ** sort in cpu-activity order
+			   ** sort in memory consumption order
 			   */
-			   case MSORTCPU:
-				showorder = MSORTCPU;
-				firstitem = 0;
+			   case MPERCMEM:
+				setprocview(0, MPERCMEM, 0, -1);
+				firstitem    = 0;
 				break;
 
 			   /*
-			   ** sort in memory-consumption order
+			   ** sort in disk activity order
 			   */
-			   case MSORTMEM:
-				showorder = MSORTMEM;
-				firstitem = 0;
+			   case MPERCDSK:
+				setprocview(0, MPERCDSK, 0, -1);
+				firstitem    = 0;
 				break;
 
 			   /*
-			   ** sort in disk-activity order
+			   ** sort in network activity order
 			   */
-			   case MSORTDSK:
-				showorder = MSORTDSK;
-				firstitem = 0;
-				break;
-
-			   /*
-			   ** sort in network-activity order
-			   */
-			   case MSORTNET:
+			   case MPERCNET:
 				if ( !(supportflags & NETATOP || supportflags & NETATOPBPF))
 				{
 					statmsg = "Ignored: 'netatop' or 'netatop-bpf' not "
 					          "active, no -K specified or no root privs";
 					break;
 				}
-				showorder = MSORTNET;
-				firstitem = 0;
+
+				setprocview(0, MPERCNET, 0, -1);
+				firstitem    = 0;
 				break;
 
 			   /*
-			   ** sort in gpu-activity order
+			   ** sort in gpu activity order
 			   */
-			   case MSORTGPU:
+			   case MPERCGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "Ignored: no GPU daemon running or "
-					          "no -k specified";
+					statmsg = "Ignored: no GPU daemon running or no -k specified";
 					break;
 				}
-				showorder = MSORTGPU;
-				firstitem = 0;
+
+				setprocview(0, MPERCGPU, 0, -1);
+				firstitem    = 0;
 				break;
 
 			   /*
 			   ** general figures per process
 			   */
 			   case MPROCGEN:
-				showtype  = MPROCGEN;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTCPU;
-
+				setprocview(MPROCGEN, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1435,11 +1320,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** memory-specific figures per process
 			   */
 			   case MPROCMEM:
-				showtype  = MPROCMEM;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTMEM;
-
+				setprocview(MPROCMEM, MPERCMEM, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1447,11 +1328,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** disk-specific figures per process
 			   */
 			   case MPROCDSK:
-				showtype  = MPROCDSK;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTDSK;
-
+				setprocview(MPROCDSK, MPERCDSK, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1466,11 +1343,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				showtype  = MPROCNET;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTNET;
-
+				setprocview(MPROCNET, MPERCNET, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1480,16 +1353,11 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "Ignored: no GPU daemon running or "
-					          "no -k specified";
+					statmsg = "Ignored: no GPU daemon running or no -k specified";
 					break;
 				}
 
-				showtype  = MPROCGPU;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTGPU;
-
+				setprocview(MPROCGPU, MPERCGPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1497,7 +1365,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** various info per process
 			   */
 			   case MPROCVAR:
-				showtype  = MPROCVAR;
+				setprocview(MPROCVAR, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1505,7 +1373,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** command line per process
 			   */
 			   case MPROCARG:
-				showtype  = MPROCARG;
+				setprocview(MPROCARG, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1515,12 +1383,11 @@ text_samp(time_t curtime, int nsecs,
 			   case MCGROUPS:
 				if ( !(supportflags & CGROUPV2) )
 				{
-					statmsg = "No cgroup v2 metrics "
-					          "available; request ignored!";
+					statmsg = "No cgroup v2 metrics available; request ignored!";
 					break;
 				}
 
-				showtype  = MCGROUPS;
+				setprocview(MCGROUPS, MPERCCPU, 0, -1);	
 				firstitem = 0;
 				break;
 
@@ -1542,13 +1409,12 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCOWN:
 				if (! ownprocs[0].pf)
 				{
-					statmsg = "Own process line is not "
-					          "configured in rc-file; "
+					statmsg = "Own process line is not configured in rc-file; "
 					          "request ignored";
 					break;
 				}
 
-				showtype  = MPROCOWN;
+				setprocview(MPROCOWN, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1556,11 +1422,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** scheduling-values per process
 			   */
 			   case MPROCSCH:
-				showtype  = MPROCSCH;
-
-				if (showorder != MSORTAUTO)
-					showorder = MSORTCPU;
-
+				setprocview(MPROCSCH, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1571,7 +1433,7 @@ text_samp(time_t curtime, int nsecs,
 				statmsg = "Consumption per user; use 'a' to "
 				          "toggle between all/active processes";
 
-				showtype  = MCUMUSER;
+				setprocview(MCUMUSER, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1582,7 +1444,7 @@ text_samp(time_t curtime, int nsecs,
 				statmsg = "Consumption per program; use 'a' to "
 				          "toggle between all/active processes";
 
-				showtype  = MCUMPROC;
+				setprocview(MCUMPROC, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1592,15 +1454,14 @@ text_samp(time_t curtime, int nsecs,
 			   case MCUMCONT:
 				if (!rawreadflag && !rootprivs())
 				{
-					statmsg = "No privileges to get "
-					          "container/pod identity!";
+					statmsg = "No privileges to get container/pod identity!";
 					break;
 				}
 
 				statmsg = "Consumption per container/pod; use 'a' to "
 				          "toggle between all/active processes";
 
-				showtype  = MCUMCONT;
+				setprocview(MCUMCONT, MPERCCPU, 0, -1);
 				firstitem = 0;
 				break;
 
@@ -1635,6 +1496,29 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
+			   ** define sorting order for processes
+			   */
+			   case MORDERPROC:
+				if (procview.showtype == MCGROUPS)
+				{
+					statmsg = "Only use 'C', 'M' or 'D' for sort order of cgroups!";
+					break;
+				}
+
+				keyhandle_sortorder(&statline, &statmsg, sorthash);
+
+				firstitem = 0;
+
+				if (twinpid)	// twin mode?
+				{
+					begintime = 0x7fffffff;
+					lastchar = MSAMPBRANCH;
+					goto free_and_return;	
+				}
+
+				break;
+
+			   /*
 			   ** send signal to process
 			   */
 			   case MKILLPROC:
@@ -1646,38 +1530,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				alarm(0);	/* stop the clock */
-
-				killpid = getnumval("Pid of process: ",
-						     0, statline);
-
-				switch (killpid)
-				{
-				   case 0:
-				   case -1:
-					break;
-
-				   case 1:
-					statmsg = "Sending signal to pid 1 not "
-					          "allowed!";
-					beep();
-					break;
-
-				   default:
-					clrtoeol();
-					killsig = getnumval("Signal [%d]: ",
-						     15, statline);
-
-					if ( kill(killpid, killsig) == -1)
-					{
-						statmsg = "Not possible to "
-						     "send signal to this pid!";
-						beep();
-					}
-				}
-
-				if (!paused && !twinpid)
-					alarm(3); /* set short timer */
+				keyhandle_killpid(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -1703,9 +1556,8 @@ text_samp(time_t curtime, int nsecs,
 
 				alarm(0);	/* stop the clock */
 
-				interval = getnumval("New interval in seconds "
-						     "(now %d): ",
-						     interval, statline);
+				interval = getnumval("New interval in seconds (now %d): ",
+						     interval, statline, 0);
 
 				if (interval)
 				{
@@ -1732,85 +1584,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific user
 			   */
 			   case MSELUSER:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Users as regular expression or "
-				       "one numerical UID (enter=all users): ");
-
-				procsel.username[0] = '\0';
-				scanw("%255s\n", procsel.username);
-
-				noecho();
-
-				if (procsel.username[0]) /* data entered ? */
-				{
-					regex_t		userregex;
-					int		u = 0;
-
-					if ( regcomp(&userregex,
-						procsel.username, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						procsel.username[0] = '\0';
-					}
-					else
-					{
-						while ( (pwd = getpwent()))
-						{
-							if (regexec(&userregex,
-							    pwd->pw_name, 0,
-							    NULL, 0))
-								continue;
-
-							if (u < MAXUSERSEL-1)
-							{
-							  procsel.userid[u] =
-								pwd->pw_uid;
-							  u++;
-							}
-						}
-						endpwent();
-
-						procsel.userid[u] = USERSTUB;
-
-						if (u == 0)
-						{
-							/*
-							** possibly a numerical
-							** value specified?
-							*/
-							if (numeric(
-							     procsel.username))
-							{
-							 procsel.userid[0] =
-							 atoi(procsel.username);
-							 procsel.userid[1] =
-								USERSTUB;
-							}
-							else
-							{
-							     statmsg =
-								"No user-names "
-							    	"match this "
-								"pattern!";
-							     beep();
-							}
-						}
-					}
-				}
-				else
-				{
-					procsel.userid[0] = USERSTUB;
-				}
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_seluser(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -1826,40 +1600,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific process-name
 			   */
 			   case MSELPROC:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Process-name as regular "
-				       "expression (enter=no regex): ");
-
-				procsel.prognamesz  = 0;
-				procsel.progname[0] = '\0';
-
-				scanw("%63s\n", procsel.progname);
-				procsel.prognamesz = strlen(procsel.progname);
-
-				if (procsel.prognamesz)
-				{
-					if (regcomp(&procsel.progregex,
-					         procsel.progname, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						procsel.prognamesz  = 0;
-						procsel.progname[0] = '\0';
-					}
-				}
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selproc(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -1877,44 +1618,12 @@ text_samp(time_t curtime, int nsecs,
 			   case MSELCONT:
 				if (!rawreadflag && !rootprivs())
 				{
-					statmsg = "No privileges to get "
-					          "container/pod identity!";
+					statmsg = "No privileges to get container/pod identity!";
 					beep();
 					break;
 				}
 
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Container or pod name (enter=all, "
-				       "'host'=host processes): ");
-
-				procsel.utsname[0]  = '\0';
-				scanw("%15s", procsel.utsname);
-				procsel.utsname[UTSLEN] = '\0';
-
-				switch (strlen(procsel.utsname))
-				{
-                                   case 0:
-					break;	// enter key pressed
-
-				   case 4:	// host?
-					if (strcmp(procsel.utsname, "host") == 0)
-					{
-						procsel.utsname[0] = 'H';
-						procsel.utsname[1] = '\0';
-					}
-					break;
-				}
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selcont(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -1930,56 +1639,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific PIDs
 			   */
 			   case MSELPID:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Comma-separated PIDs of processes "
-				                 "(enter=no selection): ");
-
-				scanw("%79s\n", genline);
-
-				int  id = 0;
-
-				char *pidp = strtok(genline, ",");
-
-				while (pidp)
-				{
-					char *ep;
-
-					if (id >= MAXPID-1)
-					{
-						procsel.pid[id] = 0;	// stub
-
-						statmsg = "Maximum number of"
-						          "PIDs reached!";
-						beep();
-						break;
-					}
-
-					procsel.pid[id] = strtol(pidp, &ep, 10);
-
-					if (*ep)
-					{
-						statmsg = "Non-numerical PID!";
-						beep();
-						procsel.pid[0]  = 0;  // stub
-						break;
-					}
-
-					id++;
-					pidp = strtok(NULL, ",");
-				}
-
-				procsel.pid[id] = 0;	// stub
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selpid(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -1995,74 +1655,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific process/thread state
 			   */
 			   case MSELSTATE:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-
-				/* Linux fs/proc/array.c - task_state_array */
-				printw("Comma-separated thread states within process "
-				       "(R|S|D|I|T|t|X|Z|P): ");
-
-				memset(procsel.states, 0, sizeof procsel.states);
-
-				scanw("%15s\n", genline);
-
-				char *sp = strtok(genline, ",");
-
-				while (sp && *sp)
-				{
-					if (isspace(*sp))
-					{
-						sp++;
-						continue;
-					}
-
-					if (strlen(sp) > 1)
-					{
-						statmsg = "Invalid state!";
-						memset(procsel.states, 0,
-							sizeof procsel.states);
-						break;
-					}
-
-					int needed = 0;
-
-					switch (*sp)
-					{
-						case 'R': /* running */
-						case 'S': /* sleeping */
-						case 'D': /* disk sleep */
-						case 'I': /* idle */
-						case 'T': /* stopped */
-						case 't': /* tracing stop */
-						case 'X': /* dead */
-						case 'Z': /* zombie */
-						case 'P': /* parked */
-							if (!strchr(procsel.states, *sp))
-								needed = 1;
-							break;
-						default:
-							statmsg = "Invalid state!";
-							memset(procsel.states,
-								0, sizeof procsel.states);
-							beep();
-							break;
-					}
-
-					if (needed)
-					    procsel.states[strlen(procsel.states)] = *sp;
-
-					sp = strtok(NULL, ",");
-				}
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selstate(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -2078,40 +1671,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific command line arguments
 			   */
 			   case MSELARG:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Command line string as regular "
-				       "expression (enter=no regex): ");
-
-				procsel.argnamesz  = 0;
-				procsel.argname[0] = '\0';
-
-				scanw("%63s\n", procsel.argname);
-				procsel.argnamesz = strlen(procsel.argname);
-
-				if (procsel.argnamesz)
-				{
-					if (regcomp(&procsel.argregex,
-					         procsel.argname, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						procsel.argnamesz  = 0;
-						procsel.argname[0] = '\0';
-					}
-				}
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selarg(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -2127,90 +1687,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** focus on specific system resource
 			   */
 			   case MSELSYS:
-				alarm(0);	/* stop the clock */
-				echo();
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Logical volume name as regular "
-				       "expression (enter=no specific name): ");
-
-				syssel.lvmnamesz  = 0;
-				syssel.lvmname[0] = '\0';
-
-				scanw("%63s\n", syssel.lvmname);
-				syssel.lvmnamesz = strlen(syssel.lvmname);
-
-				if (syssel.lvmnamesz)
-				{
-					if (regcomp(&syssel.lvmregex,
-					         syssel.lvmname, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						syssel.lvmnamesz  = 0;
-						syssel.lvmname[0] = '\0';
-					}
-				}
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Disk name as regular "
-				       "expression (enter=no specific name): ");
-
-				syssel.dsknamesz  = 0;
-				syssel.dskname[0] = '\0';
-
-				scanw("%63s\n", syssel.dskname);
-				syssel.dsknamesz = strlen(syssel.dskname);
-
-				if (syssel.dsknamesz)
-				{
-					if (regcomp(&syssel.dskregex,
-					         syssel.dskname, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						syssel.dsknamesz  = 0;
-						syssel.dskname[0] = '\0';
-					}
-				}
-
-				move(statline, 0);
-				clrtoeol();
-				printw("Interface name as regular "
-				       "expression (enter=no specific name): ");
-
-				syssel.itfnamesz  = 0;
-				syssel.itfname[0] = '\0';
-
-				scanw("%63s\n", syssel.itfname);
-				syssel.itfnamesz = strlen(syssel.itfname);
-
-				if (syssel.itfnamesz)
-				{
-					if (regcomp(&syssel.itfregex,
-					         syssel.itfname, REG_NOSUB))
-					{
-						statmsg = "Invalid regular "
-						          "expression!";
-						beep();
-
-						syssel.itfnamesz  = 0;
-						syssel.itfname[0] = '\0';
-					}
-				}
-
-				noecho();
-
-				move(statline, 0);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(3);  /* set short timer */
+				keyhandle_selsysname(&statline, &statmsg);
 
 				firstitem = 0;
 
@@ -2299,14 +1776,12 @@ text_samp(time_t curtime, int nsecs,
 				if (fixedhead)
 				{
 					fixedhead=0;
-					statmsg = "Only active system-resources"
-					          " will be shown ......";
+					statmsg = "Only active system-resources will be shown ......";
 				}
 				else
 				{
 					fixedhead=1;
-					statmsg = "Also inactive "
-					  "system-resources will be shown.....";
+					statmsg = "Also inactive system-resources will be shown...";
 				}
 
 				firstitem = 0;
@@ -2320,14 +1795,12 @@ text_samp(time_t curtime, int nsecs,
 				if (sysnosort)
 				{
 					sysnosort=0;
-					statmsg = "System resources will be "
-					          "sorted on utilization...";
+					statmsg = "System resources will be sorted on utilization...";
 				}
 				else
 				{
 					sysnosort=1;
-					statmsg = "System resources will not "
-					          "be sorted on utilization...";
+					statmsg = "System resources will not be sorted on utilization...";
 				}
 
 				firstitem = 0;
@@ -2376,8 +1849,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MCALCPSS:
 				if (rawreadflag)
 				{
-					statmsg = "PSIZE gathering depends "
-					          "on rawfile";
+					statmsg = "PSIZE gathering depends on rawfile";
 					break;
 				}
 
@@ -2393,8 +1865,7 @@ text_samp(time_t curtime, int nsecs,
 					if (rootprivs())
 						statmsg    = "PSIZE gathering enabled";
 					else
-						statmsg    = "PSIZE gathering only "
-						             "for own processes";
+						statmsg    = "PSIZE gathering only for own processes";
 				}
 				break;
 
@@ -2421,15 +1892,13 @@ text_samp(time_t curtime, int nsecs,
 				if (suppressexit)
 				{
 					suppressexit = 0;
-					statmsg      = "Exited processes will "
-					               "be shown/accumulated";
+					statmsg      = "Exited processes will be shown/accumulated";
 					firstitem    = 0;
 				}
 				else
 				{
 					suppressexit = 1;
-					statmsg      = "Exited processes will "
-					             "not be shown/accumulated";
+					statmsg      = "Exited processes will not be shown/accumulated";
 					firstitem    = 0;
 				}
 				break;
@@ -2449,8 +1918,7 @@ text_samp(time_t curtime, int nsecs,
 					if (screen && has_colors())
 					{
 						usecolors=1;
-						statmsg =
-						   "Colors will be used...";
+						statmsg = "Colors will be used...";
 					}
 					else
 					{
@@ -2462,75 +1930,10 @@ text_samp(time_t curtime, int nsecs,
 				break;
 
 			   /*
-			   ** system-statistics lines:
-			   **	         toggle no or all active disk
+			   ** system-statistics lines
 			   */
 			   case MSYSLIMIT:
-				alarm(0);	/* stop the clock */
-
-				maxcpulines =
-				  getnumval("Maximum lines for per-cpu "
-				            "statistics (now %d): ",
-				            maxcpulines, statline);
-
-				maxgpulines =
-				  getnumval("Maximum lines for per-gpu "
-				            "statistics (now %d): ",
-				            maxgpulines, statline);
-
-				if (sstat->dsk.nlvm > 0)
-				{
-					maxlvmlines =
-					  getnumval("Maximum lines for LVM "
-				            "statistics (now %d): ",
-				            maxlvmlines, statline);
-				}
-
-				if (sstat->dsk.nmdd > 0)
-				{
-			  		maxmddlines =
-					  getnumval("Maximum lines for MD "
-					    "device statistics (now %d): ",
-				            maxmddlines, statline);
-				}
-
-				maxdsklines =
-				  getnumval("Maximum lines for disk "
-				            "statistics (now %d): ",
-				            maxdsklines, statline);
-
-				maxintlines =
-				  getnumval("Maximum lines for interface "
-				            "statistics (now %d): ",
-					    maxintlines, statline);
-
-				maxifblines =
-				  getnumval("Maximum lines for infiniband "
-				            "port statistics (now %d): ",
-					    maxifblines, statline);
-
-				maxnfslines =
-				  getnumval("Maximum lines for NFS mount "
-				            "statistics (now %d): ",
-					    maxnfslines, statline);
-
-				maxcontlines =
-				  getnumval("Maximum lines for container "
-				            "statistics (now %d): ",
-					    maxcontlines, statline);
-
-				maxnumalines =
-				  getnumval("Maximum lines for numa "
-				            "statistics (now %d): ",
-					    maxnumalines, statline);
-
-				maxllclines =
-				  getnumval("Maximum lines for LLC "
-				            "statistics (now %d): ",
-					    maxllclines, statline);
-
-				if (interval && !paused && !rawreadflag)
-					alarm(1);  /* set short timer */
+				keyhandle_selsyslim(&statline, &statmsg, sstat);
 
 				firstitem = 0;
 
@@ -2564,8 +1967,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MEND:
                                 if (!rawreadflag)
                                 {
-					statmsg = "Only allowed in twin mode or "
-						  "when viewing raw file!";
+					statmsg = "Only allowed in twin mode or when viewing raw file!";
                                         beep();
                                         break;
                                 }
@@ -2648,9 +2050,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** handle screen resize
 			   */
 			   case KEY_RESIZE:
-				snprintf(statbuf, sizeof statbuf, 
-					"Window resized to %dx%d...",
-			         		COLS, LINES);
+				snprintf(statbuf, sizeof statbuf, "Window resized to %dx%d...", COLS, LINES);
 				statmsg = statbuf;
 
 				timeout(0);
@@ -2685,6 +2085,767 @@ text_samp(time_t curtime, int nsecs,
 	free(cgroupsel);
 
 	return lastchar;
+}
+
+
+/*
+** sort all resources on system level
+*/
+static void
+sort_sysstats(struct sstat *sstat)
+{
+	if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
+		qsort(sstat->cpu.cpu, sstat->cpu.nrcpu, sizeof sstat->cpu.cpu[0], cpucompar);
+
+	if (sstat->gpu.nrgpus > 1 && maxgpulines > 0)
+		qsort(sstat->gpu.gpu, sstat->gpu.nrgpus, sizeof sstat->gpu.gpu[0], gpucompar);
+
+	if (sstat->dsk.nlvm > 1 && maxlvmlines > 0)
+		qsort(sstat->dsk.lvm, sstat->dsk.nlvm, sizeof sstat->dsk.lvm[0], diskcompar);
+
+	if (sstat->dsk.nmdd > 1 && maxmddlines > 0)
+		qsort(sstat->dsk.mdd, sstat->dsk.nmdd, sizeof sstat->dsk.mdd[0], diskcompar);
+
+	if (sstat->dsk.ndsk > 1 && maxdsklines > 0)
+		qsort(sstat->dsk.dsk, sstat->dsk.ndsk, sizeof sstat->dsk.dsk[0], diskcompar);
+
+	if (sstat->intf.nrintf > 1 && maxintlines > 0)
+		qsort(sstat->intf.intf, sstat->intf.nrintf, sizeof sstat->intf.intf[0], intfcompar);
+
+	if (sstat->ifb.nrports > 1 && maxifblines > 0)
+		qsort(sstat->ifb.ifb, sstat->ifb.nrports, sizeof sstat->ifb.ifb[0], ifbcompar);
+
+	if (sstat->nfs.nfsmounts.nrmounts > 1 && maxnfslines > 0)
+		qsort(sstat->nfs.nfsmounts.nfsmnt, sstat->nfs.nfsmounts.nrmounts,
+		  	      sizeof sstat->nfs.nfsmounts.nfsmnt[0], nfsmcompar);
+
+	if (sstat->cfs.nrcontainer > 1 && maxcontlines > 0)
+		qsort(sstat->cfs.cont, sstat->cfs.nrcontainer, sizeof sstat->cfs.cont[0], contcompar);
+
+	if (sstat->memnuma.nrnuma > 1 && maxnumalines > 0)
+		qsort(sstat->memnuma.numa, sstat->memnuma.nrnuma, sizeof sstat->memnuma.numa[0], memnumacompar);
+
+	if (sstat->cpunuma.nrnuma > 1 && maxnumalines > 0)
+		qsort(sstat->cpunuma.numa, sstat->cpunuma.nrnuma, sizeof sstat->cpunuma.numa[0], cpunumacompar);
+
+	if (sstat->llc.nrllcs > 1 && maxllclines > 0)
+		qsort(sstat->llc.perllc, sstat->llc.nrllcs, sizeof sstat->llc.perllc[0], llccompar);
+}
+
+
+/*
+** define new sort column for process list
+*/
+static void
+keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
+{
+	char columnname[80], *columnstr, adanswer[10], optad1, optad2;
+	int  i;
+
+	// stop the clock and clear status line
+	//
+	alarm(0);
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+
+	// determine current column string
+	// - in case of resource column (column 0),
+	//   define static resource string
+	//
+	// - otherwise search for string in alldetaildefs[]
+	//
+	if (procview.sortcolumn == 0)
+	{
+		switch (sorthash&0xff)
+		{
+		   case MPERCCPU|0x80:
+		 	columnstr = "CPU";
+			break;
+		   case MPERCDSK|0x80:
+		 	columnstr = "DSK";
+			break;
+		   case MPERCMEM|0x80:
+		 	columnstr = "MEM";
+			break;
+		   case MPERCNET|0x80:
+		 	columnstr = "NET";
+			break;
+		   case MPERCGPU|0x80:
+		 	columnstr = "GPU";
+			break;
+		   default:
+		 	columnstr = "?";
+		}
+	}
+	else
+	{
+		columnstr = colstrip(alldetaildefs[procview.sortcolumn]->head);
+	}
+
+	// show current sort column and sort order
+	//
+	printw("Override current sort column: %s - %s (enter=keep): ", columnstr,
+			procview.ascdesc == 1 ? "ascending" : "descending");
+
+	columnname[0] = '\0';
+
+	// request to enter new column string
+	//
+	scanw("%63s\n", columnname);
+
+	// input given?
+	//
+	if (columnname[0])
+	{
+		int rv;
+
+		// convert to upper case
+		//
+		for (i=0; columnname[i]; i++)
+			columnname[i] = toupper(columnname[i]);
+
+		// find entry of required column in columns list
+		//
+		if (strcmp(columnname, "CPU") == 0)
+			rv = setprocview(0, MPERCCPU, 0, -1);
+		else if (strcmp(columnname, "DSK") == 0)
+			rv = setprocview(0, MPERCDSK, 0, -1);
+		else if (strcmp(columnname, "MEM") == 0)
+			rv = setprocview(0, MPERCMEM, 0, -1);
+		else if (strcmp(columnname, "NET") == 0)
+			rv = setprocview(0, MPERCNET, 0, -1);
+		else if (strcmp(columnname, "GPU") == 0)
+			rv = setprocview(0, MPERCGPU, 0, -1);
+		else 
+		{
+			// or find entry of required column in columns list
+			//
+			for (i=1; alldetaildefs[i]; i++)
+			{
+				if ( strcmp(colstrip(alldetaildefs[i]->head), columnname) == 0)
+					break;
+			}
+
+			if (! alldetaildefs[i])	// not found?
+			{
+				*pstatmsg = "Sort column does not exist!";
+				rv = 1;
+				beep();
+			}
+			else			// column string is found
+			{
+				// define as current column
+				//
+				rv = setprocview(0, 0, i, alldetaildefs[i]->ascdesc);
+
+				switch (rv)
+				{
+			   	   case 1:
+					*pstatmsg = "Sort column not part of this view!";
+					beep();
+					break;
+			   	   case 2:
+					*pstatmsg = "No sort option for this column!";
+					beep();
+					break;
+				}
+			}
+		}
+
+		// new column accepted
+		//
+		if (rv == 0)
+		{
+			// request input for ascending of descending sort order
+			//
+			move(*pstatline, 0);
+			clrtoeol();
+
+			if (procview.ascdesc == 1)	// determine perferred default
+			{
+				optad1 = 'A';
+				optad2 = 'd';
+			}
+			else
+			{
+				optad1 = 'D';
+				optad2 = 'a';
+			}
+
+			printw("Ascending/descending (%c/%c): ", optad1, optad2);
+
+			adanswer[0] = '\0';
+
+			scanw("%9s\n", adanswer);
+
+			if (adanswer[0] == '\0')	// no input given?
+				adanswer[0] = optad1;
+
+			switch (adanswer[0])
+			{
+			   case 'A':
+			   case 'a':
+				setprocview(0, 0, -1, 1);
+				break;
+
+			   case 'D':
+			   case 'd':
+				setprocview(0, 0, -1, -1);
+				break;
+
+			   default:
+				*pstatmsg = "Invalid input (no change)!";
+			}
+		}
+	}
+
+	// prepare continuation
+	//
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define PID and signal number, and send signal
+*/
+static void
+keyhandle_killpid(int *pstatline, char **pstatmsg)
+{
+       	int killpid, killsig;
+
+	alarm(0);	/* stop the clock */
+
+	// get PID to send signal to
+	//
+	killpid = getnumval("Pid of process: ", 0, *pstatline, 1);
+
+	switch (killpid)
+	{
+	   case 0:
+	   case -1:
+		break;
+
+	   case 1:
+		*pstatmsg = "Sending signal to pid 1 not allowed!";
+		beep();
+		break;
+
+	   default:
+		// get signal to send
+		//
+		clrtoeol();
+		killsig = getnumval("Signal [%d]: ", 15, *pstatline, 1);
+
+		if (killsig != -1)
+		{
+			if (kill(killpid, killsig) == -1)
+			{
+				*pstatmsg = "Not possible to send signal to this pid!";
+				beep();
+			}
+		}
+	}
+
+	if (!paused && !twinpid)
+		alarm(3); /* set short timer */
+}
+
+
+/*
+** define selection of particular user
+*/
+static void
+keyhandle_seluser(int *pstatline, char **pstatmsg)
+{
+	struct passwd 	*pwd;
+
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Users as regular expression or one numerical UID (enter=all users): ");
+
+	procsel.username[0] = '\0';
+	scanw("%255s\n", procsel.username);
+
+	noecho();
+
+	if (procsel.username[0]) // data entered ?
+	{
+		regex_t		userregex;
+		int		u = 0;
+
+		if ( regcomp(&userregex, procsel.username, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			procsel.username[0] = '\0';
+		}
+		else
+		{
+			while ( (pwd = getpwent()))
+			{
+				if (regexec(&userregex, pwd->pw_name, 0, NULL, 0))
+					continue;
+
+				if (u < MAXUSERSEL-1)
+				{
+					procsel.userid[u] = pwd->pw_uid;
+					u++;
+				}
+			}
+			endpwent();
+
+			procsel.userid[u] = USERSTUB;
+
+			if (u == 0)
+			{
+				/*
+				** possibly a numerical
+				** value specified?
+				*/
+				if (numeric(procsel.username))
+				{
+					procsel.userid[0] = atoi(procsel.username);
+					procsel.userid[1] = USERSTUB;
+				}
+				else
+				{
+				 	*pstatmsg = "No user-names match this pattern!";
+					beep();
+				}
+			}
+		}
+	}
+	else
+	{
+		procsel.userid[0] = USERSTUB;
+	}
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular process
+*/
+static void
+keyhandle_selproc(int *pstatline, char **pstatmsg)
+{
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Process-name as regular expression (enter=no regex): ");
+
+	procsel.prognamesz  = 0;
+	procsel.progname[0] = '\0';
+
+	scanw("%63s\n", procsel.progname);
+	procsel.prognamesz = strlen(procsel.progname);
+
+	if (procsel.prognamesz)
+	{
+		if (regcomp(&procsel.progregex, procsel.progname, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			procsel.prognamesz  = 0;
+			procsel.progname[0] = '\0';
+		}
+	}
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular container
+*/
+static void
+keyhandle_selcont(int *pstatline, char **pstatmsg)
+{
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Container or pod name (enter=all, 'host'=host processes): ");
+
+	procsel.utsname[0]  = '\0';
+	scanw("%15s", procsel.utsname);
+	procsel.utsname[UTSLEN] = '\0';
+
+	switch (strlen(procsel.utsname))
+	{
+           case 0:
+		break;	// enter key pressed
+
+	   case 4:	// host?
+		if (strcmp(procsel.utsname, "host") == 0)
+		{
+			procsel.utsname[0] = 'H';
+			procsel.utsname[1] = '\0';
+		}
+		break;
+	}
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular PIDs
+*/
+static void
+keyhandle_selpid(int *pstatline, char **pstatmsg)
+{
+	char	genline[80];
+	int	id = 0;
+
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Comma-separated PIDs of processes (enter=no selection): ");
+
+	genline[0] = '\0';
+	scanw("%79s\n", genline);
+
+	char *pidp = strtok(genline, ",");
+
+	while (pidp)
+	{
+		char *ep;
+
+		if (id >= MAXPID-1)
+		{
+			procsel.pid[id] = 0;	// stub
+
+			*pstatmsg = "Maximum number of PIDs reached!";
+			beep();
+			break;
+		}
+
+		procsel.pid[id] = strtol(pidp, &ep, 10);
+
+		if (*ep)
+		{
+			*pstatmsg = "Non-numerical PID!";
+			beep();
+			procsel.pid[0]  = 0;  // stub
+			break;
+		}
+
+		id++;
+		pidp = strtok(NULL, ",");
+	}
+
+	procsel.pid[id] = 0;	// stub
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular state(s)
+*/
+static void
+keyhandle_selstate(int *pstatline, char **pstatmsg)
+{
+	char genline[80];
+
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+
+	/* Linux fs/proc/array.c - task_state_array */
+	printw("Comma-separated thread states within process (R|S|D|I|T|t|X|Z|P): ");
+
+	memset(procsel.states, 0, sizeof procsel.states);
+
+	genline[0] = '\0';
+	scanw("%15s\n", genline);
+
+	char *sp = strtok(genline, ",");
+
+	while (sp && *sp)
+	{
+		if (isspace(*sp))
+		{
+			sp++;
+			continue;
+		}
+
+		if (strlen(sp) > 1)
+		{
+			*pstatmsg = "Invalid state!";
+			memset(procsel.states, 0, sizeof procsel.states);
+			break;
+		}
+
+		int needed = 0;
+
+		switch (*sp)
+		{
+			case 'R': /* running */
+			case 'S': /* sleeping */
+			case 'D': /* disk sleep */
+			case 'I': /* idle */
+			case 'T': /* stopped */
+			case 't': /* tracing stop */
+			case 'X': /* dead */
+			case 'Z': /* zombie */
+			case 'P': /* parked */
+				if (!strchr(procsel.states, *sp))
+					needed = 1;
+				break;
+			default:
+				*pstatmsg = "Invalid state!";
+				memset(procsel.states, 0, sizeof procsel.states);
+				beep();
+				break;
+		}
+
+		if (needed)
+		    procsel.states[strlen(procsel.states)] = *sp;
+
+		sp = strtok(NULL, ",");
+	}
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular state(s)
+*/
+static void
+keyhandle_selarg(int *pstatline, char **pstatmsg)
+{
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Command line string as regular expression (enter=no regex): ");
+
+	procsel.argnamesz  = 0;
+	procsel.argname[0] = '\0';
+
+	scanw("%63s\n", procsel.argname);
+	procsel.argnamesz = strlen(procsel.argname);
+
+	if (procsel.argnamesz)
+	{
+		if (regcomp(&procsel.argregex, procsel.argname, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			procsel.argnamesz  = 0;
+			procsel.argname[0] = '\0';
+		}
+	}
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+
+/*
+** define selection of particular resource names
+*/
+static void
+keyhandle_selsysname(int *pstatline, char **pstatmsg)
+{
+	alarm(0);	/* stop the clock */
+	echo();
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Logical volume name as regular expression (enter=no specific name): ");
+
+	syssel.lvmnamesz  = 0;
+	syssel.lvmname[0] = '\0';
+
+	scanw("%63s\n", syssel.lvmname);
+	syssel.lvmnamesz = strlen(syssel.lvmname);
+
+	if (syssel.lvmnamesz)
+	{
+		if (regcomp(&syssel.lvmregex, syssel.lvmname, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			syssel.lvmnamesz  = 0;
+			syssel.lvmname[0] = '\0';
+		}
+	}
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Disk name as regular expression (enter=no specific name): ");
+
+	syssel.dsknamesz  = 0;
+	syssel.dskname[0] = '\0';
+
+	scanw("%63s\n", syssel.dskname);
+	syssel.dsknamesz = strlen(syssel.dskname);
+
+	if (syssel.dsknamesz)
+	{
+		if (regcomp(&syssel.dskregex, syssel.dskname, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			syssel.dsknamesz  = 0;
+			syssel.dskname[0] = '\0';
+		}
+	}
+
+	move(*pstatline, 0);
+	clrtoeol();
+	printw("Interface name as regular expression (enter=no specific name): ");
+
+	syssel.itfnamesz  = 0;
+	syssel.itfname[0] = '\0';
+
+	scanw("%63s\n", syssel.itfname);
+	syssel.itfnamesz = strlen(syssel.itfname);
+
+	if (syssel.itfnamesz)
+	{
+		if (regcomp(&syssel.itfregex, syssel.itfname, REG_NOSUB))
+		{
+			*pstatmsg = "Invalid regular expression!";
+			beep();
+
+			syssel.itfnamesz  = 0;
+			syssel.itfname[0] = '\0';
+		}
+	}
+
+	noecho();
+
+	move(*pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(3);  /* set short timer */
+}
+
+/*
+** define limited number of lines per resource type
+*/
+static void
+keyhandle_selsyslim(int *pstatline, char **pstatmsg, struct sstat *sstat)
+{
+	alarm(0);	/* stop the clock */
+
+	maxcpulines = getnumval("Maximum lines for per-cpu statistics (now %d): ", maxcpulines, *pstatline, 0);
+
+	maxgpulines = getnumval("Maximum lines for per-gpu statistics (now %d): ", maxgpulines, *pstatline, 0);
+
+	if (sstat->dsk.nlvm > 0)
+		maxlvmlines = getnumval("Maximum lines for LVM statistics (now %d): ", maxlvmlines, *pstatline, 0);
+
+	if (sstat->dsk.nmdd > 0)
+  		maxmddlines = getnumval("Maximum lines for MD device statistics (now %d): ", maxmddlines, *pstatline, 0);
+
+	maxdsklines = getnumval("Maximum lines for disk statistics (now %d): ", maxdsklines, *pstatline, 0);
+
+	maxintlines = getnumval("Maximum lines for interface statistics (now %d): ", maxintlines, *pstatline, 0);
+
+	maxifblines = getnumval("Maximum lines for infiniband port statistics (now %d): ", maxifblines, *pstatline, 0);
+
+	maxnfslines = getnumval("Maximum lines for NFS mount statistics (now %d): ", maxnfslines, *pstatline, 0);
+
+	maxcontlines = getnumval("Maximum lines for container statistics (now %d): ", maxcontlines, *pstatline, 0);
+
+	maxnumalines = getnumval("Maximum lines for numa statistics (now %d): ", maxnumalines, *pstatline, 0);
+
+	maxllclines = getnumval("Maximum lines for LLC statistics (now %d): ", maxllclines, *pstatline, 0);
+
+	if (interval && !paused && !rawreadflag)
+		alarm(1);  /* set short timer */
+}
+
+
+/*
+** strip all spaces in front of column name and
+** strip everything behind column name
+*/
+static char *
+colstrip(char *s)
+{
+	static char buf[64];
+	int         j;
+
+	for (j=0; *s && j < sizeof(buf)-2; s++)
+	{
+		// space in column name?
+		//
+		if (*s == ' ')
+		{
+			// space in front?
+			//
+			if (j == 0)
+				continue;
+
+			// space behind
+			//
+			break;
+		}
+
+		// normal character
+		//
+		buf[j++] = *s;
+	}
+
+	buf[j] = '\0';
+
+	return buf;
 }
 
 /*
@@ -3072,9 +3233,16 @@ limitedlines(void)
 
 /*
 ** get a numerical value from the user and verify 
+**
+** calling:
+**   ask:	pointer to string containing one %-formatter
+**   valuenow:	numerical value to be taken as default, filled for formatter
+**   statline:	line number of status line
+**   reterror:	boolean  0: return valuenow in case of wrong input
+**		         1: return -1       in case of wrong input
 */
 static long
-getnumval(char *ask, long valuenow, int statline)
+getnumval(char *ask, long valuenow, int statline, char reterror)
 {
 	char numval[16];
 	long retval;
@@ -3103,10 +3271,14 @@ getnumval(char *ask, long valuenow, int statline)
 			printw("Value not numeric (current value kept)!");
 			refresh();
 			sleep(2);
-			retval = valuenow;
+
+			if (reterror)
+				retval = -1;
+			else
+				retval = valuenow;
 		}
 	}
-	else
+	else	// no data entered
 	{
 		retval = valuenow;
 	}
@@ -3149,53 +3321,44 @@ generic_init(void)
 	{
 		switch (flaglist[i])
 		{
-		   case MSORTAUTO:
-			showorder = MSORTAUTO;
+		   case MPERCCPU:
+			setprocview(0, MPERCCPU, 0, -1);
 			break;
 
-		   case MSORTCPU:
-			showorder = MSORTCPU;
+		   case MPERCGPU:
+			setprocview(0, MPERCGPU, 0, -1);
 			break;
 
-		   case MSORTGPU:
-			showorder = MSORTGPU;
+		   case MPERCMEM:
+			setprocview(0, MPERCMEM, 0, -1);
 			break;
 
-		   case MSORTMEM:
-			showorder = MSORTMEM;
+		   case MPERCDSK:
+			setprocview(0, MPERCDSK, 0, -1);
 			break;
 
-		   case MSORTDSK:
-			showorder = MSORTDSK;
-			break;
-
-		   case MSORTNET:
-			showorder = MSORTNET;
+		   case MPERCNET:
+			setprocview(0, MPERCNET, 0, -1);
 			break;
 
 		   case MPROCGEN:
-			showtype  = MPROCGEN;
-			showorder = MSORTCPU;
+			setprocview(MPROCGEN, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCGPU:
-			showtype  = MPROCGPU;
-			showorder = MSORTGPU;
+			setprocview(MPROCGPU, MPERCGPU, 0, -1);
 			break;
 
 		   case MPROCMEM:
-			showtype  = MPROCMEM;
-			showorder = MSORTMEM;
+			setprocview(MPROCMEM, MPERCMEM, 0, -1);
 			break;
 
 		   case MPROCSCH:
-			showtype  = MPROCSCH;
-			showorder = MSORTCPU;
+			setprocview(MPROCSCH, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCDSK:
-			showtype  = MPROCDSK;
-			showorder = MSORTDSK;
+			setprocview(MPROCDSK, MPERCDSK, 0, -1);
 			break;
 
 		   case MPROCNET:
@@ -3207,16 +3370,15 @@ generic_init(void)
 				break;
 			}
 
-			showtype  = MPROCNET;
-			showorder = MSORTNET;
+			setprocview(MPROCNET, MPERCNET, 0, -1);
 			break;
 
 		   case MPROCVAR:
-			showtype  = MPROCVAR;
+			setprocview(MPROCVAR, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCARG:
-			showtype  = MPROCARG;
+			setprocview(MPROCARG, MPERCCPU, 0, -1);
 			break;
 
 		   case MCGROUPS:
@@ -3228,11 +3390,11 @@ generic_init(void)
 				break;
 			}
 
-			showtype  = MCGROUPS;
+			setprocview(MCGROUPS, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCOWN:
-			showtype  = MPROCOWN;
+			setprocview(MPROCOWN, MPERCCPU, 0, -1);
 			break;
 
 		   case MAVGVAL:
@@ -3243,11 +3405,11 @@ generic_init(void)
 			break;
 
 		   case MCUMUSER:
-			showtype  = MCUMUSER;
+			setprocview(MCUMUSER, MPERCCPU, 0, -1);
 			break;
 
 		   case MCUMPROC:
-			showtype  = MCUMPROC;
+			setprocview(MCUMPROC, MPERCCPU, 0, -1);
 			break;
 
 		   case MCUMCONT:
@@ -3259,7 +3421,7 @@ generic_init(void)
 				break;
 			}
 
-			showtype  = MCUMCONT;
+			setprocview(MCUMCONT, MPERCCPU, 0, -1);
 			break;
 
 		   case MSYSFIXED:
@@ -3479,7 +3641,162 @@ generic_init(void)
 	signal(SIGTERM,  cleanstop);
 }
 
+/*
+** define the way that the process details will be shown
+**
+** - type	type of view (generic, memory, disk, ...)
+**              0 = no change
+**
+** - resource	character 'C', 'M', 'D', 'N' or 'G' (i.e. resource percentage
+**  		to be shown in column before command)
+**              0 = no change
+**
+** - sortcol	index in alldetaildefs[]
+**              -1 = no change
+**
+** - ascdesc	ascending = 1, descending = -1
+**		0 = no change
+**
+** return value:	0 - success
+** 			1 - sort column not part of this view
+** 			2 - sort column part of this view, but no sort function
+*/
+static int
+setprocview(unsigned char type, unsigned char resource, signed char sortcol, int ascdesc)
+{
+	static int	cgrcpubusy, cgrmemory, cgrdiskio;
+	int           	i;
 
+	unsigned char	newtype = type          ? type    : procview.showtype;
+	unsigned char	newcol  = sortcol != -1 ? sortcol : procview.sortcolumn;
+	detail_printdef	*column = alldetaildefs[newcol];
+
+
+	// first call initialization:
+	// 	find entry of required cgroup columns CPUBUSY, MEMORY and DISKIO
+	// 	in alldetaildefs to highlight as sort criterium
+	//
+	if (!cgrcpubusy)
+	{
+		for (i=1; alldetaildefs[i]; i++)
+		{
+			if ( strcmp(colstrip(alldetaildefs[i]->head), "CPUBUSY") == 0)
+			{
+				cgrcpubusy = i;
+				continue;
+			}
+
+			if ( strcmp(colstrip(alldetaildefs[i]->head), "MEMORY") == 0)
+			{
+				cgrmemory = i;
+				continue;
+			}
+
+			if ( strcmp(colstrip(alldetaildefs[i]->head), "DISKIO") == 0)
+			{
+				cgrdiskio = i;
+				continue;
+			}
+		}
+	}
+
+	// verify if a sort function is available for this column anyhow
+	//
+	if (! column->sortfunc)
+		return 2;
+
+	// check if the sort column is (non-visible) part
+	// of the new view type 
+	//
+	if ( !viewhascolumn(newtype, newcol) )
+		return 1;
+
+	procview.showtype   = newtype;
+	procview.sortcolumn = newcol;
+
+	// define new resource for percentage to be shown
+	//
+	if (resource)
+	{
+		// in case of CPU, memory, disk, network and GPU order
+		// modify sort function according to new resource
+		//
+		switch (resource)
+		{
+		   case MPERCCPU:
+			if (procview.showtype != MCGROUPS)
+        			procview.sortcolumn = 0;
+			else
+        			procview.sortcolumn = cgrcpubusy;
+
+			procprt_RESOURCE.sortfunc = compcpu;
+			break;
+
+		   case MPERCMEM:
+			if (procview.showtype != MCGROUPS)
+        			procview.sortcolumn = 0;
+			else
+        			procview.sortcolumn = cgrmemory;
+
+			procprt_RESOURCE.sortfunc = compmem;
+			break;
+
+		   case MPERCDSK:
+			if (procview.showtype != MCGROUPS)
+        			procview.sortcolumn = 0;
+			else
+        			procview.sortcolumn = cgrdiskio;
+
+			procprt_RESOURCE.sortfunc = compdsk;
+			break;
+
+		   case MPERCNET:
+			if (procview.showtype != MCGROUPS)
+			{
+        			procview.sortcolumn = 0;
+			}
+			else
+			{
+        			procview.sortcolumn = cgrcpubusy;
+				resource = MPERCCPU;
+			}
+
+			procprt_RESOURCE.sortfunc = compnet;
+			break;
+
+		   case MPERCGPU:
+			if (procview.showtype != MCGROUPS)
+			{
+        			procview.sortcolumn = 0;
+			}
+			else
+			{
+        			procview.sortcolumn = cgrcpubusy;
+				resource = MPERCCPU;
+			}
+
+			procprt_RESOURCE.sortfunc = compgpu;
+			break;
+		}
+
+        	procview.showresource = resource;
+	}
+
+	if (ascdesc)
+		procview.ascdesc = ascdesc;
+
+	return 0;
+}
+
+
+/*
+** sort the list of tasks according to the new required order
+*/
+static void
+sortprocs(struct tstat **tslist, int nel, int elsize, unsigned char sortcol, int direction)
+{
+	qsort_r(tslist, nel, elsize, alldetaildefs[sortcol]->sortfunc, &direction);
+}
 
 
 /*
@@ -3501,9 +3818,9 @@ static struct helptext {
 	{"\t 9   - cgroups with related processes\n", ' ', 'a'},
 	{"\t'%c'  - show all cgroups/processes i.s.o. only active ones (toggle)\n",
 								MALLACTIVE, 'a'},
-	{"\t'%c'  - sort on cpu activity\n",			MSORTCPU, 'a'},
-	{"\t'%c'  - sort on memory utilization\n",		MSORTMEM, 'a'},
-	{"\t'%c'  - sort on disk transfer rate\n",		MSORTDSK, 'a'},
+	{"\t'%c'  - sort on cpu activity\n",			MPERCCPU, 'a'},
+	{"\t'%c'  - sort on memory utilization\n",		MPERCMEM, 'a'},
+	{"\t'%c'  - sort on disk transfer rate\n",		MPERCDSK, 'a'},
 	{"\n",							' ', 'a'},
 	{"Information in text mode about processes:\n", 	' ', 'a'},
 	{"\t'%c'  - generic info (default)\n",			MPROCGEN, 'a'},
@@ -3518,12 +3835,12 @@ static struct helptext {
 	{"\t'%c'  - use own output line definition\n",		MPROCOWN, 'a'},
 	{"\n",							' ', 'a'},
 	{"Sort list of processes in order of:\n",		' ', 'a'},
-	{"\t'%c'  - cpu activity\n",				MSORTCPU, 'a'},
-	{"\t'%c'  - memory consumption\n",			MSORTMEM, 'a'},
-	{"\t'%c'  - disk activity\n",				MSORTDSK, 'a'},
-	{"\t'%c'  - network activity\n",			MSORTNET, 'a'},
-	{"\t'%c'  - GPU activity\n",				MSORTGPU, 'a'},
-	{"\t'%c'  - most active system resource (auto mode)\n",	MSORTAUTO, 'a'},
+	{"\t'%c'  - cpu activity\n",				MPERCCPU, 'a'},
+	{"\t'%c'  - memory consumption\n",			MPERCMEM, 'a'},
+	{"\t'%c'  - disk activity\n",				MPERCDSK, 'a'},
+	{"\t'%c'  - network activity\n",			MPERCNET, 'a'},
+	{"\t'%c'  - GPU activity\n",				MPERCGPU, 'a'},
+	{"\t'%c'  - other column of choice\n",			MORDERPROC, 'a'},
 	{"\n",							' ', 'a'},
 	{"Raw file viewing and twin mode:\n",			' ', 'r'},
 	{"\t'%c'  - show next     sample\n",			MSAMPNEXT, 'r'},
@@ -3531,8 +3848,7 @@ static struct helptext {
 	{"\t'%c'  - branch to certain time\n",			MSAMPBRANCH, 'r'},
 	{"\t'%c'  - rewind to begin\n",				MRESET, 'r'},
 	{"\t'%c'  - fast-forward to end\n",			MEND, 'r'},
-	{"\t'%c'  - pause button to freeze or continue (twin mode)\n",
-								MPAUSE, 'r'},
+	{"\t'%c'  - pause button to freeze or continue (twin mode)\n", MPAUSE, 'r'},
 	{"\n",							' ', 'r'},
 	{"Accumulated process figures:\n",			' ', 'a'},
 	{"\t'%c'  - total resource consumption per user\n", 	MCUMUSER, 'a'},
@@ -3560,10 +3876,9 @@ static struct helptext {
 	{"\tPgDn - show next page in the process list (or ^F)\n",     ' ', 'a'},
 	{"\tPgUp - show previous page in the process list (or ^B)\n", ' ', 'a'},
 	{"\tArDn - arrow-down for next line in process list\n",       ' ', 'a'},
-	{"\tArUp   arrow-up for previous line in process list\n",     ' ', 'a'},
+	{"\tArUp - arrow-up for previous line in process list\n",     ' ', 'a'},
 	{"\tArRt - arrow-right for next character in full command line\n", ' ', 'a'},
-	{"\tArLt - arrow-left for previous character in full command line\n",
-									' ', 'a'},
+	{"\tArLt - arrow-left for previous character in full command line\n", ' ', 'a'},
 	{"\n",							' ', 'a'},
 	{"Presentation (keys shown in header line):\n",  	' ', 'a'},
 	{"\t'%c'  - show all processes/threads (i.s.o. active)     (toggle)\n",
@@ -3765,18 +4080,15 @@ generic_usage(void)
 			MCUMCONT);
 	printf("\t  -%c  sort processes in order of cpu consumption "
 	                "(default)\n",
-			MSORTCPU);
+			MPERCCPU);
 	printf("\t  -%c  sort processes in order of memory consumption\n",
-			MSORTMEM);
+			MPERCMEM);
 	printf("\t  -%c  sort processes in order of disk activity\n",
-			MSORTDSK);
+			MPERCDSK);
 	printf("\t  -%c  sort processes in order of network activity\n",
-			MSORTNET);
+			MPERCNET);
 	printf("\t  -%c  sort processes in order of GPU activity\n",
-			MSORTGPU);
-	printf("\t  -%c  sort processes in order of most active resource "
-                        "(auto mode)\n",
-			MSORTAUTO);
+			MPERCGPU);
 }
 
 /*
@@ -4012,86 +4324,76 @@ do_flags(char *name, char *val)
 			barmono = 1;
 			break;
 
-		   case MSORTCPU:
-			showorder = MSORTCPU;
+		   case MPERCCPU:
+			setprocview(0, MPERCCPU, 0, -1);
 			break;
 
-		   case MSORTGPU:
-			showorder = MSORTGPU;
+		   case MPERCGPU:
+			setprocview(0, MPERCGPU, 0, -1);
 			break;
 
-		   case MSORTMEM:
-			showorder = MSORTMEM;
+		   case MPERCMEM:
+			setprocview(0, MPERCMEM, 0, -1);
 			break;
 
-		   case MSORTDSK:
-			showorder = MSORTDSK;
+		   case MPERCDSK:
+			setprocview(0, MPERCDSK, 0, -1);
 			break;
 
-		   case MSORTNET:
-			showorder = MSORTNET;
-			break;
-
-		   case MSORTAUTO:
-			showorder = MSORTAUTO;
+		   case MPERCNET:
+			setprocview(0, MPERCNET, 0, -1);
 			break;
 
 		   case MPROCGEN:
-			showtype  = MPROCGEN;
-			showorder = MSORTCPU;
+			setprocview(MPROCGEN, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCGPU:
-			showtype  = MPROCGPU;
-			showorder = MSORTGPU;
+			setprocview(MPROCGPU, MPERCGPU, 0, -1);
 			break;
 
 		   case MPROCMEM:
-			showtype  = MPROCMEM;
-			showorder = MSORTMEM;
+			setprocview(MPROCMEM, MPERCMEM, 0, -1);
 			break;
 
 		   case MPROCDSK:
-			showtype  = MPROCDSK;
-			showorder = MSORTDSK;
+			setprocview(MPROCDSK, MPERCDSK, 0, -1);
 			break;
 
 		   case MPROCNET:
-			showtype  = MPROCNET;
-			showorder = MSORTNET;
+			setprocview(MPROCNET, MPERCNET, 0, -1);
 			break;
 
 		   case MPROCVAR:
-			showtype  = MPROCVAR;
+			setprocview(MPROCVAR, 0, 0, 0);
 			break;
 
 		   case MPROCSCH:
-			showtype  = MPROCSCH;
-			showorder = MSORTCPU;
+			setprocview(MPROCSCH, MPERCCPU, 0, -1);
 			break;
 
 		   case MPROCARG:
-			showtype  = MPROCARG;
+			setprocview(MPROCARG, 0, 0, 0);
 			break;
 
 		   case MPROCOWN:
-			showtype  = MPROCOWN;
+			setprocview(MPROCOWN, 0, 0, 0);
 			break;
 
 		   case MCUMUSER:
-			showtype  = MCUMUSER;
+			setprocview(MCUMUSER, 0, 0, 0);
 			break;
 
 		   case MCUMPROC:
-			showtype  = MCUMPROC;
+			setprocview(MCUMPROC, 0, 0, 0);
 			break;
 
 		   case MCUMCONT:
-			showtype  = MCUMCONT;
+			setprocview(MCUMCONT, 0, 0, 0);
 			break;
 
 		   case MCGROUPS:
-			showtype  = MCGROUPS;
+			setprocview(MCGROUPS, MPERCCPU, 0, -1);
 			break;
 
 		   case MALLACTIVE:
