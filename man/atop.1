@@ -2249,10 +2249,11 @@ process accounting record.
 The read data transfer issued physically on disk (so reading from the
 disk cache is not accounted for).
 .br
-Unfortunately, the kernel aggregates the
-data transfer of a process to the data transfer of its parent process when
-terminating, so you might see transfers for (parent) processes like
-cron, bash or systemd, that are not really issued by them.
+Unfortunately, the kernel aggregates the data transfer of a process to
+the data transfer of its parent process when terminating.
+So you might see transfers for (parent) processes like
+bash or systemd, that are not really issued by them but by their
+terminated child processes.
 .PP
 .TP 9
 .B RDELAY
@@ -2574,10 +2575,11 @@ data to the cache (assuming that this data is physically transferred
 to disk later on). Notice that disk I/O needed for swapping is
 not taken into account.
 .br
-Unfortunately, the kernel aggregates the
-data transfer of a process to the data transfer of its parent process when
-terminating, so you might see transfers for (parent) processes like
-cron, bash or systemd, that are not really issued by them.
+Unfortunately, the kernel aggregates the data transfer of a process to
+the data transfer of its parent process when terminating.
+So you might see transfers for (parent) processes like
+bash or systemd, that are not really issued by them but by their
+terminated child processes.
 .PP
 .TP 9
 .B WCANCL
