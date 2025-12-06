@@ -100,6 +100,7 @@ void showsysline(sys_printpair* elemptr,
 */
 typedef struct 
 {
+	int  elementnr;                  // element number in alldetaildefs[]
         char *head;                      // column header
         char *configname;                // name as used to config print line
 
@@ -107,15 +108,20 @@ typedef struct
         	char *(*doactiveconverts)(struct tstat *, int, int);
         	char *(*doactiveconvertc)(struct cgchainer *, struct tstat *,
                 			int, int, count_t, int, int *);
-	} ac;
-   			                 // pointer to conv function
+	} ac;                            // pointer to conv function
                                          // for active process
+
 	char *(*doexitconvert)(struct tstat *, int, int);        
 			                 // pointer to conv function
                                          // for exited process
-	char sortcrit;                   // sort criterion similar to showorder
-        int  width;                      // required width
-        int  varwidth;                   // width may grow (eg cmd params)
+
+	int (*sortfunc)(const void *, const void *, void *);
+			                 // pointer to sort function
+
+	int ascdesc;                     // suggested sort direction: 1=asc, -1=desc
+
+        int width;                       // required width
+        int varwidth;                    // width may grow (eg cmd params)
 } detail_printdef;
 
 typedef struct 
@@ -124,12 +130,14 @@ typedef struct
         int 		prio;
 } detail_printpair;
 
-void showprochead(detail_printpair *, int, int, char, char);
+void showprochead(detail_printpair *, int, int, struct procview *);
 void showprocline(detail_printpair *, struct tstat *, double, int, int);
 
-void showcgrouphead(detail_printpair *, int, int, char);
+void showcgrouphead(detail_printpair *, int, int, struct procview *);
 void showcgroupline(detail_printpair *, struct cgchainer *, struct tstat *,
 					int, int, count_t, int);
+
+int  viewhascolumn(unsigned char, unsigned char);
 
 void do_cpucritperc(char *, char *);
 void do_gpucritperc(char *, char *);
@@ -469,7 +477,7 @@ extern detail_printdef procprt_GPUMEMNOW;
 extern detail_printdef procprt_GPUMEMAVG;
 extern detail_printdef procprt_GPUGPUBUSY;
 extern detail_printdef procprt_GPUMEMBUSY;
-extern detail_printdef procprt_SORTITEM;
+extern detail_printdef procprt_RESOURCE;
 extern detail_printdef procprt_RUNDELAY;
 extern detail_printdef procprt_BLKDELAY;
 extern detail_printdef procprt_WCHAN;

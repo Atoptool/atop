@@ -48,6 +48,7 @@
 #include "photosyst.h"
 #include "photoproc.h"
 #include "showgeneric.h"
+#include "showlinux.h"
 
 static void		cgcalcdeviate(void);
 
@@ -1148,7 +1149,7 @@ static int	compseldsk(const void *, const void *);
 int
 mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 		struct cgchainer **cgchainerp, int ncgroups,
-		struct tstat **tpp, int nprocs, char showorder)
+		struct tstat **tpp, int nprocs, char showresource)
 {
 	int			ic, ip, im, is;
 	struct cglinesel	*cgroupsel;
@@ -1206,8 +1207,7 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 
 		// take next cgroup and add it to the merged list
 		//
-		if ( cgroupfilter((*(cgchainerp+ic))->cstat,
-							newdepth, showorder) )
+		if ( cgroupfilter((*(cgchainerp+ic))->cstat, newdepth, showresource) )
 		{
 			(cgroupsel+im)->cgp = *(cgchainerp+ic);
 			(cgroupsel+im)->tsp = NULL;
@@ -1293,19 +1293,19 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 		//
 		if (im-is > 1)
 		{
-			switch (showorder)
+			switch (showresource)
 			{
-		   	   case MSORTCPU:
+		   	   case MPERCCPU:
 				qsort(cgroupsel+is, im-is,
 					sizeof(struct cglinesel), compselcpu);
 				break;
 
-		   	   case MSORTMEM:
+		   	   case MPERCMEM:
 				qsort(cgroupsel+is, im-is,
 					sizeof(struct cglinesel), compselmem);
 				break;
 
-		   	   case MSORTDSK:
+		   	   case MPERCDSK:
 				qsort(cgroupsel+is, im-is,
 					sizeof(struct cglinesel), compseldsk);
 				break;
@@ -1327,7 +1327,7 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 // returns 0 (false) or 1 (true)
 //
 static int
-cgroupfilter(struct cstat *csp, int newdepth, char showorder)
+cgroupfilter(struct cstat *csp, int newdepth, char showresource)
 {
 	// skip lower level of cgroups when required
 	// by entering key 2 till 8 (9=max)
@@ -1339,10 +1339,10 @@ cgroupfilter(struct cstat *csp, int newdepth, char showorder)
 	// skip this level and lower levels if
 	// no processes are assigned at all
 	//
-	if (deviatonly               &&
-	    showorder != MSORTMEM    &&
-	    csp->gen.nprocs     == 0 &&
-	    csp->gen.procsbelow == 0   )
+	if (deviatonly                  &&
+	    showresource != MPERCMEM    &&
+	    csp->gen.nprocs     == 0    &&
+	    csp->gen.procsbelow == 0      )
 		return 0;
 
 	return 1;
@@ -1439,7 +1439,7 @@ static int              compsortval(const void *, const void *);
 // Return value: list with sorted pointers to cgchainer structs
 //
 struct cgchainer **
-cgsort(struct cgchainer *cgphys, int cgsize, char showorder)
+cgsort(struct cgchainer *cgphys, int cgsize, char showresource)
 {
 	struct cgchainer **cgsorted;
 
@@ -1453,7 +1453,7 @@ cgsort(struct cgchainer *cgphys, int cgsize, char showorder)
 	// build a tree structure reflecting the directories of the cgroups
 	// (skip the first entry representing the root cgroup)
 	//
-	sortlevel(1, &cgroot, &cgphys[1], cgsize-1, showorder);
+	sortlevel(1, &cgroot, &cgphys[1], cgsize-1, showresource);
 
 	// merge all sorted cgchainer struct pointers into one
 	// contiguous list
@@ -1478,7 +1478,7 @@ cgsort(struct cgchainer *cgphys, int cgsize, char showorder)
 //
 static struct cgchainer *
 sortlevel(int curlevel, struct cgsorter *cgparent,
-		        struct cgchainer *cgp, int cgsize, char showorder)
+		        struct cgchainer *cgp, int cgsize, char showresource)
 {
 	int              newlevel, cgleft = cgsize;
 	struct cgchainer *cgc = cgp;
@@ -1515,13 +1515,13 @@ sortlevel(int curlevel, struct cgsorter *cgparent,
 			cgs->cgchild = 0;
 			cgs->nrchild = 0;
 
-			switch (showorder)
+			switch (showresource)
 			{
-			   case MSORTCPU:
+			   case MPERCCPU:
 				cgs->sortval = cgc->cstat->cpu.utime +
 				               cgc->cstat->cpu.stime;
 				break;
-			   case MSORTMEM:
+			   case MPERCMEM:
 				if (cgc->cstat->mem.current > 0)
 				{
 					cgs->sortval = cgc->cstat->mem.current;
@@ -1534,7 +1534,7 @@ sortlevel(int curlevel, struct cgsorter *cgparent,
 					               cgc->cstat->mem.shmem;
 				}
 				break;
-			   case MSORTDSK:
+			   case MPERCDSK:
 				cgs->sortval = cgc->cstat->dsk.rbytes +
 				               cgc->cstat->dsk.wbytes;
 				break;
@@ -1557,7 +1557,7 @@ sortlevel(int curlevel, struct cgsorter *cgparent,
 		// recursively call sortlevel() for each new
 		// directory level underneath
 		//
-		cgc = sortlevel(newlevel, cgs, cgc, cgleft, showorder);
+		cgc = sortlevel(newlevel, cgs, cgc, cgleft, showresource);
 		cgleft = cgsize - (cgc - cgp);
 	}
 

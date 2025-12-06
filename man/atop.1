@@ -638,11 +638,12 @@ Find a description about the utilization counters in the section OUTPUT DESCRIPT
 When running
 .I atop
 interactively (no output redirection), keys can be pressed to control the
-output. In general, lower case keys can be used to show other information for
-the active processes while certain upper case keys can be used to influence the
-sort order of the active process/thread list. Some of these keys can also
-be used to switch from bar graph mode to particular detailed process information
+output. Certain keys can be used to show other information (other columns)
+for the active processes.  Some of these keys can also be used to switch
+directly from bar graph mode to particular detailed process information
 in text mode.
+Other keys can be used to influence the sort order of the active process/thread
+list (keys 'C', 'M', 'D', 'N', 'E' or 'o').
 .PP
 .TP 5
 .B g
@@ -794,7 +795,7 @@ average memory occupation during the sample, and
 GPU percentage.
 .PP
 .TP 5
-.B o
+.B O
 Show the user-defined line of the process.
 
 In the configuration file the keyword
@@ -899,6 +900,20 @@ The last columns contain the accumulated occupation percentage for the
 chosen resource (default: CPU) and the container/pod name (CID/POD).
 .PP
 .TP 5
+.B o
+Define sorting order of process list based on a specific column
+(case insensitive) and define whether sorting should be done ascending
+or descending. The selected column must be part of the current process
+view, either visible or unvisible (when the screen is too narrow to
+show the column).
+
+Selecting column 'CPU' in descending order is equivalent to pressing 'C', 
+column 'MEM' in descending order is equivalent to pressing 'M', 
+column 'DSK' in descending order is equivalent to pressing 'D', 
+column 'NET' in descending order is equivalent to pressing 'N', and
+selecting column 'GPU' in descending order is equivalent to pressing 'E'.
+.PP
+.TP 5
 .B C
 Sort the current list in the order of CPU consumption (default).
 The one-but-last column changes to 'CPU'.
@@ -924,29 +939,6 @@ The one-but-last column changes to 'DSK'.
 Sort the current list in the order of network bandwidth (received
 and transmitted).
 The one-but-last column changes to 'NET'.
-.PP
-.TP 5
-.B A
-Sort the current list automatically in the order of the most busy
-system resource during this interval.
-The one-but-last column shows either 'ACPU', 'AMEM', 'ADSK' or 'ANET'
-(the preceding 'A' indicates automatic sorting-order).
-The most busy resource is determined by comparing the weighted
-busy-percentages of the system resources, as described earlier in
-the section COLORS.
-.br
-This option remains valid until
-another sorting-order is explicitly selected again.
-.br
-A sorting order for disk is only possible when
-.I atop
-runs with root privileges.
-.br
-A sorting order for network is only possible when the optional module
-.I netatop
-or
-.I netatop-bpf
-is loaded.
 .PP
 Miscellaneous interactive commands:
 .PP
@@ -2259,7 +2251,7 @@ disk cache is not accounted for).
 Unfortunately, the kernel aggregates the
 data transfer of a process to the data transfer of its parent process when
 terminating, so you might see transfers for (parent) processes like
-cron, bash or init, that are not really issued by them.
+cron, bash or systemd, that are not really issued by them.
 .PP
 .TP 9
 .B RDELAY
@@ -2584,7 +2576,7 @@ not taken into account.
 Unfortunately, the kernel aggregates the
 data transfer of a process to the data transfer of its parent process when
 terminating, so you might see transfers for (parent) processes like
-cron, bash or init, that are not really issued by them.
+cron, bash or systemd, that are not really issued by them.
 .PP
 .TP 9
 .B WCANCL

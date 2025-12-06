@@ -10,7 +10,7 @@
 ** Author:      Gerlof Langeveld
 **              Original version.
 ** E-mail:      gerlof.langeveld@atoptool.nl
-** Date:        July 2002
+** Date:        July 2002 - 2025
 **
 ** Author:	JC van Winkel - AT Computing, Nijmegen, Holland
 **              Complete redesign.
@@ -392,6 +392,7 @@ sys_printdef *infinisyspdefs[] = {
  */
 detail_printdef *alldetaildefs[]= 
 {
+	&procprt_RESOURCE,	// must be first entry!
 	&procprt_PID,
 	&procprt_TID,
 	&procprt_PPID,
@@ -447,8 +448,8 @@ detail_printdef *alldetaildefs[]=
 	&procprt_COMMAND_LINE,
 	&procprt_NPROCS,
 	&procprt_RDDSK,
-	&procprt_WRDSK,
 	&procprt_CWRDSK,
+	&procprt_WRDSK,
 	&procprt_WCANCEL,
 	&procprt_TCPRCV,
 	&procprt_TCPRASZ,
@@ -468,7 +469,6 @@ detail_printdef *alldetaildefs[]=
 	&procprt_GPUMEMAVG,
 	&procprt_GPUGPUBUSY,
 	&procprt_GPUMEMBUSY,
-	&procprt_SORTITEM,
 
 	&cgroupprt_CGROUP_PATH,
 	&cgroupprt_CGRNPROCS,
@@ -486,7 +486,7 @@ detail_printdef *alldetaildefs[]=
 	&cgroupprt_CGRDSKWGT,
 	&cgroupprt_CGRPID,
 	&cgroupprt_CGRCMD,
-        0
+        NULL
 };
 
 /*
@@ -499,7 +499,7 @@ detail_printdef *idprocpdefs[]=
 	&procprt_PPID,
 	&procprt_VPID,
 	&cgroupprt_CGRPID,
-	0
+	NULL
 };
 
 
@@ -680,11 +680,23 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
 }
 
 
+/*
+** init_proc_columns: store element number in element itself
+**                    to be able to determine the sort column
+*/
+static void 
+init_proc_columns(void)
+{
+	int	i;
+
+	for (i=0; alldetaildefs[i] != NULL; i++)
+		alldetaildefs[i]->elementnr = i;
+}
 
 /*
- * init_proc_prints: determine width of columns that are
- *                   dependent of dynamic values 
- */
+** init_proc_prints: determine width of columns that are
+**                   dependent of dynamic values 
+*/
 static void 
 init_proc_prints(count_t numcpu)
 {
@@ -711,12 +723,12 @@ init_proc_prints(count_t numcpu)
 	}
 
 	/*
-	** fill number of positions for the SORTITEM (percentage),
+	** fill number of positions for the RESOURCE (percentage),
 	** depending on the number of CPUs (e.g. with 10+ CPUs a process
 	** can reach a CPU percentage of 1000% and with 100+ CPUs a
 	** CPU percentage of 10000%).
 	*/
-	procprt_SORTITEM.width =
+	procprt_RESOURCE.width =
 		snprintf(linebuf, sizeof linebuf, "%lld", numcpu*100) + 1;
 }
 
@@ -1280,8 +1292,7 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
 ** print the header for the process/cgroups list
 */
 void
-prihead(int curlist, int totlist, char *showtype, char *showorder,
-					char autosort, count_t numcpu)
+prihead(int curlist, int totlist, struct procview *pv, count_t numcpu)
 {
         static int      firsttime=1;
         static int      prev_supportflags = -1, prev_threadview = -1;
@@ -1292,26 +1303,27 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 	*/
         if (firsttime) 
         {
+		init_proc_columns();
 		init_proc_prints(numcpu);
 
                 make_detail_prints(memprocs, MAXITEMS, 
                         "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
 			"VDATA:4 VSTACK:4 LOCKSZ:3 VSIZE:6 RSIZE:7 PSIZE:5 "
                         "VGROW:7 RGROW:8 SWAPSZ:5 RUID:1 EUID:0 "
-                        "SORTITEM:9 CMD:10", 
+                        "RESOURCE:9 CMD:10", 
                         "built-in memprocs");
 
                 make_detail_prints(schedprocs, MAXITEMS, 
                         "PID:10 TID:6 CID:4 VPID:3 CTID:3 TRUN:7 TSLPI:7 "
 			"TSLPU:7 TIDLE:7 POLI:8 NICE:9 PRI:5 RTPR:9 CPUNR:8 "
 			"ST:8 EXC:8 S:8 RDELAY:8 BDELAY:7 WCHAN:5 "
-			"NVCSW:7 NIVCSW:7 SORTITEM:10 CMD:10",
+			"NVCSW:7 NIVCSW:7 RESOURCE:10 CMD:10",
                         "built-in schedprocs");
 
                 make_detail_prints(dskprocs, MAXITEMS, 
                         "PID:10 TID:4 RDDSK:9 "
                         "WRDSK:9 WCANCL:8 "
-                        "SORTITEM:10 CMD:10", 
+                        "RESOURCE:10 CMD:10", 
                         "built-in dskprocs");
 
                 make_detail_prints(netprocs, MAXITEMS, 
@@ -1319,12 +1331,12 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 			"TCPRCV:9 TCPRASZ:4 TCPSND:9 TCPSASZ:4 "
 			"UDPRCV:8 UDPRASZ:3 UDPSND:8 UDPSASZ:3 "
 			"BANDWI:10 BANDWO:10 "
-                        "SORTITEM:10 CMD:10", 
+                        "RESOURCE:10 CMD:10", 
                         "built-in netprocs");
 
                 make_detail_prints(gpuprocs, MAXITEMS, 
                         "PID:10 TID:5 CID:4 GPULIST:8 GPUGPUBUSY:8 GPUMEMBUSY:8 "
-			"GPUMEM:6 GPUMEMAVG:5 GPUPROCTYPE:7 S:8 SORTITEM:10 CMD:10", 
+			"GPUMEM:6 GPUMEMAVG:5 GPUPROCTYPE:7 S:8 RESOURCE:10 CMD:10", 
                         "built-in gpuprocs");
 
                 make_detail_prints(varprocs, MAXITEMS,
@@ -1332,29 +1344,29 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 			"RUID:8 RGID:8 EUID:5 EGID:4 "
      			"SUID:3 SGID:2 FSUID:3 FSGID:2 "
                         "STDATE:7 STTIME:7 ENDATE:5 ENTIME:5 "
-			"ST:6 EXC:6 S:6 SORTITEM:10 CMD:10", 
+			"ST:6 EXC:6 S:6 RESOURCE:10 CMD:10", 
                         "built-in varprocs");
 
                 make_detail_prints(cmdprocs, MAXITEMS,
-                        "PID:10 TID:4 S:8 SORTITEM:10 COMMAND-LINE:10", 
+                        "PID:10 TID:4 S:8 RESOURCE:10 COMMAND-LINE:10", 
                         "built-in cmdprocs");
 
                 make_detail_prints(totusers, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
-                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
-			"RNET:6 SNET:6 SORTITEM:10 RUID:10", 
+                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 WRDSK:7 "
+			"RNET:6 SNET:6 RESOURCE:10 RUID:10", 
                         "built-in totusers");
 
                 make_detail_prints(totprocs, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 VSIZE:6 "
-                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
-			"RNET:6 SNET:6 SORTITEM:10 CMD:10", 
+                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 WRDSK:7 "
+			"RNET:6 SNET:6 RESOURCE:10 CMD:10", 
                         "built-in totprocs");
 
                 make_detail_prints(totconts, MAXITEMS, 
                         "NPROCS:10 SYSCPU:9 USRCPU:9 RDELAY:8 BDELAY:7 VSIZE:6 "
-                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 CWRDSK:7 "
-			"RNET:6 SNET:6 SORTITEM:10 CID:10", 
+                        "RSIZE:8 PSIZE:8 LOCKSZ:3 SWAPSZ:5 RDDSK:7 WRDSK:7 "
+			"RNET:6 SNET:6 RESOURCE:10 CID:10", 
                         "built-in totconts");
 
 		// meant to show cgroups
@@ -1377,68 +1389,69 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 		prev_supportflags = supportflags;
 		prev_threadview   = threadview;
 
-		if (*showtype == MPROCNET && !(supportflags&NETATOP||supportflags&NETATOPBPF) )
+		if (pv->showtype == MPROCNET && !(supportflags&NETATOP||supportflags&NETATOPBPF) )
 		{
-			*showtype  = MPROCGEN;
-			*showorder = MSORTCPU;
+			pv->showtype     = MPROCGEN;
+			pv->showresource = MPERCCPU;
+			pv->sortcolumn   = 0;
 		}
 	}
 
         /*
         ** print the header line
         */
-        switch (*showtype)
+        switch (pv->showtype)
         {
            case MPROCGEN:
-                showprochead(genprocs, curlist, totlist, *showorder, autosort);
+                showprochead(genprocs, curlist, totlist, pv);
                 break;
 
            case MPROCMEM:
-                showprochead(memprocs, curlist, totlist, *showorder, autosort);
+                showprochead(memprocs, curlist, totlist, pv);
                 break;
 
            case MPROCDSK:
-                showprochead(dskprocs, curlist, totlist, *showorder, autosort);
+                showprochead(dskprocs, curlist, totlist, pv);
                 break;
 
            case MPROCNET:
-                showprochead(netprocs, curlist, totlist, *showorder, autosort);
+                showprochead(netprocs, curlist, totlist, pv);
                 break;
 
            case MPROCGPU:
-                showprochead(gpuprocs, curlist, totlist, *showorder, autosort);
+                showprochead(gpuprocs, curlist, totlist, pv);
                 break;
 
            case MPROCVAR:
-                showprochead(varprocs, curlist, totlist, *showorder, autosort);
+                showprochead(varprocs, curlist, totlist, pv);
                 break;
 
            case MPROCARG:
-                showprochead(cmdprocs, curlist, totlist, *showorder, autosort);
+                showprochead(cmdprocs, curlist, totlist, pv);
                 break;
 
            case MPROCOWN:
-                showprochead(ownprocs, curlist, totlist, *showorder, autosort);
+                showprochead(ownprocs, curlist, totlist, pv);
                 break;
 
            case MPROCSCH:
-                showprochead(schedprocs, curlist, totlist, *showorder, autosort);
+                showprochead(schedprocs, curlist, totlist, pv);
                 break;
 
            case MCUMUSER:
-                showprochead(totusers, curlist, totlist, *showorder, autosort);
+                showprochead(totusers, curlist, totlist, pv);
                 break;
 
            case MCUMPROC:
-                showprochead(totprocs, curlist, totlist, *showorder, autosort);
+                showprochead(totprocs, curlist, totlist, pv);
                 break;
 
            case MCUMCONT:
-                showprochead(totconts, curlist, totlist, *showorder, autosort);
+                showprochead(totconts, curlist, totlist, pv);
                 break;
 
            case MCGROUPS:
-                showcgrouphead(gencgroups, curlist, totlist, *showorder);
+                showcgrouphead(gencgroups, curlist, totlist, pv);
                 break;
         }
 }
@@ -1455,10 +1468,10 @@ prihead(int curlist, int totlist, char *showtype, char *showorder,
 #define	FORMDEL	"RDELAY:4 "
 #define	FORMBDL	"BDELAY:4 "
 #define FORMMEM	"VGROW:8 RGROW:8 "
-#define FORMDSK	"RDDSK:7 CWRDSK:7 "
+#define FORMDSK	"RDDSK:7 WRDSK:7 "
 #define FORMNET	"RNET:6 SNET:6 "
 #define FORMMSC	"RUID:2 EUID:1 ST:3 EXC:3 THR:3 S:3 CPUNR:3 "
-#define FORMEND	"SORTITEM:10 CMD:10"
+#define FORMEND	"RESOURCE:10 CMD:10"
 
 static void
 make_proc_dynamicgen()
@@ -1557,7 +1570,7 @@ pricgroup(struct cglinesel *itemlist, int firstitem, int lastitem,
 */
 int
 priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
-        int curlist, int totlist, char showtype, char showorder,
+        int curlist, int totlist, struct procview *pv,
         struct syscap *sb, int nsecs, int avgval)
 {
         register int            i;
@@ -1578,9 +1591,9 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                 ** calculate occupation-percentage of this process
                 ** depending on selected resource
                 */
-                switch (showorder) 
+                switch (pv->showresource) 
                 {
-                   case MSORTCPU:
+                   case MPERCCPU:
                         perc = 0.0;
 
                         if (sb->availcpu)
@@ -1597,7 +1610,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         }
                         break;
 
-                   case MSORTMEM:
+                   case MPERCMEM:
                         perc = 0.0;
 
                         if (sb->availmem)
@@ -1610,7 +1623,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         }
                         break;
 
-                   case MSORTDSK:
+                   case MPERCDSK:
                         perc = 0.0;
 
 			if (sb->availdsk)
@@ -1632,7 +1645,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         }
                         break;
 
-                   case MSORTNET:
+                   case MPERCNET:
                         perc = 0.0;
 
                         if (sb->availnet)
@@ -1648,7 +1661,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         }
                         break;
 
-                   case MSORTGPU:
+                   case MPERCGPU:
                         perc = 0.0;
 
 			if (!curstat->gpu.state)
@@ -1679,7 +1692,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         move(curline,0);
                 }
 
-                switch (showtype)
+                switch (pv->showtype)
                 {
                    case MPROCGEN:
                         showprocline(genprocs, curstat, perc, nsecs, avgval);
@@ -1741,11 +1754,11 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 ** print the system-wide statistics
 */
 static void	pridisklike(extraparam *, struct perdsk *, char *,
-		      char *, int, unsigned int *, int *, int, regex_t *);
+		      int, unsigned int *, int *, int, regex_t *);
 
 int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
-        int fixedhead, struct sselection *selp, char *highorderp,
+        int fixedhead, struct sselection *selp, 
         int maxcpulines, int maxgpulines, int maxdsklines, int maxmddlines,
 	int maxlvmlines, int maxintlines, int maxifblines,
 	int maxnfslines, int maxcontlines, int maxnumalines, int maxllclines)
@@ -1775,10 +1788,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 badness = 0;
 
         if (highbadness < badness)
-        {
                 highbadness = badness;
-                *highorderp = MSORTCPU;
-        }
 
         if (extra.cputot == 0)
                 extra.cputot = 1;             /* avoid divide-by-zero */
@@ -1826,10 +1836,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = 0;
 
                         if (highbadness < badness)
-                        {
                                 highbadness = badness;
-                                *highorderp = MSORTCPU;
-                        }
 
                         if (extra.percputot == 0)
                                 extra.percputot = 1; /* avoid divide-by-zero */
@@ -1929,10 +1936,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 badness = 0;
 
         if (highbadness < badness)
-        {
                 highbadness = badness;
-                *highorderp = MSORTMEM;
-        }
 
 	if (screen)
 	        move(curline, 0);
@@ -1959,10 +1963,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         }
 
         if (highbadness < badness)
-        {
                 highbadness = badness;
-                *highorderp = MSORTMEM;
-        }
 
 	if (screen)
         	move(curline, 0);
@@ -1992,10 +1993,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				badness = 0;
 
 			if (highbadness < badness)
-			{
 				highbadness = badness;
-				*highorderp = MSORTMEM;
-			}
 
 			if (screen)
 				move(curline, 0);
@@ -2044,10 +2042,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				badness = 0;
 
 			if (highbadness < badness)
-			{
 				highbadness = badness;
-				*highorderp = MSORTCPU;
-			}
 
 			if (sstat->cpunuma.numa[extra.index].nrcpu)
 				extra.percputot = extra.pernumacputot /
@@ -2117,10 +2112,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         badness = 0;
 
                 if (highbadness < badness)
-                {
                         highbadness = badness;
-                        *highorderp = MSORTMEM;
-                }
 
                 /*
                 ** take care that this line is anyhow colored for
@@ -2192,14 +2184,14 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         */
         extra.mstot = extra.cputot * 1000 / hertz / sstat->cpu.nrcpu; 
 
-	pridisklike(&extra, sstat->dsk.lvm, "LVM", highorderp, maxlvmlines,
+	pridisklike(&extra, sstat->dsk.lvm, "LVM", maxlvmlines,
 			&highbadness, &curline, fixedhead,
 			selp->lvmnamesz ? &(selp->lvmregex) : (void *) 0);
 
-	pridisklike(&extra, sstat->dsk.mdd, "MDD", highorderp, maxmddlines,
+	pridisklike(&extra, sstat->dsk.mdd, "MDD", maxmddlines,
 			&highbadness, &curline, fixedhead, (void *) 0);
 
-	pridisklike(&extra, sstat->dsk.dsk, "DSK", highorderp, maxdsklines,
+	pridisklike(&extra, sstat->dsk.dsk, "DSK", maxdsklines,
 			&highbadness, &curline, fixedhead,
 			selp->dsknamesz ? &(selp->dskregex) : (void *) 0);
 
@@ -2336,10 +2328,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = 0;
 
                         if (highbadness < badness && (supportflags & NETATOP || supportflags & NETATOPBPF) )
-                        {
                                 highbadness = badness;
-                                *highorderp = MSORTNET;
-                        }
 
 			if (screen)
                 		move(curline, 0);
@@ -2387,10 +2376,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = 0;
 
                         if (highbadness < badness)
-                        {
                                 highbadness = badness;
-                                *highorderp = MSORTNET;
-                        }
 
 			if (screen)
                 		move(curline, 0);
@@ -2435,13 +2421,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         }
 #endif
 
-        /*
-        ** if the system is hardly loaded, still CPU-ordering of
-        ** processes is most interesting (instead of memory)
-        */
-        if (highbadness < 70 && *highorderp == MSORTMEM)
-                *highorderp = MSORTCPU;
-
         return curline;
 }
 
@@ -2449,7 +2428,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 ** handle all instances of a specific disk-like device
 */
 static void
-pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
+pridisklike(extraparam *ep, struct perdsk *dp, char *lp, 
 	int maxlines, unsigned int *highbadp, int *curlinp, int fixedhead,
 	regex_t *rep)
 {
@@ -2475,10 +2454,7 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
                         badness = 0;
 
                 if (*highbadp < badness && (supportflags & IOSTAT) )
-                {
                         *highbadp	= badness;
-                        *highorderp 	= MSORTDSK;
-                }
 
                 if (ep->iotot || fixedhead)
                 {
@@ -2492,127 +2468,106 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp, char *highorderp,
 
 
 /*
-** process-level sort functions
+** function that verifies if a particular column 
+** is part of the specified view type and
+** if sort function is aavailable for this column
+** 
+** viewtype:		type of process view
+** viewsort:		sequence number of column in alldetaildefs[]
+**
+** return value:        0 - false
+**                      1 - true
 */
 int
-compcpu(const void *a, const void *b)
+viewhascolumn(unsigned char viewtype, unsigned char viewsort)
 {
-        register count_t acpu = (*(struct tstat **)a)->cpu.stime +
-                                (*(struct tstat **)a)->cpu.utime;
-        register count_t bcpu = (*(struct tstat **)b)->cpu.stime +
-                                (*(struct tstat **)b)->cpu.utime;
+	detail_printpair	*viewline;
+	detail_printdef		*column = alldetaildefs[viewsort];
 
-        if (acpu < bcpu)
-                return  1;
+	// resource column for CPU/MEM/DSK/... is always present
+	//
+	if (viewsort == 0)
+		return 1;
 
-        if (acpu > bcpu)
-                return -1;
+	// determine viewline for selected viewtype
+	//
+        switch (viewtype)
+        {
+           case MPROCGEN:
+                viewline = genprocs;
+                break;
 
-        return compmem(a, b);
-}
+           case MPROCMEM:
+                viewline = memprocs;
+                break;
 
-int
-compdsk(const void *a, const void *b)
-{
-	struct tstat	*ta = *(struct tstat **)a;
-	struct tstat	*tb = *(struct tstat **)b;
+           case MPROCDSK:
+                viewline = dskprocs;
+                break;
 
-        count_t	adsk;
-        count_t bdsk;
+           case MPROCNET:
+                viewline = netprocs;
+                break;
 
-	if (ta->dsk.wsz > ta->dsk.cwsz)
-		adsk = ta->dsk.rio + ta->dsk.wsz - ta->dsk.cwsz;
-	else
-		adsk = ta->dsk.rio;
+           case MPROCGPU:
+                viewline = gpuprocs;
+                break;
 
-	if (tb->dsk.wsz > tb->dsk.cwsz)
-		bdsk = tb->dsk.rio + tb->dsk.wsz - tb->dsk.cwsz;
-	else
-		bdsk = tb->dsk.rio;
+           case MPROCVAR:
+                viewline = varprocs;
+                break;
 
-        if (adsk < bdsk)
-                return  1;
+           case MPROCARG:
+                viewline = cmdprocs;
+                break;
 
-        if (adsk > bdsk)
-                return -1;
+           case MPROCOWN:
+                viewline = ownprocs;
+                break;
 
-        return compcpu(a, b);
-}
+           case MPROCSCH:
+                viewline = schedprocs;
+                break;
 
-int
-compmem(const void *a, const void *b)
-{
-        register count_t amem = (*(struct tstat **)a)->mem.rmem;
-        register count_t bmem = (*(struct tstat **)b)->mem.rmem;
+           case MCUMUSER:
+                viewline = totusers;
+                break;
 
-        if (amem < bmem)
-                return  1;
+           case MCUMPROC:
+                viewline = totprocs;
+                break;
 
-        if (amem > bmem)
-                return -1;
+           case MCUMCONT:
+                viewline = totconts;
+                break;
 
-        return  0;
-}
+           case MCGROUPS:
+                viewline = gencgroups;
+                break;
 
-int
-compgpu(const void *a, const void *b)
-{
-        register char 	 astate = (*(struct tstat **)a)->gpu.state;
-        register char 	 bstate = (*(struct tstat **)b)->gpu.state;
-        register count_t abusy  = (*(struct tstat **)a)->gpu.gpubusycum;
-        register count_t bbusy  = (*(struct tstat **)b)->gpu.gpubusycum;
-        register count_t amem   = (*(struct tstat **)a)->gpu.memnow;
-        register count_t bmem   = (*(struct tstat **)b)->gpu.memnow;
+	   default:
+		viewline = NULL;
+        }
 
-        if (!astate)		// no GPU usage?
-		abusy = amem = -2; 
-
-        if (!bstate)		// no GPU usage?
-		bbusy = bmem = -2; 
-
-	if (abusy == -1 || bbusy == -1)
+	if (viewline)
 	{
-                if (amem < bmem)
-                        return  1;
-
-                if (amem > bmem)
-                        return -1;
-
-                return  0;
+		// determine if the required sort column
+		// is used in this view
+		//
+		for (int i=0; i < MAXITEMS && viewline[i].pf; i++)
+		{
+			if ( viewline[i].pf == column)	// column found
+					return 1;
+		}
 	}
-	else
-	{
-                if (abusy < bbusy)
-                        return  1;
 
-                if (abusy > bbusy)
-                        return -1;
-
-       		return  0;
-	}
+	return 0;
 }
 
-int
-compnet(const void *a, const void *b)
-{
-        register count_t anet = (*(struct tstat **)a)->net.tcpssz +
-                                (*(struct tstat **)a)->net.tcprsz +
-                                (*(struct tstat **)a)->net.udpssz +
-                                (*(struct tstat **)a)->net.udprsz  ;
-        register count_t bnet = (*(struct tstat **)b)->net.tcpssz +
-                                (*(struct tstat **)b)->net.tcprsz +
-                                (*(struct tstat **)b)->net.udpssz +
-                                (*(struct tstat **)b)->net.udprsz  ;
 
-        if (anet < bnet)
-                return  1;
-
-        if (anet > bnet)
-                return -1;
-
-	return compcpu(a, b);
-}
-
+/*
+** miscellaneous sort functions
+*/
 int
 compusr(const void *a, const void *b)
 {
