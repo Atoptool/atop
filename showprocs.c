@@ -565,30 +565,45 @@ showprocline(detail_printpair* elemptr, struct tstat *curstat,
 /* Generic functions to translate UID or GID number into a     */
 /* string of 8 characters, to be stored in strbuf with a       */
 /* of maximum 9 bytes.                                         */
+/* In this case, the return value is 0.                        */
+/*                                                             */
 /* When no translation is wanted (-I flag) or when the         */
 /* name is longer than 8, a string representation of the       */
 /* UID or GID number is returned.                              */
+/* In this case, the return value is 1.                        */
 /***************************************************************/
-static void
+static int
 uid2str(uid_t uid, char *strbuf)
 {
         char *username;
 
 	if (!idnamesuppress && (username = uid2name(uid)) && strlen(username) <= 8)
+	{
 		snprintf(strbuf, 9, "%-8.8s", username);
+		return 0;
+	}
         else 
+	{
 		snprintf(strbuf, 9, "%-8d", uid);
+		return 1;
+	}
 }
 
-static void
+static int
 gid2str(gid_t gid, char *strbuf)
 {
         char *grpname;
 
 	if (!idnamesuppress && (grpname = gid2name(gid)) && strlen(grpname) <= 8)
+	{
 		snprintf(strbuf, 9, "%-8.8s", grpname);
+		return 0;
+	}
         else 
+	{
 		snprintf(strbuf, 9, "%-8d", gid);
+		return 1;
+	}
 }
 
 
@@ -1553,13 +1568,17 @@ procprt_RUID_ae(struct tstat *curstat, int avgval, int nsecs)
 int
 compruid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.ruid;
-        register int bval = (*(struct tstat **)b)->gen.ruid;
+        register int	aval = (*(struct tstat **)a)->gen.ruid;
+        register int	bval = (*(struct tstat **)b)->gen.ruid;
+	int		anumeric, bnumeric;
 
         static char abuf[9], bbuf[9];
 
-	uid2str(aval, abuf);
-	uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf);
+	bnumeric = uid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	return strcmp(abuf, bbuf) * *(int *)dir;
 }
@@ -1588,16 +1607,20 @@ procprt_EUID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compeuid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.euid;
-        register int bval = (*(struct tstat **)b)->gen.euid;
+        register int	aval = (*(struct tstat **)a)->gen.euid;
+        register int	bval = (*(struct tstat **)b)->gen.euid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
         static char abuf[9], bbuf[9];
 
-	uid2str(aval, abuf);
-	uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf);
+	bnumeric = uid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
@@ -1638,16 +1661,21 @@ procprt_SUID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compsuid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.suid;
-        register int bval = (*(struct tstat **)b)->gen.suid;
+        register int	aval = (*(struct tstat **)a)->gen.suid;
+        register int	bval = (*(struct tstat **)b)->gen.suid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
+
         static char abuf[9], bbuf[9];
 
-	uid2str(aval, abuf);
-	uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf);
+	bnumeric = uid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
@@ -1688,16 +1716,20 @@ procprt_FSUID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compfsuid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.fsuid;
-        register int bval = (*(struct tstat **)b)->gen.fsuid;
+        register int	aval = (*(struct tstat **)a)->gen.fsuid;
+        register int	bval = (*(struct tstat **)b)->gen.fsuid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
         static char abuf[9], bbuf[9];
 
-	uid2str(aval, abuf);
-	uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf);
+	bnumeric = uid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
@@ -1732,13 +1764,17 @@ procprt_RGID_ae(struct tstat *curstat, int avgval, int nsecs)
 int
 comprgid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.rgid;
-        register int bval = (*(struct tstat **)b)->gen.rgid;
+        register int	aval = (*(struct tstat **)a)->gen.rgid;
+        register int	bval = (*(struct tstat **)b)->gen.rgid;
+	int		anumeric, bnumeric;
 
         static char abuf[9], bbuf[9];
 
-	gid2str(aval, abuf);
-	gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf);
+	bnumeric = gid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	return strcmp(abuf, bbuf) * *(int *)dir;
 }
@@ -1767,16 +1803,20 @@ procprt_EGID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compegid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.egid;
-        register int bval = (*(struct tstat **)b)->gen.egid;
+        register int	aval = (*(struct tstat **)a)->gen.egid;
+        register int	bval = (*(struct tstat **)b)->gen.egid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
         static char abuf[9], bbuf[9];
 
-	gid2str(aval, abuf);
-	gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf);
+	bnumeric = gid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
@@ -1817,16 +1857,20 @@ procprt_SGID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compsgid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.sgid;
-        register int bval = (*(struct tstat **)b)->gen.sgid;
+        register int	aval = (*(struct tstat **)a)->gen.sgid;
+        register int	bval = (*(struct tstat **)b)->gen.sgid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
         static char abuf[9], bbuf[9];
 
-	gid2str(aval, abuf);
-	gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf);
+	bnumeric = gid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
@@ -1867,16 +1911,20 @@ procprt_FSGID_e(struct tstat *curstat, int avgval, int nsecs)
 int
 compfsgid(const void *a, const void *b, void *dir)
 {
-        register int aval = (*(struct tstat **)a)->gen.fsgid;
-        register int bval = (*(struct tstat **)b)->gen.fsgid;
+        register int	aval = (*(struct tstat **)a)->gen.fsgid;
+        register int	bval = (*(struct tstat **)b)->gen.fsgid;
+	int		anumeric, bnumeric;
 
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
         static char abuf[9], bbuf[9];
 
-	gid2str(aval, abuf);
-	gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf);
+	bnumeric = gid2str(bval, bbuf);
+
+	if (anumeric && bnumeric)
+		return (aval - bval) * *(int *)dir;
 
 	if (astate == 'E')
 	{
