@@ -3315,7 +3315,7 @@ generic_init(void)
 
 	/*
 	** check if default sort order and/or showtype are overruled
-	** by command-line flags
+	** by command line flags
 	*/
 	for (i=0; flaglist[i]; i++)
 	{
@@ -4457,6 +4457,7 @@ do_flags(char *name, char *val)
 		}
 	}
 }
+
 
 static void
 getsigwinch(int signr)

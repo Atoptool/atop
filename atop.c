@@ -1079,8 +1079,8 @@ prusage(char *myname)
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
-	printf("\t  -P  generate parsable output for specified label(s)\n");
 	printf("\t  -J  generate JSON output for specified label(s)\n");
+	printf("\t  -P  generate parsable output for specified label(s)\n");
 	printf("\t  -%c  no spaces in parsable output for command (line)\n",
 			MRMSPACES);
 	printf("\t  -L  alternate line length (default 80) in case of "

@@ -1303,6 +1303,8 @@ prihead(int curlist, int totlist, struct procview *pv, count_t numcpu)
 	*/
         if (firsttime) 
         {
+		firsttime = 0;
+
 		init_proc_columns();
 		init_proc_prints(numcpu);
 
@@ -2468,9 +2470,8 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp,
 
 
 /*
-** function that verifies if a particular column 
-** is part of the specified view type and
-** if sort function is aavailable for this column
+** function that verifies if a particular column is part of the
+** specified view type and if sort function is available for this column
 ** 
 ** viewtype:		type of process view
 ** viewsort:		sequence number of column in alldetaildefs[]
