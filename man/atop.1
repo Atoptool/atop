@@ -1702,8 +1702,9 @@ the number of bytes read via normal read() system calls ('nread'),
 the number of bytes written via normal read() system calls ('nwrit'),
 the number of bytes read via direct I/O ('dread'),
 the number of bytes written via direct I/O ('dwrit'),
-the number of bytes read via memory mapped I/O pages ('mread'), and
-the number of bytes written via memory mapped I/O pages ('mwrit').
+the number of bytes read via page cache read-ahead pages ('mread'), and
+the number of bytes written via page cache write-back pages ('mwrit'),
+i.e. asynchronous flushes.
 .PP
 .TP 5
 .B NFC
@@ -2809,8 +2810,9 @@ number of bytes read by normal system calls,
 number of bytes written by normal system calls,
 number of bytes read by direct I/O,
 number of bytes written by direct I/O,
-number of pages read by memory-mapped I/O, and
-number of pages written by memory-mapped I/O.
+number of pages read for page cache read-ahead, and
+number of pages written for page cache write-back
+(asynchronous flushes).
 .TP 9
 .B NFC
 Subsequent fields:
