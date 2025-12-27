@@ -1063,12 +1063,14 @@ struct u2n {
 	char 		*uname;
 };
 
+static	int		maxusername;
+
 char *
 uid2name(uid_t uid)
 {
 	static char		firstcall = 1;
 	static struct u2n	*u2n_hash[UG2NHASH];
-	int			hash;
+	int			hash, len;
 	struct u2n		*this;
 
 	if (firstcall)
@@ -1079,6 +1081,11 @@ uid2name(uid_t uid)
 		//
 		while ( (pwd = getpwent()))
 		{
+			len = strlen(pwd->pw_name);
+
+			if (maxusername < len)
+				maxusername = len;
+
 			hash = pwd->pw_uid & (UG2NHASH-1);
 
 			this = malloc(sizeof *this);
@@ -1088,7 +1095,7 @@ uid2name(uid_t uid)
 			u2n_hash[hash] = this;
 
 			this->uid      = pwd->pw_uid;
-			this->uname    = malloc( strlen(pwd->pw_name) + 1 );
+			this->uname    = malloc(len+1);
 			ptrverify(this->uname, "Malloc failed for u2n name\n");
 
 			strcpy(this->uname, pwd->pw_name);
@@ -1110,6 +1117,14 @@ uid2name(uid_t uid)
 	return NULL;
 }
 
+int
+get_maxusername(void)
+{
+	if (!maxusername)		// not known yet?
+		(void) uid2name(0);	// fill cache and determine maximum length
+
+	return maxusername;
+}
 
 /*
 ** Convert GID number to group name by maintaining a hash list
@@ -1122,12 +1137,14 @@ struct g2n {
 	char 		*gname;
 };
 
+static	int		maxgroupname;
+
 char *
 gid2name(gid_t gid)
 {
 	static char		firstcall = 1;
 	static struct g2n	*g2n_hash[UG2NHASH];
-	int			hash;
+	int			hash, len;
 	struct g2n		*this;
 
 	if (firstcall)
@@ -1138,6 +1155,11 @@ gid2name(gid_t gid)
 		//
 		while ( (group = getgrent()))
 		{
+			len = strlen(group->gr_name);
+
+			if (maxgroupname < len)
+				maxgroupname = len;
+
 			hash = group->gr_gid & (UG2NHASH-1);
 
 			this = malloc(sizeof *this);
@@ -1147,7 +1169,7 @@ gid2name(gid_t gid)
 			g2n_hash[hash] = this;
 
 			this->gid      = group->gr_gid;
-			this->gname    = malloc( strlen(group->gr_name) + 1 );
+			this->gname    = malloc(len+1);
 			ptrverify(this->gname, "Malloc failed for g2n name\n");
 
 			strcpy(this->gname, group->gr_name);
@@ -1167,6 +1189,15 @@ gid2name(gid_t gid)
 	}
 
 	return NULL;
+}
+
+int
+get_maxgroupname(void)
+{
+	if (!maxgroupname)		// not known yet?
+		(void) gid2name(0);	// fill cache and determine maximum length
+
+	return maxgroupname;
 }
 
 

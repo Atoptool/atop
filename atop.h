@@ -182,6 +182,9 @@ int             val2elapstr(int, char *);
 char 		*uid2name(uid_t);
 char		*gid2name(gid_t);
 
+int		get_maxusername(void);
+int		get_maxgroupname(void);
+
 void		safe_strcpy(char *, const char *, size_t);
 
 int		compcpu(const void *, const void *, void *);
