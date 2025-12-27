@@ -3135,8 +3135,7 @@ sysprt_IFBSPEEDIN(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 	*color = -1;
 
-        char *ps=makenetspeed(sstat->ifb.ifb[as->index].rcvb *
-	                      sstat->ifb.ifb[as->index].lanes, as->nsecs);
+        char *ps=makenetspeed(sstat->ifb.ifb[as->index].rcvb * 4, as->nsecs);
         ps[0]='s';
         ps[1]='i';
         return ps;
@@ -3150,8 +3149,7 @@ sysprt_IFBSPEEDOUT(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 	*color = -1;
 
-	char *ps=makenetspeed(sstat->ifb.ifb[as->index].sndb *
-	                      sstat->ifb.ifb[as->index].lanes, as->nsecs);
+	char *ps=makenetspeed(sstat->ifb.ifb[as->index].sndb * 4, as->nsecs);
         ps[0]='s';
         ps[1]='o';
         return ps;
