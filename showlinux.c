@@ -756,11 +756,29 @@ init_proc_prints(count_t numcpu)
 	*/
 	if (idnamemaximum)
 	{
+		int maxidlen;
+	       
+		// max user name length
+		//
+		if ( (maxidlen = get_maxusername()) < 8)
+		       maxidlen = 8;
+
+		if (maxidlen > 32)
+		       maxidlen = 32;
+
 		for (i=0; iduserpdefs[i] != 0; i++)
-			iduserpdefs[i]->width = get_maxgroupname();
+			iduserpdefs[i]->width = maxidlen;
+
+		// max group name length
+		//
+		if ( (maxidlen = get_maxgroupname()) < 8)
+		       maxidlen = 8;
+
+		if (maxidlen > 32)
+		       maxidlen = 32;
 
 		for (i=0; idgrouppdefs[i] != 0; i++)
-			idgrouppdefs[i]->width = get_maxgroupname();
+			idgrouppdefs[i]->width = maxidlen;
 	}
 }
 
