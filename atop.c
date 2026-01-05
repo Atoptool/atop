@@ -178,6 +178,7 @@ char		irawname[RAWNAMESZ];
 char		orawname[RAWNAMESZ];
 char		rawreadflag;
 char		idnamesuppress;	/* suppress UID/GID to name translation */
+char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 char		flaglist[MAXFL];
 char		deviatonly = 1;
@@ -435,6 +436,10 @@ main(int argc, char *argv[])
 
 			   case 'S':		/* midnight limit ?           */
 				midnightflag++;
+				break;
+
+			   case 'i':		/* ID translation max name?   */
+				idnamemaximum++;
 				break;
 
 			   case 'I':		/* suppress ID translation ?  */
@@ -1088,6 +1093,7 @@ prusage(char *myname)
 	printf("\t  -z  prepend regex matching environment variables to "
                         "command line\n");
 	printf("\t      WARNING: don't use this flag when writing (publicly readable) raw files!\n");
+	printf("\t  -i  UID/GID translation to full name (default column width is 8)\n");
 	printf("\t  -I  suppress UID/GID to name translation (show numbers instead)\n");
 	printf("\t  -k  try to connect to external atopgpud daemon (default: do not connect)\n");
 	printf("\t  -K  try to connect to netatop/netatop-bpf interface (default: do not connect)\n");

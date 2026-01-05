@@ -563,52 +563,54 @@ showprocline(detail_printpair* elemptr, struct tstat *curstat,
 
 /***************************************************************/
 /* Generic functions to translate UID or GID number into a     */
-/* string of 8 characters, to be stored in strbuf with a       */
-/* of maximum 9 bytes.                                         */
+/* string of minimal 8 characters, to be defined by 'collen'.  */
+/* The buffer 'strbuf' in which the string is stored should    */
+/* have a size that is minimally 1 larger than the column      */
+/* length.                                                     */
 /* In this case, the return value is 0.                        */
 /*                                                             */
 /* When no translation is wanted (-I flag) or when the         */
-/* name is longer than 8, a string representation of the       */
-/* UID or GID number is returned.                              */
+/* name is longer than the required column length, a string    */
+/* representation of the UID or GID number is returned.        */
 /* In this case, the return value is 1.                        */
 /***************************************************************/
 static int
-uid2str(uid_t uid, char *strbuf)
+uid2str(uid_t uid, char *strbuf, int collen)
 {
         char *username;
 
-	if (!idnamesuppress && (username = uid2name(uid)) && strlen(username) <= 8)
+	if (!idnamesuppress && (username = uid2name(uid)) && strlen(username) <= collen)
 	{
-		snprintf(strbuf, 9, "%-8.8s", username);
+		snprintf(strbuf, collen+1, "%-*.*s", collen, collen, username);
 		return 0;
 	}
         else 
 	{
-		snprintf(strbuf, 9, "%-8d", uid);
+		snprintf(strbuf, collen+1, "%-*d", collen, uid);
 		return 1;
 	}
 }
 
 static int
-gid2str(gid_t gid, char *strbuf)
+gid2str(gid_t gid, char *strbuf, int collen)
 {
         char *grpname;
 
-	if (!idnamesuppress && (grpname = gid2name(gid)) && strlen(grpname) <= 8)
+	if (!idnamesuppress && (grpname = gid2name(gid)) && strlen(grpname) <= collen)
 	{
-		snprintf(strbuf, 9, "%-8.8s", grpname);
+		snprintf(strbuf, collen+1, "%-*.*s", collen, collen, grpname);
 		return 0;
 	}
         else 
 	{
-		snprintf(strbuf, 9, "%-8d", gid);
+		snprintf(strbuf, collen+1, "%-*d", collen, gid);
 		return 1;
 	}
 }
 
 
-/*******************************************************************/
-/* PROCESS PRINT FUNCTIONS */
+/***************************************************************/
+/* PROCESS PRINT FUNCTIONS                                     */
 /***************************************************************/
 char *
 procprt_NOTAVAIL_4(struct tstat *curstat, int avgval, int nsecs)
@@ -1558,9 +1560,9 @@ int compruid(const void *, const void *, void *);
 char *
 procprt_RUID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[9];
+        static char buf[64];
 
-	uid2str(curstat->gen.ruid, buf);
+	uid2str(curstat->gen.ruid, buf, procprt_RUID.width);
 
         return buf;
 }
@@ -1572,10 +1574,10 @@ compruid(const void *a, const void *b, void *dir)
         register int	bval = (*(struct tstat **)b)->gen.ruid;
 	int		anumeric, bnumeric;
 
-        static char abuf[9], bbuf[9];
+        static char abuf[64], bbuf[64];
 
-	anumeric = uid2str(aval, abuf);
-	bnumeric = uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf, 32);
+	bnumeric = uid2str(bval, bbuf, 32);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1584,16 +1586,16 @@ compruid(const void *a, const void *b, void *dir)
 }
 
 detail_printdef procprt_RUID = 
-   {0, "RUID    ", "RUID", .ac.doactiveconverts = procprt_RUID_ae, procprt_RUID_ae, compruid, 1, 8, 0};
+   {0, "RUID    ", "RUID", .ac.doactiveconverts = procprt_RUID_ae, procprt_RUID_ae, compruid, 1, 8, 0}; // DYNAMIC WIDTH
 /***************************************************************/
 int compeuid(const void *, const void *, void *);
 
 char *
 procprt_EUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[9];
+        static char buf[64];
 
-	uid2str(curstat->gen.euid, buf);
+	uid2str(curstat->gen.euid, buf, procprt_EUID.width);
 
         return buf;
 }
@@ -1614,10 +1616,10 @@ compeuid(const void *a, const void *b, void *dir)
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
-        static char abuf[9], bbuf[9];
+        static char abuf[64], bbuf[64];
 
-	anumeric = uid2str(aval, abuf);
-	bnumeric = uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf, 32);
+	bnumeric = uid2str(bval, bbuf, 32);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1638,7 +1640,7 @@ compeuid(const void *a, const void *b, void *dir)
 }
 
 detail_printdef procprt_EUID = 
-   {0, "EUID    ", "EUID", .ac.doactiveconverts = procprt_EUID_a, procprt_EUID_e, compeuid, 1, 8, 0};
+   {0, "EUID    ", "EUID", .ac.doactiveconverts = procprt_EUID_a, procprt_EUID_e, compeuid, 1, 8, 0}; // DYNAMIC WIDTH
 /***************************************************************/
 int compsuid(const void *, const void *, void *);
 
@@ -1647,7 +1649,7 @@ procprt_SUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
 
-	uid2str(curstat->gen.suid, buf);
+	uid2str(curstat->gen.suid, buf, sizeof buf-1);
 
         return buf;
 }
@@ -1671,8 +1673,8 @@ compsuid(const void *a, const void *b, void *dir)
 
         static char abuf[9], bbuf[9];
 
-	anumeric = uid2str(aval, abuf);
-	bnumeric = uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf, sizeof abuf-1);
+	bnumeric = uid2str(bval, bbuf, sizeof bbuf-1);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1702,7 +1704,7 @@ procprt_FSUID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
 
-	uid2str(curstat->gen.fsuid, buf);
+	uid2str(curstat->gen.fsuid, buf, sizeof buf-1);
 
         return buf;
 }
@@ -1725,8 +1727,8 @@ compfsuid(const void *a, const void *b, void *dir)
 
         static char abuf[9], bbuf[9];
 
-	anumeric = uid2str(aval, abuf);
-	bnumeric = uid2str(bval, bbuf);
+	anumeric = uid2str(aval, abuf, sizeof abuf-1);
+	bnumeric = uid2str(bval, bbuf, sizeof bbuf-1);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1754,9 +1756,9 @@ int comprgid(const void *, const void *, void *);
 char *
 procprt_RGID_ae(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
-	gid2str(curstat->gen.rgid, buf);
+	gid2str(curstat->gen.rgid, buf, procprt_RGID.width);
 
         return buf;
 }
@@ -1768,10 +1770,10 @@ comprgid(const void *a, const void *b, void *dir)
         register int	bval = (*(struct tstat **)b)->gen.rgid;
 	int		anumeric, bnumeric;
 
-        static char abuf[9], bbuf[9];
+        static char abuf[64], bbuf[64];
 
-	anumeric = gid2str(aval, abuf);
-	bnumeric = gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf, 32);
+	bnumeric = gid2str(bval, bbuf, 32);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1780,16 +1782,16 @@ comprgid(const void *a, const void *b, void *dir)
 }
 
 detail_printdef procprt_RGID = 
-   {0, "RGID    ", "RGID", .ac.doactiveconverts = procprt_RGID_ae, procprt_RGID_ae, comprgid, 1, 8, 0};
+   {0, "RGID    ", "RGID", .ac.doactiveconverts = procprt_RGID_ae, procprt_RGID_ae, comprgid, 1, 8, 0}; // DYNAMIC WIDTH
 /***************************************************************/
 int compegid(const void *, const void *, void *);
 
 char *
 procprt_EGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[10];
+        static char buf[64];
 
-	gid2str(curstat->gen.egid, buf);
+	gid2str(curstat->gen.egid, buf, procprt_EGID.width);
 
         return buf;
 }
@@ -1810,10 +1812,10 @@ compegid(const void *a, const void *b, void *dir)
         register unsigned char astate = (*(struct tstat **)a)->gen.state;
         register unsigned char bstate = (*(struct tstat **)b)->gen.state;
 
-        static char abuf[9], bbuf[9];
+        static char abuf[64], bbuf[64];
 
-	anumeric = gid2str(aval, abuf);
-	bnumeric = gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf, 32);
+	bnumeric = gid2str(bval, bbuf, 32);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1834,7 +1836,7 @@ compegid(const void *a, const void *b, void *dir)
 }
 
 detail_printdef procprt_EGID = 
-   {0, "EGID    ", "EGID", .ac.doactiveconverts = procprt_EGID_a, procprt_EGID_e, compegid, 1, 8, 0};
+   {0, "EGID    ", "EGID", .ac.doactiveconverts = procprt_EGID_a, procprt_EGID_e, compegid, 1, 8, 0}; // DYNAMIC WIDTH
 /***************************************************************/
 int compsgid(const void *, const void *, void *);
 
@@ -1843,7 +1845,7 @@ procprt_SGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-	gid2str(curstat->gen.sgid, buf);
+	gid2str(curstat->gen.sgid, buf, 8);
 
         return buf;
 }
@@ -1866,8 +1868,8 @@ compsgid(const void *a, const void *b, void *dir)
 
         static char abuf[9], bbuf[9];
 
-	anumeric = gid2str(aval, abuf);
-	bnumeric = gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf, sizeof abuf-1);
+	bnumeric = gid2str(bval, bbuf, sizeof bbuf-1);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;
@@ -1897,7 +1899,7 @@ procprt_FSGID_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[10];
 
-	gid2str(curstat->gen.fsgid, buf);
+	gid2str(curstat->gen.fsgid, buf, 8);
 
         return buf;
 }
@@ -1920,8 +1922,8 @@ compfsgid(const void *a, const void *b, void *dir)
 
         static char abuf[9], bbuf[9];
 
-	anumeric = gid2str(aval, abuf);
-	bnumeric = gid2str(bval, bbuf);
+	anumeric = gid2str(aval, abuf, sizeof abuf-1);
+	bnumeric = gid2str(bval, bbuf, sizeof bbuf-1);
 
 	if (anumeric && bnumeric)
 		return (aval - bval) * *(int *)dir;

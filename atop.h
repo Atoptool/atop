@@ -103,6 +103,7 @@ extern char		twindir[];
 extern char		rawreadflag;
 extern char		connectnetatop;
 extern char		idnamesuppress;
+extern char		idnamemaximum;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
 extern char		flaglist[];

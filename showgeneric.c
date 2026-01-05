@@ -4451,6 +4451,10 @@ do_flags(char *name, char *val)
 			twinmodeflag++;
 			break;
 
+		   case 'i':
+			idnamemaximum++;
+			break;
+
 		   case 'I':
 			idnamesuppress++;
 			break;

@@ -490,9 +490,9 @@ detail_printdef *alldetaildefs[]=
 };
 
 /*
- * table with all detail_printdefs with PID/TID width to be initialized
- */
-detail_printdef *idprocpdefs[]= 
+** table with all detail_printdefs with PID/TID width to be initialized
+*/
+detail_printdef *idpidpdefs[]= 
 {
 	&procprt_PID,
 	&procprt_TID,
@@ -502,6 +502,25 @@ detail_printdef *idprocpdefs[]=
 	NULL
 };
 
+/*
+** table with all detail_printdefs with username width to be initialized
+*/
+detail_printdef *iduserpdefs[]= 
+{
+	&procprt_RUID,
+	&procprt_EUID,
+	NULL
+};
+
+/*
+** table with all detail_printdefs with groupname width to be initialized
+*/
+detail_printdef *idgrouppdefs[]= 
+{
+	&procprt_RGID,
+	&procprt_EGID,
+	NULL
+};
 
 /***************************************************************/
 /*
@@ -707,18 +726,18 @@ init_proc_prints(count_t numcpu)
 	** fill number of digits for various PID/TID columns
 	** and reformat header to new width
 	*/
-	for (i=0; idprocpdefs[i] != 0; i++)
+	for (i=0; idpidpdefs[i] != 0; i++)
 	{
-		idprocpdefs[i]->width = pidwidth;
+		idpidpdefs[i]->width = pidwidth;
 
-		if ( strlen(idprocpdefs[i]->head) < pidwidth)
+		if ( strlen(idpidpdefs[i]->head) < pidwidth)
 		{
 			char *p = malloc(pidwidth+1);
 
 			ptrverify(p, "Malloc failed for formatted header\n");
 
-			snprintf(p, pidwidth+1, "%*s", pidwidth, idprocpdefs[i]->head);
-			idprocpdefs[i]->head = p;
+			snprintf(p, pidwidth+1, "%*s", pidwidth, idpidpdefs[i]->head);
+			idpidpdefs[i]->head = p;
 		}
 	}
 
@@ -730,6 +749,19 @@ init_proc_prints(count_t numcpu)
 	*/
 	procprt_RESOURCE.width =
 		snprintf(linebuf, sizeof linebuf, "%lld", numcpu*100) + 1;
+
+	/*
+	** fill maximum number of positions for various username and
+	** groupname columns
+	*/
+	if (idnamemaximum)
+	{
+		for (i=0; iduserpdefs[i] != 0; i++)
+			iduserpdefs[i]->width = get_maxgroupname();
+
+		for (i=0; idgrouppdefs[i] != 0; i++)
+			idgrouppdefs[i]->width = get_maxgroupname();
+	}
 }
 
 /*
