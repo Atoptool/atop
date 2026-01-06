@@ -1603,7 +1603,11 @@ procprt_EUID_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_EUID_e(struct tstat *curstat, int avgval, int nsecs)
 {
-	return "-       ";
+        static char buf[64];
+
+	snprintf(buf, sizeof buf, "%-*s", procprt_EUID.width, "-");
+
+	return buf;
 }
 
 int
@@ -1799,7 +1803,11 @@ procprt_EGID_a(struct tstat *curstat, int avgval, int nsecs)
 char *
 procprt_EGID_e(struct tstat *curstat, int avgval, int nsecs)
 {
-	return "-       ";
+        static char buf[64];
+
+	snprintf(buf, sizeof buf, "%-*s", procprt_EGID.width, "-");
+
+	return buf;
 }
 
 int
