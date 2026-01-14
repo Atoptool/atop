@@ -1003,11 +1003,13 @@ rawread(void)
 static int
 getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
 {
-	// read rawrecord itself
+	// read rawrecord (header) itself
 	//
-	
-	struct stat	filestats;
+	struct stat	stat;
 	int 		n = readchunk(rawfd, prr, rrlen);
+	int		totcomplen = prr->scomplen + prr->pcomplen + prr->ccomplen + prr->icomplen;
+	off_t		curoffset = lseek(rawfd, 0, SEEK_CUR);
+	int		i, completesample = 0;
 
 	// verify file consistency:
 	// 	are all expected compressed buffers written
@@ -1015,15 +1017,29 @@ getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
 	//
 	if (n == rrlen && isregular)
 	{
-		if ( fstat(rawfd, &filestats) == 0)
+		// even though the writing atop uses the writev() system call to offer
+		// the record header and all compressed data in one go, the writev()
+		// does not write all chunks atomically.
+		// therefore, still a race condition might occur that the record header
+		// is written but not the related compressed data, so  the file consistency
+		// is verified in a loop that lasts for maximum 2 seconds
+		//
+		for (i=0; i < 40; i++)
 		{
-			if (filestats.st_size - lseek(rawfd, 0, SEEK_CUR) <
-					prr->scomplen + prr->pcomplen +
-					prr->ccomplen + prr->icomplen)
+			if ( fstat(rawfd, &stat) == 0 &&
+			     stat.st_size - curoffset >= totcomplen)
 			{
-				mcleanstop(9, "raw file is incomplete!\n");
+				completesample = 1;
+				break;
+			}
+			else
+			{
+				usleep(50000);		// sleep for .05 second
 			}
 		}
+
+		if (!completesample)
+			mcleanstop(9, "raw file is incomplete!\n");
 	}
 
 	return n;
