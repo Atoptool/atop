@@ -50,11 +50,11 @@ typedef struct {
         int		noverflow;
         int		avgval;
         int		nsecs;
+        int		index;
         count_t		mstot;
         count_t		iotot;
-	struct perdsk	*perdsk;
-        int		index;
         count_t		cputot;
+        struct perdsk	*perdsk;
         count_t		pernumacputot;
         count_t		percputot;
 } extraparam;
