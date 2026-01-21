@@ -1530,50 +1530,35 @@ make_proc_dynamicgen()
 {
 	char format[300], *p = format;
 
-	memcpy(p, FORMPID, sizeof FORMPID -1);
-	p += sizeof FORMPID -1;
+	p = stpcpy(p, FORMPID);
 
 	if (threadview)
 	{
-		memcpy(p, FORMTID, sizeof FORMTID -1);
-		p += sizeof FORMTID -1;
+		p = stpcpy(p, FORMTID);
 	}
 
 	if (supportflags & CONTAINERSTAT)
 	{
-		memcpy(p, FORMCID, sizeof FORMCID -1);
-		p += sizeof FORMCID -1;
+		p = stpcpy(p, FORMCID);
 	}
 
-	memcpy(p, FORMCPU, sizeof FORMCPU -1);
-	p += sizeof FORMCPU -1;
-
-	memcpy(p, FORMDEL, sizeof FORMDEL -1);
-	p += sizeof FORMDEL -1;
-
-	memcpy(p, FORMBDL, sizeof FORMBDL -1);
-	p += sizeof FORMBDL -1;
-
-	memcpy(p, FORMMEM, sizeof FORMMEM -1);
-	p += sizeof FORMMEM -1;
+	p = stpcpy(p, FORMCPU);
+	p = stpcpy(p, FORMDEL);
+	p = stpcpy(p, FORMBDL);
+	p = stpcpy(p, FORMMEM);
 
 	if (supportflags & IOSTAT)
 	{
-		memcpy(p, FORMDSK, sizeof FORMDSK -1);
-		p += sizeof FORMDSK -1;
+		p = stpcpy(p, FORMDSK);
 	}
 
 	if (supportflags & NETATOP || supportflags & NETATOPBPF)
 	{
-		memcpy(p, FORMNET, sizeof FORMNET -1);
-		p += sizeof FORMNET -1;
+		p = stpcpy(p, FORMNET);
 	}
 
-	memcpy(p, FORMMSC, sizeof FORMMSC -1);
-	p += sizeof FORMMSC -1;
-
-	memcpy(p, FORMEND, sizeof FORMEND);
-	p += sizeof FORMEND;
+	p = stpcpy(p, FORMMSC);
+	p = stpcpy(p, FORMEND);
 
 	make_detail_prints(genprocs, MAXITEMS, format, "built-in genprocs");
 }
