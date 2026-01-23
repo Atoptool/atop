@@ -46,6 +46,9 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <glib.h>
+#include <pthread.h>
+#include <stdatomic.h>
+#include <limits.h>
 
 #include "atop.h"
 #include "photoproc.h"
@@ -59,13 +62,31 @@
 			"%*d  %*d  %*d  %*d  %*d %*d  "	\
 			"%d   %d   %d   %lld"
 
-static int	procstat(struct tstat *, unsigned long long, char);
-static int	procstatus(struct tstat *);
-static int	procio(struct tstat *);
-static void	proccmd(struct tstat *);
-static void	procsmaps(struct tstat *);
-static void	procwchan(struct tstat *);
-static count_t	procschedstat(struct tstat *);
+// For photoproc worker threads
+static GQueue *pid_queue;
+static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t queue_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t priv_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t utsname_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static atomic_ulong tval_g;
+static struct tstat *tasklist_g;
+static int maxtask_g;
+static unsigned long long bootepoch_g;
+static atomic_char dockstat_g;
+
+extern char calcpss;
+extern char getwchan;
+
+static int	procstat(struct tstat *, unsigned long long, char, const char *);
+static int	procstatus(struct tstat *, const char *);
+static int	procio(struct tstat *, const char *);
+static void	proccmd(struct tstat *, const char *);
+static void	procsmaps(struct tstat *, const char *);
+static void	procwchan(struct tstat *, const char *);
+static count_t	procschedstat(struct tstat *, const char *);
+static void *photoproc_worker(void *arg);
+
 
 extern GHashTable *ghash_net;
 
@@ -73,133 +94,54 @@ extern char	prependenv;
 extern regex_t  envregex;
 
 
-unsigned long
-photoproc(struct tstat *tasklist, int maxtask)
+static void *
+photoproc_worker(void *arg)
 {
-	static int			firstcall = 1;
-	static unsigned long long	bootepoch;
+	(void)arg; // Unused
 
-	register struct tstat	*curtask;
+	while (1) {
+		char *pid_str;
 
-	FILE		*fp;
-	DIR		*dirp;
-	struct dirent	*entp;
-	char		origdir[4096], dockstat=0;
-	unsigned long	tval=0;
+		pthread_mutex_lock(&queue_mutex);
+		while (g_queue_is_empty(pid_queue)) {
+			pthread_cond_wait(&queue_cond, &queue_mutex);
+		}
+		pid_str = g_queue_pop_tail(pid_queue);
+		pthread_mutex_unlock(&queue_mutex);
 
-	/*
-	** one-time initialization stuff
-	*/
-	if (firstcall)
-	{
-		/*
-		** check if this kernel offers io-statistics per task
-		*/
-		regainrootprivs();
-
-		if ( (fp = fopen("/proc/1/io", "r")) )
-		{
-			supportflags |= IOSTAT;
-			fclose(fp);
+		if (pid_str == NULL) { // Sentinel for termination
+			break;
 		}
 
-		if (! droprootprivs())
-			mcleanstop(42, "failed to drop root privs\n");
-
-		/*
- 		** find epoch time of boot moment
-		*/
-		bootepoch = getboot();
-
-		firstcall = 0;
-	}
-
-	/*
-	** probe if the netatop module and (optionally) the
-	** netatopd daemon are active
-	*/
-	regainrootprivs();
-
-	/*
-	** if netatop kernel module is not active on this system,
-	** try to connect to netatop-bpf 
-	*/
-	if (connectnetatop && !(supportflags & NETATOP)) {
-		netatop_bpf_probe();
-	}
-
-	/*
-	** if netatop-bpf is not active on this system,
-	** try to connect to kernel module
-	*/
-	if (connectnetatop && !(supportflags & NETATOPBPF)) {
-		netatop_probe();
-	}
-
-	/*
-	** if netatop-bpf is active on this system, fetch data
-	*/
-	if (supportflags & NETATOPBPF) {
-		netatop_bpf_gettask();
-	}
-
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
-
-	/*
-	** read all subdirectory-names below the /proc directory
-	*/
-	if ( getcwd(origdir, sizeof origdir) == NULL)
-		mcleanstop(53, "failed to save current dir\n");
-
-	if ( chdir("/proc") == -1)
-		mcleanstop(54, "failed to change to /proc\n");
-
-	dirp = opendir(".");
-
-	while ( (entp = readdir(dirp)) && tval < maxtask )
-	{
-		/*
-		** skip non-numerical names
-		*/
-		if (!isdigit(entp->d_name[0]))
-			continue;
-
-		/*
-		** change to the process' subdirectory
-		*/
-		if ( chdir(entp->d_name) != 0 )
-			continue;
-
-		/*
- 		** gather process-level information
-		*/
-		curtask	= tasklist+tval;
-
-		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
-		{
-			if ( chdir("..") == -1)
-				;
+		unsigned long tval = atomic_fetch_add(&tval_g, 1);
+		if (tval >= (unsigned long)maxtask_g) {
+			free(pid_str);
 			continue;
 		}
 
-		if ( !procstatus(curtask) )	/* from /proc/pid/status  */
-		{
-			if ( chdir("..") == -1)
-				;
-			continue;
-		}
+		char procdir[PATH_MAX];
+		snprintf(procdir, sizeof(procdir), "/proc/%s", pid_str);
+		free(pid_str);
 
-		if ( !procio(curtask) )		/* from /proc/pid/io      */
-		{
-			if ( chdir("..") == -1)
-				;
-			continue;
-		}
+		struct tstat *curtask = tasklist_g + tval;
+		memset(curtask, 0, sizeof(struct tstat));
 
-		procschedstat(curtask);			/* from /proc/pid/schedstat */
-		proccmd(curtask);			/* from /proc/pid/cmdline */
-		dockstat += getutsname(curtask);	/* retrieve container/pod name */
+
+		if (!procstat(curtask, bootepoch_g, 1, procdir))
+			continue;
+
+		if (!procstatus(curtask, procdir))
+			continue;
+
+		if (!procio(curtask, procdir))
+			continue;
+
+		procschedstat(curtask, procdir);
+		proccmd(curtask, procdir);
+
+		pthread_mutex_lock(&utsname_mutex);
+		atomic_fetch_add(&dockstat_g, getutsname(curtask));
+		pthread_mutex_unlock(&utsname_mutex);
 
 		/*
 		** reading the smaps file for every process with every sample
@@ -207,14 +149,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 		** so gathering this info is optional
 		*/
 		if (calcpss)
-			procsmaps(curtask);	/* from /proc/pid/smaps */
+			procsmaps(curtask, procdir);
 
 		/*
 		** determine thread's wchan, if wanted ('expensive' from
 		** a CPU consumption point-of-view)
 		*/
-                if (getwchan)
-                	procwchan(curtask);
+		if (getwchan)
+			procwchan(curtask, procdir);
 
 		if (supportflags & NETATOPBPF) {
 			struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
@@ -235,16 +177,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 			netatop_gettask(curtask->gen.tgid, 'g', curtask);
 		}
 
-		tval++;		/* increment for process-level info */
-
 		/*
  		** if needed (when number of threads is larger than 1):
 		**   read and fill new entries with thread-level info
 		*/
-		if (curtask->gen.nthr > 1)
-		{
-			DIR		*dirtask;
-			struct dirent	*tent;
+		if (curtask->gen.nthr > 1) {
+			DIR *dirtask;
+			struct dirent *tent;
+			char taskdirpath[PATH_MAX];
 
 			curtask->gen.nthrrun  = 0;
 			curtask->gen.nthrslpi = 0;
@@ -267,142 +207,165 @@ photoproc(struct tstat *tasklist, int maxtask)
 			curtask->cpu.nvcsw  = 0;
 			curtask->cpu.nivcsw = 0;
 
-			/*
-			** open underlying task directory
-			*/
-			if ( chdir("task") == 0 )
-			{
+			snprintf(taskdirpath, sizeof(taskdirpath), "%s/task", procdir);
+
+			if ((dirtask = opendir(taskdirpath))) {
 				unsigned long cur_nth = 0;
-
-				dirtask = opendir(".");
-
-				/*
-				** due to race condition, opendir() might
-				** have failed (leave task and process-level
-				** directories)
-				*/
-				if( dirtask == NULL )
-				{
-					if(chdir("../..") == -1)
-						;
-					continue;
-				}
-
-				while ((tent=readdir(dirtask)) && tval<maxtask)
-				{
-					struct tstat *curthr = tasklist+tval;
-
-					/*
-					** change to the thread's subdirectory
-					*/
-					if ( tent->d_name[0] == '.'  ||
-					     chdir(tent->d_name) != 0 )
-						continue;
-
-					if ( !procstat(curthr, bootepoch, 0))
-					{
-						if ( chdir("..") == -1)
-							;
-						continue;
+				while ((tent = readdir(dirtask))) {
+					unsigned long thr_tval = atomic_fetch_add(&tval_g, 1);
+					if (thr_tval >= (unsigned long)maxtask_g) {
+						atomic_fetch_sub(&tval_g, 1);
+						break;
 					}
 
-					if ( !procstatus(curthr) )
-					{
-						if ( chdir("..") == -1)
-							;
+					char threaddirpath[PATH_MAX];
+					snprintf(threaddirpath, sizeof(threaddirpath), "%s/%s", taskdirpath, tent->d_name);
+
+					struct tstat *curthr = tasklist_g + thr_tval;
+					memset(curthr, 0, sizeof(struct tstat));
+
+					if (tent->d_name[0] == '.')
 						continue;
-					}
 
-					if ( !procio(curthr) )
-					{
-						if ( chdir("..") == -1)
-							;
+					if (!procstat(curthr, bootepoch_g, 0, threaddirpath))
 						continue;
-					}
 
-					/*
-					** determine thread's wchan, if wanted
- 					** ('expensive' from a CPU consumption
-					** point-of-view)
-					*/
-                			if (getwchan)
-                        			procwchan(curthr);
+					if (!procstatus(curthr, threaddirpath))
+						continue;
 
-					// totalize values of all threads
-					curtask->cpu.rundelay +=
-						procschedstat(curthr);
+					if (!procio(curthr, threaddirpath))
+						continue;
 
-					curtask->cpu.blkdelay +=
-						curthr->cpu.blkdelay;
+					if (getwchan)
+						procwchan(curthr, threaddirpath);
 
-					curtask->cpu.nvcsw +=
-						curthr->cpu.nvcsw;
+					curtask->cpu.rundelay += procschedstat(curthr, threaddirpath);
+					curtask->cpu.blkdelay += curthr->cpu.blkdelay;
+					curtask->cpu.nvcsw += curthr->cpu.nvcsw;
+					curtask->cpu.nivcsw += curthr->cpu.nivcsw;
 
-					curtask->cpu.nivcsw +=
-						curthr->cpu.nivcsw;
+					strcpy(curthr->gen.utsname, curtask->gen.utsname);
 
-					// continue gathering
-					strcpy(curthr->gen.utsname,
-						curtask->gen.utsname);
-
-					switch (curthr->gen.state)
-					{
-	   		   		   case 'R':
-						curtask->gen.nthrrun  += 1;
-						break;
-	   		   		   case 'S':
-						curtask->gen.nthrslpi += 1;
-						break;
-	   		   		   case 'D':
-						curtask->gen.nthrslpu += 1;
-						break;
-	   		   		   case 'I':
-						curtask->gen.nthridle += 1;
-						break;
+					switch (curthr->gen.state) {
+						case 'R': curtask->gen.nthrrun += 1; break;
+						case 'S': curtask->gen.nthrslpi += 1; break;
+						case 'D': curtask->gen.nthrslpu += 1; break;
+						case 'I': curtask->gen.nthridle += 1; break;
 					}
 
 					curthr->gen.nthr = 1;
 
-					// try to read network stats from netatop's module
 					if (!(supportflags & NETATOPBPF)) {
-						netatop_gettask(curthr->gen.pid, 't',
-										curthr);
+						netatop_gettask(curthr->gen.pid, 't', curthr);
 					}
-					// all stats read now
-					tval++;	    /* increment thread-level */
-					cur_nth++;  /* increment # threads    */
-
-					if ( chdir("..") == -1)
-						; /* thread */
+					cur_nth++;
 				}
-
 				closedir(dirtask);
-				if ( chdir("..") == -1)
-					; /* leave task */
 
 				// calibrate number of threads
 				curtask->gen.nthr = cur_nth;
 			}
 		}
+	}
+	return NULL;
+}
 
-		if ( chdir("..") == -1)
-			; /* leave process-level directry */
+
+unsigned long
+photoproc(struct tstat *tasklist, int maxtask)
+{
+	static int			firstcall = 1;
+	static unsigned long long	bootepoch;
+
+	DIR		*dirp;
+	struct dirent	*entp;
+
+	if (firstcall)
+	{
+		FILE *fp;
+		regainrootprivs();
+		if ((fp = fopen("/proc/1/io", "r"))) {
+			supportflags |= IOSTAT;
+			fclose(fp);
+		}
+		if (!droprootprivs())
+			mcleanstop(42, "failed to drop root privs\n");
+		bootepoch = getboot();
+		firstcall = 0;
 	}
 
-	closedir(dirp);
+	regainrootprivs();
+	if (connectnetatop && !(supportflags & NETATOP)) {
+		netatop_bpf_probe();
+	}
+	if (connectnetatop && !(supportflags & NETATOPBPF)) {
+		netatop_probe();
+	}
+	if (supportflags & NETATOPBPF) {
+		netatop_bpf_gettask();
+	}
+	if (!droprootprivs())
+		mcleanstop(42, "failed to drop root privs\n");
 
-	if ( chdir(origdir) == -1)
-		mcleanstop(55, "cannot change to %s\n", origdir);
+	int num_workers = sysconf(_SC_NPROCESSORS_ONLN);
+	if (num_workers <= 0) {
+		num_workers = 1; // Fallback
+	}
 
-	if (dockstat)
+	pthread_t *workers = malloc(num_workers * sizeof(pthread_t));
+	if (!workers) {
+		mcleanstop(42, "failed to allocate memory for workers\n");
+	}
+
+	pid_queue = g_queue_new();
+	atomic_init(&tval_g, 0);
+	atomic_init(&dockstat_g, 0);
+	tasklist_g = tasklist;
+	maxtask_g = maxtask;
+	bootepoch_g = bootepoch;
+
+	for (int i = 0; i < num_workers; i++) {
+		pthread_create(&workers[i], NULL, photoproc_worker, NULL);
+	}
+
+	if ((dirp = opendir("/proc"))) {
+		while ((entp = readdir(dirp))) {
+			if (!isdigit(entp->d_name[0]))
+				continue;
+
+			pthread_mutex_lock(&queue_mutex);
+			g_queue_push_head(pid_queue, strdup(entp->d_name));
+			pthread_cond_signal(&queue_cond);
+			pthread_mutex_unlock(&queue_mutex);
+		}
+		closedir(dirp);
+	}
+
+	pthread_mutex_lock(&queue_mutex);
+	for (int i = 0; i < num_workers; i++) {
+		g_queue_push_head(pid_queue, NULL);
+		pthread_cond_broadcast(&queue_cond);
+	}
+	pthread_mutex_unlock(&queue_mutex);
+
+	for (int i = 0; i < num_workers; i++) {
+		pthread_join(workers[i], NULL);
+	}
+
+	free(workers);
+	g_queue_free_full(pid_queue, free);
+
+	if (atomic_load(&dockstat_g))
 		supportflags |= CONTAINERSTAT;
 	else
 		supportflags &= ~CONTAINERSTAT;
 
-	resetutsname();		// reassociate atop with own UTS namespace
+	resetutsname();
 
-	return tval;
+	unsigned long tval = atomic_load(&tval_g);
+	return tval > (unsigned long)maxtask ? (unsigned long)maxtask : tval;
 }
+
 
 /*
 ** count number of tasks in the system, i.e.
@@ -494,13 +457,16 @@ counttasks(void)
 ** open file "stat" and obtain required info
 */
 static int
-procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
+procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc, const char *path_prefix)
 {
 	FILE	*fp;
 	int	nr;
 	char	line[4096], *p, *cmdhead, *cmdtail;
+	char path[PATH_MAX];
 
-	if ( (fp = fopen("stat", "r")) == NULL)
+	snprintf(path, sizeof(path), "%s/stat", path_prefix);
+
+	if ( (fp = fopen(path, "r")) == NULL)
 		return 0;
 
 	if ( (nr = fread(line, 1, sizeof line-1, fp)) == 0)
@@ -596,12 +562,15 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 ** open file "status" and obtain required info
 */
 static int
-procstatus(struct tstat *curtask)
+procstatus(struct tstat *curtask, const char *path_prefix)
 {
 	FILE	*fp;
 	char	line[4096];
+	char path[PATH_MAX];
 
-	if ( (fp = fopen("status", "r")) == NULL)
+	snprintf(path, sizeof(path), "%s/status", path_prefix);
+
+	if ( (fp = fopen(path, "r")) == NULL)
 		return 0;
 
 	curtask->gen.nthr     = 1;	/* for compat with 2.4 */
@@ -724,7 +693,7 @@ procstatus(struct tstat *curtask)
 #define	IO_WRITE	"write_bytes:"
 #define	IO_CWRITE	"cancelled_write_bytes:"
 static int
-procio(struct tstat *curtask)
+procio(struct tstat *curtask, const char *path_prefix)
 {
 	FILE	*fp;
 	char	line[4096];
@@ -732,9 +701,13 @@ procio(struct tstat *curtask)
 
 	if (supportflags & IOSTAT)
 	{
+		char path[PATH_MAX];
+		snprintf(path, sizeof(path), "%s/io", path_prefix);
+
+		pthread_mutex_lock(&priv_mutex);
 		regainrootprivs();
 
-		if ( (fp = fopen("io", "r")) )
+		if ( (fp = fopen(path, "r")) )
 		{
 			while (fgets(line, sizeof line, fp))
 			{
@@ -774,6 +747,7 @@ procio(struct tstat *curtask)
 
 		if (! droprootprivs())
 			mcleanstop(42, "failed to drop root privs\n");
+		pthread_mutex_unlock(&priv_mutex);
 	}
 
 	return 1;
@@ -794,64 +768,70 @@ procio(struct tstat *curtask)
 #define	ABBENVLEN	16
 
 static void
-proccmd(struct tstat *curtask)
+proccmd(struct tstat *curtask, const char *path_prefix)
 {
 	FILE		*fp, *fpe;
 	register int 	i, nr;
 	ssize_t		env_len = 0;
 	register char	*pc = curtask->gen.cmdline;
+	char path[PATH_MAX];
 
 	memset(curtask->gen.cmdline, 0, CMDLEN+1); // initialize command line
 
 	// prepend by environment variables (if required)
 	//
-	if ( prependenv && (fpe = fopen("environ", "r")) != NULL)
+	if ( prependenv )
 	{
-		char *line = NULL;
-		ssize_t nread;
-		size_t len = 0;
-
-		while ((nread = getdelim(&line, &len, '\0', fpe)) != -1)
+		snprintf(path, sizeof(path), "%s/environ", path_prefix);
+		if ((fpe = fopen(path, "r")) != NULL)
 		{
-			if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
+			char *line = NULL;
+			ssize_t nread;
+			size_t len = 0;
+
+			while ((nread = getdelim(&line, &len, '\0', fpe)) != -1)
 			{
-				if (env_len + nread >= CMDLEN)
+				if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
 				{
-					// try to add abbreviated env string
-					//
-					if (env_len + ABBENVLEN + 1 >= CMDLEN)
+					if (env_len + nread >= CMDLEN)
 					{
-						break;
+						// try to add abbreviated env string
+						//
+						if (env_len + ABBENVLEN + 1 >= CMDLEN)
+						{
+							break;
+						}
+						else
+						{
+							line[ABBENVLEN-4] = '.';
+							line[ABBENVLEN-3] = '.';
+							line[ABBENVLEN-2] = '.';
+							line[ABBENVLEN-1] = '\0';
+							line[ABBENVLEN]   = '\0';
+							nread = ABBENVLEN;
+						}
 					}
-					else
-					{
-						line[ABBENVLEN-4] = '.';
-						line[ABBENVLEN-3] = '.';
-						line[ABBENVLEN-2] = '.';
-						line[ABBENVLEN-1] = '\0';
-						line[ABBENVLEN]   = '\0';
-						nread = ABBENVLEN;
-					}
+
+					env_len += nread;
+
+					*(line+nread-1) = ' ';	// modify NULL byte to space
+
+					strcpy(pc, line);
+					pc += nread;
 				}
-
-				env_len += nread;
-
-				*(line+nread-1) = ' ';	// modify NULL byte to space
-
-				strcpy(pc, line);
-				pc += nread;
 			}
-		}
 
-		/* line has been (re)allocated within the first call to getdelim */
-                /* even if the call fails, see getline(3) */
-		free(line);
-		fclose(fpe);
+			/* line has been (re)allocated within the first call to getdelim */
+					/* even if the call fails, see getline(3) */
+			free(line);
+			fclose(fpe);
+		}
 	}
 
 	// add command line and parameters
 	//
-	if ( (fp = fopen("cmdline", "r")) != NULL)
+	snprintf(path, sizeof(path), "%s/cmdline", path_prefix);
+	if ( (fp = fopen(path, "r")) != NULL)
 	{
 		nr = fread(pc, 1, CMDLEN-env_len, fp);
 		fclose(fp);
@@ -888,12 +868,15 @@ proccmd(struct tstat *curtask)
 ** has been put in sleep state)
 */
 static void
-procwchan(struct tstat *curtask)
+procwchan(struct tstat *curtask, const char *path_prefix)
 {
         FILE            *fp;
         register int    nr = 0;
+		char path[PATH_MAX];
 
-        if ( (fp = fopen("wchan", "r")) != NULL)
+		snprintf(path, sizeof(path), "%s/wchan", path_prefix);
+
+        if ( (fp = fopen(path, "r")) != NULL)
         {
 
                 nr = fread(curtask->cpu.wchan, 1,
@@ -914,22 +897,28 @@ procwchan(struct tstat *curtask)
 ** if kernel supports "smaps_rollup", use "smaps_rollup" instead
 */
 static void
-procsmaps(struct tstat *curtask)
+procsmaps(struct tstat *curtask, const char *path_prefix)
 {
 	FILE	*fp;
 	char	line[4096];
 	count_t	pssval;
 	static int procsmaps_firstcall = 1;
 	static char *smapsfile = "smaps";
+	char path[PATH_MAX];
 
 	if (procsmaps_firstcall)
 	{
+		pthread_mutex_lock(&priv_mutex);
 		regainrootprivs();
-		if ( (fp = fopen("/proc/1/smaps_rollup", "r")) )
+		snprintf(path, sizeof(path), "/proc/1/smaps_rollup");
+		if ( (fp = fopen(path, "r")) )
 		{
 			smapsfile = "smaps_rollup";
 			fclose(fp);
 		}
+		if (!droprootprivs())
+			mcleanstop(42, "failed to drop root privs\n");
+		pthread_mutex_unlock(&priv_mutex);
 
 		procsmaps_firstcall = 0;
 	}
@@ -937,9 +926,11 @@ procsmaps(struct tstat *curtask)
 	/*
  	** open the file (always succeeds, even if no root privs)
 	*/
+	pthread_mutex_lock(&priv_mutex);
 	regainrootprivs();
 
-	if ( (fp = fopen(smapsfile, "r")) )
+	snprintf(path, sizeof(path), "%s/%s", path_prefix, smapsfile);
+	if ( (fp = fopen(path, "r")) )
 	{
 		curtask->mem.pmem = 0;
 
@@ -968,6 +959,7 @@ procsmaps(struct tstat *curtask)
 
 	if (! droprootprivs())
 		mcleanstop(42, "failed to drop root privs\n");
+	pthread_mutex_unlock(&priv_mutex);
 }
 
 /*
@@ -975,18 +967,20 @@ procsmaps(struct tstat *curtask)
 ** ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-stats.rst?h=v5.7-rc6
 */
 static count_t
-procschedstat(struct tstat *curtask)
+procschedstat(struct tstat *curtask, const char *path_prefix)
 {
 	FILE	*fp;
 	char	line[4096];
 	count_t	runtime, rundelay = 0;
 	unsigned long pcount;
-	static char *schedstatfile = "schedstat";
+	char path[PATH_MAX];
+
+	snprintf(path, sizeof(path), "%s/schedstat", path_prefix);
 
 	/*
  	** open the schedstat file
 	*/
-	if ( (fp = fopen(schedstatfile, "r")) )
+	if ( (fp = fopen(path, "r")) )
 	{
 		curtask->cpu.rundelay = 0;
 
