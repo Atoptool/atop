@@ -1,6 +1,9 @@
 [Unit]
 Description=Atop advanced performance monitor
 Documentation=man:atop(1)
+# If you want to disable automatic rotation of logs,
+# run "systemctl mask atop-rotate.timer"
+Wants=atop-rotate.timer
 
 [Service]
 Type=simple
