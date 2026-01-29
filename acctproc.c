@@ -45,8 +45,11 @@
 #include "atopacctd.h"
 
 #define	ACCTDIR		"/var/cache/atop.d"
+#define	ACCTDIRENV	"ATOPACCTDIR"
 #define	ACCTFILE	"atop.acct"
 #define	ACCTENV		"ATOPACCT"
+
+static	char	*acctdir = ACCTDIR;
 
 static	char 	acctatop;	/* boolean: atop's own accounting busy ?  */
 static	off_t	acctsize;	/* previous size of account file	  */
@@ -170,6 +173,19 @@ acctswon(void)
 	}
 
 	/*
+	** when a particular environment variable is present, atop should
+	** use a specific directory for accounting-file (as defined by the environment
+	** variable)
+	*/
+	if ( (ep = getenv(ACCTDIRENV)) && *ep)
+	{
+		acctdir = ep;
+	}
+
+	char acctfilepath[128];
+	snprintf(acctfilepath, sizeof acctfilepath, "%s/%s", acctdir, ACCTFILE);
+
+	/*
  	** when the atopacctd daemon is active on this system,
 	** it should be the preferred way to read the accounting records
 	*/
@@ -267,16 +283,16 @@ acctswon(void)
 		** if this directory exists (e.g. previous atop-run killed)
 		** it will be cleaned and newly created
 		*/
-		if ( mkdir(ACCTDIR, 0700) == -1)
+		if ( mkdir(acctdir, 0700) == -1)
 		{
 			if (errno == EEXIST)
 			{
 				(void) acct(0);
-				(void) unlink(ACCTDIR "/" ACCTFILE);
-				(void) rmdir(ACCTDIR);
+				(void) unlink(acctfilepath);
+				(void) rmdir(acctdir);
 			}
 
-			if ( mkdir(ACCTDIR, 0700) == -1)
+			if ( mkdir(acctdir, 0700) == -1)
 			{
 				/*
 				** persistent failure
@@ -285,19 +301,18 @@ acctswon(void)
 				return 4;
 			}
 		}
-
 		/*
 		** create accounting file in new directory
 		*/
-		(void) close( creat(ACCTDIR "/" ACCTFILE, 0600) );
+		(void) close( creat( acctfilepath, 0600) );
 
 		/*
 		** switch on accounting
 		*/
-		if ( acct(ACCTDIR "/" ACCTFILE) < 0)
+		if ( acct( acctfilepath ) < 0)
 		{
-			(void) unlink(ACCTDIR "/" ACCTFILE);
-			(void) rmdir(ACCTDIR);
+			(void) unlink(acctfilepath);
+			(void) rmdir(acctdir);
 			(void) semop(sematopid, &semrelse, 1);
 
 			return 5;
@@ -308,11 +323,11 @@ acctswon(void)
 	** accounting is switched on now;
 	** open accounting-file
 	*/
-	if ( (acctfd = open(ACCTDIR "/" ACCTFILE, O_RDONLY) ) < 0)
+	if ( (acctfd = open(acctfilepath, O_RDONLY) ) < 0)
 	{
 		(void) acct(0);
-		(void) unlink(ACCTDIR "/" ACCTFILE);
-		(void) rmdir(ACCTDIR);
+		(void) unlink(acctfilepath);
+		(void) rmdir(acctdir);
 
 		(void) semop(sematopid, &semrelse, 1);
 		return 1;
@@ -333,8 +348,8 @@ acctswon(void)
 	{
 		(void) acct(0);
 		(void) close(acctfd);
-		(void) unlink(ACCTDIR "/" ACCTFILE);
-		(void) rmdir(ACCTDIR);
+		(void) unlink(acctfilepath);
+		(void) rmdir(acctdir);
 
 		acctfd = -1;
 		return 1;
@@ -356,8 +371,8 @@ acctswon(void)
 	{
 		(void) acct(0);
 		(void) close(acctfd);
-		(void) unlink(ACCTDIR "/" ACCTFILE);
-		(void) rmdir(ACCTDIR);
+		(void) unlink(acctfilepath);
+		(void) rmdir(acctdir);
 
 		acctfd = -1;
 		return 1;
@@ -599,14 +614,24 @@ acctswoff(void)
 
 			if (after.st_size > before.st_size)
 			{
+
+				char *ep;
+				if ( (ep = getenv(ACCTDIRENV)) && *ep)
+				{
+					acctdir = ep;
+				}
+
+				char acctfilepath[128];
+				snprintf(acctfilepath, sizeof acctfilepath, "%s/%s", acctdir, ACCTFILE);
+
 				/*
 				** remove the directory and file
 				*/
 				regainrootprivs(); /* get root privs again */
 
 				(void) acct(0);
-				(void) unlink(ACCTDIR "/" ACCTFILE);
-				(void) rmdir(ACCTDIR);
+				(void) unlink(acctfilepath);
+				(void) rmdir(acctdir);
 
 				if (! droprootprivs() )
 					mcleanstop(42,
@@ -1080,10 +1105,24 @@ acctrestarttrial(void)
 
 	(void) acct(0);		// switch off accounting
 
-	if ( truncate(ACCTDIR "/" ACCTFILE, 0) == 0)
+	/*
+	** when a particular environment variable is present, atop should
+	** use a specific directory for accounting-file (as defined by the environment
+	** variable)
+	*/
+	char *ep;
+	if ( (ep = getenv(ACCTDIRENV)) && *ep)
+	{
+		acctdir = ep;
+	}
+
+	char acctfilepath[128];
+	snprintf(acctfilepath, sizeof acctfilepath, "%s/%s", acctdir, ACCTFILE);
+
+	if ( truncate(acctfilepath, 0) == 0)
 		(void) lseek(acctfd, 0, SEEK_SET);
 
-	(void) acct(ACCTDIR "/" ACCTFILE);
+	(void) acct(acctfilepath);
 
 	if (! droprootprivs() )
 		mcleanstop(42, "failed to drop root privs\n");

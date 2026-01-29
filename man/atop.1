@@ -484,6 +484,10 @@ will never read more than 50 MiB with process information from the
 process accounting file per interval (approx. 54000 finished processes).
 In interactive mode a warning is given whenever processes have been skipped
 for this reason.
+
+When the environment variable ATOPACCTDIR set and not empty, it specifies directory for process accounting file instead of 
+.I /var/cache/atop.d
+which set by default.
 .PP
 .SH COLORS
 For the resource consumption on system level,
