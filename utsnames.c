@@ -48,7 +48,7 @@ static	int		mypidfd, foreignuts;
 
 // Function that fills the host name (container/pod name) of 
 // a specific process.
-// When the process has a different UTS namespace then systemd,
+// When the process has a different UTS namespace compared to systemd,
 // the process' UTS namespace will be temporarily associated with atop
 // itself to retrieve the host name (i.e. container/pod name) of that process.
 // To avoid too many namespace switches, atop only reassociates with its own
@@ -63,7 +63,7 @@ getutsname(struct tstat *curtask)
 {
 	static char	firstcall = 1, basepath[64], basehost[32];
 
-	int		pidfd, offset;
+	int		pidfd;
 	ssize_t		destlen;
 	char		srcpath[64], destpath[64], tmphost[70];
 
@@ -163,10 +163,7 @@ getutsname(struct tstat *curtask)
 
 	// this process really seems to be container/pod related
 	//
-	if ( (offset = strlen(tmphost) - UTSLEN) < 0)
-		offset = 0;
-
-	strcpy(curtask->gen.utsname, tmphost+offset);	// copy last part when overflow
+	safe_strcpy(curtask->gen.utsname, tmphost, UTSLEN);	// copy (truncated) host name
 
 	if (! droprootprivs())
 		mcleanstop(42, "failed to drop root privs\n");

@@ -29,7 +29,7 @@
 #define	PNAMLEN		15
 #define	CMDLEN		255
 #define	CGRLEN		64
-#define	UTSLEN		15
+#define	UTSLEN		39
 
 /* 
 ** structure containing only relevant process-info extracted 

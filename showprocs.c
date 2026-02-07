@@ -965,7 +965,7 @@ procprt_CID_a(struct tstat *curstat, int avgval, int nsecs)
         static char buf[64];
 
 	if (curstat->gen.utsname[0])
-        	snprintf(buf, sizeof buf, "%-15s", curstat->gen.utsname);
+        	snprintf(buf, sizeof buf, "%-15.15s", curstat->gen.utsname);
 	else
         	snprintf(buf, sizeof buf, "%-15s", HOSTUTS);
 

@@ -2490,7 +2490,7 @@ keyhandle_selcont(int *pstatline, char **pstatmsg)
 	printw("Container or pod name (enter=all, 'host'=host processes): ");
 
 	procsel.utsname[0]  = '\0';
-	scanw("%15s", procsel.utsname);
+	scanw("%39s", procsel.utsname);
 	procsel.utsname[UTSLEN] = '\0';
 
 	switch (strlen(procsel.utsname))
