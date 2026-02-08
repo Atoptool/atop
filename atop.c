@@ -397,7 +397,7 @@ main(int argc, char *argv[])
 					{
 						if (strlen(argv[optind]) == 1)
 						{
-							strcpy(irawname, "/dev/stdin");
+							safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
 							optind++;
 						}
 					}
