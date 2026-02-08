@@ -166,7 +166,9 @@ getutsname(struct tstat *curtask)
 	if ( (offset = strlen(tmphost) - UTSLEN) < 0)
 		offset = 0;
 
-	strcpy(curtask->gen.utsname, tmphost+offset);	// copy last part when overflow
+	// copy last part when overflow
+	strncpy(curtask->gen.utsname, tmphost+offset, sizeof(curtask->gen.utsname) - 1);
+	curtask->gen.utsname[sizeof(curtask->gen.utsname) - 1] = '\0';
 
 	if (! droprootprivs())
 		mcleanstop(42, "failed to drop root privs\n");
