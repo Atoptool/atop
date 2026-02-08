@@ -71,7 +71,8 @@ netatop_bpf_ipopen(void)
     /* fill socket address structure with server's address */
     memset(&un, 0, sizeof(un));
     un.sun_family = AF_UNIX;
-    strcpy(un.sun_path, name);
+    strncpy(un.sun_path, name, sizeof(un.sun_path) - 1);
+    un.sun_path[sizeof(un.sun_path) - 1] = '\0';
     len = offsetof(struct sockaddr_un, sun_path) + strlen(name);
     
     if(connect(netsock, (struct sockaddr *)&un, len) < 0)
