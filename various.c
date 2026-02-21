@@ -463,7 +463,7 @@ val2Hzstr(count_t value, char *strvalue)
 {
 	char *fformat;
 
-        if (value < 1000)
+        if (value < 10000)
         {
                 snprintf(strvalue, 8, "%4lluMHz", value%10000);
         }
