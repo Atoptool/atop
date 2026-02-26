@@ -241,7 +241,7 @@ main(int argc, char *argv[])
 		// anonymize host name
 		//
 		memset(rh.utsname.nodename, '\0', sizeof rh.utsname.nodename);
-		strcpy(rh.utsname.nodename, "anonymized");
+		safe_strcpy(rh.utsname.nodename, "anonymized", sizeof rh.utsname.nodename);
 	}
 
 	// read recorded samples and copy to output file
@@ -469,7 +469,7 @@ findstandin(struct standin **head, unsigned long *sequence,
 	ptrverify(sp->origname, "Malloc failed for standin orig\n");
 	ptrverify(sp->fakename, "Malloc failed for standin fake\n");
 
-	strcpy(sp->origname, origp);
+	safe_strcpy(sp->origname, origp, strlen(origp)+1);
 	snprintf(sp->fakename, strlen(prefix)+6, "%s%05lu", prefix, (*sequence)++);
 	sp->next = *head;
 	*head = sp;
