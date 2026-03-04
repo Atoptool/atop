@@ -59,13 +59,13 @@
 			"%*d  %*d  %*d  %*d  %*d %*d  "	\
 			"%d   %d   %d   %lld"
 
-static int	procstat(struct tstat *, unsigned long long, char);
-static int	procstatus(struct tstat *);
-static int	procio(struct tstat *);
-static void	proccmd(struct tstat *);
-static void	procsmaps(struct tstat *);
-static void	procwchan(struct tstat *);
-static count_t	procschedstat(struct tstat *);
+static int	procstat(struct tstat *, unsigned long long, char, char*);
+static int	procstatus(struct tstat *, char*);
+static int	procio(struct tstat *, char*);
+static void	proccmd(struct tstat *, char*);
+static void	procsmaps(struct tstat *, char*);
+static void	procwchan(struct tstat *, char*);
+static count_t	procschedstat(struct tstat *, char*);
 
 extern GHashTable *ghash_net;
 
@@ -166,39 +166,27 @@ photoproc(struct tstat *tasklist, int maxtask)
 			continue;
 
 		/*
-		** change to the process' subdirectory
-		*/
-		if ( chdir(entp->d_name) != 0 )
-			continue;
-
-		/*
  		** gather process-level information
 		*/
 		curtask	= tasklist+tval;
 
-		if ( !procstat(curtask, bootepoch, 1)) /* from /proc/pid/stat */
+		if ( !procstat(curtask, bootepoch, 1, entp->d_name)) /* from /proc/pid/stat */
 		{
-			if ( chdir("..") == -1)
-				;
 			continue;
 		}
 
-		if ( !procstatus(curtask) )	/* from /proc/pid/status  */
+		if ( !procstatus(curtask, entp->d_name) )	/* from /proc/pid/status  */
 		{
-			if ( chdir("..") == -1)
-				;
 			continue;
 		}
 
-		if ( !procio(curtask) )		/* from /proc/pid/io      */
+		if ( !procio(curtask, entp->d_name) )		/* from /proc/pid/io      */
 		{
-			if ( chdir("..") == -1)
-				;
 			continue;
 		}
 
-		procschedstat(curtask);			/* from /proc/pid/schedstat */
-		proccmd(curtask);			/* from /proc/pid/cmdline */
+		procschedstat(curtask, entp->d_name);			/* from /proc/pid/schedstat */
+		proccmd(curtask, entp->d_name);			/* from /proc/pid/cmdline */
 		dockstat += getutsname(curtask);	/* retrieve container/pod name */
 
 		/*
@@ -207,14 +195,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 		** so gathering this info is optional
 		*/
 		if (calcpss)
-			procsmaps(curtask);	/* from /proc/pid/smaps */
+			procsmaps(curtask, entp->d_name);	/* from /proc/pid/smaps */
 
 		/*
 		** determine thread's wchan, if wanted ('expensive' from
 		** a CPU consumption point-of-view)
 		*/
                 if (getwchan)
-                	procwchan(curtask);
+                	procwchan(curtask, entp->d_name);
 
 		if (supportflags & NETATOPBPF) {
 			struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
@@ -245,6 +233,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		{
 			DIR		*dirtask;
 			struct dirent	*tent;
+			char	taskdir[4096];
 
 			curtask->gen.nthrrun  = 0;
 			curtask->gen.nthrslpi = 0;
@@ -270,53 +259,36 @@ photoproc(struct tstat *tasklist, int maxtask)
 			/*
 			** open underlying task directory
 			*/
-			if ( chdir("task") == 0 )
+			sprintf(taskdir, "%s/task", entp->d_name);
+			if ( (dirtask = opendir(taskdir)) != NULL )
 			{
 				unsigned long cur_nth = 0;
-
-				dirtask = opendir(".");
-
-				/*
-				** due to race condition, opendir() might
-				** have failed (leave task and process-level
-				** directories)
-				*/
-				if( dirtask == NULL )
-				{
-					if(chdir("../..") == -1)
-						;
-					continue;
-				}
+				char threaddir[4096];
 
 				while ((tent=readdir(dirtask)) && tval<maxtask)
 				{
 					struct tstat *curthr = tasklist+tval;
 
 					/*
-					** change to the thread's subdirectory
+					** skip non-numerical names
 					*/
-					if ( tent->d_name[0] == '.'  ||
-					     chdir(tent->d_name) != 0 )
+					if ( !isdigit(tent->d_name[0]) )
 						continue;
 
-					if ( !procstat(curthr, bootepoch, 0))
-					{
-						if ( chdir("..") == -1)
-							;
-						continue;
-					}
+					sprintf(threaddir, "%s/%s", taskdir, tent->d_name);
 
-					if ( !procstatus(curthr) )
+					if ( !procstat(curthr, bootepoch, 0, threaddir))
 					{
-						if ( chdir("..") == -1)
-							;
 						continue;
 					}
 
-					if ( !procio(curthr) )
+					if ( !procstatus(curthr, threaddir) )
 					{
-						if ( chdir("..") == -1)
-							;
+						continue;
+					}
+
+					if ( !procio(curthr, threaddir) )
+					{
 						continue;
 					}
 
@@ -326,11 +298,11 @@ photoproc(struct tstat *tasklist, int maxtask)
 					** point-of-view)
 					*/
                 			if (getwchan)
-                        			procwchan(curthr);
+                        			procwchan(curthr, threaddir);
 
 					// totalize values of all threads
 					curtask->cpu.rundelay +=
-						procschedstat(curthr);
+						procschedstat(curthr, threaddir);
 
 					curtask->cpu.blkdelay +=
 						curthr->cpu.blkdelay;
@@ -372,21 +344,15 @@ photoproc(struct tstat *tasklist, int maxtask)
 					tval++;	    /* increment thread-level */
 					cur_nth++;  /* increment # threads    */
 
-					if ( chdir("..") == -1)
-						; /* thread */
 				}
 
 				closedir(dirtask);
-				if ( chdir("..") == -1)
-					; /* leave task */
 
 				// calibrate number of threads
 				curtask->gen.nthr = cur_nth;
 			}
 		}
 
-		if ( chdir("..") == -1)
-			; /* leave process-level directry */
 	}
 
 	closedir(dirp);
@@ -494,13 +460,15 @@ counttasks(void)
 ** open file "stat" and obtain required info
 */
 static int
-procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
+procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc, char *path)
 {
 	FILE	*fp;
 	int	nr;
 	char	line[4096], *p, *cmdhead, *cmdtail;
+	char	filepath[4096];
 
-	if ( (fp = fopen("stat", "r")) == NULL)
+	sprintf(filepath, "%s/stat", path);
+	if ( (fp = fopen(filepath, "r")) == NULL)
 		return 0;
 
 	if ( (nr = fread(line, 1, sizeof line-1, fp)) == 0)
@@ -596,12 +564,14 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 ** open file "status" and obtain required info
 */
 static int
-procstatus(struct tstat *curtask)
+procstatus(struct tstat *curtask, char *path)
 {
 	FILE	*fp;
 	char	line[4096];
+	char	filepath[4096];
 
-	if ( (fp = fopen("status", "r")) == NULL)
+	sprintf(filepath, "%s/status", path);
+	if ( (fp = fopen(filepath, "r")) == NULL)
 		return 0;
 
 	curtask->gen.nthr     = 1;	/* for compat with 2.4 */
@@ -724,17 +694,19 @@ procstatus(struct tstat *curtask)
 #define	IO_WRITE	"write_bytes:"
 #define	IO_CWRITE	"cancelled_write_bytes:"
 static int
-procio(struct tstat *curtask)
+procio(struct tstat *curtask, char *path)
 {
 	FILE	*fp;
 	char	line[4096];
 	count_t	dskrsz=0, dskwsz=0, dskcwsz=0;
+	char	filepath[4096];
 
 	if (supportflags & IOSTAT)
 	{
 		regainrootprivs();
 
-		if ( (fp = fopen("io", "r")) )
+		sprintf(filepath, "%s/io", path);
+		if ( (fp = fopen(filepath, "r")) )
 		{
 			while (fgets(line, sizeof line, fp))
 			{
@@ -794,18 +766,20 @@ procio(struct tstat *curtask)
 #define	ABBENVLEN	16
 
 static void
-proccmd(struct tstat *curtask)
+proccmd(struct tstat *curtask, char *path)
 {
 	FILE		*fp, *fpe;
 	register int 	i, nr;
 	ssize_t		env_len = 0;
 	register char	*pc = curtask->gen.cmdline;
+	char	filepath[4096];
 
 	memset(curtask->gen.cmdline, 0, CMDLEN+1); // initialize command line
 
 	// prepend by environment variables (if required)
 	//
-	if ( prependenv && (fpe = fopen("environ", "r")) != NULL)
+	sprintf(filepath, "%s/environ", path);
+	if ( prependenv && (fpe = fopen(filepath, "r")) != NULL)
 	{
 		char *line = NULL;
 		ssize_t nread;
@@ -851,7 +825,8 @@ proccmd(struct tstat *curtask)
 
 	// add command line and parameters
 	//
-	if ( (fp = fopen("cmdline", "r")) != NULL)
+	sprintf(filepath, "%s/cmdline", path);
+	if ( (fp = fopen(filepath, "r")) != NULL)
 	{
 		nr = fread(pc, 1, CMDLEN-env_len, fp);
 		fclose(fp);
@@ -888,12 +863,14 @@ proccmd(struct tstat *curtask)
 ** has been put in sleep state)
 */
 static void
-procwchan(struct tstat *curtask)
+procwchan(struct tstat *curtask, char *path)
 {
         FILE            *fp;
         register int    nr = 0;
+	char	filepath[4096];
 
-        if ( (fp = fopen("wchan", "r")) != NULL)
+	sprintf(filepath, "%s/wchan", path);
+        if ( (fp = fopen(filepath, "r")) != NULL)
         {
 
                 nr = fread(curtask->cpu.wchan, 1,
@@ -914,13 +891,14 @@ procwchan(struct tstat *curtask)
 ** if kernel supports "smaps_rollup", use "smaps_rollup" instead
 */
 static void
-procsmaps(struct tstat *curtask)
+procsmaps(struct tstat *curtask, char *path)
 {
 	FILE	*fp;
 	char	line[4096];
 	count_t	pssval;
 	static int procsmaps_firstcall = 1;
 	static char *smapsfile = "smaps";
+	char	filepath[4096];
 
 	if (procsmaps_firstcall)
 	{
@@ -939,7 +917,8 @@ procsmaps(struct tstat *curtask)
 	*/
 	regainrootprivs();
 
-	if ( (fp = fopen(smapsfile, "r")) )
+	sprintf(filepath, "%s/%s", path, smapsfile);
+	if ( (fp = fopen(filepath, "r")) )
 	{
 		curtask->mem.pmem = 0;
 
@@ -975,18 +954,20 @@ procsmaps(struct tstat *curtask)
 ** ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-stats.rst?h=v5.7-rc6
 */
 static count_t
-procschedstat(struct tstat *curtask)
+procschedstat(struct tstat *curtask, char *path)
 {
 	FILE	*fp;
 	char	line[4096];
 	count_t	runtime, rundelay = 0;
 	unsigned long pcount;
 	static char *schedstatfile = "schedstat";
+	char	filepath[4096];
 
 	/*
  	** open the schedstat file
 	*/
-	if ( (fp = fopen(schedstatfile, "r")) )
+	sprintf(filepath, "%s/%s", path, schedstatfile);
+	if ( (fp = fopen(filepath, "r")) )
 	{
 		curtask->cpu.rundelay = 0;
 
