@@ -1905,8 +1905,26 @@ Value -1 means maximum, while value -2 means undefined.
 .PP
 .TP 9
 .B MEMORY
-The current memory occupation of this cgroup and all cgroups underneath.
-Value -1 means undefined.
+The current memory occupation ('memory.current' value) of this cgroup
+and all cgroups underneath.  Value -1 means undefined.
+
+Notice that the memory occupation of a cgroup implies all memory pages
+that are
+.I first referenced
+(faulted in) from such cgroup. So apart from
+resident process pages, the cgroup memory includes all 
+page cache pages, slab cache pages, tmpfs pages and
+shared memory pages that are first referenced by a process
+in this cgroup.
+
+This means that the cgroup memory might be much higher than the
+cumulated memory consumption (RSS) of the processes in the cgroup
+(shown after pressing the key '8' or '9').
+However, the cgroup memory might also be lower than the
+cumulated memory consumption of the processes in the cgroup,
+when these processes share code pages, shared library pages,
+shared memory pages or mmapped pages that have been assigned
+(i.e. first referenced) by processes in other cgroups.
 .PP
 .TP 9
 .B MEMPS
