@@ -658,7 +658,8 @@ make_sys_prints(sys_printpair *ar, int maxn, const char *pairs,
         int		i, a, n=strlen(pairs);
         char		str[n+1];
 
-        strcpy(str, pairs);
+        strncpy(str, pairs, n);
+        str[n] = '\0';
 
         makeargv(str, linename, items);
 
