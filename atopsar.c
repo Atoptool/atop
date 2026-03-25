@@ -1287,8 +1287,11 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	if (ss->cpu.nrcpu > 1)
 	{
-		for (i=0; i < ss->cpu.nrcpu; i++)
+		for (i=0; i < ss->cpu.maxcpu; i++)
 		{
+			if (!ss->cpu.cpu[i].online)
+				continue;
+
         		cputot = ss->cpu.cpu[i].stime + ss->cpu.cpu[i].utime +
                  	         ss->cpu.cpu[i].ntime + ss->cpu.cpu[i].itime +
                  	         ss->cpu.cpu[i].wtime + ss->cpu.cpu[i].Itime +
@@ -1310,7 +1313,7 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 
 			printf("%4d %5.0lf %5.0lf %4.0lf %4.0lf %8.0lf "
 			       "%7.0f %6.0lf %6.0lf %5.0lf",
-			     i,
+			     ss->cpu.cpu[i].cpunr,
                  	     (double)(ss->cpu.cpu[i].utime * 100.0) / cputot,
                 	     (double)(ss->cpu.cpu[i].ntime * 100.0) / cputot,
                 	     (double)(ss->cpu.cpu[i].stime * 100.0) / cputot,

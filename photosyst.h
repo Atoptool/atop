@@ -26,7 +26,7 @@
 
 #include "netstats.h"
 
-#define	MAXCPU		2048
+#define	MAXCPU		4096
 #define	MAXDSK		1024
 #define	MAXNUMA		1024
 #define	MAXLVM		2048
@@ -176,7 +176,8 @@ struct freqcnt {
 };
 
 struct percpu {
-	int		cpunr;
+	int		cpunr;	/* CPU number				*/
+	int		online;	/* boolean: online now			*/
 	count_t		stime;	/* system  time in clock ticks		*/
 	count_t		utime;	/* user    time in clock ticks		*/
 	count_t		ntime;	/* nice    time in clock ticks		*/
@@ -193,7 +194,8 @@ struct percpu {
 };
 
 struct	cpustat {
-	count_t	nrcpu;	/* number of cpu's 			*/
+	int	nrcpu;	/* number of online cpu's  		*/
+	int	maxcpu;	/* CPU entries in use online/offline	*/
 	count_t	devint;	/* number of device interrupts 		*/
 	count_t	csw;	/* number of context switches		*/
 	count_t	nprocs;	/* number of processes started          */

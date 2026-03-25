@@ -574,9 +574,10 @@ sysprt_CPUIWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
 {
         static char buf[15];
 
-        snprintf(buf, sizeof buf, "cpu%03d w%3.0f%%", 
+        snprintf(buf, sizeof buf, "#%04d wa%3.0f%%", 
 		 sstat->cpu.cpu[as->index].cpunr,
                 (sstat->cpu.cpu[as->index].wtime * 100.0) / as->percputot);
+
         return buf;
 }
 
@@ -617,14 +618,17 @@ sumscaling(struct sstat *sstat, count_t *maxfreq,
         count_t mycnt     = 0;
         count_t myticks   = 0;
 
-        int n=sstat->cpu.nrcpu;
+        int n = sstat->cpu.maxcpu;
         int i;
 
         for (i=0; i < n; ++i)
         {
-                mymaxfreq+= sstat->cpu.cpu[i].freqcnt.maxfreq;
-                mycnt    += sstat->cpu.cpu[i].freqcnt.cnt;
-                myticks  += sstat->cpu.cpu[i].freqcnt.ticks;
+		if (!sstat->cpu.cpu[i].online)
+			continue;
+
+                mymaxfreq += sstat->cpu.cpu[i].freqcnt.maxfreq;
+                mycnt     += sstat->cpu.cpu[i].freqcnt.cnt;
+                myticks   += sstat->cpu.cpu[i].freqcnt.ticks;
         }
 
         *maxfreq= mymaxfreq;

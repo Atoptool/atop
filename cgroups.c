@@ -381,7 +381,8 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 
 	closedir(dirp);
 
-	chdir("..");
+	if ( chdir("..") == -1)
+		return -1;
 
 	ccp->cstat->gen.procsbelow = procsbelow;
 

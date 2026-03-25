@@ -2094,8 +2094,8 @@ text_samp(time_t curtime, int nsecs,
 static void
 sort_sysstats(struct sstat *sstat)
 {
-	if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
-		qsort(sstat->cpu.cpu, sstat->cpu.nrcpu, sizeof sstat->cpu.cpu[0], cpucompar);
+	if (sstat->cpu.maxcpu > 1 && maxcpulines > 0)
+		qsort(sstat->cpu.cpu, sstat->cpu.maxcpu, sizeof sstat->cpu.cpu[0], cpucompar);
 
 	if (sstat->gpu.nrgpus > 1 && maxgpulines > 0)
 		qsort(sstat->gpu.gpu, sstat->gpu.nrgpus, sizeof sstat->gpu.gpu[0], gpucompar);

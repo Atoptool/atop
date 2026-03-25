@@ -1801,7 +1801,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 	int maxnfslines, int maxcontlines, int maxnumalines, int maxllclines)
 {
         extraparam      extra;
-        int             lin;
+        int             i, lin;
         count_t         busy;
         unsigned int    badness, highbadness=0;
 
@@ -1843,29 +1843,23 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 
         if (sstat->cpu.nrcpu > 1)
         {
-                for (extra.index=lin=0;
-		     extra.index < sstat->cpu.nrcpu && lin < maxcpulines;
-   		     extra.index++)
+                for (i=lin=0; i < sstat->cpu.maxcpu && lin < maxcpulines; i++)
                 {
-                        extra.percputot =  sstat->cpu.cpu[extra.index].stime +
-                                     sstat->cpu.cpu[extra.index].utime +
-                                     sstat->cpu.cpu[extra.index].ntime +
-                                     sstat->cpu.cpu[extra.index].itime +
-                                     sstat->cpu.cpu[extra.index].wtime +
-                                     sstat->cpu.cpu[extra.index].Itime +
-                                     sstat->cpu.cpu[extra.index].Stime +
-                                     sstat->cpu.cpu[extra.index].steal;
+			if (!sstat->cpu.cpu[i].online)
+				continue;
 
-                        if (extra.percputot ==
-				(sstat->cpu.cpu[extra.index].itime +
-                                 sstat->cpu.cpu[extra.index].wtime  ) &&
-                                 !fixedhead                             )
+                        extra.percputot =
+				sstat->cpu.cpu[i].stime + sstat->cpu.cpu[i].utime +
+				sstat->cpu.cpu[i].ntime + sstat->cpu.cpu[i].itime +
+				sstat->cpu.cpu[i].wtime + sstat->cpu.cpu[i].Itime +
+				sstat->cpu.cpu[i].Stime + sstat->cpu.cpu[i].steal;
+
+                        if (extra.percputot == (sstat->cpu.cpu[i].itime + sstat->cpu.cpu[i].wtime) &&
+                                 								!fixedhead)
                                 continue;       /* inactive cpu */
 
-                        busy   = (extra.percputot -
-					sstat->cpu.cpu[extra.index].itime -
-                                        sstat->cpu.cpu[extra.index].wtime)
-                                                  * 100.0 / extra.percputot;
+                        busy = (extra.percputot - sstat->cpu.cpu[i].itime - sstat->cpu.cpu[i].wtime)
+                                                  				* 100.0 / extra.percputot;
 
                         if (cpubadness)
                                 badness = busy * 100 / cpubadness;
@@ -1878,12 +1872,13 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         if (extra.percputot == 0)
                                 extra.percputot = 1; /* avoid divide-by-zero */
 
-
 			if (screen)
         	                move(curline, 0);
 
-                        showsysline(indivcpuline, sstat, &extra, "cpu",
-								badness);
+			extra.index = i;
+
+                        showsysline(indivcpuline, sstat, &extra, "cpu", badness);
+
                         curline++;
                         lin++;
                 }
@@ -2643,18 +2638,36 @@ compcon(const void *a, const void *b)
 int
 cpucompar(const void *a, const void *b)
 {
-        register count_t aidle = ((struct percpu *)a)->itime +
-                                 ((struct percpu *)a)->wtime;
-        register count_t bidle = ((struct percpu *)b)->itime +
-                                 ((struct percpu *)b)->wtime;
+        register count_t aidle   = ((struct percpu *)a)->itime + ((struct percpu *)a)->wtime;
+        register count_t bidle   = ((struct percpu *)b)->itime + ((struct percpu *)b)->wtime;
 
-        if (aidle < bidle)
-                return -1;
+        register int     aonline = ((struct percpu *)a)->online;
+        register int     bonline = ((struct percpu *)b)->online;
 
-        if (aidle > bidle)
-                return  1;
+	switch (aonline + bonline)
+	{
+	   case 2:	// both online?
+        	if (aidle < bidle)
+               		return -1;
 
-	return  0;
+        	if (aidle > bidle)
+                	return  1;
+
+		return  0;
+		break;	// cosmetic
+
+	   case 0:	// both offline?
+		return 0;
+
+	   case 1:	// one of both online
+		if (aonline)
+			return 1;
+		else
+			return -1;
+
+	   default:	// cosmetic
+		return 0;
+	}
 }
 
 int

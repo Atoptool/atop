@@ -326,8 +326,11 @@ print_CPU(char *hp, struct sstat *ss,
         int i;
 
         // calculate average clock frequency
-	for (i=0; i < ss->cpu.nrcpu; i++)
+	for (i=0; i < ss->cpu.maxcpu; i++)
         {
+		if (!ss->cpu.cpu[i].online)
+			continue;
+
                 cnt    += ss->cpu.cpu[i].freqcnt.cnt;
                 ticks  += ss->cpu.cpu[i].freqcnt.ticks;
         }
@@ -340,7 +343,7 @@ print_CPU(char *hp, struct sstat *ss,
         	ss->cpu.all.cycle = 0;
 	}
 
-	printf("%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
+	printf("%s %u %d %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp,
 			hertz,
 	        	ss->cpu.nrcpu,
@@ -372,8 +375,11 @@ print_cpu(char *hp, struct sstat *ss,
         count_t freq;
         int freqperc;
 
-	for (i=0; i < ss->cpu.nrcpu; i++)
+	for (i=0; i < ss->cpu.maxcpu; i++)
 	{
+		if (!ss->cpu.cpu[i].online)
+			continue;
+
                 cnt    = ss->cpu.cpu[i].freqcnt.cnt;
                 ticks  = ss->cpu.cpu[i].freqcnt.ticks;
                 maxfreq= ss->cpu.cpu[0].freqcnt.maxfreq;
@@ -405,7 +411,7 @@ print_CPL(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	printf("%s %lld %.2f %.2f %.2f %lld %lld\n",
+	printf("%s %d %.2f %.2f %.2f %lld %lld\n",
 			hp,
 	        	ss->cpu.nrcpu,
 	        	ss->cpu.lavg1,

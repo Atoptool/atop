@@ -327,10 +327,14 @@ json_print_CPU(char *hp, struct sstat *ss,
 	int i;
 
 	// calculate average clock frequency
-	for (i = 0; i < ss->cpu.nrcpu; i++) {
-		cnt += ss->cpu.cpu[i].freqcnt.cnt;
+	for (i = 0; i < ss->cpu.maxcpu; i++) {
+		if (!ss->cpu.cpu[i].online)
+			continue;
+
+		cnt   += ss->cpu.cpu[i].freqcnt.cnt;
 		ticks += ss->cpu.cpu[i].freqcnt.ticks;
 	}
+
 	maxfreq = ss->cpu.cpu[0].freqcnt.maxfreq;
 	json_calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
@@ -341,7 +345,7 @@ json_print_CPU(char *hp, struct sstat *ss,
 
 	printf(", %s: {"
 		"\"hertz\": %u, "
-		"\"nrcpu\": %lld, "
+		"\"nrcpu\": %d, "
 		"\"stime\": %lld, "
 		"\"utime\": %lld, "
 		"\"ntime\": %lld, "
@@ -388,10 +392,14 @@ json_print_cpu(char *hp, struct sstat *ss,
 
 	printf(", %s: [", hp);
 
-	for (i = 0; i < ss->cpu.nrcpu; i++) {
+	for (i = 0; i < ss->cpu.maxcpu; i++) {
+		if (!ss->cpu.cpu[i].online)
+			continue;
+
 		if (i > 0) {
 			printf(", ");
 		}
+
 		cnt = ss->cpu.cpu[i].freqcnt.cnt;
 		ticks = ss->cpu.cpu[i].freqcnt.ticks;
 		maxfreq= ss->cpu.cpu[0].freqcnt.maxfreq;

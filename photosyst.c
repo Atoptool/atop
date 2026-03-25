@@ -53,9 +53,6 @@
 #include <sys/resource.h>
 #include <limits.h>
 
-#define SCALINGMAXCPU	8	// threshold for scaling info per CPU
-
-
 #ifndef	NOPERFEVENT
 #include <linux/perf_event.h>
 #include <asm/unistd.h>
@@ -356,13 +353,12 @@ photosyst(struct sstat *si)
 
 				if (i >= MAXCPU)
 				{
-					fprintf(stderr,
-						"cpu %s exceeds maximum of %d\n",
-						nam, MAXCPU);
+					fprintf(stderr, "cpu %s exceeds maximum of %d\n", nam, MAXCPU);
 					continue;
 				}
 
 				si->cpu.cpu[i].cpunr	= i;
+				si->cpu.cpu[i].online	= 1;
 				si->cpu.cpu[i].utime	= cnts[0];
 				si->cpu.cpu[i].ntime	= cnts[1];
 				si->cpu.cpu[i].stime	= cnts[2];
@@ -382,6 +378,10 @@ photosyst(struct sstat *si)
 				}
 
 				si->cpu.nrcpu++;
+
+				if (si->cpu.maxcpu < i+1)
+					si->cpu.maxcpu = i+1;
+
 				continue;
 			}
 
@@ -451,13 +451,15 @@ photosyst(struct sstat *si)
         int didone=0;
 
 	// check governor statistics
-        for (i = 0; i < si->cpu.nrcpu; ++i)
+        for (i=0; i < si->cpu.maxcpu; ++i)
         {
 		long long f=0;
 
+		if (!si->cpu.cpu[i].online)
+			continue;
+
 		snprintf(fn, sizeof fn,
-                   "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
-                   i);
+                   "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state", i);
 
 		if ((fp=fopen(fn, "r")) != 0)
 		{
@@ -493,11 +495,13 @@ photosyst(struct sstat *si)
 	{
 		long long f=0;
 
-        	for (i = 0; i < si->cpu.nrcpu; ++i)
+        	for (i=0; i < si->cpu.maxcpu; ++i)
         	{
+			if (!si->cpu.cpu[i].online)
+				continue;
+
         		snprintf(fn, sizeof fn, 
-               		       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
-			      i);
+               		       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
 
                	 	if ((fp=fopen(fn, "r")) != 0)
                 	{
@@ -556,7 +560,7 @@ photosyst(struct sstat *si)
 
                                 if (memcmp(linebuf, "cpu MHz", 7) == EQ)
 				{
-                                        if (cpuno >= 0 && cpuno < si->cpu.nrcpu)
+                                        if (cpuno >= 0 && cpuno < si->cpu.maxcpu)
 					{
 						sscanf(linebuf,
 							"%*s %*s %*s %lld",
@@ -1183,9 +1187,10 @@ photosyst(struct sstat *si)
 				fclose(fp);
 			}
 
-			for (i=0; i < mask->size; i++)
+			for (i=0; i < mask->size && i < MAXCPU; i++)
 			{
-				if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+				if ( (si->cpu.cpu[i].online &&
+					mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
 				{
 					si->cpunuma.numa[j].nrcpu++;
 					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
@@ -2867,26 +2872,46 @@ perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
 static void
 getperfevents(struct cpustat *cs)
 {
-	static int	firstcall = 1, cpualloced, *fdi, *fdc;
+	static int	cpualloced, *fdi, *fdc;
 	int		i;
 	int 		liResult;
 
-	if (!enable_perfevents())
+	/*
+	** irrecoverable failure?
+	*/
+	if (!enable_perfevents() || cpualloced == -1)
 		return;
 
 	/*
- 	** once initialize perf event counter retrieval
+ 	** (re)initialize perf event counter retrieval
+	** at startup or after number of online CPUs hass changed
 	*/
-	if (firstcall)
+	if (cpualloced != cs->maxcpu)
 	{
 		struct perf_event_attr  pea;
 		int			success=0, minfds = cs->nrcpu*2 + 32;
 		struct rlimit		rlim;
 
-		firstcall = 0;
+		if (cpualloced > 0)		// already initialized before?
+		{
+			// revert earlier allocations
+			//
+	 		regainrootprivs();
 
-		/*
-		** for perf events two file descriptors will
+			for (i=0; i < cpualloced; i++)
+			{
+				close( *(fdi+i) );
+				close( *(fdc+i) );
+			}
+
+			if (! droprootprivs())
+				mcleanstop(42, "failed to drop root privs\n");
+
+			free(fdi);
+			free(fdc);
+		}
+	
+		/* for perf events two file descriptors will
 		** be opened permanently per CPU, so take care
 		** that enough open files are allowed for this process
 		*/
@@ -2901,7 +2926,7 @@ getperfevents(struct cpustat *cs)
 		/*
 		** allocate space for per-cpu file descriptors
 		*/
-		cpualloced = cs->nrcpu;
+		cpualloced = cs->maxcpu;
 		fdi        = malloc(sizeof(int) * cpualloced);
 		fdc        = malloc(sizeof(int) * cpualloced);
 
@@ -2919,13 +2944,16 @@ getperfevents(struct cpustat *cs)
 
 		for (i=0; i < cpualloced; i++)
 		{
+			if (!cs->cpu[i].online)
+				continue;
+
 			pea.config = PERF_COUNT_HW_INSTRUCTIONS;
 
 			if ( (*(fdi+i) = perf_event_open(&pea, -1, i, -1,
  						PERF_FLAG_FD_CLOEXEC)) >= 0)
 				success++;
 
-                        pea.config = PERF_COUNT_HW_CPU_CYCLES;
+			pea.config = PERF_COUNT_HW_CPU_CYCLES;
 
 			if ( (*(fdc+i) = perf_event_open(&pea, -1, i, -1,
 						PERF_FLAG_FD_CLOEXEC)) >= 0)
@@ -2942,7 +2970,7 @@ getperfevents(struct cpustat *cs)
 		{
 			free(fdi);
 			free(fdc);
-			cpualloced = 0;
+			cpualloced = -1;	// irrecoverable failure
 		}
 		else
 		{
@@ -2951,12 +2979,12 @@ getperfevents(struct cpustat *cs)
 		}
 
 		return;		// initialization finished for first sample
-        }
+	}
 
 	/*
 	** every sample: check if counters available anyhow
 	*/
-        if (!cpualloced)
+        if (cpualloced <= 0)
                 return;
 
 	/*
@@ -2967,6 +2995,9 @@ getperfevents(struct cpustat *cs)
 
         for (i=0; i < cpualloced; i++)
         {
+		if (!cs->cpu[i].online)
+			continue;
+
 		if (*(fdi+i) != -1)
 		{
                 	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));

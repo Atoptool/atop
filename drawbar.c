@@ -596,9 +596,9 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 	static char		*labarea, *p;
 	static struct vertval	*vertvals;
 
-	count_t			alltics;
-	int 			i, psisomeperc, psifullperc;
-	char			buf[16];
+	count_t			allticks;
+	int 			i, j, psisomeperc, psifullperc;
+	char			buf[32];
 
 	// check if the number of CPUs has been changed since
 	// previous sample and create X axis labels for all
@@ -622,7 +622,7 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 		numlabs = numcpus > 1 ? numcpus + 1 : 1;
 
-		labellen = snprintf(buf, sizeof buf, "%d", numcpus);
+		labellen = snprintf(buf, sizeof buf, "%d", sstat->cpu.maxcpu-1);
 
 		vertvals = malloc(numlabs * sizeof(struct vertval));
 		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numlabs);
@@ -633,17 +633,24 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 		// create new X axis labels
 		//
 		if (numcpus == 1)
+		{
 			vertvals->barlab = "0";
+		}
 		else
 		{
 			vertvals->barlab = "Avg      ";
 
-			for (i=0, p=labarea; i < numcpus; i++)
+			for (i=j=0, p=labarea; j < sstat->cpu.maxcpu; j++)
 			{
+				if (!sstat->cpu.cpu[j].online)
+					continue;
+
 				(vertvals+i+1)->barlab = p;
-				snprintf(p, labellen+1, "%-*d", labellen,
-						sstat->cpu.cpu[i].cpunr);
+
+				snprintf(p, labellen+1, "%-*d", labellen, sstat->cpu.cpu[j].cpunr);
+
 				p += labellen+1;
+				i++;	// next label
 			}
 		}
 	}
@@ -651,48 +658,36 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 	// calculate overall busy percentage and
 	// fill first busy value (average)
 	//
-	alltics =	sstat->cpu.all.stime +
-                        sstat->cpu.all.utime +
-                        sstat->cpu.all.ntime +
-                        sstat->cpu.all.itime +
-                        sstat->cpu.all.wtime +
-                        sstat->cpu.all.Itime +
-                        sstat->cpu.all.Stime +
-                        sstat->cpu.all.steal;
+	allticks =	sstat->cpu.all.stime + sstat->cpu.all.utime +
+                        sstat->cpu.all.ntime + sstat->cpu.all.itime +
+                        sstat->cpu.all.wtime + sstat->cpu.all.Itime +
+                        sstat->cpu.all.Stime + sstat->cpu.all.steal;
 
-	vertvals->barval = 100 - (sstat->cpu.all.itime + sstat->cpu.all.wtime)
-						* 100 / alltics;
+	vertvals->barval = 100 - (sstat->cpu.all.itime + sstat->cpu.all.wtime) * 100 / allticks;
 	vertvals->basecolor = WHITE_BLUE0;
 
 	if (!mono)
 	{
-		vertvals->category[0].ccol	= COLORCPUINTR;
-		vertvals->category[0].clab	= 'I';
-		vertvals->category[0].cval	=
-			(sstat->cpu.all.Stime + sstat->cpu.all.Itime) * 100 /
-						  alltics;
+		vertvals->category[0].ccol = COLORCPUINTR;
+		vertvals->category[0].clab = 'I';
+		vertvals->category[0].cval = (sstat->cpu.all.Stime + sstat->cpu.all.Itime) * 100 / allticks;
 
-		vertvals->category[1].ccol	= COLORCPUSYS;
-		vertvals->category[1].clab	= 'S';
-		vertvals->category[1].cval	= sstat->cpu.all.stime * 100 /
-		 				  alltics;
+		vertvals->category[1].ccol = COLORCPUSYS;
+		vertvals->category[1].clab = 'S';
+		vertvals->category[1].cval = sstat->cpu.all.stime * 100 / allticks;
 	
-		vertvals->category[2].ccol	= COLORCPUUSR;
-		vertvals->category[2].clab	= 'U';
-		vertvals->category[2].cval	=
-			(sstat->cpu.all.utime +
-			 sstat->cpu.all.ntime -
-			 sstat->cpu.all.guest) * 100 / alltics;
+		vertvals->category[2].ccol = COLORCPUUSR;
+		vertvals->category[2].clab = 'U';
+		vertvals->category[2].cval = (sstat->cpu.all.utime + sstat->cpu.all.ntime - sstat->cpu.all.guest)
+											* 100 / allticks;
 
-		vertvals->category[3].ccol	= COLORCPUSTEAL;
-		vertvals->category[3].clab	= 's';
-		vertvals->category[3].cval	=
-			sstat->cpu.all.steal * 100 / alltics;
+		vertvals->category[3].ccol = COLORCPUSTEAL;
+		vertvals->category[3].clab = 's';
+		vertvals->category[3].cval = sstat->cpu.all.steal * 100 / allticks;
 
-		vertvals->category[4].ccol	= COLORCPUGUEST;
-		vertvals->category[4].clab	= 'G';
-		vertvals->category[4].cval	=
-			sstat->cpu.all.guest * 100 / alltics;
+		vertvals->category[4].ccol = COLORCPUGUEST;
+		vertvals->category[4].clab = 'G';
+		vertvals->category[4].cval = sstat->cpu.all.guest * 100 / allticks;
 
 		vertvals->numcat = 5;
 	}
@@ -705,24 +700,21 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 	//
 	if (numcpus > 1)
 	{
-		// total ticks during last interval for CPU 0
-		//
-		alltics =	sstat->cpu.cpu[0].stime +
-				sstat->cpu.cpu[0].utime +
-				sstat->cpu.cpu[0].ntime +
-				sstat->cpu.cpu[0].itime +
-				sstat->cpu.cpu[0].wtime +
-				sstat->cpu.cpu[0].Itime +
-				sstat->cpu.cpu[0].Stime +
-				sstat->cpu.cpu[0].steal;
-
 		// busy percentage per CPU
 		//
-		for (i=0; i < numcpus; i++)
+		for (i=j=0; j < sstat->cpu.maxcpu; j++)
 		{
+			if (!sstat->cpu.cpu[j].online)
+				continue;
+
+			allticks =
+				sstat->cpu.cpu[j].stime + sstat->cpu.cpu[j].utime +
+				sstat->cpu.cpu[j].ntime + sstat->cpu.cpu[j].itime +
+				sstat->cpu.cpu[j].wtime + sstat->cpu.cpu[j].Itime +
+				sstat->cpu.cpu[j].Stime + sstat->cpu.cpu[j].steal;
+
 			(vertvals+i+1)->barval =
-				100 - (sstat->cpu.cpu[i].itime +
-				       sstat->cpu.cpu[i].wtime  ) *100/alltics;
+				100 - (sstat->cpu.cpu[j].itime + sstat->cpu.cpu[j].wtime) * 100 / allticks;
 
 			if ((vertvals+i+1)->barval < 0)
 				(vertvals+i+1)->barval = 0;
@@ -734,31 +726,28 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 				(vertvals+i+1)->category[0].ccol = COLORCPUINTR;
 				(vertvals+i+1)->category[0].clab = 'I';
 				(vertvals+i+1)->category[0].cval =
-					(sstat->cpu.cpu[i].Stime +
-					 sstat->cpu.cpu[i].Itime) *100/alltics;
+					(sstat->cpu.cpu[j].Stime + sstat->cpu.cpu[j].Itime) * 100 / allticks;
 
 				(vertvals+i+1)->category[1].ccol = COLORCPUSYS;
 				(vertvals+i+1)->category[1].clab = 'S';
 				(vertvals+i+1)->category[1].cval =
-					sstat->cpu.cpu[i].stime * 100 /
-								alltics;
+					sstat->cpu.cpu[j].stime * 100 / allticks;
 
 				(vertvals+i+1)->category[2].ccol = COLORCPUUSR;
 				(vertvals+i+1)->category[2].clab = 'U';
 				(vertvals+i+1)->category[2].cval =
-					(sstat->cpu.cpu[i].utime +
-				 	 sstat->cpu.cpu[i].ntime -
-				 	 sstat->cpu.cpu[i].guest) *100/alltics;
+					(sstat->cpu.cpu[j].utime + sstat->cpu.cpu[j].ntime - sstat->cpu.cpu[j].guest)
+											* 100 / allticks;
 
 				(vertvals+i+1)->category[3].ccol = COLORCPUSTEAL;
 				(vertvals+i+1)->category[3].clab = 's';
 				(vertvals+i+1)->category[3].cval =
-					sstat->cpu.cpu[i].steal *100/alltics;
+					sstat->cpu.cpu[j].steal * 100 / allticks;
 
 				(vertvals+i+1)->category[4].ccol = COLORCPUGUEST;
 				(vertvals+i+1)->category[4].clab = 'G';
 				(vertvals+i+1)->category[4].cval =
-					sstat->cpu.cpu[i].guest *100/alltics;
+					sstat->cpu.cpu[j].guest * 100 / allticks;
 
 				(vertvals+i+1)->numcat = 5;
 			}
@@ -766,6 +755,8 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 			{
 				(vertvals+i+1)->numcat = 0;
 			}
+
+			i++;	// next label
 		}
 	}
 
@@ -788,10 +779,10 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 	// draw bar graph showing busy percentages of CPUs
 	//
-	drawvertbars(&wincpu, 100.0, cpubadness, 
-			numlabs, numcpus == 1 ? 0 : 1, vertvals, 
-			labellen, "Busy%", "Processors", 0,
-			psisomeperc, psifullperc);
+	snprintf(buf, sizeof buf, "Processors (%d)", numcpus);
+
+	drawvertbars(&wincpu, 100.0, cpubadness, numlabs, numcpus == 1 ? 0 : 1, vertvals, 
+			labellen, "Busy%", buf, 0, psisomeperc, psifullperc);
 }
 
 
@@ -807,6 +798,7 @@ do_dskbars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 	count_t			mstot;
 	int 			i, namlen, psisomeperc, psifullperc;
+	char			buf[16];
 
 	// check if the number of disks has been changed since
 	// previous sample and create X axis labels for all disks
@@ -922,10 +914,10 @@ do_dskbars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 	// draw bar graph showing busy percentages of disks
 	//
-	drawvertbars(&windsk, 100.0, dskbadness,
-		numdisks, 0, vertvals, labellen,
-		"Busy%", "Disks", 3,
-		psisomeperc, psifullperc);
+	snprintf(buf, sizeof buf, "Disks (%d)", numdisks);
+
+	drawvertbars(&windsk, 100.0, dskbadness, numdisks, 0, vertvals, labellen,
+		"Busy%", buf, 3, psisomeperc, psifullperc);
 }
 
 /////////////////////////////////////////////////////
@@ -1105,6 +1097,7 @@ do_netbars(struct sstat *sstat, int nsecs, char initlabels, char lower)
 
 	count_t		ival, oval;
 	int 		i, j, namlen;
+	char		buf[32];
 
 	// check if the number of interfaces has been changed since the
 	// previous sample and create X axis labels for all interfaces
@@ -1213,8 +1206,10 @@ do_netbars(struct sstat *sstat, int nsecs, char initlabels, char lower)
 		}
 	}
 
+	snprintf(buf, sizeof buf, "Interfaces (%ld)", numints);
+
 	drawnetbars(&winnet, numints, netvals,
-		labellen, "Mbits/s", "Interfaces");
+		labellen, "Mbits/s", buf);
 }
 
 

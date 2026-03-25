@@ -656,7 +656,14 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	count_t		*cdev, *ccur, *cpre;
 	struct ifprop	ifprop;
 
+	// CPU(s) with highest number(s) might have been
+	// taken offline in current sample
+	//
+	if (cur->cpu.maxcpu < pre->cpu.maxcpu)
+		cur->cpu.maxcpu = pre->cpu.maxcpu;
+
 	dev->cpu.nrcpu     = cur->cpu.nrcpu;
+	dev->cpu.maxcpu    = cur->cpu.maxcpu;
 	dev->cpu.devint    = subcount(cur->cpu.devint, pre->cpu.devint);
 	dev->cpu.csw       = subcount(cur->cpu.csw,    pre->cpu.csw);
 	dev->cpu.nprocs    = subcount(cur->cpu.nprocs, pre->cpu.nprocs);
@@ -675,13 +682,29 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->cpu.all.instr = subcount(cur->cpu.all.instr, pre->cpu.all.instr);
 	dev->cpu.all.cycle = subcount(cur->cpu.all.cycle, pre->cpu.all.cycle);
 
-	for (i=0; i < dev->cpu.nrcpu; i++)
+	for (i=0; i < dev->cpu.maxcpu; i++)
 	{
 		count_t 	ticks;
 
+		if (!cur->cpu.cpu[i].online)
+		{
+			// when CPU is enabled again later on, the kernel
+			// continues with the same counters instead of resetting
+			// all counters to zero, so let's preserve the previous
+			// counters as well
+			//
+			memcpy(&(cur->cpu.cpu[i]), &(pre->cpu.cpu[i]),
+						sizeof(cur->cpu.cpu[0]));
+
+			cur->cpu.cpu[i].online = 0;
+			dev->cpu.cpu[i].online = 0;
+			continue;
+		}
+
 		dev->cpu.cpu[i].cpunr = cur->cpu.cpu[i].cpunr;
+		dev->cpu.cpu[i].online= cur->cpu.cpu[i].online;
 		dev->cpu.cpu[i].stime = subcount(cur->cpu.cpu[i].stime,
-					         pre->cpu.cpu[i].stime);
+				 	         pre->cpu.cpu[i].stime);
 		dev->cpu.cpu[i].utime = subcount(cur->cpu.cpu[i].utime,
 				 	         pre->cpu.cpu[i].utime);
 		dev->cpu.cpu[i].ntime = subcount(cur->cpu.cpu[i].ntime,
@@ -1526,6 +1549,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 	{
 	   case 'c':	/* accumulate cpu-related counters */
 		tot->cpu.nrcpu      = new->cpu.nrcpu;
+		tot->cpu.maxcpu     = new->cpu.maxcpu;
 		tot->cpu.devint    += new->cpu.devint;
 		tot->cpu.csw       += new->cpu.csw;
 		tot->cpu.nprocs    += new->cpu.nprocs;
@@ -1546,9 +1570,13 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		}
 		else
 		{
-			for (i=0; i < new->cpu.nrcpu; i++)
+			for (i=0; i < new->cpu.maxcpu; i++)
 			{
+				if (!new->cpu.cpu[i].online)
+					continue;
+
 				tot->cpu.cpu[i].cpunr  = new->cpu.cpu[i].cpunr;
+				tot->cpu.cpu[i].online = new->cpu.cpu[i].online;
 				tot->cpu.cpu[i].stime += new->cpu.cpu[i].stime;
 				tot->cpu.cpu[i].utime += new->cpu.cpu[i].utime;
 				tot->cpu.cpu[i].ntime += new->cpu.cpu[i].ntime;
