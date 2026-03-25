@@ -41,7 +41,7 @@
 #define	MAXLLC		256
 
 #define	MAXDKNAM	32
-#define	MAXIBNAME	12
+#define	MAXIBNAME	20
 
 /************************************************************************/
 struct	memstat {
