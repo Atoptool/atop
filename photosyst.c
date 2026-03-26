@@ -378,6 +378,7 @@ photosyst(struct sstat *si)
 				}
 
 				si->cpu.nrcpu++;
+				si->cpu.onliners += i;	// to detect online/offline changes
 
 				if (si->cpu.maxcpu < i+1)
 					si->cpu.maxcpu = i+1;
@@ -451,6 +452,7 @@ photosyst(struct sstat *si)
         int didone=0;
 
 	// check governor statistics
+	//
         for (i=0; i < si->cpu.maxcpu; ++i)
         {
 		long long f=0;
@@ -2872,7 +2874,7 @@ perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
 static void
 getperfevents(struct cpustat *cs)
 {
-	static int	cpualloced, *fdi, *fdc;
+	static int	cpualloced, prev_onliners, prev_nrcpu, *fdi, *fdc;
 	int		i;
 	int 		liResult;
 
@@ -2884,9 +2886,16 @@ getperfevents(struct cpustat *cs)
 
 	/*
  	** (re)initialize perf event counter retrieval
-	** at startup or after number of online CPUs hass changed
+	** at startup or after CPU configuration has changed
+	**
+	** to detect if the CPU configuration has changed, it is
+	** not enough to verify the number of online CPUs because
+	** CPU 5 might have been disabled while CPU 6 might have
+	** been enabled in the same interval
+	** therefore, the numbers of the online CPUs will be accumulated
+	** in the variable 'onliners' to be verified as well
 	*/
-	if (cpualloced != cs->maxcpu)
+	if (cpualloced != cs->maxcpu || prev_onliners != cs->onliners || prev_nrcpu != cs->nrcpu)
 	{
 		struct perf_event_attr  pea;
 		int			success=0, minfds = cs->nrcpu*2 + 32;
@@ -2900,8 +2909,11 @@ getperfevents(struct cpustat *cs)
 
 			for (i=0; i < cpualloced; i++)
 			{
-				close( *(fdi+i) );
-				close( *(fdc+i) );
+				if ( *(fdi+i) )		// in use?
+					close( *(fdi+i) );
+
+				if ( *(fdc+i) )		// in use?
+					close( *(fdc+i) );
 			}
 
 			if (! droprootprivs())
@@ -2926,9 +2938,12 @@ getperfevents(struct cpustat *cs)
 		/*
 		** allocate space for per-cpu file descriptors
 		*/
-		cpualloced = cs->maxcpu;
-		fdi        = malloc(sizeof(int) * cpualloced);
-		fdc        = malloc(sizeof(int) * cpualloced);
+		prev_onliners = cs->onliners;
+		prev_nrcpu    = cs->nrcpu;
+
+		cpualloced    = cs->maxcpu;
+		fdi           = calloc(cpualloced, sizeof(int));
+		fdc           = calloc(cpualloced, sizeof(int));
 
 		/*
 		** fill perf_event_attr struct with appropriate values
