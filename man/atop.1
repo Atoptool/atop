@@ -1390,9 +1390,14 @@ At least one line is shown for the total occupation of all CPUs together.
 .br
 In case of a multi-processor system, an additional line is shown
 for every individual processor (with 'cpu' in lower case),
-sorted on activity. Inactive CPUs will not be shown by default.
+sorted on activity. By default, inactive CPUs will not be shown.
 The lines showing the per-cpu occupation contain the CPU number in
-the field combined with the wait percentage.
+the column combined with the wait percentage.
+
+Beware that the percentages for the total occupation of all CPUs
+together ('CPU' in upper case) are
+.B not
+reliable when CPUs have been enabled or disabled during the interval!
 
 Every line contains the percentage of CPU time spent in
 kernel mode by all active processes ('sys'),
@@ -1405,7 +1410,7 @@ the percentage of unused CPU time while at least one process was waiting
 for disk I/O ('wait').
 .br
 In case of per-cpu occupation, the CPU number and
-the wait percentage ('w') for that CPU.
+the wait percentage ('wa') for that CPU are combined.
 The number of lines showing the per-cpu occupation can be limited.
 
 For virtual machines, the steal-percentage ('steal') shows
@@ -1425,7 +1430,8 @@ CPU cycle ('ipc') is shown.
 The first sample always shows the value 'initial',
 because the counters are just activated at the moment that
 .I atop
-is started.
+is started. This also happens in the first sample after CPUs
+have been enabled or disabled.
 .br
 When the
 .I CPU busy percentage is high
