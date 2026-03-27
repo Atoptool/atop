@@ -46,6 +46,9 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <glib.h>
+#include <sys/mman.h> // For mmap
+#include <sys/stat.h> // For fstat
+#include <fcntl.h>    // For open
 
 #include "atop.h"
 #include "photoproc.h"
@@ -496,20 +499,39 @@ counttasks(void)
 static int
 procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 {
-	FILE	*fp;
+	int	fd;
+	struct stat st;
+	char	*map;
+	char	line[4096]; // Use a buffer for sscanf
 	int	nr;
-	char	line[4096], *p, *cmdhead, *cmdtail;
+	char	*p, *cmdhead, *cmdtail;
 
-	if ( (fp = fopen("stat", "r")) == NULL)
+	if ( (fd = open("stat", O_RDONLY)) == -1)
 		return 0;
 
-	if ( (nr = fread(line, 1, sizeof line-1, fp)) == 0)
-	{
-		fclose(fp);
+	if (fstat(fd, &st) == -1) {
+		close(fd);
 		return 0;
 	}
 
-	line[nr] = '\0';	// terminate string
+	if (st.st_size == 0) {
+		close(fd);
+		return 0;
+	}
+
+	map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (map == MAP_FAILED) {
+		close(fd);
+		return 0;
+	}
+
+	// Copy to a null-terminated buffer for sscanf and string operations
+	nr = (st.st_size < sizeof(line) - 1) ? st.st_size : sizeof(line) - 1;
+	memcpy(line, map, nr);
+	line[nr] = '\0';
+
+	munmap(map, st.st_size);
+	close(fd);
 
 	/*
     	** fetch command name
@@ -519,7 +541,6 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 
 	if (!cmdhead || !cmdtail || cmdtail < cmdhead) // parsing failed?
 	{
-		fclose(fp);
 		return 0;
 	}
 
@@ -559,7 +580,6 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 
 	if (nr < 12)		/* parsing failed? */
 	{
-		fclose(fp);
 		return 0;
 	}
 
@@ -571,7 +591,6 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 	curtask->mem.vmem   /= 1024;
 	curtask->mem.rmem   *= pagesize/1024;
 
-	fclose(fp);
 
 	switch (curtask->gen.state)
 	{
@@ -598,122 +617,135 @@ procstat(struct tstat *curtask, unsigned long long bootepoch, char isproc)
 static int
 procstatus(struct tstat *curtask)
 {
-	FILE	*fp;
-	char	line[4096];
+	int	fd;
+	struct stat st;
+	char	*map;
+	char	*p, *end;
 
-	if ( (fp = fopen("status", "r")) == NULL)
+	if ( (fd = open("status", O_RDONLY)) == -1)
 		return 0;
+
+	if (fstat(fd, &st) == -1) {
+		close(fd);
+		return 0;
+	}
+
+	if (st.st_size == 0) {
+		close(fd);
+		return 0;
+	}
+
+	map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (map == MAP_FAILED) {
+		close(fd);
+		return 0;
+	}
+
+	close(fd); // File descriptor can be closed after mmap
 
 	curtask->gen.nthr     = 1;	/* for compat with 2.4 */
 	curtask->cpu.sleepavg = 0;	/* for compat with 2.4 */
 	curtask->mem.vgrow    = 0;	/* calculated later */
 	curtask->mem.rgrow    = 0;	/* calculated later */
 
-	while (fgets(line, sizeof line, fp))
+	p = map;
+	end = map + st.st_size;
+
+	while (p < end)
 	{
-		if (memcmp(line, "Tgid:", 5) ==0)
-		{
-			sscanf(line, "Tgid: %d", &(curtask->gen.tgid));
-			continue;
+		char *line_end = strchr(p, '\n');
+		size_t len;
+		if (line_end == NULL) {
+			len = end - p;
+		} else {
+			len = line_end - p;
 		}
 
-		if (memcmp(line, "Pid:", 4) ==0)
-		{
-			sscanf(line, "Pid: %d", &(curtask->gen.pid));
-			continue;
+		// Create a temporary null-terminated string for sscanf
+		char temp_line[256];
+		if (len >= sizeof(temp_line)) {
+			len = sizeof(temp_line) - 1;
 		}
+		memcpy(temp_line, p, len);
+		temp_line[len] = '\0';
 
-		if (memcmp(line, "SleepAVG:", 9)==0)
+		if (memcmp(temp_line, "Tgid:", 5) ==0)
 		{
-			sscanf(line, "SleepAVG: %d%%",
+			sscanf(temp_line, "Tgid: %d", &(curtask->gen.tgid));
+		}
+		else if (memcmp(temp_line, "Pid:", 4) ==0)
+		{
+			sscanf(temp_line, "Pid: %d", &(curtask->gen.pid));
+		}
+		else if (memcmp(temp_line, "SleepAVG:", 9)==0)
+		{
+			sscanf(temp_line, "SleepAVG: %d%%",
 				&(curtask->cpu.sleepavg));
-			continue;
 		}
-
-		if (memcmp(line, "Uid:", 4)==0)
+		else if (memcmp(temp_line, "Uid:", 4)==0)
 		{
-			sscanf(line, "Uid: %d %d %d %d",
+			sscanf(temp_line, "Uid: %d %d %d %d",
 				&(curtask->gen.ruid), &(curtask->gen.euid),
 				&(curtask->gen.suid), &(curtask->gen.fsuid));
-			continue;
 		}
-
-		if (memcmp(line, "Gid:", 4)==0)
+		else if (memcmp(temp_line, "Gid:", 4)==0)
 		{
-			sscanf(line, "Gid: %d %d %d %d",
+			sscanf(temp_line, "Gid: %d %d %d %d",
 				&(curtask->gen.rgid), &(curtask->gen.egid),
 				&(curtask->gen.sgid), &(curtask->gen.fsgid));
-			continue;
+		}
+		else if (memcmp(temp_line, "envID:", 6) ==0)
+		{
+			sscanf(temp_line, "envID: %d", &(curtask->gen.ctid));
+		}
+		else if (memcmp(temp_line, "VPid:", 5) ==0)
+		{
+			sscanf(temp_line, "VPid: %d", &(curtask->gen.vpid));
+		}
+		else if (memcmp(temp_line, "Threads:", 8)==0)
+		{
+			sscanf(temp_line, "Threads: %d", &(curtask->gen.nthr));
+		}
+		else if (memcmp(temp_line, "VmData:", 7)==0)
+		{
+			sscanf(temp_line, "VmData: %lld", &(curtask->mem.vdata));
+		}
+		else if (memcmp(temp_line, "VmStk:", 6)==0)
+		{
+			sscanf(temp_line, "VmStk: %lld", &(curtask->mem.vstack));
+		}
+		else if (memcmp(temp_line, "VmExe:", 6)==0)
+		{
+			sscanf(temp_line, "VmExe: %lld", &(curtask->mem.vexec));
+		}
+		else if (memcmp(temp_line, "VmLib:", 6)==0)
+		{
+			sscanf(temp_line, "VmLib: %lld", &(curtask->mem.vlibs));
+		}
+		else if (memcmp(temp_line, "VmSwap:", 7)==0)
+		{
+			sscanf(temp_line, "VmSwap: %lld", &(curtask->mem.vswap));
+		}
+		else if (memcmp(temp_line, "VmLck:", 6)==0)
+		{
+			sscanf(temp_line, "VmLck: %lld", &(curtask->mem.vlock));
+		}
+		else if (memcmp(temp_line, "voluntary_ctxt_switches:", 24)==0)
+		{
+			sscanf(temp_line, "voluntary_ctxt_switches: %lld", &(curtask->cpu.nvcsw));
+		}
+		else if (memcmp(temp_line, "nonvoluntary_ctxt_switches:", 27)==0)
+		{
+			sscanf(temp_line, "nonvoluntary_ctxt_switches: %lld", &(curtask->cpu.nivcsw));
 		}
 
-		if (memcmp(line, "envID:", 6) ==0)
-		{
-			sscanf(line, "envID: %d", &(curtask->gen.ctid));
-			continue;
+		if (line_end == NULL) {
+			break; // End of file
 		}
-
-		if (memcmp(line, "VPid:", 5) ==0)
-		{
-			sscanf(line, "VPid: %d", &(curtask->gen.vpid));
-			continue;
-		}
-
-		if (memcmp(line, "Threads:", 8)==0)
-		{
-			sscanf(line, "Threads: %d", &(curtask->gen.nthr));
-			continue;
-		}
-
-		if (memcmp(line, "VmData:", 7)==0)
-		{
-			sscanf(line, "VmData: %lld", &(curtask->mem.vdata));
-			continue;
-		}
-
-		if (memcmp(line, "VmStk:", 6)==0)
-		{
-			sscanf(line, "VmStk: %lld", &(curtask->mem.vstack));
-			continue;
-		}
-
-		if (memcmp(line, "VmExe:", 6)==0)
-		{
-			sscanf(line, "VmExe: %lld", &(curtask->mem.vexec));
-			continue;
-		}
-
-		if (memcmp(line, "VmLib:", 6)==0)
-		{
-			sscanf(line, "VmLib: %lld", &(curtask->mem.vlibs));
-			continue;
-		}
-
-		if (memcmp(line, "VmSwap:", 7)==0)
-		{
-			sscanf(line, "VmSwap: %lld", &(curtask->mem.vswap));
-			continue;
-		}
-
-		if (memcmp(line, "VmLck:", 6)==0)
-		{
-			sscanf(line, "VmLck: %lld", &(curtask->mem.vlock));
-			continue;
-		}
-
-		if (memcmp(line, "voluntary_ctxt_switches:", 24)==0)
-		{
-			sscanf(line, "voluntary_ctxt_switches: %lld", &(curtask->cpu.nvcsw));
-			continue;
-		}
-
-		if (memcmp(line, "nonvoluntary_ctxt_switches:", 27)==0)
-		{
-			sscanf(line, "nonvoluntary_ctxt_switches: %lld", &(curtask->cpu.nivcsw));
-			continue;
-		}
+		p = line_end + 1; // Move to the next line
 	}
 
-	fclose(fp);
+	munmap(map, st.st_size);
 	return 1;
 }
 
@@ -726,44 +758,84 @@ procstatus(struct tstat *curtask)
 static int
 procio(struct tstat *curtask)
 {
-	FILE	*fp;
-	char	line[4096];
+	int	fd;
+	struct stat st;
+	char	*map;
+	char	*p, *end;
 	count_t	dskrsz=0, dskwsz=0, dskcwsz=0;
 
 	if (supportflags & IOSTAT)
 	{
 		regainrootprivs();
 
-		if ( (fp = fopen("io", "r")) )
+		if ( (fd = open("io", O_RDONLY)) != -1)
 		{
-			while (fgets(line, sizeof line, fp))
-			{
-				if (memcmp(line, IO_READ,
-						sizeof IO_READ -1) == 0)
-				{
-					sscanf(line, "%*s %llu", &dskrsz);
-					dskrsz /= 512;		// in sectors
-					continue;
-				}
-
-				if (memcmp(line, IO_WRITE,
-						sizeof IO_WRITE -1) == 0)
-				{
-					sscanf(line, "%*s %llu", &dskwsz);
-					dskwsz /= 512;		// in sectors
-					continue;
-				}
-
-				if (memcmp(line, IO_CWRITE,
-						sizeof IO_CWRITE -1) == 0)
-				{
-					sscanf(line, "%*s %llu", &dskcwsz);
-					dskcwsz /= 512;		// in sectors
-					continue;
-				}
+			if (fstat(fd, &st) == -1) {
+				close(fd);
+				droprootprivs();
+				return 0;
 			}
 
-			fclose(fp);
+			if (st.st_size == 0) {
+				close(fd);
+				droprootprivs();
+				return 0;
+			}
+
+			map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+			if (map == MAP_FAILED) {
+				close(fd);
+				droprootprivs();
+				return 0;
+			}
+			close(fd); // File descriptor can be closed after mmap
+
+			p = map;
+			end = map + st.st_size;
+
+			while (p < end)
+			{
+				char *line_end = strchr(p, '\n');
+				size_t len;
+				if (line_end == NULL) {
+					len = end - p;
+				} else {
+					len = line_end - p;
+				}
+
+				char temp_line[256];
+				if (len >= sizeof(temp_line)) {
+					len = sizeof(temp_line) - 1;
+				}
+				memcpy(temp_line, p, len);
+				temp_line[len] = '\0';
+
+				if (memcmp(temp_line, IO_READ,
+						sizeof IO_READ -1) == 0)
+				{
+					sscanf(temp_line, "%*s %llu", &dskrsz);
+					dskrsz /= 512;		// in sectors
+				}
+				else if (memcmp(temp_line, IO_WRITE,
+						sizeof IO_WRITE -1) == 0)
+				{
+					sscanf(temp_line, "%*s %llu", &dskwsz);
+					dskwsz /= 512;		// in sectors
+				}
+				else if (memcmp(temp_line, IO_CWRITE,
+						sizeof IO_CWRITE -1) == 0)
+				{
+					sscanf(temp_line, "%*s %llu", &dskcwsz);
+					dskcwsz /= 512;		// in sectors
+				}
+
+				if (line_end == NULL) {
+					break;
+				}
+				p = line_end + 1;
+			}
+
+			munmap(map, st.st_size);
 
 			curtask->dsk.rsz	= dskrsz;
 			curtask->dsk.rio	= dskrsz;  // to enable sort
@@ -796,8 +868,10 @@ procio(struct tstat *curtask)
 static void
 proccmd(struct tstat *curtask)
 {
-	FILE		*fp, *fpe;
-	register int 	i, nr;
+	int		fd_cmd, fd_env;
+	struct stat	st_cmd, st_env;
+	char		*map_cmd = NULL, *map_env = NULL;
+	register int 	i;
 	ssize_t		env_len = 0;
 	register char	*pc = curtask->gen.cmdline;
 
@@ -805,79 +879,116 @@ proccmd(struct tstat *curtask)
 
 	// prepend by environment variables (if required)
 	//
-	if ( prependenv && (fpe = fopen("environ", "r")) != NULL)
+	if ( prependenv && (fd_env = open("environ", O_RDONLY)) != -1)
 	{
-		char *line = NULL;
-		ssize_t nread;
-		size_t len = 0;
-
-		while ((nread = getdelim(&line, &len, '\0', fpe)) != -1)
-		{
-			if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
-			{
-				if (env_len + nread >= CMDLEN)
+		if (fstat(fd_env, &st_env) != -1 && st_env.st_size > 0) {
+			map_env = mmap(0, st_env.st_size, PROT_READ, MAP_PRIVATE, fd_env, 0);
+			if (map_env != MAP_FAILED) {
+				char *line = map_env;
+				char *end = map_env + st_env.st_size;
+				while (line < end)
 				{
-					// try to add abbreviated env string
-					//
-					if (env_len + ABBENVLEN + 1 >= CMDLEN)
-					{
-						break;
+					size_t nread = 0;
+					char *null_byte = memchr(line, '\0', end - line);
+					if (null_byte) {
+						nread = null_byte - line + 1;
+					} else {
+						nread = end - line;
 					}
-					else
+
+					if (nread > 0 && !regexec(&envregex, line, 0, NULL, 0))
 					{
-						line[ABBENVLEN-4] = '.';
-						line[ABBENVLEN-3] = '.';
-						line[ABBENVLEN-2] = '.';
-						line[ABBENVLEN-1] = '\0';
-						line[ABBENVLEN]   = '\0';
-						nread = ABBENVLEN;
+						if (env_len + nread >= CMDLEN)
+						{
+							if (env_len + ABBENVLEN + 1 >= CMDLEN)
+							{
+								break;
+							}
+							else
+							{
+								// Create a temporary buffer for abbreviated string
+								char abbrev_line[ABBENVLEN + 1];
+								size_t copy_len = (nread - 1 < ABBENVLEN - 4) ? (nread - 1) : (ABBENVLEN - 4);
+								memcpy(abbrev_line, line, copy_len);
+								abbrev_line[copy_len] = '.';
+								abbrev_line[copy_len + 1] = '.';
+								abbrev_line[copy_len + 2] = '.';
+								abbrev_line[copy_len + 3] = '\0';
+								abbrev_line[ABBENVLEN] = '\0'; // Ensure null termination
+								nread = ABBENVLEN; // Update nread to new length
+
+								if (env_len + nread < CMDLEN) {
+									strcpy(pc, abbrev_line);
+									pc += nread;
+									env_len += nread;
+								} else {
+									break;
+								}
+							}
+						} else {
+							// Copy the environment variable, replacing null with space
+							size_t copy_len = nread - 1;
+							if (env_len + copy_len + 1 < CMDLEN) { // +1 for space
+								memcpy(pc, line, copy_len);
+								pc[copy_len] = ' ';
+								pc += copy_len + 1;
+								env_len += copy_len + 1;
+							} else {
+								break;
+							}
+						}
 					}
+					line += nread;
 				}
-
-				env_len += nread;
-
-				*(line+nread-1) = ' ';	// modify NULL byte to space
-
-				strcpy(pc, line);
-				pc += nread;
+				munmap(map_env, st_env.st_size);
 			}
 		}
-
-		/* line has been (re)allocated within the first call to getdelim */
-                /* even if the call fails, see getline(3) */
-		free(line);
-		fclose(fpe);
+		close(fd_env);
 	}
 
 	// add command line and parameters
 	//
-	if ( (fp = fopen("cmdline", "r")) != NULL)
+	if ( (fd_cmd = open("cmdline", O_RDONLY)) != -1)
 	{
-		nr = fread(pc, 1, CMDLEN-env_len, fp);
-		fclose(fp);
+		if (fstat(fd_cmd, &st_cmd) != -1 && st_cmd.st_size > 0) {
+			map_cmd = mmap(0, st_cmd.st_size, PROT_READ, MAP_PRIVATE, fd_cmd, 0);
+			if (map_cmd != MAP_FAILED) {
+				int nr_read = (st_cmd.st_size < CMDLEN - env_len) ? st_cmd.st_size : (CMDLEN - env_len);
+				memcpy(pc, map_cmd, nr_read);
+				munmap(map_cmd, st_cmd.st_size);
 
-		if (nr > 0)	/* anything read? */
-		{
-			for (i=0; i < nr-1; i++, pc++)
-			{
-				switch (*pc)
+				if (nr_read > 0)	/* anything read? */
 				{
-				   case '\0':
-				   case '\n':
-				   case '\r':
-				   case '\t':
-					*pc = ' ';
+					for (i=0; i < nr_read; i++, pc++)
+					{
+						switch (*pc)
+						{
+						   case '\0':
+						   case '\n':
+						   case '\r':
+						   case '\t':
+							*pc = ' ';
+						}
+					}
+					*pc = '\0'; // Null-terminate the command line
 				}
+				else
+				{
+					// nothing read (usually for kernel processes)
+					// wipe prepended environment vars not to disturb
+					// checks on an empty command line in other places
+					//
+					curtask->gen.cmdline[0] = '\0';
+				}
+			} else {
+				curtask->gen.cmdline[0] = '\0';
 			}
-		}
-		else
-		{
-			// nothing read (usually for kernel processes)
-			// wipe prepended environment vars not to disturb
-			// checks on an empty command line in other places
-			//
+		} else {
 			curtask->gen.cmdline[0] = '\0';
 		}
+		close(fd_cmd);
+	} else {
+		curtask->gen.cmdline[0] = '\0';
 	}
 }
 
@@ -890,17 +1001,22 @@ proccmd(struct tstat *curtask)
 static void
 procwchan(struct tstat *curtask)
 {
-        FILE            *fp;
-        register int    nr = 0;
+        int            fd;
+        struct stat    st;
+        char           *map;
+        register int   nr = 0;
 
-        if ( (fp = fopen("wchan", "r")) != NULL)
+        if ( (fd = open("wchan", O_RDONLY)) != -1)
         {
-
-                nr = fread(curtask->cpu.wchan, 1,
-			sizeof(curtask->cpu.wchan)-1, fp);
-                if (nr < 0)
-                        nr = 0;
-                fclose(fp);
+            if (fstat(fd, &st) != -1 && st.st_size > 0) {
+                map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+                if (map != MAP_FAILED) {
+                    nr = (st.st_size < sizeof(curtask->cpu.wchan)-1) ? st.st_size : sizeof(curtask->cpu.wchan)-1;
+                    memcpy(curtask->cpu.wchan, map, nr);
+                    munmap(map, st.st_size);
+                }
+            }
+            close(fd);
         }
 
         curtask->cpu.wchan[nr] = 0;
@@ -916,8 +1032,10 @@ procwchan(struct tstat *curtask)
 static void
 procsmaps(struct tstat *curtask)
 {
-	FILE	*fp;
-	char	line[4096];
+	int	fd;
+	struct stat st;
+	char	*map;
+	char	*p, *end;
 	count_t	pssval;
 	static int procsmaps_firstcall = 1;
 	static char *smapsfile = "smaps";
@@ -925,10 +1043,10 @@ procsmaps(struct tstat *curtask)
 	if (procsmaps_firstcall)
 	{
 		regainrootprivs();
-		if ( (fp = fopen("/proc/1/smaps_rollup", "r")) )
+		if ( (fd = open("/proc/1/smaps_rollup", O_RDONLY)) != -1)
 		{
 			smapsfile = "smaps_rollup";
-			fclose(fp);
+			close(fd);
 		}
 
 		procsmaps_firstcall = 0;
@@ -939,27 +1057,63 @@ procsmaps(struct tstat *curtask)
 	*/
 	regainrootprivs();
 
-	if ( (fp = fopen(smapsfile, "r")) )
+	if ( (fd = open(smapsfile, O_RDONLY)) != -1)
 	{
-		curtask->mem.pmem = 0;
-
-		while (fgets(line, sizeof line, fp))
-		{
-			if (memcmp(line, "Pss:", 4) != 0)
-				continue;
-
-			// PSS line found to be accumulated
-			sscanf(line, "Pss: %llu", &pssval);
-			curtask->mem.pmem += pssval;
+		if (fstat(fd, &st) == -1) {
+			close(fd);
+			droprootprivs();
+			return;
 		}
 
-		/*
-		** verify if fgets returned NULL due to error i.s.o. EOF
-		*/
-		if (ferror(fp))
-			curtask->mem.pmem = (unsigned long long)-1LL;
+		if (st.st_size == 0) {
+			close(fd);
+			droprootprivs();
+			return;
+		}
 
-		fclose(fp);
+		map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (map == MAP_FAILED) {
+			close(fd);
+			droprootprivs();
+			return;
+		}
+		close(fd); // File descriptor can be closed after mmap
+
+		curtask->mem.pmem = 0;
+		p = map;
+		end = map + st.st_size;
+
+		while (p < end)
+		{
+			char *line_end = strchr(p, '\n');
+			size_t len;
+			if (line_end == NULL) {
+				len = end - p;
+			} else {
+				len = line_end - p;
+			}
+
+			char temp_line[256];
+			if (len >= sizeof(temp_line)) {
+				len = sizeof(temp_line) - 1;
+			}
+			memcpy(temp_line, p, len);
+			temp_line[len] = '\0';
+
+			if (memcmp(temp_line, "Pss:", 4) == 0)
+			{
+				// PSS line found to be accumulated
+				sscanf(temp_line, "Pss: %llu", &pssval);
+				curtask->mem.pmem += pssval;
+			}
+
+			if (line_end == NULL) {
+				break;
+			}
+			p = line_end + 1;
+		}
+
+		munmap(map, st.st_size);
 	}
 	else
 	{
@@ -977,8 +1131,10 @@ procsmaps(struct tstat *curtask)
 static count_t
 procschedstat(struct tstat *curtask)
 {
-	FILE	*fp;
-	char	line[4096];
+	int	fd;
+	struct stat st;
+	char	*map;
+	char	temp_line[256]; // Buffer for sscanf
 	count_t	runtime, rundelay = 0;
 	unsigned long pcount;
 	static char *schedstatfile = "schedstat";
@@ -986,25 +1142,52 @@ procschedstat(struct tstat *curtask)
 	/*
  	** open the schedstat file
 	*/
-	if ( (fp = fopen(schedstatfile, "r")) )
+	if ( (fd = open(schedstatfile, O_RDONLY)) != -1)
 	{
+		if (fstat(fd, &st) == -1) {
+			close(fd);
+			curtask->cpu.rundelay = 0;
+			return 0;
+		}
+
+		if (st.st_size == 0) {
+			close(fd);
+			curtask->cpu.rundelay = 0;
+			return 0;
+		}
+
+		map = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (map == MAP_FAILED) {
+			close(fd);
+			curtask->cpu.rundelay = 0;
+			return 0;
+		}
+		close(fd); // File descriptor can be closed after mmap
+
 		curtask->cpu.rundelay = 0;
 
-		if (fgets(line, sizeof line, fp))
-		{
-			sscanf(line, "%llu %llu %lu\n",
-					&runtime, &rundelay, &pcount);
+		// Copy the first line to a null-terminated buffer
+		char *line_end = strchr(map, '\n');
+		size_t len;
+		if (line_end == NULL) {
+			len = st.st_size;
+		} else {
+			len = line_end - map;
+		}
 
+		if (len >= sizeof(temp_line)) {
+			len = sizeof(temp_line) - 1;
+		}
+		memcpy(temp_line, map, len);
+		temp_line[len] = '\0';
+
+		if (sscanf(temp_line, "%llu %llu %lu",
+				&runtime, &rundelay, &pcount) == 3)
+		{
 			curtask->cpu.rundelay = rundelay;
 		}
 
-		/*
-		** verify if fgets returned NULL due to error i.s.o. EOF
-		*/
-		if (ferror(fp))
-			curtask->cpu.rundelay = 0;
-
-		fclose(fp);
+		munmap(map, st.st_size);
 	}
 	else
 	{
