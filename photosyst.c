@@ -187,7 +187,7 @@ static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 
 // The following values are used to accumulate cpu statistics per numa.
 // The bitmask realization is from numactl
-#define CPUMASK_SZ (64 * 8)
+#define CPUMASK_SZ (64 * 64)
 
 #define bitsperlong (8 * sizeof(unsigned long))
 #define howmany(x,y) (((x)+((y)-1))/(y))
