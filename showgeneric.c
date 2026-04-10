@@ -2186,7 +2186,7 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 
 	// show current sort column and sort order
 	//
-	printw("Override current sort column: %s - %s (enter=keep): ", columnstr,
+	printw("Current sort column: %s (%s) -- New sort column (enter=keep): ", columnstr,
 			procview.ascdesc == 1 ? "ascending" : "descending");
 
 	columnname[0] = '\0';
@@ -3840,7 +3840,7 @@ static struct helptext {
 	{"\t'%c'  - disk activity\n",				MPERCDSK, 'a'},
 	{"\t'%c'  - network activity\n",			MPERCNET, 'a'},
 	{"\t'%c'  - GPU activity\n",				MPERCGPU, 'a'},
-	{"\t'%c'  - other column of choice\n",			MORDERPROC, 'a'},
+	{"\t'%c'  - order active/all processes on any column\n",MORDERPROC, 'a'},
 	{"\n",							' ', 'a'},
 	{"Raw file viewing and twin mode:\n",			' ', 'r'},
 	{"\t'%c'  - show next     sample\n",			MSAMPNEXT, 'r'},
