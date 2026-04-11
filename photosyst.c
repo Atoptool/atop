@@ -105,7 +105,7 @@ static int	isdisk_name(unsigned int, unsigned int,
 			char *, struct perdsk *, int);
 
 static struct bitmask *numa_allocate_cpumask(void);
-static void	numa_bitmask_free(struct bitmask *);
+static void	numa_free_cpumask(struct bitmask *);
 static int	numa_parse_bitmap_v2(char *, struct bitmask *);
 
 static struct ipv6_stats	ipv6_tmp;
@@ -187,16 +187,14 @@ static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
 
 // The following values are used to accumulate cpu statistics per numa.
 // The bitmask realization is from numactl
-#define CPUMASK_SZ (64 * 8)
+//
+#define bitsperlonglong		(8 * sizeof(unsigned long long))
+#define howmany(x,y)		(((x)+((y)-1))/(y))
+#define longlongsneeded(n)	howmany(n, bitsperlonglong)
 
-#define bitsperlong (8 * sizeof(unsigned long))
-#define howmany(x,y) (((x)+((y)-1))/(y))
-#define longsperbits(n) howmany(n, bitsperlong)
-
-#define round_up(x,y) (((x) + (y) - 1) & ~((y)-1))
-#define BITS_PER_LONG (sizeof(unsigned long) * 8)
-#define CPU_BYTES(x) (round_up(x, BITS_PER_LONG)/8)
-#define CPU_LONGS(x) (CPU_BYTES(x) / sizeof(long))
+#define round_up(x,y)		(((x) + (y) - 1) & ~((y)-1))
+#define CPU_BYTES(x)		(round_up(x, bitsperlonglong)/8)
+#define CPU_LONGLONGS(x)	(CPU_BYTES(x) / sizeof(unsigned long long))
 
 struct bitmask {
 	unsigned long size; /* number of bits in the map */
@@ -210,7 +208,7 @@ struct bitmask {
 static struct bitmask *
 numa_allocate_cpumask(void)
 {
-	int ncpus = CPUMASK_SZ;
+	int ncpus = MAXCPU;
 	struct bitmask *bmp;
 
 	bmp = malloc(sizeof(*bmp));
@@ -218,17 +216,18 @@ numa_allocate_cpumask(void)
 		ptrverify(bmp, "Malloc failed for numa bitmask");
 
 	bmp->size = ncpus;
-	bmp->maskp = calloc(longsperbits(ncpus), sizeof(unsigned long));
+	bmp->maskp = calloc(longlongsneeded(ncpus), sizeof(unsigned long long));
 	ptrverify((bmp->maskp), "Malloc failed for numa maskp");
 
 	return bmp;
 }
 
 static void
-numa_bitmask_free(struct bitmask *bmp)
+numa_free_cpumask(struct bitmask *bmp)
 {
 	if (bmp == 0)
 		return;
+
 	free(bmp->maskp);
 	bmp->maskp = (unsigned long long *)0xdeadcdef;  /* double free tripwire */
 	free(bmp);
@@ -242,31 +241,41 @@ numa_parse_bitmap_v2(char *line, struct bitmask *mask)
 	char *p = strchr(line, '\n');
 	if (!p)
 		return -1;
+
 	int ncpus = mask->size;
 
-	for (i = 0; p > line;i++) {
+	for (i=0; p > line; i++) {
 		char *oldp, *endp;
 		oldp = p;
+
 		if (*p == ',')
 			--p;
+
 		while (p > line && *p != ',')
 			--p;
+
 		/* Eat two 32bit fields at a time to get longs */
-		if (p > line && sizeof(unsigned long) == 8) {
+		if (p > line) {
 			oldp--;
 			memmove(p, p+1, oldp-p+1);
+
 			while (p > line && *p != ',')
 				--p;
 		}
+
 		if (*p == ',')
 			p++;
-		if (i >= CPU_LONGS(ncpus))
+
+		if (i >= CPU_LONGLONGS(ncpus))
 			return -1;
-		mask->maskp[i] = strtoul(p, &endp, 16);
+
+		mask->maskp[i] = strtoull(p, &endp, 16);
 		if (endp != oldp)
 			return -1;
+
 		p--;
 	}
+
 	return 0;
 }
 
@@ -1192,7 +1201,7 @@ photosyst(struct sstat *si)
 			for (i=0; i < mask->size && i < MAXCPU; i++)
 			{
 				if ( (si->cpu.cpu[i].online &&
-					mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+					mask->maskp[i/bitsperlonglong] >> (i % bitsperlonglong)) & 1 )
 				{
 					si->cpunuma.numa[j].nrcpu++;
 					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
@@ -1210,7 +1219,7 @@ photosyst(struct sstat *si)
 		}
 
 		free(line);
-		numa_bitmask_free(mask);
+		numa_free_cpumask(mask);
 	}
 	else
 	{

@@ -26,7 +26,7 @@
 
 #include "netstats.h"
 
-#define	MAXCPU		4096
+#define	MAXCPU		4096	// specify power of two
 #define	MAXDSK		1024
 #define	MAXNUMA		1024
 #define	MAXLVM		2048
