@@ -1211,8 +1211,8 @@ spaceformat(char *istr, char *ostr)
 	if (!rmspaces)
 	{
 		*ostr = '(';
-		strcpy(ostr+1, istr);
-		strcat(ostr, ")");
+		strncpy(ostr+1, istr, PNAMLEN);
+		strncat(ostr, ")", 1);
 	}
 	// formatting with underscores without parenthesis required
 	else
