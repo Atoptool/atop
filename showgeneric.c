@@ -3609,6 +3609,7 @@ generic_init(void)
 			init_pair(FGCOLORTHR,      colorthread,  -1);
                 	init_pair(FGCOLORBORDER,   COLOR_CYAN,   -1);
                 	init_pair(FGCOLORGREY,     COLOR_MYLGREY, -1);
+                	init_pair(FGCOLORAVAIL,    COLOR_GREEN,   -1);
 
 	                init_pair(WHITE_GREEN,     COLOR_WHITE, COLOR_MYGREEN);
 			init_pair(WHITE_ORANGE,    COLOR_WHITE, COLOR_MYORANGE);

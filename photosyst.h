@@ -103,7 +103,8 @@ struct	memstat {
 	count_t anonhugepage;   // anonymous transparent huge pages
 				// (in units of 'normal' pages)
 
-	count_t	cfuture[5];	// reserved for future use
+	count_t	lowwatermark;	// cum. low watermark of all zones (pages)
+	count_t	cfuture[4];	// reserved for future use
 };
 
 /************************************************************************/

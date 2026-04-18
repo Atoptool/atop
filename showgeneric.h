@@ -118,6 +118,7 @@ struct sselection {
 #define	FGCOLORCRIT	4
 #define	FGCOLORTHR	5
 #define	FGCOLORGREY	6
+#define	FGCOLORAVAIL	7
 
 #define WHITE_GREEN     10
 #define WHITE_ORANGE    11

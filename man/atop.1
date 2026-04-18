@@ -166,7 +166,14 @@ are (code, data and  stack of) processes/kernel, slab caches
 (i.e. dynamically allocated kernel memory), shared memory, tmpfs,
 static huge pages, page cache and free memory.
 .br
-Swap space (if present) is also presented as a column in which the
+At the left side of the memory column, a vertical green line
+shows the memory which is available (i.e. reclaimable)
+for allocations per category without causing swapping
+or heavy reclaim. This is a categorized breakdown of the
+available memory value that is shown as 'avail' in the
+MEM line of the text mode.
+
+Swap space (if present) is presented as another column in which the
 categories processes/tmpfs, shared memory and free space are shown.
 
 At the right side memory-related event counters are shown.

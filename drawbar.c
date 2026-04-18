@@ -109,6 +109,7 @@
 #define _DEFAULT_SOURCE
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <curses.h>
 #include <locale.h>
 #include <string.h>
@@ -236,7 +237,7 @@ static int	drawnetbars(struct perwindow *, int, struct netval *,
 static int	drawmemory(struct perwindow *w, struct sstat *, int, time_t, char);
 
 static int	drawmemlines(struct perwindow *, int, int, int, int,
-			int, char *, char *);
+			int, char *, char *, int);
 
 static int	drawevent(struct perwindow *, int, int, int,
 			char *, char *, long);
@@ -1980,12 +1981,13 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	static time_t	lastoomkills;
 
 	long long	totalmem, cachemem, shmemrss, tmpfsmem,
-			slabmem, freemem, hugefree, hugeused, shmrssreal;
+			slabmem, freemem, hugefree, hugeused, shmrssreal,
+			slabrec, availmem, lowwatermark;
 	long long	totalswp, shmemswp, freeswp;
 	char		scanseverity, swapseverity, killseverity;
 	int 		curline=0, barlines, eventlines, psilines, color;
-	int 		usedlines, freelines, cachelines, tmpfslines,
-			slablines, shmemlines, hugelines;
+	int 		usedlines, freelines, cachelines, cacheavail, tmpfslines,
+			slablines, slabavail, freeavail, shmemlines, hugelines;
 	int		memorycol = 1, psisomeperc, psifullperc,
 			swapcol   = memorycol + MEMORYBARSZ + 1,
 			eventcol  = swapcol   + SWAPBARSZ   + 2;
@@ -2011,6 +2013,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	shmemrss	=  sstat->mem.shmrss  * pagesize;
 
 	slabmem		=  sstat->mem.slabmem * pagesize;
+	slabrec		=  sstat->mem.slabreclaim * pagesize;
 
 	freemem		=  sstat->mem.freemem * pagesize;
 
@@ -2022,6 +2025,10 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	shmemswp	=  sstat->mem.shmswp  * pagesize;
 
 	freeswp		=  sstat->mem.freeswap* pagesize;
+
+	availmem	=  sstat->mem.availablemem * pagesize;
+
+	lowwatermark 	=  sstat->mem.lowwatermark * pagesize;
 
 	// assumption:	most of static huge pages use for SYSV shared memory,
 	// 		although static hige pages can also be used for mmap()
@@ -2083,10 +2090,19 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// tmpfs, slab and page cache
 	//
 	freelines  = (freemem  + valperunit/2) / valperunit;
+	freeavail  = (freemem  - MIN(freemem/2, lowwatermark) +
+						valperunit/2) / valperunit;
+
 	shmemlines = (shmemrss + valperunit/2) / valperunit;
 	tmpfslines = (tmpfsmem + valperunit/2) / valperunit;
+
 	slablines  = (slabmem  + valperunit/2) / valperunit;
+	slabavail  = (slabrec  - MIN(slabmem/2, lowwatermark) +
+						valperunit/2) / valperunit;
 	cachelines = (cachemem + valperunit/2) / valperunit;
+	cacheavail = (availmem - freemem - slabrec - MIN(cachemem/2, lowwatermark) +
+						valperunit/2) / valperunit;
+
 	hugelines  = (hugefree + valperunit/2) / valperunit;
 	usedlines  =  barlines - freelines - shmemlines - hugelines -
 	              tmpfslines - slablines - cachelines;
@@ -2098,34 +2114,34 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// draw lines for free memory
 	//
 	curline += drawmemlines(w, curline, memorycol, freelines,
-			MEMORYBARSZ, COLORMEMFREE, "free", NULL);
+			MEMORYBARSZ, COLORMEMFREE, "free", NULL, freeavail);
 
 	// draw lines for cache memory
 	//
 	curline += drawmemlines(w, curline, memorycol, cachelines,
-			MEMORYBARSZ, COLORMEMCACH, "pagecache", NULL);
+			MEMORYBARSZ, COLORMEMCACH, "pagecache", NULL, cacheavail);
 
 	// draw lines for free static huge pages memory
 	// (occupied static huge pages are already part of processes
 	// or shared memory)
 	//
 	curline += drawmemlines(w, curline, memorycol, hugelines,
-			MEMORYBARSZ, COLORMEMHUGE, "free huge", "pages");
+			MEMORYBARSZ, COLORMEMHUGE, "free huge", "pages", 0);
 
 	// draw lines for tmpfs memory
 	//
 	curline += drawmemlines(w, curline, memorycol, tmpfslines,
-			MEMORYBARSZ, COLORMEMTMP, "tmpfs", NULL);
+			MEMORYBARSZ, COLORMEMTMP, "tmpfs", NULL, 0);
 
 	// draw lines for shared memory
 	//
 	curline += drawmemlines(w, curline, memorycol, shmemlines,
-			MEMORYBARSZ, COLORMEMSHM, "sharedmem", NULL);
+			MEMORYBARSZ, COLORMEMSHM, "sharedmem", NULL, 0);
 
 	// draw lines for slab memory
 	//
 	curline += drawmemlines(w, curline, memorycol, slablines,
-			MEMORYBARSZ, COLORMEMSLAB, "slab", "caches");
+			MEMORYBARSZ, COLORMEMSLAB, "slab", "caches", slabavail);
 
 	// draw lines for other used memory
 	//
@@ -2135,7 +2151,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 		color = COLORMEMUSED;
 
 	curline += drawmemlines(w, curline, memorycol, usedlines,
-			MEMORYBARSZ, color, "processes", "&kernel");
+			MEMORYBARSZ, color, "processes", "&kernel", 0);
 
 	// show memory size
 	//
@@ -2165,12 +2181,12 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 		curline = 0;
 
 		curline += drawmemlines(w, curline, swapcol, freelines,
-				SWAPBARSZ, COLORMEMFREE, "free", NULL);
+				SWAPBARSZ, COLORMEMFREE, "free", NULL, 0);
 
 		// draw lines for swapped shared memory swap
 		//
 		curline += drawmemlines(w, curline, swapcol, shmemlines,
-				SWAPBARSZ, COLORMEMSHM, "shamem", NULL);
+				SWAPBARSZ, COLORMEMSHM, "shamem", NULL, 0);
 
 		// draw lines for occupied swap
 		// highly occupied swap is only an issue when also memory
@@ -2183,7 +2199,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 			color = COLORMEMUSED;
 	
 		curline += drawmemlines(w, curline, swapcol, usedlines,
-				SWAPBARSZ, color, "procs", "&tmpfs");
+				SWAPBARSZ, color, "procs", "&tmpfs", 0);
 
 		// show swap size
 		//
@@ -2287,17 +2303,46 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 
 /////////////////////////////////////////////////////
 // draw lines for specific memory category
+// return: number of screen lines used
 /////////////////////////////////////////////////////
 static int
 drawmemlines(struct perwindow *w, int startline, int startcolumn,
 			int numlines, int width, int color,
-			char *cat1, char *cat2)
+			char *cat1, char *cat2, int availlines)
 {
-	int	line=startline, catline, targetline=startline+numlines, len;
+	int	line = startline, catline,
+		targetline = startline+numlines, len;
 
 	if (numlines == 0)
 		return 0;
 
+	// draw vertical line to show available (i.e. potentially free) memory
+	// for this category
+	//
+	if (availlines > 0)
+	{
+		int i;
+
+		if (availlines > numlines)
+			availlines = numlines;
+
+        	colorswon(w->win, FGCOLORAVAIL);
+
+		for (i=0; i < availlines; i++)
+		{
+			wmove(w->win, startline+i, startcolumn-1);
+
+			if (MB_CUR_MAX > 1)
+				waddwstr(w->win, L"┃");
+			else
+				waddch(w->win, ACS_VLINE);
+		}
+
+		colorswoff(w->win, FGCOLORAVAIL);
+	}
+
+	// show column with memory information
+	//
 	if (usecolors)
         	wattron(w->win, COLOR_PAIR(color));
 

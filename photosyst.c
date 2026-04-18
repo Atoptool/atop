@@ -292,6 +292,8 @@ photosyst(struct sstat *si)
 					/* might be -1 if not applicable    */
 	static unsigned int hpsize;
 
+	static count_t	lowwatermark;	/* accumulated low watermark zones  */
+
 
 	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
@@ -879,6 +881,34 @@ photosyst(struct sstat *si)
 
 		fclose(fp);
 	}
+
+	/*
+	** calculate the accumulated low watermark of all memory zones
+	** 
+	** since this is a time-consuming operation the value is determined
+	** only once, even if it changes when /proc/sys/vm/min_free_kbytes
+	** is modified (frequent modification is unlikely)
+	*/
+	if (lowwatermark == 0)
+	{
+		if ( (fp = fopen("zoneinfo", "r")) != NULL)
+		{
+			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			{
+				nr = sscanf(linebuf, "%s %lld", nam, &cnts[0]);
+
+				if (nr < 2)
+					continue;
+
+				if ( strcmp("low", nam) == EQ)
+					lowwatermark += cnts[0];
+			}
+
+			fclose(fp);
+		}
+	}
+
+	si->mem.lowwatermark = lowwatermark;
 
 	/*
  	** gather values of larger huge pages that are not provided

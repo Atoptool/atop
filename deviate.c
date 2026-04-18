@@ -763,6 +763,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.pagetables	= cur->mem.pagetables;
 	dev->mem.zswap		= cur->mem.zswap;
 	dev->mem.zswapped	= cur->mem.zswapped;
+	dev->mem.lowwatermark	= cur->mem.lowwatermark;
 
 	dev->mem.shmem		= cur->mem.shmem;
 	dev->mem.shmrss		= cur->mem.shmrss;
