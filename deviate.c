@@ -307,8 +307,8 @@ deviattask(struct tstat    *curtpres, unsigned long ntaskpres,
 		if (!prestat.gen.pid)
 			devstat->gen.excode |= ~(INT_MAX);
 
-		strcpy(devstat->gen.cmdline, prestat.gen.cmdline);
-		strcpy(devstat->gen.utsname, prestat.gen.utsname);
+		safe_strcpy(devstat->gen.cmdline, prestat.gen.cmdline, sizeof(devstat->gen.cmdline));
+		safe_strcpy(devstat->gen.utsname, prestat.gen.utsname, sizeof(devstat->gen.utsname));
 
 		devstat->cpu.curcpu = -1;
 
@@ -475,7 +475,7 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->cpu.sleepavg    = curstat->cpu.sleepavg;
 
 	if (curstat->cpu.wchan[0])
-		strcpy(devstat->cpu.wchan, curstat->cpu.wchan);
+		safe_strcpy(devstat->cpu.wchan, curstat->cpu.wchan, sizeof(devstat->cpu.wchan));
 	else
 		devstat->cpu.wchan[0] = 0;
 
@@ -961,7 +961,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	for (i=0; cur->intf.intf[i].name[0]; i++)
 	{
 		// fill current properties for each valid interface
-		strcpy(ifprop.name, cur->intf.intf[i].name);
+		safe_strcpy(ifprop.name, cur->intf.intf[i].name, sizeof(ifprop.name));
 
 		getifprop(&ifprop);
 
@@ -975,7 +975,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	{
 		for (i=0; cur->intf.intf[i].name[0]; i++)
 		{
-			strcpy(pre->intf.intf[i].name, cur->intf.intf[i].name);
+			safe_strcpy(pre->intf.intf[i].name, cur->intf.intf[i].name, sizeof(pre->intf.intf[i].name));
 
 			pre->intf.intf[i].type   = cur->intf.intf[i].type;
 			pre->intf.intf[i].speed  = cur->intf.intf[i].speed;
@@ -1016,7 +1016,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 		/*
 		** calculate interface deviations for this sample
 		*/
-		strcpy(dev->intf.intf[i].name, cur->intf.intf[i].name);
+		safe_strcpy(dev->intf.intf[i].name, cur->intf.intf[i].name, sizeof(dev->intf.intf[i].name));
 
 		dev->intf.intf[i].rbyte = subcount(cur->intf.intf[i].rbyte,
            	                                   pre->intf.intf[j].rbyte);
@@ -1092,7 +1092,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 			*/
 		}
 
-		strcpy(dev->dsk.dsk[i].name, cur->dsk.dsk[i].name);
+		safe_strcpy(dev->dsk.dsk[i].name, cur->dsk.dsk[i].name, sizeof(dev->dsk.dsk[i].name));
 
 		dev->dsk.dsk[i].nread  = subcount(cur->dsk.dsk[i].nread,
 		                                  pre->dsk.dsk[j].nread);
@@ -1162,7 +1162,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 			*/
 		}
 
-		strcpy(dev->dsk.mdd[i].name, cur->dsk.mdd[i].name);
+		safe_strcpy(dev->dsk.mdd[i].name, cur->dsk.mdd[i].name, sizeof(dev->dsk.mdd[i].name));
 
 		dev->dsk.mdd[i].nread  = subcount(cur->dsk.mdd[i].nread,
 		                                  pre->dsk.mdd[j].nread);
@@ -1231,7 +1231,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 			*/
 		}
 
-		strcpy(dev->dsk.lvm[i].name, cur->dsk.lvm[i].name);
+		safe_strcpy(dev->dsk.lvm[i].name, cur->dsk.lvm[i].name, sizeof(dev->dsk.lvm[i].name));
 
 		dev->dsk.lvm[i].nread  = subcount(cur->dsk.lvm[i].nread,
 		                                  pre->dsk.lvm[j].nread);
@@ -1346,8 +1346,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 			*/
 		}
 
-		strcpy(dev->nfs.nfsmounts.nfsmnt[i].mountdev,
-		       cur->nfs.nfsmounts.nfsmnt[i].mountdev);
+		safe_strcpy(dev->nfs.nfsmounts.nfsmnt[i].mountdev,
+		       cur->nfs.nfsmounts.nfsmnt[i].mountdev, sizeof(dev->nfs.nfsmounts.nfsmnt[i].mountdev));
 
                 dev->nfs.nfsmounts.nfsmnt[i].age = 
                                     cur->nfs.nfsmounts.nfsmnt[i].age;
@@ -1441,8 +1441,8 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	{
 	    dev->gpu.gpu[i].gpunr      = i;
 
-	    strcpy(dev->gpu.gpu[i].type,  cur->gpu.gpu[i].type);
-	    strcpy(dev->gpu.gpu[i].busid, cur->gpu.gpu[i].busid);
+	    safe_strcpy(dev->gpu.gpu[i].type,  cur->gpu.gpu[i].type, sizeof(dev->gpu.gpu[i].type));
+	    safe_strcpy(dev->gpu.gpu[i].busid, cur->gpu.gpu[i].busid, sizeof(dev->gpu.gpu[i].busid));
 
 	    dev->gpu.gpu[i].taskstats  = cur->gpu.gpu[i].taskstats;
 	    dev->gpu.gpu[i].nrprocs    = cur->gpu.gpu[i].nrprocs;
@@ -1481,7 +1481,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	*/
 	for (i=0; i < cur->ifb.nrports; i++)
 	{
-		strcpy(dev->ifb.ifb[i].ibname, cur->ifb.ifb[i].ibname);
+		safe_strcpy(dev->ifb.ifb[i].ibname, cur->ifb.ifb[i].ibname, sizeof(dev->ifb.ifb[i].ibname));
 
 		dev->ifb.ifb[i].portnr = cur->ifb.ifb[i].portnr;
 		dev->ifb.ifb[i].lanes  = cur->ifb.ifb[i].lanes;
@@ -1756,7 +1756,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 			/*
 			** accumulate counters for this sample
 			*/
-			strcpy(tot->intf.intf[i].name, new->intf.intf[i].name);
+			safe_strcpy(tot->intf.intf[i].name, new->intf.intf[i].name, sizeof(tot->intf.intf[i].name));
 	
 			tot->intf.intf[i].rbyte   += new->intf.intf[i].rbyte;
 			tot->intf.intf[i].rpack   += new->intf.intf[i].rpack;
@@ -1795,7 +1795,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 	   case 'd':	/* accumulate disk-related counters */
 		for (i=0; new->dsk.dsk[i].name[0]; i++)
 		{
-			strcpy(tot->dsk.dsk[i].name, new->dsk.dsk[i].name);
+			safe_strcpy(tot->dsk.dsk[i].name, new->dsk.dsk[i].name, sizeof(tot->dsk.dsk[i].name));
 	
 			tot->dsk.dsk[i].nread  += new->dsk.dsk[i].nread;
 			tot->dsk.dsk[i].nrsect += new->dsk.dsk[i].nrsect;
@@ -1817,7 +1817,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 
 		for (i=0; new->dsk.lvm[i].name[0]; i++)
 		{
-			strcpy(tot->dsk.lvm[i].name, new->dsk.lvm[i].name);
+			safe_strcpy(tot->dsk.lvm[i].name, new->dsk.lvm[i].name, sizeof(tot->dsk.lvm[i].name));
 	
 			tot->dsk.lvm[i].nread  += new->dsk.lvm[i].nread;
 			tot->dsk.lvm[i].nrsect += new->dsk.lvm[i].nrsect;
@@ -1838,7 +1838,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 
 		for (i=0; new->dsk.mdd[i].name[0]; i++)
 		{
-			strcpy(tot->dsk.mdd[i].name, new->dsk.mdd[i].name);
+			safe_strcpy(tot->dsk.mdd[i].name, new->dsk.mdd[i].name, sizeof(tot->dsk.mdd[i].name));
 	
 			tot->dsk.mdd[i].nread  += new->dsk.mdd[i].nread;
 			tot->dsk.mdd[i].nrsect += new->dsk.mdd[i].nrsect;
