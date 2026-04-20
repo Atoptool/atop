@@ -43,11 +43,11 @@ struct procview {
 
 
 struct syscap {
-	int	nrcpu;
 	count_t	availcpu;
 	count_t	availmem;
 	count_t	availdsk;
 	count_t	availnet;
+	int	nrcpu;
 	int	nrgpu;
 	count_t	availgpumem; 	// GPU memory in Kb!
 	int	nrmemnuma;
