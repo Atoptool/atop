@@ -98,7 +98,7 @@ gpud_init(void)
 	*/
 	memset(&name, 0, sizeof name);
 	name.sun_family = AF_UNIX;
-	strncpy(name.sun_path+1, SOCKPATH, sizeof name.sun_path -2);
+	safe_strcpy(name.sun_path+1, SOCKPATH, sizeof name.sun_path -1);
 
 	if ( connect(actsock, (struct sockaddr *)&name, namelen) == -1)
 		goto close_and_return;

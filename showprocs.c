@@ -2595,16 +2595,16 @@ compst(const void *a, const void *b, void *dir)
 	char	abuf[5], bbuf[5];
 
 	if (astate == 'E')
-		strncpy(abuf, procprt_ST_e(*(struct tstat **)a, 0, 0), 3);
+		safe_strcpy(abuf, procprt_ST_e(*(struct tstat **)a, 0, 0), sizeof abuf);
 	else
-		strncpy(abuf, procprt_ST_a(*(struct tstat **)a, 0, 0), 3);
+		safe_strcpy(abuf, procprt_ST_a(*(struct tstat **)a, 0, 0), sizeof abuf);
 
 	abuf[2] = '\0';
 
 	if (bstate == 'E')
-		strncpy(bbuf, procprt_ST_e(*(struct tstat **)b, 0, 0), 3);
+		safe_strcpy(bbuf, procprt_ST_e(*(struct tstat **)b, 0, 0), sizeof bbuf);
 	else
-		strncpy(bbuf, procprt_ST_a(*(struct tstat **)b, 0, 0), 3);
+		safe_strcpy(bbuf, procprt_ST_a(*(struct tstat **)b, 0, 0), sizeof bbuf);
 
 	bbuf[2] = '\0';
 

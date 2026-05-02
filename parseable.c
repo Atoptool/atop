@@ -96,7 +96,7 @@ void 	print_PRE(char *, struct sstat *, struct tstat *, int,
                                           struct cgchainer *, int);
 
 static void calc_freqscale(count_t, count_t, count_t, count_t *, int *);
-static char *spaceformat(char *, char *);
+static char *spaceformat(char *, char *, int);
 
 /*
 ** table with possible labels and the corresponding
@@ -955,7 +955,7 @@ print_PRG(char *hp, struct sstat *ss,
  		       "%d %d %d %d %d %d %ld %c %d %d %s %c %s %ld %d\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			ps->gen.ruid,
 			ps->gen.rgid,
@@ -963,7 +963,7 @@ print_PRG(char *hp, struct sstat *ss,
 			ps->gen.nthr,
 			exitcode,
 			ps->gen.btime,
-			spaceformat(ps->gen.cmdline, cmdout),
+			spaceformat(ps->gen.cmdline, cmdout, sizeof cmdout),
 			ps->gen.ppid,
 			ps->gen.nthrrun,
 			ps->gen.nthrslpi,
@@ -980,7 +980,7 @@ print_PRG(char *hp, struct sstat *ss,
 			ps->gen.ctid,
 			ps->gen.utsname[0] ? ps->gen.utsname:"-",
         		ps->gen.excode & ~(INT_MAX) ? 'N' : '-',
-			spaceformat(cgrpath, cgrout),
+			spaceformat(cgrpath, cgrout, cgrpathsize),
 			ps->gen.state == 'E' ?
 			    ps->gen.btime + ps->gen.elaps/hertz : 0,
 			ps->gen.nthridle);
@@ -1019,7 +1019,7 @@ print_PRC(char *hp, struct sstat *ss,
 		       "%llu %s %llu %d %d %llu %llu\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			hertz,
 			ps->cpu.utime,
@@ -1033,7 +1033,7 @@ print_PRC(char *hp, struct sstat *ss,
 			ps->gen.tgid,
 			ps->gen.isproc ? 'y':'n',
 			ps->cpu.rundelay,
-			spaceformat(ps->cpu.wchan, wchanout),
+			spaceformat(ps->cpu.wchan, wchanout, sizeof wchanout),
 			ps->cpu.blkdelay,
 			cpumax,
 			-2,	// most restrictive cpumax no longer supported
@@ -1082,7 +1082,7 @@ print_PRM(char *hp, struct sstat *ss,
 		       "%lld %lld %lld %lld %lld %d %c %lld %lld %d %d %d %d\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			pagesize,
 			ps->mem.vmem,
@@ -1119,7 +1119,7 @@ print_PRD(char *hp, struct sstat *ss,
 		printf("%s %d %s %c %c %c %lld %lld %lld %lld %lld %d n %c\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			'n',
 			supportflags & IOSTAT ? 'y' : 'n',
@@ -1144,7 +1144,7 @@ print_PRN(char *hp, struct sstat *ss,
 		       "%lld %lld %d %d %d %c\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			supportflags & NETATOP ? 'y' : 'n',
 			ps->net.tcpsnd, ps->net.tcpssz,
@@ -1174,7 +1174,7 @@ print_PRE(char *hp, struct sstat *ss,
 		printf("%s %d %s %c %c %d %x %lld %lld %lld %lld %lld %c %c\n",
 			hp,
 			ps->gen.pid,
-			spaceformat(ps->gen.name, namout),
+			spaceformat(ps->gen.name, namout, sizeof namout),
 			ps->gen.state,
 			ps->gpu.state == '\0' ? 'N':ps->gpu.state,
 			ps->gpu.nrgpus,
@@ -1199,19 +1199,23 @@ print_PRE(char *hp, struct sstat *ss,
 ** omitting the parenthesis in that case.
 **
 ** This function formats the input string (istr) in the
-** required format to the output string (ostr).
+** required format to the output string (ostr) with maximum
+** length including NULL byte (maxolen).
 ** Take care that the buffer pointed to by ostr is at least
 ** two bytes larger than the input string (for the parenthesis).
 ** The pointer ostr is also returned.
 */
 static char *
-spaceformat(char *istr, char *ostr)
+spaceformat(char *istr, char *ostr, int maxolen)
 {
+	if (maxolen <= 0)
+		return "?";
+
 	// formatting with spaces and parenthesis required?
 	if (!rmspaces)
 	{
 		*ostr = '(';
-		strcpy(ostr+1, istr);
+		safe_strcpy(ostr+1, istr, maxolen-2);
 		strcat(ostr, ")");
 	}
 	// formatting with underscores without parenthesis required
@@ -1219,21 +1223,23 @@ spaceformat(char *istr, char *ostr)
 	{
 		register char *pi = istr, *po = ostr;
 
-		while (*pi)
+		while (*pi && maxolen > 1)
 		{
 			if (*pi == ' ')
 			{
 				*po++ = '_';
 				pi++;
+				maxolen--;
 			}
 			else
 			{
 				*po++ = *pi++;
+				maxolen--;
 			}
 		}
 
 		if (po == ostr)		// empty string: still return underscore
-			*po++ = '_';
+			return "_";
 
 		*po = '\0';		// terminate output string
 	}
