@@ -1098,7 +1098,7 @@ uid2name(uid_t uid)
 			this->uname    = malloc(len+1);
 			ptrverify(this->uname, "Malloc failed for u2n name\n");
 
-			strcpy(this->uname, pwd->pw_name);
+			safe_strcpy(this->uname, pwd->pw_name, len+1);
 		}
 
 		endpwent();
@@ -1172,7 +1172,7 @@ gid2name(gid_t gid)
 			this->gname    = malloc(len+1);
 			ptrverify(this->gname, "Malloc failed for g2n name\n");
 
-			strcpy(this->gname, group->gr_name);
+			safe_strcpy(this->gname, group->gr_name, len+1);
 		}
 
 		endgrent();
