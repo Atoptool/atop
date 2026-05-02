@@ -1165,17 +1165,18 @@ do_pacctdir(char *tagname, char *tagvalue)
 {
 	char		shadowpath[128];
 	struct stat	dirstat;
+	size_t		len = strlen(tagvalue) + 1;
 
 	/*
 	** copy the directory pathname to an own buffer
 	*/
-	if ( (pacctdir = malloc(strlen(tagvalue)+1)) == NULL )
+	if ( (pacctdir = malloc(len)) == NULL )
 	{
 		perror("malloc pacctdir");
 		exit(11);
 	}
 
-	strcpy(pacctdir, tagvalue);
+	safe_strcpy(pacctdir, tagvalue, len);
 
 	/*
 	** verify if the atopacctd daemon is active
