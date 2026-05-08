@@ -1397,13 +1397,13 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			ss->gpu.gpu[i].samples = 1;
 
 		if (ss->gpu.gpu[i].gpuperccum == -1)
-			strcpy(fmt1, "N/A");
+			safe_strcpy(fmt1, "N/A", sizeof fmt1);
 		else
 			snprintf(fmt1, sizeof fmt1, "%lld%%",
 			   ss->gpu.gpu[i].gpuperccum / ss->gpu.gpu[i].samples);
 
 		if (ss->gpu.gpu[i].memperccum == -1)
-			strcpy(fmt2, "N/A");
+			safe_strcpy(fmt2, "N/A", sizeof fmt2);
 		else
 			snprintf(fmt2, sizeof fmt2, "%lld%%",
 			   ss->gpu.gpu[i].memperccum / ss->gpu.gpu[i].samples);
@@ -2099,7 +2099,7 @@ ifline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		}
 		else
 		{
-			strcpy(busyval, "?"); /* speed unknown */
+			safe_strcpy(busyval, "?", sizeof busyval); /* speed unknown */
 			busy = 0;
 		}
 

@@ -1741,7 +1741,8 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix, int
 
 					// copy cgroup name string and correct total struct length
 					//
-					strcpy(convs[i+1].cslist[c]->cgname, convs[i].cslist[c]->cgname);
+					strncpy(convs[i+1].cslist[c]->cgname, convs[i].cslist[c]->cgname,
+							convs[i+1].cslist[c]->gen.namelen);
 
 					convs[i+1].cslist[c]->gen.structlen = rcstatlen;
 				}

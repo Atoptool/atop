@@ -1315,7 +1315,7 @@ photosyst(struct sstat *si)
 			** because the total number of interfaces
 			** exceeds the maximum supported by atop (MAXINTF)
 			*/
-			strcpy(ifprop.name, si->intf.intf[i].name);
+			safe_strcpy(ifprop.name, si->intf.intf[i].name, sizeof ifprop.name);
 
 			if (!getifprop(&ifprop))
 				continue;
@@ -1805,30 +1805,22 @@ photosyst(struct sstat *si)
 			{
 		   		if (strcmp(label, "age:") == 0)
 				{
-				    strcpy(si->nfs.nfsmounts.nfsmnt[i].mountdev,
-				           mountdev);
+				    safe_strcpy(si->nfs.nfsmounts.nfsmnt[i].mountdev, mountdev,
+					    sizeof si->nfs.nfsmounts.nfsmnt[i].mountdev);
 
 				    si->nfs.nfsmounts.nfsmnt[i].age = cnt[0];
 				}
 
 		   		if (strcmp(label, "bytes:") == 0)
 				{
-				    si->nfs.nfsmounts.nfsmnt[i].bytesread =
-									cnt[0];
-				    si->nfs.nfsmounts.nfsmnt[i].byteswrite =
-									cnt[1];
-				    si->nfs.nfsmounts.nfsmnt[i].bytesdread =
-									cnt[2];
-				    si->nfs.nfsmounts.nfsmnt[i].bytesdwrite =
-									cnt[3];
-				    si->nfs.nfsmounts.nfsmnt[i].bytestotread =
-									cnt[4];
-				    si->nfs.nfsmounts.nfsmnt[i].bytestotwrite =
-									cnt[5];
-				    si->nfs.nfsmounts.nfsmnt[i].pagesmread =
-									cnt[6];
-				    si->nfs.nfsmounts.nfsmnt[i].pagesmwrite =
-									cnt[7];
+				    si->nfs.nfsmounts.nfsmnt[i].bytesread     = cnt[0];
+				    si->nfs.nfsmounts.nfsmnt[i].byteswrite    = cnt[1];
+				    si->nfs.nfsmounts.nfsmnt[i].bytesdread    = cnt[2];
+				    si->nfs.nfsmounts.nfsmnt[i].bytesdwrite   = cnt[3];
+				    si->nfs.nfsmounts.nfsmnt[i].bytestotread  = cnt[4];
+				    si->nfs.nfsmounts.nfsmnt[i].bytestotwrite = cnt[5];
+				    si->nfs.nfsmounts.nfsmnt[i].pagesmread    = cnt[6];
+				    si->nfs.nfsmounts.nfsmnt[i].pagesmwrite   = cnt[7];
 
 				    if (++i >= MAXNFSMOUNT-1)
 					break;
@@ -2439,7 +2431,7 @@ get_infiniband(struct ifbstat *si)
 				// store controller name for cache
 				//
 				p = malloc( strlen(contdent->d_name)+1 );
-				strcpy(p, contdent->d_name);
+				safe_strcpy(p, contdent->d_name, strlen(contdent->d_name)+1);
 
 				if (strlen(contdent->d_name) > MAXIBNAME-1)
 					p[MAXIBNAME-1] = '\0';
@@ -2498,7 +2490,7 @@ get_infiniband(struct ifbstat *si)
 	for (i=0; i < nib; i++)
 	{
 		// static metrics from cache
-		strcpy(si->ifb[i].ibname, ibcache[i].ibha);
+		safe_strcpy(si->ifb[i].ibname, ibcache[i].ibha, sizeof si->ifb[i].ibname);
 
 		si->ifb[i].portnr = ibcache[i].port;
 		si->ifb[i].lanes  = ibcache[i].lanes;
@@ -2564,22 +2556,22 @@ ibprep(struct ibcachent *ibc)
 	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_data",
 						    ibc->ibha, ibc->port);
 	ibc->pathrcvb = malloc( strlen(path)+1 );
-	strcpy(ibc->pathrcvb, path);
+	safe_strcpy(ibc->pathrcvb, path, strlen(path)+1);
 
 	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_data",
 						    ibc->ibha, ibc->port);
 	ibc->pathsndb = malloc( strlen(path)+1 );
-	strcpy(ibc->pathsndb, path);
+	safe_strcpy(ibc->pathsndb, path, strlen(path)+1);
 
 	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_packets",
 						    ibc->ibha, ibc->port);
 	ibc->pathrcvp = malloc( strlen(path)+1 );
-	strcpy(ibc->pathrcvp, path);
+	safe_strcpy(ibc->pathrcvp, path, strlen(path)+1);
 
 	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_packets",
 						    ibc->ibha, ibc->port);
 	ibc->pathsndp = malloc( strlen(path)+1 );
-	strcpy(ibc->pathsndp, path);
+	safe_strcpy(ibc->pathsndp, path, strlen(path)+1);
 }
 
 /*

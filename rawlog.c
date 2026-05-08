@@ -496,11 +496,9 @@ rawread(void)
 		{
 			char	savedname[16];
 
-			strcpy(savedname, irawname); // no overflow (len=8)
+			safe_strcpy(savedname, irawname, sizeof savedname);
 
-			snprintf(irawname, RAWNAMESZ, "%s/atop_%s",
-				BASEPATH, 
-				savedname);
+			snprintf(irawname, RAWNAMESZ, "%s/atop_%s", BASEPATH, savedname);
 			break;
 		}
 

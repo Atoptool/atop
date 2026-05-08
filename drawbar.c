@@ -1049,7 +1049,7 @@ addifscale(char *interface, int scale)
 
 	isp->interface 	= malloc(len+1);
 	ptrverify(isp->interface, "Malloc failed for ifscale name\n");
-	strcpy(isp->interface, interface);
+	safe_strcpy(isp->interface, interface, len+1);
 
 	isp->next 	= ishash[hash&(ISNUM-1)];
 	isp->curscale 	= scale > winnet.nlines - IFRESERVED ?

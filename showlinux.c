@@ -794,7 +794,8 @@ make_detail_prints(detail_printpair *ar, int maxn, const char *pairs,
         int n=strlen(pairs);
 
         char str[n+1];
-        strcpy(str, pairs);
+
+        safe_strcpy(str, pairs, n+1);
 
         makeargv(str, linename, items);
 

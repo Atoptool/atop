@@ -342,8 +342,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 						curthr->cpu.nivcsw;
 
 					// continue gathering
-					strcpy(curthr->gen.utsname,
-						curtask->gen.utsname);
+					safe_strcpy(curthr->gen.utsname, curtask->gen.utsname, sizeof curthr->gen.utsname);
 
 					switch (curthr->gen.state)
 					{
@@ -838,7 +837,7 @@ proccmd(struct tstat *curtask)
 
 				*(line+nread-1) = ' ';	// modify NULL byte to space
 
-				strcpy(pc, line);
+				safe_strcpy(pc, line, nread+1);
 				pc += nread;
 			}
 		}

@@ -342,7 +342,7 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 
 	// - fill basic info in current cgchainer
 	//
-	strcpy(ccp->cstat->cgname, dirname);	// copy directory name
+	safe_strcpy(ccp->cstat->cgname, dirname, namelen+1);	// copy directory name
 
 	if (*dirname == '.')			// top directory?
 	{

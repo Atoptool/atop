@@ -2023,7 +2023,7 @@ procprt_ENDATE_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[11];
 
-	strcpy(buf, "  active  ");
+	safe_strcpy(buf, "  active  ", sizeof buf);
 
         return buf;
 }
@@ -2079,7 +2079,7 @@ procprt_ENTIME_a(struct tstat *curstat, int avgval, int nsecs)
 {
         static char buf[9];
 
-	strcpy(buf, " active ");
+	safe_strcpy(buf, " active ", sizeof buf);
 
         return buf;
 }
@@ -2111,10 +2111,10 @@ compentime(const void *a, const void *b, void *dir)
         convtime(bval, bbuf);
 
 	if (astate != 'E')
-		strcpy(abuf, "99:99:99");
+		safe_strcpy(abuf, "99:99:99", sizeof abuf);
 
 	if (bstate != 'E')
-		strcpy(bbuf, "99:99:99");
+		safe_strcpy(bbuf, "99:99:99", sizeof bbuf);
 
 	return strcmp(abuf, bbuf) * *(int *)dir;
 }
@@ -2767,7 +2767,7 @@ procprt_RDDSK_a(struct tstat *curstat, int avgval, int nsecs)
 	if (supportflags & IOSTAT)
         	val2memstr(curstat->dsk.rsz*512, buf, BFORMAT, avgval, nsecs);
 	else
-		strcpy(buf, "nopriv");
+		safe_strcpy(buf, "nopriv", sizeof buf);
 
         return buf;
 }
@@ -2809,7 +2809,7 @@ procprt_WRDSK_a(struct tstat *curstat, int avgval, int nsecs)
 	if (supportflags & IOSTAT)
         	val2memstr(curstat->dsk.wsz*512, buf, BFORMAT, avgval, nsecs);
 	else
-		strcpy(buf, "nopriv");
+		safe_strcpy(buf, "nopriv", sizeof buf);
 
         return buf;
 }
@@ -2896,7 +2896,7 @@ procprt_WCANCEL_a(struct tstat *curstat, int avgval, int nsecs)
 	if (supportflags & IOSTAT)
         	val2memstr(curstat->dsk.cwsz*512, buf, BFORMAT, avgval, nsecs);
 	else
-		strcpy(buf, "nopriv");
+		safe_strcpy(buf, "nopriv", sizeof buf);
 
         return buf;
 }
@@ -4639,7 +4639,7 @@ cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
         		val2memstr((tstat->dsk.rsz+tstat->dsk.wsz)*512,
 							buf, BFORMAT, avgval, nsecs);
 		else
-			strcpy(buf, "nopriv");
+			safe_strcpy(buf, "nopriv", sizeof buf);
 	}
 
        	return buf;

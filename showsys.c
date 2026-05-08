@@ -583,6 +583,8 @@ sysprt_CPUIWAIT(struct sstat *sstat, extraparam *as, int badness, int *color)
 
 sys_printdef syspdef_CPUIWAIT = {"CPUIWAIT", sysprt_CPUIWAIT, NULL};
 /*******************************************************************/
+// call this function with a pointer to a buffer of at least 13 bytes
+//
 static char *
 dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 {
@@ -590,12 +592,12 @@ dofmt_cpufreq(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
         if (ticks) 
         {
             count_t curfreq	= cnt/ticks;
-            strcpy(buf, "avgf ");
+            safe_strcpy(buf, "avgf ", 13);
             val2Hzstr(curfreq, buf+5);
         } 
         else if (cnt)       // no max, no %.  if freq is known: print it
         {
-            strcpy(buf, "curf ");
+            safe_strcpy(buf, "curf ", 13);
             val2Hzstr(cnt, buf+5);
         }
         else                // nothing is known: suppress
@@ -645,12 +647,12 @@ dofmt_cpuscale(char *buf, count_t maxfreq, count_t cnt, count_t ticks)
 		count_t curfreq	= cnt/ticks;
 		int     perc = maxfreq ? 100 * curfreq / maxfreq : 0;
 
-		strcpy(buf, "avgscal ");
+		safe_strcpy(buf, "avgscal ", sizeof buf);
 		snprintf(buf+7, 6, "%4d%%", perc);
         } 
         else if (maxfreq)   // max frequency is known so % can be calculated
         {
-		strcpy(buf, "curscal ");
+		safe_strcpy(buf, "curscal ", sizeof buf);
 		snprintf(buf+7, 6, "%4lld%%", 100 * cnt / maxfreq);
         }
 	else	// nothing is known: suppress
@@ -2826,7 +2828,6 @@ sysprt_NETNAME(struct sstat *sstat, extraparam *as, int badness, int *color)
         {
                 snprintf(buf, sizeof(buf)-1, "%-7.7s ----",
                                sstat->intf.intf[as->index].name);
-                strcpy(buf+8, "----");
         } 
         return buf;
 }
@@ -3173,7 +3174,7 @@ sysprt_NFMSERVER(struct sstat *sstat, extraparam *as, int badness, int *color)
 	if ( (ps = strchr(mntdev, ':')) )		// colon found?
 		*ps = '\0';
 	else
-		strcpy(mntdev, "?");
+		safe_strcpy(mntdev, "?", sizeof mntdev);
 
 	snprintf(buf+4, sizeof buf-4, "%8.8s", mntdev);
         return buf;

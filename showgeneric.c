@@ -2924,7 +2924,7 @@ cumprogs(struct tstat **curprocs, struct tstat *curprogs, int numprocs)
 				numprogs++;
 				curprogs++;
 			}
-			strcpy(curprogs->gen.name, (*curprocs)->gen.name);
+			safe_strcpy(curprogs->gen.name, (*curprocs)->gen.name, sizeof curprogs->gen.name);
 		}
 
 		accumulate(*curprocs, curprogs);
@@ -2968,8 +2968,7 @@ cumconts(struct tstat **curprocs, struct tstat *curconts, int numprocs)
 				numconts++;
 				curconts++;
 			}
-			strcpy(curconts->gen.utsname,
-			    (*curprocs)->gen.utsname);
+			safe_strcpy(curconts->gen.utsname, (*curprocs)->gen.utsname, sizeof curconts->gen.utsname);
 		}
 
 		accumulate(*curprocs, curconts);
