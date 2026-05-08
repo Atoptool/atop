@@ -281,7 +281,7 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 	cgcursize += cstatlen;
 	cgcurnum++;
 
-	// - determine number of processes in this cgroup directory
+	// - count number of processes in this cgroup directory
 	//
 	if ( (fp = fopen("cgroup.procs", "r")) )
 	{
@@ -299,35 +299,47 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 	if (proccnt)
 	{
         	ccp->proclist = malloc(sizeof(pid_t) * proccnt);
-		ptrverify(ccp->proclist,
-		          "Malloc failed for proclist (%d pids)\n", proccnt);
-	}
-	else
-	{
-        	ccp->proclist = NULL;
-	}
+		ptrverify(ccp->proclist, "Malloc failed for proclist (%d pids)\n", proccnt);
 
-	i = 0;
+		i = 0;
 
-	if ( (fp = fopen("cgroup.procs", "r")) )
-	{
-		char line[64];
-
-		while (fgets(line, sizeof line, fp))
+		if ( (fp = fopen("cgroup.procs", "r")) )
 		{
-			*(ccp->proclist+i) = strtol(line, NULL, 10);
+			char line[64];
 
-			if (++i >= proccnt)
-				break;
+			while (fgets(line, sizeof line, fp))
+			{
+				// number of processes might have expanded since counting
+				// 
+				// this is expected to be a rare situation that will be
+				// solved by a realloc() to expand the pid list
+				//
+				if (i >= proccnt)
+				{
+					proccnt = i+1;
+
+					ccp->proclist = realloc(ccp->proclist, sizeof(pid_t) * proccnt);
+					ptrverify(ccp->proclist, "Realloc failed for proclist (%d pids)\n", proccnt);
+				}
+
+				// store pid
+				//
+				*(ccp->proclist+i) = strtol(line, NULL, 10);
+				i++;
+			}
+
+			fclose(fp);
 		}
 
-		fclose(fp);
+		proccnt = i;	// number of processes might have shrunk since counting
+
+		cgcurprocs += proccnt;
+	}
+	else	// no processes in cgroup.procs
+	{
+		ccp->proclist = NULL;
 	}
 
-	proccnt = i;	// number of processes might have shrunk
-
-	cgcurprocs += proccnt;
-	
 	// - fill basic info in current cgchainer
 	//
 	strcpy(ccp->cstat->cgname, dirname);	// copy directory name
