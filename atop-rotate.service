@@ -4,4 +4,4 @@ Documentation=man:atop(1)
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/systemctl restart atop.service
+ExecStart=/usr/bin/systemctl try-restart atop.service
