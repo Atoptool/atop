@@ -104,8 +104,13 @@ rawwrite(time_t curtime, int numsecs,
 	** first call:
 	**	take care that the log file is opened
 	*/
-	if (rawfd == -1)
+	if (rawfd == -1) {
 		rawfd = rawwopen();
+		if (rawfd == -1) {
+			perror("Failed to open raw log file");
+			return '\0';
+		}
+	}
 
 	/*
  	** register current size of file in order to "roll back"
