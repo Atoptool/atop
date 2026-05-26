@@ -489,6 +489,9 @@ calcdiff(struct tstat *devstat, const struct tstat *curstat,
 	devstat->mem.vswap  = curstat->mem.vswap;
 	devstat->mem.vlock  = curstat->mem.vlock;
 
+	devstat->mem.oomscore    = curstat->mem.oomscore;
+	devstat->mem.oomscoreadj = curstat->mem.oomscoreadj;
+
 	if (curstat->gpu.state || prestat->gpu.state) // GPU use?
 	{
 		if (curstat->gpu.state)

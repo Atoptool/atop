@@ -13,7 +13,7 @@
 ** Date:        November 1996
 ** LINUX-port:  June 2000
 ** --------------------------------------------------------------------------
-** Copyright (C) 2000-2022 Gerlof Langeveld
+** Copyright (C) 2000-2026 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -64,6 +64,7 @@ static int	procstatus(struct tstat *);
 static int	procio(struct tstat *);
 static void	proccmd(struct tstat *);
 static void	procsmaps(struct tstat *);
+static void	procoomscore(struct tstat *);
 static void	procwchan(struct tstat *);
 static count_t	procschedstat(struct tstat *);
 
@@ -197,9 +198,10 @@ photoproc(struct tstat *tasklist, int maxtask)
 			continue;
 		}
 
-		procschedstat(curtask);			/* from /proc/pid/schedstat */
-		proccmd(curtask);			/* from /proc/pid/cmdline */
-		dockstat += getutsname(curtask);	/* retrieve container/pod name */
+		procschedstat(curtask);			/* from /proc/pid/schedstat       */
+		proccmd(curtask);			/* from /proc/pid/cmdline         */
+		procoomscore(curtask);			/* from /proc/pid/oom_score(_adj) */
+		dockstat += getutsname(curtask);	/* retrieve container/pod name    */
 
 		/*
 		** reading the smaps file for every process with every sample
@@ -341,9 +343,15 @@ photoproc(struct tstat *tasklist, int maxtask)
 					curtask->cpu.nivcsw +=
 						curthr->cpu.nivcsw;
 
-					// continue gathering
+					// copy particular info from process level to thread level
+					//
 					safe_strcpy(curthr->gen.utsname, curtask->gen.utsname, sizeof curthr->gen.utsname);
 
+					curthr->mem.oomscore    = curtask->mem.oomscore;
+					curthr->mem.oomscoreadj = curtask->mem.oomscoreadj;
+
+					// maintain thread counter on process level depending on state
+					//
 					switch (curthr->gen.state)
 					{
 	   		   		   case 'R':
@@ -363,11 +371,14 @@ photoproc(struct tstat *tasklist, int maxtask)
 					curthr->gen.nthr = 1;
 
 					// try to read network stats from netatop's module
+					//
 					if (!(supportflags & NETATOPBPF)) {
 						netatop_gettask(curthr->gen.pid, 't',
 										curthr);
 					}
+
 					// all stats read now
+					//
 					tval++;	    /* increment thread-level */
 					cur_nth++;  /* increment # threads    */
 
@@ -385,7 +396,7 @@ photoproc(struct tstat *tasklist, int maxtask)
 		}
 
 		if ( chdir("..") == -1)
-			; /* leave process-level directry */
+			; /* leave process-level directory */
 	}
 
 	closedir(dirp);
@@ -882,6 +893,41 @@ proccmd(struct tstat *curtask)
 
 
 /*
+** determine the oom_score and oom_score_adj of a process
+*/
+static void
+procoomscore(struct tstat *curtask)
+{
+        FILE            *fp;
+        register int    nr = 0;
+	char		buf[16];
+
+	curtask->mem.oomscore    = 0;
+	curtask->mem.oomscoreadj = 0;
+
+        if ( (fp = fopen("oom_score", "r")) != NULL)
+        {
+                nr = fread(buf, 1, sizeof(buf)-1, fp);
+		buf[nr] = '\0';
+
+		sscanf(buf, "%lld", &(curtask->mem.oomscore));
+
+                fclose(fp);
+        }
+
+        if ( (fp = fopen("oom_score_adj", "r")) != NULL)
+        {
+                nr = fread(buf, 1, sizeof(buf)-1, fp);
+		buf[nr] = '\0';
+
+		sscanf(buf, "%lld", &(curtask->mem.oomscoreadj));
+
+                fclose(fp);
+        }
+}
+
+
+/*
 ** determine the wait channel of a sleeping thread
 ** i.e. the name of the kernel function in which the thread
 ** has been put in sleep state)
@@ -894,7 +940,6 @@ procwchan(struct tstat *curtask)
 
         if ( (fp = fopen("wchan", "r")) != NULL)
         {
-
                 nr = fread(curtask->cpu.wchan, 1,
 			sizeof(curtask->cpu.wchan)-1, fp);
                 if (nr < 0)

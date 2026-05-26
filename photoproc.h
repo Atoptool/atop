@@ -119,7 +119,9 @@ struct tstat {
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
 		count_t	vlock;		/* virtual locked   (Kb) 	*/
-		count_t	cfuture[7];	/* reserved for future use	*/
+		count_t oomscore;	/* OOM score (0-2000)		*/
+		count_t oomscoreadj;	/* adjustment (-1000-+1000)	*/
+		count_t	cfuture[5];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/

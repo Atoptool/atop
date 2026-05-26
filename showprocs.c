@@ -104,6 +104,10 @@ char *procprt_VSTACK_a(struct tstat *, int, int);
 char *procprt_VSTACK_e(struct tstat *, int, int);
 char *procprt_SWAPSZ_a(struct tstat *, int, int);
 char *procprt_SWAPSZ_e(struct tstat *, int, int);
+char *procprt_OOMSCORE_a(struct tstat *, int, int);
+char *procprt_OOMSCORE_e(struct tstat *, int, int);
+char *procprt_OOMADJUST_a(struct tstat *, int, int);
+char *procprt_OOMADJUST_e(struct tstat *, int, int);
 char *procprt_LOCKSZ_a(struct tstat *, int, int);
 char *procprt_LOCKSZ_e(struct tstat *, int, int);
 char *procprt_CMD_a(struct tstat *, int, int);
@@ -1520,6 +1524,106 @@ complocksz(const void *a, const void *b, void *dir)
 
 detail_printdef procprt_LOCKSZ = 
    {0, "LOCKSZ", "LOCKSZ", .ac.doactiveconverts = procprt_LOCKSZ_a, procprt_LOCKSZ_e, complocksz, -1, 6, 0};
+/***************************************************************/
+int compoomscore(const void *, const void *, void *);
+
+char *
+procprt_OOMSCORE_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        snprintf(buf, sizeof buf, "%5lld", curstat->mem.oomscore);
+        return buf;
+}
+
+char *
+procprt_OOMSCORE_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "    ?";
+}
+
+int
+compoomscore(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.oomscore;
+        register count_t bval = (*(struct tstat **)b)->mem.oomscore;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	// make terminated processes irrelevant (sorted at the end)
+	//
+	if (astate == 'E')
+	{
+		if (*(int *)dir < 0)
+			aval = -1;	// descending
+		else
+			aval = 2001;	// ascending
+	}
+
+	if (bstate == 'E')
+	{
+		if (*(int *)dir < 0)
+			bval = -1;	// descending
+		else
+			bval = 2001;	// ascending
+	}
+
+	return (aval - bval) * *(int *)dir;
+}
+
+detail_printdef procprt_OOMSCORE = 
+   {0, "OOMSC", "OOMSC", .ac.doactiveconverts = procprt_OOMSCORE_a, procprt_OOMSCORE_e, compoomscore, -1, 5, 0};
+/***************************************************************/
+int compoomscoreadj(const void *, const void *, void *);
+
+char *
+procprt_OOMADJUST_a(struct tstat *curstat, int avgval, int nsecs)
+{
+        static char buf[10];
+
+        snprintf(buf, sizeof buf, "%6lld", curstat->mem.oomscoreadj);
+        return buf;
+}
+
+char *
+procprt_OOMADJUST_e(struct tstat *curstat, int avgval, int nsecs)
+{
+        return "     ?";
+}
+
+int
+compoomscoreadj(const void *a, const void *b, void *dir)
+{
+        register count_t aval = (*(struct tstat **)a)->mem.oomscoreadj;
+        register count_t bval = (*(struct tstat **)b)->mem.oomscoreadj;
+
+        register unsigned char astate = (*(struct tstat **)a)->gen.state;
+        register unsigned char bstate = (*(struct tstat **)b)->gen.state;
+
+	// make terminated processes irrelevant (sorted at the end)
+	//
+	if (astate == 'E')
+	{
+		if (*(int *)dir < 0)
+			aval = -1001;	// descending
+		else
+			aval = 1001;	// ascending
+	}
+
+	if (bstate == 'E')
+	{
+		if (*(int *)dir < 0)
+			bval = -1001;	// descending
+		else
+			bval = 1001;	// ascending
+	}
+
+	return (aval - bval) * *(int *)dir;
+}
+
+detail_printdef procprt_OOMADJUST = 
+   {0, "OOMADJ", "OOMADJ", .ac.doactiveconverts = procprt_OOMADJUST_a, procprt_OOMADJUST_e, compoomscoreadj, 1, 6, 0};
 /***************************************************************/
 int compcmd(const void *, const void *, void *);
 

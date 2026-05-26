@@ -423,6 +423,8 @@ extern detail_printdef procprt_VSLIBS;
 extern detail_printdef procprt_VDATA;
 extern detail_printdef procprt_VSTACK;
 extern detail_printdef procprt_SWAPSZ;
+extern detail_printdef procprt_OOMSCORE;
+extern detail_printdef procprt_OOMADJUST;
 extern detail_printdef procprt_LOCKSZ;
 extern detail_printdef procprt_CMD;
 extern detail_printdef procprt_RUID;

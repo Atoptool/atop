@@ -1,4 +1,4 @@
-.TH ATOP 1 "July 2024" "Linux"
+.TH ATOP 1 "June 2026" "Linux"
 .SH NAME
 .B atop
 - Advanced System & Process Monitor
@@ -2227,6 +2227,18 @@ or program.
 .B NVCSW
 Number of times that the process/thread was context-switched voluntarily in
 case of a blocking system call, e.g. to wait for an I/O operation to complete.
+.PP
+.TP 9
+.B OOMADJ
+The value that adjusts the OOM score value of this process (usually 2/3 of this value
+is taken for adjustment) in a range from -1000 till +1000. Value -1000 means that the
+process will never be killed due to OOM killing.
+.PP
+.TP 9
+.B OOMSC
+The Out-Of-Memory (OOM) score of this process in a range from 0 till 2000.
+The higher this value the more likely this process will be killed when
+the system runs out of memory (and swap space).
 .PP
 .TP 9
 .B PID

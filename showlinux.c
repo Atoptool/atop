@@ -415,6 +415,8 @@ detail_printdef *alldetaildefs[]=
 	&procprt_VDATA,
 	&procprt_VSTACK,
 	&procprt_SWAPSZ,
+	&procprt_OOMSCORE,
+	&procprt_OOMADJUST,
 	&procprt_LOCKSZ,
 	&procprt_CMD,
 	&procprt_RUID,
@@ -1360,9 +1362,9 @@ prihead(int curlist, int totlist, struct procview *pv, count_t numcpu)
 		init_proc_prints(numcpu);
 
                 make_detail_prints(memprocs, MAXITEMS, 
-                        "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:4 VSLIBS:4 "
+                        "PID:10 TID:3 MINFLT:2 MAJFLT:2 VSTEXT:3 VSLIBS:3 "
 			"VDATA:4 VSTACK:4 LOCKSZ:3 VSIZE:6 RSIZE:7 PSIZE:5 "
-                        "VGROW:7 RGROW:8 SWAPSZ:5 RUID:1 EUID:0 "
+                        "VGROW:7 RGROW:8 SWAPSZ:5 OOMSC:4 OOMADJ:3 RUID:1 EUID:0 "
                         "RESOURCE:9 CMD:10", 
                         "built-in memprocs");
 
