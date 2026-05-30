@@ -198,7 +198,7 @@ struct percpu {
 struct	cpustat {
 	int	nrcpu;	/* number of online cpu's  		*/
 	int	maxcpu;	/* CPU entries in use online/offline	*/
-	int	onliners;	/* accumulated online CPUs	*/
+	count_t	onliners;	/* accumulated online CPUs	*/
 	count_t	devint;	/* number of device interrupts 		*/
 	count_t	csw;	/* number of context switches		*/
 	count_t	nprocs;	/* number of processes started          */

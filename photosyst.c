@@ -389,7 +389,11 @@ photosyst(struct sstat *si)
 				}
 
 				si->cpu.nrcpu++;
-				si->cpu.onliners += i;	// to detect online/offline changes
+
+				// accumulate the squares of the online CPUs
+				// to detect online/offline changes during the last interval
+				//
+				si->cpu.onliners += i*i;
 
 				if (si->cpu.maxcpu < i+1)
 					si->cpu.maxcpu = i+1;
@@ -2905,7 +2909,8 @@ perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
 static void
 getperfevents(struct cpustat *cs)
 {
-	static int	cpualloced, prev_onliners, prev_nrcpu, *fdi, *fdc;
+	static int	cpualloced, prev_nrcpu, *fdi, *fdc;
+	static count_t	prev_onliners;
 	int		i;
 	int 		liResult;
 
@@ -2923,7 +2928,7 @@ getperfevents(struct cpustat *cs)
 	** not enough to verify the number of online CPUs because
 	** CPU 5 might have been disabled while CPU 6 might have
 	** been enabled in the same interval
-	** therefore, the numbers of the online CPUs will be accumulated
+	** therefore, the squares of the online CPUs will be accumulated
 	** in the variable 'onliners' to be verified as well
 	*/
 	if (cpualloced != cs->maxcpu || prev_onliners != cs->onliners || prev_nrcpu != cs->nrcpu)
