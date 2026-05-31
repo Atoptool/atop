@@ -1164,6 +1164,9 @@ print_PRE(char *hp, struct sstat *ss,
 	register int	i, samples;
 	char		namout[PNAMLEN+1+2];
 
+	if ( !(supportflags & GPUSTAT) )
+		return;
+
 	for (i=0; i < nact; i++, ps++)
 	{
 		samples = ps->gpu.samples ? ps->gpu.samples : 1;
