@@ -2921,7 +2921,6 @@ getperfevents(struct cpustat *cs, count_t onliners)
 	int		i;
 	int 		liResult;
 
-	fprintf(stderr, "%lld %lld\n", prev_onliners, onliners);
 	/*
 	** irrecoverable failure?
 	*/
@@ -2945,8 +2944,6 @@ getperfevents(struct cpustat *cs, count_t onliners)
 		struct perf_event_attr  pea;
 		int			success=0, minfds = cs->nrcpu*2 + 32;
 		struct rlimit		rlim;
-
-		fprintf(stderr, "REINIT\n");
 
 		if (cpualloced > 0)		// already initialized before?
 		{
