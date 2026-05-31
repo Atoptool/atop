@@ -2579,6 +2579,7 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	int pexit, int pzombie)
 {
 	count_t	availcpu;
+	int	order = -1;
 
 	if (!ts)
 	{
@@ -2589,7 +2590,7 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in cpu order
 	*/
-	qsort_r(ps, nactproc, sizeof(struct tstat *), compcpu, NULL);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compcpu, &order);
 
 	availcpu  = ss->cpu.all.stime + ss->cpu.all.utime +
 	            ss->cpu.all.ntime + ss->cpu.all.itime +
@@ -2643,7 +2644,8 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int ntidle,
 	int pexit, int pzombie)
 {
-	count_t		availmem;
+	count_t	availmem;
+	int	order = -1;
 
 	if (!ts)
 	{
@@ -2654,7 +2656,7 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in memory order
 	*/
-	qsort_r(ps, nactproc, sizeof(struct tstat *), compmem, NULL);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compmem, &order);
 
 	availmem  = ss->mem.physmem * pagesize/1024;
 
@@ -2700,7 +2702,7 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int ntidle,
 	int pexit, int pzombie)
 {
-	int		i;
+	int		i, order = -1;
 	count_t		availdsk;
 
 	if (!ts)
@@ -2729,7 +2731,7 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in disk order
 	*/
-	qsort_r(ps, nactproc, sizeof(struct tstat *), compdsk, NULL);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compdsk, &order);
 
         if (nactproc >= 1 && (ps[0])->dsk.rio + (ps[0])->dsk.wio > 0)
 	    printf("%5d %-8.8s %3.0lf%% | ",
@@ -2773,7 +2775,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
         int ppres,  int ntrun, int ntslpi, int ntslpu, int ntidle,
 	int pexit, int pzombie)
 {
-	int		i;
+	int		i, order = -1;
 	count_t		availnet;
 	count_t		totbytes;
 
@@ -2804,7 +2806,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	/*
 	** sort process list in network order
 	*/
-	qsort_r(ps, nactproc, sizeof(struct tstat *), compnet, NULL);
+	qsort_r(ps, nactproc, sizeof(struct tstat *), compnet, &order);
 
         if (nactproc >= 1)
 	{
