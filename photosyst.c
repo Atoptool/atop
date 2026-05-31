@@ -95,7 +95,7 @@ enum {
 static int	perfevents = PERF_EVENTS_AUTO;
 static long	perf_event_open(struct perf_event_attr *, pid_t,
                 int, int, unsigned long);
-static void	getperfevents(struct cpustat *);
+static void	getperfevents(struct cpustat *, count_t);
 #endif
 
 static int	get_infiniband(struct ifbstat *);
@@ -294,6 +294,8 @@ photosyst(struct sstat *si)
 
 	static count_t	lowwatermark;	/* accumulated low watermark zones  */
 
+        count_t onliners = 0;       	/* accumulated online CPUs          */
+
 
 	register int	i, nr, j;
 	count_t		cnts[MAXCNT];
@@ -391,9 +393,14 @@ photosyst(struct sstat *si)
 				si->cpu.nrcpu++;
 
 				// accumulate the squares of the online CPUs
-				// to detect online/offline changes during the last interval
+				// to detect online/offline changes during
+				// the last interval
 				//
-				si->cpu.onliners += i*i;
+				// the square of the CPU numbers avoid that
+				// switching off CPU 5 and 6, while switching
+				// on CPU 4 and 7 would not be detected
+				//
+				onliners += i*i;
 
 				if (si->cpu.maxcpu < i+1)
 					si->cpu.maxcpu = i+1;
@@ -2131,7 +2138,7 @@ photosyst(struct sstat *si)
 	/*
 	** get low-level CPU event counters
 	*/
-        getperfevents(&(si->cpu));
+        getperfevents(&(si->cpu), onliners);
 #endif
 
 	/*
@@ -2907,13 +2914,14 @@ perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
 }
 
 static void
-getperfevents(struct cpustat *cs)
+getperfevents(struct cpustat *cs, count_t onliners)
 {
 	static int	cpualloced, prev_nrcpu, *fdi, *fdc;
 	static count_t	prev_onliners;
 	int		i;
 	int 		liResult;
 
+	fprintf(stderr, "%lld %lld\n", prev_onliners, onliners);
 	/*
 	** irrecoverable failure?
 	*/
@@ -2929,13 +2937,16 @@ getperfevents(struct cpustat *cs)
 	** CPU 5 might have been disabled while CPU 6 might have
 	** been enabled in the same interval
 	** therefore, the squares of the online CPUs will be accumulated
-	** in the variable 'onliners' to be verified as well
+	** in the variable 'onliners' to be verified if the CPU
+	** configuration has been modified
 	*/
-	if (cpualloced != cs->maxcpu || prev_onliners != cs->onliners || prev_nrcpu != cs->nrcpu)
+	if (cpualloced != cs->maxcpu || prev_onliners != onliners || prev_nrcpu != cs->nrcpu)
 	{
 		struct perf_event_attr  pea;
 		int			success=0, minfds = cs->nrcpu*2 + 32;
 		struct rlimit		rlim;
+
+		fprintf(stderr, "REINIT\n");
 
 		if (cpualloced > 0)		// already initialized before?
 		{
@@ -2974,7 +2985,7 @@ getperfevents(struct cpustat *cs)
 		/*
 		** allocate space for per-cpu file descriptors
 		*/
-		prev_onliners = cs->onliners;
+		prev_onliners = onliners;
 		prev_nrcpu    = cs->nrcpu;
 
 		cpualloced    = cs->maxcpu;
