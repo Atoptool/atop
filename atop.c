@@ -308,6 +308,8 @@ main(int argc, char *argv[])
 	int		c;
 	char		*p;
 	struct rlimit	rlim;
+	const size_t orawname_size = sizeof orawname;
+	const size_t irawname_size = sizeof irawname;
 
 	/*
 	** since privileged actions will be done later on, at this stage
@@ -380,7 +382,7 @@ main(int argc, char *argv[])
 				if (optind >= argc)
 					prusage(argv[0]);
 
-				safe_strcpy(orawname, argv[optind++], sizeof orawname);
+				safe_strcpy(orawname, argv[optind++], orawname_size);
 
 				if (!rawwriteflag)
 				{	
@@ -397,13 +399,13 @@ main(int argc, char *argv[])
 					{
 						if (strlen(argv[optind]) == 1)
 						{
-							safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
+							safe_strcpy(irawname, "/dev/stdin", irawname_size);
 							optind++;
 						}
 					}
 					else
 					{
-						safe_strcpy(irawname, argv[optind], sizeof irawname);
+						safe_strcpy(irawname, argv[optind], irawname_size);
 						optind++;
 					}
 				}
@@ -1177,6 +1179,7 @@ static void
 readrc(char *path, int syslevel)
 {
 	int	i, nr, line=0, errorcnt = 0;
+	const int manrc_size = sizeof manrc / sizeof manrc[0];
 
 	/*
 	** check if this file is readable with the user's
@@ -1237,7 +1240,7 @@ readrc(char *path, int syslevel)
 			** tag name and tag value found
 			** try to recognize tag name
 			*/
-			for (i=0; i < sizeof manrc/sizeof manrc[0]; i++)
+			for (i=0; i < manrc_size; i++)
 			{
 				if ( strcmp(tagname, manrc[i].tag) == 0)
 				{
@@ -1261,7 +1264,7 @@ readrc(char *path, int syslevel)
 			/*
 			** tag name not recognized
 			*/
-			if (i == sizeof manrc/sizeof manrc[0])
+			if (i == manrc_size)
 			{
 				fprintf(stderr,
 					"%s: warning at line %2d "
