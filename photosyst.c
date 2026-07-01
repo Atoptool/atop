@@ -2431,6 +2431,11 @@ get_infiniband(struct ifbstat *si)
 				// store controller name for cache
 				//
 				p = malloc( strlen(contdent->d_name)+1 );
+				if (p == NULL) {
+					// Handle memory allocation failure
+					fprintf(stderr, "Memory allocation failed for controller name: %s\n", contdent->d_name);
+					continue; // Skip to the next controller
+				}
 				safe_strcpy(p, contdent->d_name, strlen(contdent->d_name)+1);
 
 				if (strlen(contdent->d_name) > MAXIBNAME-1)
