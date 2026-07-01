@@ -1542,7 +1542,7 @@ photosyst(struct sstat *si)
  			tmpdsk.ndisc = -1;
 
 			nr = sscanf(linebuf,
-			      "%d %d %255s "		// ident
+			      "%u %u %255s "		// ident
                               "%lld %*d %lld %*d "	// reads
 			      "%lld %*d %lld %*d "	// writes
 			      "%lld %lld %lld "		// misc
@@ -2042,7 +2042,7 @@ photosyst(struct sstat *si)
 			{
 				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 				{
-					sscanf(linebuf, "%uK\n", &l3_cache_size);
+					sscanf(linebuf, "%dK\n", &l3_cache_size);
 					l3_cache_size *= 1024;
 				}
 
@@ -2062,7 +2062,7 @@ photosyst(struct sstat *si)
 				continue;
 
 			/* get cache id from directory name like mon_L3_00 */
-			sscanf(dentry->d_name + 7, "%hhd\n", &llc->id);
+			sscanf(dentry->d_name + 7, "%hhu\n", &llc->id);
 
 			snprintf(fn, sizeof fn, LLCDIR "/%s/llc_occupancy", dentry->d_name);
 			if ( (fp = fopen(fn, "r")) != NULL)
@@ -2522,7 +2522,7 @@ ibprep(struct ibcachent *ibc)
 	{
 		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			(void) sscanf(linebuf, "%lld %c%*s (%hdX",
+			(void) sscanf(linebuf, "%lld %c%*s (%huX",
 				&(ibc->rate), &speedunit, &(ibc->lanes));
 
 			// calculate megabits/second
