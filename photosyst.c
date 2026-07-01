@@ -1452,7 +1452,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-				"%15s %*s %*d %s %lld %*s %*d %*s %*d %s %lld\n",
+				"%15s %*s %*d %15s %lld %*s %*d %*s %*d %15s %lld\n",
 				nam, udpmem, &cnts[0], tcpmem, &cnts[1]);
 
 			if ( strcmp("TCP:", nam) == 0)
