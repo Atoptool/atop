@@ -1090,7 +1090,7 @@ photosyst(struct sstat *si)
 				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 				{
 					nr = sscanf(&linebuf[5],
-						"%lld %s %lld\n",
+						"%lld %63s %lld\n",
 						&cnts[0], nam, &cnts[1]);
 
 					if (cnts[0] != j)
