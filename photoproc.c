@@ -610,6 +610,39 @@ procstatus(struct tstat *curtask)
 {
 	FILE	*fp;
 	char	line[4096];
+	const char s_tgid[] = "Tgid:";
+	const char s_pid[] = "Pid:";
+	const char s_sleepavg[] = "SleepAVG:";
+	const char s_uid[] = "Uid:";
+	const char s_gid[] = "Gid:";
+	const char s_envid[] = "envID:";
+	const char s_vpid[] = "VPid:";
+	const char s_threads[] = "Threads:";
+	const char s_vmdata[] = "VmData:";
+	const char s_vmstk[] = "VmStk:";
+	const char s_vmexe[] = "VmExe:";
+	const char s_vmlib[] = "VmLib:";
+	const char s_vmswap[] = "VmSwap:";
+	const char s_vmlck[] = "VmLck:";
+	const char s_vcs[] = "voluntary_ctxt_switches:";
+	const char s_nivcs[] = "nonvoluntary_ctxt_switches:";
+
+	const size_t l_tgid = sizeof(s_tgid) - 1;
+	const size_t l_pid = sizeof(s_pid) - 1;
+	const size_t l_sleepavg = sizeof(s_sleepavg) - 1;
+	const size_t l_uid = sizeof(s_uid) - 1;
+	const size_t l_gid = sizeof(s_gid) - 1;
+	const size_t l_envid = sizeof(s_envid) - 1;
+	const size_t l_vpid = sizeof(s_vpid) - 1;
+	const size_t l_threads = sizeof(s_threads) - 1;
+	const size_t l_vmdata = sizeof(s_vmdata) - 1;
+	const size_t l_vmstk = sizeof(s_vmstk) - 1;
+	const size_t l_vmexe = sizeof(s_vmexe) - 1;
+	const size_t l_vmlib = sizeof(s_vmlib) - 1;
+	const size_t l_vmswap = sizeof(s_vmswap) - 1;
+	const size_t l_vmlck = sizeof(s_vmlck) - 1;
+	const size_t l_vcs = sizeof(s_vcs) - 1;
+	const size_t l_nivcs = sizeof(s_nivcs) - 1;
 
 	if ( (fp = fopen("status", "r")) == NULL)
 		return 0;
@@ -621,26 +654,26 @@ procstatus(struct tstat *curtask)
 
 	while (fgets(line, sizeof line, fp))
 	{
-		if (memcmp(line, "Tgid:", 5) ==0)
+		if (memcmp(line, s_tgid, l_tgid) ==0)
 		{
 			sscanf(line, "Tgid: %d", &(curtask->gen.tgid));
 			continue;
 		}
 
-		if (memcmp(line, "Pid:", 4) ==0)
+		if (memcmp(line, s_pid, l_pid) ==0)
 		{
 			sscanf(line, "Pid: %d", &(curtask->gen.pid));
 			continue;
 		}
 
-		if (memcmp(line, "SleepAVG:", 9)==0)
+		if (memcmp(line, s_sleepavg, l_sleepavg)==0)
 		{
 			sscanf(line, "SleepAVG: %d%%",
 				&(curtask->cpu.sleepavg));
 			continue;
 		}
 
-		if (memcmp(line, "Uid:", 4)==0)
+		if (memcmp(line, s_uid, l_uid)==0)
 		{
 			sscanf(line, "Uid: %d %d %d %d",
 				&(curtask->gen.ruid), &(curtask->gen.euid),
@@ -648,7 +681,7 @@ procstatus(struct tstat *curtask)
 			continue;
 		}
 
-		if (memcmp(line, "Gid:", 4)==0)
+		if (memcmp(line, s_gid, l_gid)==0)
 		{
 			sscanf(line, "Gid: %d %d %d %d",
 				&(curtask->gen.rgid), &(curtask->gen.egid),
@@ -656,67 +689,67 @@ procstatus(struct tstat *curtask)
 			continue;
 		}
 
-		if (memcmp(line, "envID:", 6) ==0)
+		if (memcmp(line, s_envid, l_envid) ==0)
 		{
 			sscanf(line, "envID: %d", &(curtask->gen.ctid));
 			continue;
 		}
 
-		if (memcmp(line, "VPid:", 5) ==0)
+		if (memcmp(line, s_vpid, l_vpid) ==0)
 		{
 			sscanf(line, "VPid: %d", &(curtask->gen.vpid));
 			continue;
 		}
 
-		if (memcmp(line, "Threads:", 8)==0)
+		if (memcmp(line, s_threads, l_threads)==0)
 		{
 			sscanf(line, "Threads: %d", &(curtask->gen.nthr));
 			continue;
 		}
 
-		if (memcmp(line, "VmData:", 7)==0)
+		if (memcmp(line, s_vmdata, l_vmdata)==0)
 		{
 			sscanf(line, "VmData: %lld", &(curtask->mem.vdata));
 			continue;
 		}
 
-		if (memcmp(line, "VmStk:", 6)==0)
+		if (memcmp(line, s_vmstk, l_vmstk)==0)
 		{
 			sscanf(line, "VmStk: %lld", &(curtask->mem.vstack));
 			continue;
 		}
 
-		if (memcmp(line, "VmExe:", 6)==0)
+		if (memcmp(line, s_vmexe, l_vmexe)==0)
 		{
 			sscanf(line, "VmExe: %lld", &(curtask->mem.vexec));
 			continue;
 		}
 
-		if (memcmp(line, "VmLib:", 6)==0)
+		if (memcmp(line, s_vmlib, l_vmlib)==0)
 		{
 			sscanf(line, "VmLib: %lld", &(curtask->mem.vlibs));
 			continue;
 		}
 
-		if (memcmp(line, "VmSwap:", 7)==0)
+		if (memcmp(line, s_vmswap, l_vmswap)==0)
 		{
 			sscanf(line, "VmSwap: %lld", &(curtask->mem.vswap));
 			continue;
 		}
 
-		if (memcmp(line, "VmLck:", 6)==0)
+		if (memcmp(line, s_vmlck, l_vmlck)==0)
 		{
 			sscanf(line, "VmLck: %lld", &(curtask->mem.vlock));
 			continue;
 		}
 
-		if (memcmp(line, "voluntary_ctxt_switches:", 24)==0)
+		if (memcmp(line, s_vcs, l_vcs)==0)
 		{
 			sscanf(line, "voluntary_ctxt_switches: %lld", &(curtask->cpu.nvcsw));
 			continue;
 		}
 
-		if (memcmp(line, "nonvoluntary_ctxt_switches:", 27)==0)
+		if (memcmp(line, s_nivcs, l_nivcs)==0)
 		{
 			sscanf(line, "nonvoluntary_ctxt_switches: %lld", &(curtask->cpu.nivcsw));
 			continue;
@@ -739,6 +772,9 @@ procio(struct tstat *curtask)
 	FILE	*fp;
 	char	line[4096];
 	count_t	dskrsz=0, dskwsz=0, dskcwsz=0;
+	const size_t read_len = sizeof(IO_READ) - 1;
+	const size_t write_len = sizeof(IO_WRITE) - 1;
+	const size_t cwrite_len = sizeof(IO_CWRITE) - 1;
 
 	if (supportflags & IOSTAT)
 	{
@@ -748,24 +784,21 @@ procio(struct tstat *curtask)
 		{
 			while (fgets(line, sizeof line, fp))
 			{
-				if (memcmp(line, IO_READ,
-						sizeof IO_READ -1) == 0)
+				if (memcmp(line, IO_READ, read_len) == 0)
 				{
 					sscanf(line, "%*s %llu", &dskrsz);
 					dskrsz /= 512;		// in sectors
 					continue;
 				}
 
-				if (memcmp(line, IO_WRITE,
-						sizeof IO_WRITE -1) == 0)
+				if (memcmp(line, IO_WRITE, write_len) == 0)
 				{
 					sscanf(line, "%*s %llu", &dskwsz);
 					dskwsz /= 512;		// in sectors
 					continue;
 				}
 
-				if (memcmp(line, IO_CWRITE,
-						sizeof IO_CWRITE -1) == 0)
+				if (memcmp(line, IO_CWRITE, cwrite_len) == 0)
 				{
 					sscanf(line, "%*s %llu", &dskcwsz);
 					dskcwsz /= 512;		// in sectors
@@ -868,7 +901,8 @@ proccmd(struct tstat *curtask)
 
 		if (nr > 0)	/* anything read? */
 		{
-			for (i=0; i < nr-1; i++, pc++)
+			const int max_i = nr - 1;
+			for (i=0; i < max_i; i++, pc++)
 			{
 				switch (*pc)
 				{
