@@ -325,7 +325,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-			            "%s   %lld %lld %lld %lld %lld %lld %lld "
+			            "%63s %lld %lld %lld %lld %lld %lld %lld "
 			            "%lld %lld %lld %lld %lld %lld %lld %lld ",
 			  	nam,
 			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
@@ -601,7 +601,7 @@ photosyst(struct sstat *si)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			nr = sscanf(linebuf, "%s %lld", nam, &cnts[0]);
+			nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
 
 			if (nr < 2)		/* headerline ? --> skip */
 				continue;
@@ -738,7 +738,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-				"%s %lld %lld %lld %lld %lld %lld %lld "
+				"%63s %lld %lld %lld %lld %lld %lld %lld "
 			        "%lld %lld %lld\n",
 				nam,
 			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
@@ -895,7 +895,7 @@ photosyst(struct sstat *si)
 		{
 			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 			{
-				nr = sscanf(linebuf, "%s %lld", nam, &cnts[0]);
+				nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
 
 				if (nr < 2)
 					continue;
@@ -1021,7 +1021,7 @@ photosyst(struct sstat *si)
 	{
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-			nr = sscanf(linebuf, "%s %lld ", nam, &cnts[0]);
+			nr = sscanf(linebuf, "%63s %lld ", nam, &cnts[0]);
 
 			if ( strcmp("current:", nam) == EQ)
 			{
@@ -1045,7 +1045,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-				"%s %lld %lld", nam, &cnts[0], &cnts[1]);
+				"%63s %lld %lld", nam, &cnts[0], &cnts[1]);
 
 			if (nr < 3)
 				continue;
@@ -1090,7 +1090,7 @@ photosyst(struct sstat *si)
 				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 				{
 					nr = sscanf(&linebuf[5],
-						"%lld %s %lld\n",
+						"%lld %63s %lld\n",
 						&cnts[0], nam, &cnts[1]);
 
 					if (cnts[0] != j)
@@ -1140,7 +1140,7 @@ photosyst(struct sstat *si)
 			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
 			{
 				nr = sscanf(&linebuf[5],
-					"%lld, %s %s %f %f %f %f %f %f %f %f %f %f %f\n",
+					"%lld, %63s %63s %f %f %f %f %f %f %f %f %f %f %f\n",
 					&cnts[0], tmp, nam, &frag[0], &frag[1], &frag[2],
 					&frag[3], &frag[4], &frag[5], &frag[6], &frag[7],
 					&frag[8], &frag[9], &frag[10]);
@@ -1165,7 +1165,7 @@ photosyst(struct sstat *si)
 			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
 			{
 				nr = sscanf(&linebuf[5],
-					"%lld, %s %s %lld %lld %lld %lld %lld "
+					"%lld, %63s %63s %lld %lld %lld %lld %lld "
 					"%lld %lld %lld %lld %lld %lld\n",
 					&cnts[0], tmp, nam, &cnts[1], &cnts[2], &cnts[3],
 					&cnts[4], &cnts[5], &cnts[6], &cnts[7], &cnts[8],
@@ -1343,7 +1343,7 @@ photosyst(struct sstat *si)
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
 			nr = sscanf(linebuf,
-			 "%s   %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+			 "%63s %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
 			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
@@ -1412,7 +1412,7 @@ photosyst(struct sstat *si)
 		*/
 		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
 		{
-		   	nr = sscanf(linebuf, "%s %lld", nam, &countval);
+		   	nr = sscanf(linebuf, "%63s %lld", nam, &countval);
 
 			if (nr < 2)		/* unexpected line ? --> skip */
 				continue;
