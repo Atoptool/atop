@@ -810,6 +810,10 @@ engine(void)
 	{
         	nrgpus = gpud_init();
 
+		// Cap nrgpus to MAXGPU to prevent out-of-bounds access
+		if (nrgpus > MAXGPU)
+			nrgpus = MAXGPU;
+
 		if (nrgpus)
 			supportflags |= GPUSTAT;
 	}
