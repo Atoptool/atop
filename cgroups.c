@@ -679,7 +679,7 @@ getmetrics(struct cstat *csp)
 static void
 getpressure(char *fname, count_t *some, count_t *full)
 {
-	char 	psiformat[] = "%c%*s avg10=%f avg60=%f avg300=%f total=%llu",
+	char 	psiformat[] = "%c%*s avg10=%f avg60=%f avg300=%f total=%lld",
 		linebuf[256], psitype;
 	float	a10, a60, a300;
 	FILE	*fp;
