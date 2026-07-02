@@ -529,8 +529,8 @@ print_PSI(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	printf("%s %c %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu "
-	       "%.1f %.1f %.1f %llu %.1f %.1f %.1f %llu %.1f %.1f %.1f %llu\n",
+	printf("%s %c %.1f %.1f %.1f %lld %.1f %.1f %.1f %lld "
+	       "%.1f %.1f %.1f %lld %.1f %.1f %.1f %lld %.1f %.1f %.1f %lld\n",
 		hp, ss->psi.present ? 'y' : 'n',
                 ss->psi.cpusome.avg10, ss->psi.cpusome.avg60,
                 ss->psi.cpusome.avg300, ss->psi.cpusome.total,
