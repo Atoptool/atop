@@ -57,7 +57,7 @@ static	int   	acctfd = -1;	/* fd of account file (-1 = not open)     */
 static	long	curshadowseq;	/* current shadow file sequence number    */
 static	long 	maxshadowrec;   /* number of records per shadow file      */
 
-static	char	*pacctdir = PACCTDIR;
+static	char	pacctdir[256] = PACCTDIR;
 
 static count_t 	acctexp (comp_t  ct);
 static int	acctvers(int);
@@ -388,7 +388,7 @@ atopacctd(int swon)
 	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
 	{
 		FILE			*cfp;
-		char			shadowpath[128];
+		char			shadowpath[512];
 		struct flock		flock;
 		struct timespec		maxsemwait = {3, 0};
 
@@ -643,7 +643,7 @@ acctprocnt(void)
 	{
 		unsigned long	numrecs = 0;
 		long		newseq;
-		char		shadowpath[128];
+		char		shadowpath[512];
 		FILE		*cfp;
 
 		/*
@@ -1118,7 +1118,7 @@ static void
 switchshadow(void)
 {
 	int		tmpfd;
-	char		shadowpath[128];
+	char		shadowpath[512];
 	struct flock	flock;
 
 	/*
@@ -1163,19 +1163,13 @@ switchshadow(void)
 void
 do_pacctdir(char *tagname, char *tagvalue)
 {
-	char		shadowpath[128];
+	char		shadowpath[512];
 	struct stat	dirstat;
 	size_t		len = strlen(tagvalue) + 1;
 
 	/*
 	** copy the directory pathname to an own buffer
 	*/
-	if ( (pacctdir = malloc(len)) == NULL )
-	{
-		perror("malloc pacctdir");
-		exit(11);
-	}
-
 	safe_strcpy(pacctdir, tagvalue, len);
 
 	/*
