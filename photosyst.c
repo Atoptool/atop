@@ -2684,7 +2684,7 @@ get_ksm(struct sstat *si)
 
 	if ((fp=fopen("/sys/kernel/mm/ksm/pages_sharing", "r")) != 0)
 	{
-		if (fscanf(fp, "%llu", &(si->mem.ksmsharing)) != 1)
+		if (fscanf(fp, "%lld", &(si->mem.ksmsharing)) != 1)
 			si->mem.ksmsharing = 0;
 
 		fclose(fp);
@@ -2692,7 +2692,7 @@ get_ksm(struct sstat *si)
 
 	if ((fp=fopen("/sys/kernel/mm/ksm/pages_shared", "r")) != 0)
 	{
-		if (fscanf(fp, "%llu", &(si->mem.ksmshared)) != 1)
+		if (fscanf(fp, "%lld", &(si->mem.ksmshared)) != 1)
 			si->mem.ksmshared = 0;
 
 		fclose(fp);
