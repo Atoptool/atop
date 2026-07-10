@@ -1199,6 +1199,10 @@ readrc(char *path, int syslevel)
 		char	linebuf[256], tagname[20], tagvalue[256];
 
 		fp = fopen(path, "r");
+		if (fp == NULL) {
+			fprintf(stderr, "Error: Could not open file %s\n", path);
+			return;
+		}
 
 		while ( fgets(linebuf, sizeof linebuf, fp) )
 		{
