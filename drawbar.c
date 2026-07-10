@@ -625,10 +625,10 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 		labellen = snprintf(buf, sizeof buf, "%d", sstat->cpu.maxcpu-1);
 
-		vertvals = malloc(numlabs * sizeof(struct vertval));
+		vertvals = calloc(numlabs, sizeof(struct vertval));
 		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numlabs);
 
-		labarea = malloc(numlabs * (labellen+1));
+		labarea = calloc(numlabs, labellen+1);
 		ptrverify(labarea, "Malloc failed for %d CPU labels\n", numlabs);
 
 		// create new X axis labels
@@ -818,10 +818,10 @@ do_dskbars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 		//
 		numdisks = sstat->dsk.ndsk;
 
-		vertvals = malloc(numdisks * sizeof(struct vertval));
+		vertvals = calloc(numdisks, sizeof(struct vertval));
 		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numdisks);
 
-		labarea = malloc(numdisks * (MAXLABLEN+1));
+		labarea = calloc(numdisks, MAXLABLEN+1);
 		ptrverify(labarea, "Malloc failed for %d disk labels\n", numdisks);
 
 		// create new X axis labels
@@ -1125,10 +1125,10 @@ do_netbars(struct sstat *sstat, int nsecs, char initlabels, char lower)
 
 		// create new label space
 		//
-		netvals = malloc(numints * sizeof(struct netval));
+		netvals = calloc(numints, sizeof(struct netval));
 		ptrverify(netvals, "Malloc failed for %ld netvals structs\n", numints);
 
-		labarea = malloc(numints * (MAXLABLEN+1));
+		labarea = calloc(numints, MAXLABLEN+1);
 		ptrverify(labarea, "Malloc failed for %ld interface labels\n", numints);
 
 		// create new X axis labels
@@ -1409,7 +1409,9 @@ drawvertbars(   struct perwindow *w,
 		// select the character that has to be printed from
 		// the vertical title
 		//
-		if (curline >= ytitleline && (curline-ytitleline) < ytitlelen)
+		if (ytitle && curline >= ytitleline &&
+		    (curline-ytitleline) < ytitlelen &&
+		    (curline-ytitleline) < (int)strlen(ytitle))
 			ychar = ytitle+curline-ytitleline;
 		else
 			ychar = " ";
@@ -1806,7 +1808,7 @@ drawnetbars(struct perwindow *w, int numbars, struct netval *nvp,
 	// calculate value represented by each bar graph line
 	// (different for each interface)
 	//
-	valperline = malloc(numbars * sizeof(float));
+	valperline = calloc(numbars, sizeof(float));
 	ptrverify(valperline, "Malloc failed for %d values per line\n",
 								numbars);
 
@@ -3041,7 +3043,7 @@ sortvertbars(int nbars, int avgbar, struct vertval **valpp)
 {
 	// copy original array to be sorted
 	//
-	struct vertval *sortlist = malloc(sizeof(struct vertval) * nbars);
+	struct vertval *sortlist = calloc(nbars, sizeof(struct vertval));
 	ptrverify(sortlist, "Malloc failed for %d sortitems\n", nbars);
 
 	memcpy(sortlist, *valpp, sizeof(struct vertval) * nbars);
@@ -3081,7 +3083,7 @@ sortnetbars(int nbars, struct netval **valpp)
 {
 	// copy original array to be sorted
 	//
-	struct netval *sortlist = malloc(sizeof(struct netval) * nbars);
+	struct netval *sortlist = calloc(nbars, sizeof(struct netval));
 	ptrverify(sortlist, "Malloc failed for %d sortitems\n", nbars);
 
 	memcpy(sortlist, *valpp, sizeof(struct netval) * nbars);
