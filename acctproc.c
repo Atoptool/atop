@@ -388,7 +388,7 @@ atopacctd(int swon)
 	if ( (sempacctpubid = semget(PACCTPUBKEY, 2, 0)) != -1)
 	{
 		FILE			*cfp;
-		char			shadowpath[128];
+		char			shadowpath[512];
 		struct flock		flock;
 		struct timespec		maxsemwait = {3, 0};
 
@@ -643,7 +643,7 @@ acctprocnt(void)
 	{
 		unsigned long	numrecs = 0;
 		long		newseq;
-		char		shadowpath[128];
+		char		shadowpath[512];
 		FILE		*cfp;
 
 		/*
@@ -1118,7 +1118,7 @@ static void
 switchshadow(void)
 {
 	int		tmpfd;
-	char		shadowpath[128];
+	char		shadowpath[512];
 	struct flock	flock;
 
 	/*
@@ -1163,7 +1163,7 @@ switchshadow(void)
 void
 do_pacctdir(char *tagname, char *tagvalue)
 {
-	char		shadowpath[128];
+	char		shadowpath[512];
 	struct stat	dirstat;
 	size_t		len = strlen(tagvalue) + 1;
 
