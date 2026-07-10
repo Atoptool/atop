@@ -2,6 +2,10 @@
 ** structure containing only relevant process-info extracted 
 ** from kernel's process-administration
 */
+#define PNAMLEN_212     15
+#define CMDLEN_212      255
+#define	UTSLEN_212	15
+
 struct tstat_212 {
 	/* GENERAL TASK INFO 					*/
 	struct gen_212 {
@@ -17,13 +21,13 @@ struct tstat_212 {
 		int	sgid;		/* saved group identification 	*/
 		int	fsgid;		/* fs    group identification 	*/
 		int	nthr;		/* number of threads in tgroup 	*/
-		char	name[PNAMLEN+1];/* process name string       	*/
+		char	name[PNAMLEN_212+1];/* process name string       	*/
 		char 	isproc;		/* boolean: process level?      */
 		char 	state;		/* process state ('E' = exited)	*/
 		int	excode;		/* process exit status		*/
 		time_t 	btime;		/* process start time (epoch)	*/
 		time_t 	elaps;		/* process elaps time (hertz)	*/
-		char	cmdline[CMDLEN+1];/* command-line string       	*/
+		char	cmdline[CMDLEN_212+1];/* command-line string       	*/
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */
@@ -34,7 +38,7 @@ struct tstat_212 {
 
 		int	wasinactive;	/* boolean: task inactive	*/
 
-		char	utsname[UTSLEN+1];/* UTS name container or pod  */
+		char	utsname[UTSLEN_212+1];/* UTS name container or pod  */
 
 		int	cgroupix;	/* index in devchain -1=invalid */
 					/* lazy filling (parsable/json) */

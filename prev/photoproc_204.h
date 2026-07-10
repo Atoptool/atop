@@ -2,6 +2,9 @@
 ** structure containing only relevant process-info extracted 
 ** from kernel's process-administration
 */
+#define PNAMLEN_24         15
+#define CMDLEN_24          255
+
 struct tstat_24 {
 	/* GENERAL TASK INFO 					*/
 	struct gen_24 {
@@ -17,13 +20,13 @@ struct tstat_24 {
 		int	sgid;		/* saved group identification 	*/
 		int	fsgid;		/* fs    group identification 	*/
 		int	nthr;		/* number of threads in tgroup 	*/
-		char	name[PNAMLEN+1];/* process name string       	*/
+		char	name[PNAMLEN_24+1];/* process name string       	*/
 		char 	isproc;		/* boolean: process level?      */
 		char 	state;		/* process state ('E' = exited)	*/
 		int	excode;		/* process exit status		*/
 		time_t 	btime;		/* process start time (epoch)	*/
 		time_t 	elaps;		/* process elaps time (hertz)	*/
-		char	cmdline[CMDLEN+1];/* command-line string       	*/
+		char	cmdline[CMDLEN_24+1];/* command-line string       	*/
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */

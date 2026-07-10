@@ -11,7 +11,7 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Initial:     July/August 2018
 ** --------------------------------------------------------------------------
-** Copyright (C) 2018-2025 Gerlof Langeveld
+** Copyright (C) 2018-2026 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -99,6 +99,10 @@
 #include "prev/photoproc_212.h"
 #include "prev/cgroups_212.h"
 
+#include "prev/photosyst_213.h"
+#include "prev/photoproc_213.h"
+#include "prev/cgroups_213.h"
+
 
 void	justcopy(void *, void *, count_t, count_t);
 
@@ -138,6 +142,14 @@ void	tmem_to_211(void *, void *, count_t, count_t);
 void	smnu_to_211(void *, void *, count_t, count_t);
 void	scnu_to_211(void *, void *, count_t, count_t);
 
+void	tmem_to_213(void *, void *, count_t, count_t);
+void	tgpu_to_213(void *, void *, count_t, count_t);
+
+void	percpu_to_213(struct percpu_212 *, struct percpu_213 *);
+void	scpu_to_213(void *, void *, count_t, count_t);
+void	smem_to_213(void *, void *, count_t, count_t);
+void	sifb_to_213(void *, void *, count_t, count_t);
+
 
 ///////////////////////////////////////////////////////////////
 // Conversion functions
@@ -166,8 +178,13 @@ void	scnu_to_211(void *, void *, count_t, count_t);
 void
 justcopy(void *old, void *new, count_t oldsize, count_t newsize)
 {
-	if (oldsize)
+	if (oldsize) 
+	{
 		memcpy(new, old, newsize > oldsize ? oldsize : newsize);
+
+		if (newsize > oldsize)	// padd new area with null bytes
+			memset((char *)new+oldsize, '\0', newsize-oldsize);
+	}
 }
 
 // /////////////////////////////////////////////////////////////////
@@ -641,6 +658,44 @@ tmem_to_211(void *old, void *new, count_t oldsize, count_t newsize)
 }
 
 void
+tmem_to_213(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct mem_212	*m212 = old;
+	struct mem_213	*m213 = new;
+
+	memcpy(m213, m212, sizeof *m213);		// copy entire struct
+
+	m213->oomscore = m213->oomscoreadj = 0;
+}
+
+void
+tgpu_to_213(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct gpu_212	*g212 = old;
+	struct gpu_213	*g213 = new;
+
+	g213->state      = g212->state;
+	g213->type       = 'U';
+	g213->nrgpus     = g212->nrgpus;
+	g213->gpulist    = g212->gpulist;
+	g213->gpubusycum = g212->gpubusy;
+	g213->membusycum = g212->membusy;
+	g213->memnow     = g212->memnow;
+	g213->memcum     = g212->memcum;
+	g213->samples    = g212->sample;
+
+	// conversion of oneshot counter to cumulative counter
+	//
+	if (g213->gpubusycum != -1)
+		g213->gpubusycum *= g213->samples;
+
+	if (g213->membusycum != -1)
+		g213->membusycum *= g213->samples;
+}
+
+// --------------------------------------------------------------------
+
+void
 smnu_to_211(void *old, void *new, count_t oldsize, count_t newsize)
 {
 	struct memnuma_210	*n210 = old;
@@ -696,6 +751,87 @@ scnu_to_211(void *old, void *new, count_t oldsize, count_t newsize)
 	}
 }
 
+void
+percpu_to_213(struct percpu_212 *pc212, struct percpu_213 *pc213)
+{
+	pc213->cpunr	= pc212->cpunr;
+	pc213->online	= 1;
+	pc213->stime	= pc212->stime;
+	pc213->utime	= pc212->utime;
+	pc213->ntime	= pc212->ntime;
+	pc213->itime	= pc212->itime;
+	pc213->wtime	= pc212->wtime;
+	pc213->Itime	= pc212->Itime;
+	pc213->Stime	= pc212->Stime;
+	pc213->steal	= pc212->steal;
+	pc213->guest	= pc212->guest;
+	pc213->instr	= pc212->instr;
+	pc213->cycle	= pc212->cycle;
+
+	memcpy(&(pc213->freqcnt), &(pc212->freqcnt), sizeof pc213->freqcnt);
+}
+
+void
+scpu_to_213(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct cpustat_212	*c212 = old;
+	struct cpustat_213	*c213 = new;
+	int			i;
+
+	memset(c213, '\0', sizeof *c213);
+
+	c213->nrcpu	= c212->nrcpu;
+	c213->maxcpu	= c212->nrcpu;
+	c213->devint	= c212->devint;
+	c213->csw	= c212->csw;
+	c213->nprocs	= c212->nprocs;
+	c213->lavg1	= c212->lavg1;
+	c213->lavg5	= c212->lavg5;
+	c213->lavg15	= c212->lavg15;
+
+	percpu_to_213(&(c212->all), &(c213->all));
+
+	for (i=0; i < c213->nrcpu; i++)
+		percpu_to_213(&(c212->cpu[i]), &(c213->cpu[i]));
+}
+
+void
+smem_to_213(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct memstat_212	*m212 = old;
+	struct memstat_213	*m213 = new;
+
+	memcpy(m213, m212, sizeof *m213);
+
+	m213->lowwatermark = 0;	// explicitly define zero
+}
+
+void
+sifb_to_213(void *old, void *new, count_t oldsize, count_t newsize)
+{
+	struct ifbstat_212	*i212 = old;
+	struct ifbstat_213	*i213 = new;
+	int			i;
+
+	memset(i213, '\0', sizeof *i213);
+
+	i213->nrports = i212->nrports;
+
+	for (i=0; i < i213->nrports; i++)
+	{
+		strncpy(i213->ifb[i].ibname, i212->ifb[i].ibname, sizeof i213->ifb[i].ibname);
+
+        	i213->ifb[i].portnr	= i212->ifb[i].portnr;
+        	i213->ifb[i].lanes	= i212->ifb[i].lanes;
+        	i213->ifb[i].rate	= i212->ifb[i].rate;
+        	i213->ifb[i].rcvb	= i212->ifb[i].rcvb;
+        	i213->ifb[i].sndb	= i212->ifb[i].sndb;
+        	i213->ifb[i].rcvp	= i212->ifb[i].rcvp;
+        	i213->ifb[i].sndp	= i212->ifb[i].sndp;
+	}
+}
+
+
 ///////////////////////////////////////////////////////////////
 // conversion definition for various structs in sstat and tstat
 //
@@ -732,10 +868,12 @@ struct sstat_29		sstat_29;
 struct sstat_210	sstat_210;
 struct sstat_211	sstat_211;
 struct sstat_212	sstat_212;
+struct sstat_213	sstat_213;
 struct sstat		sstat;
 
 struct cstat_211	cstat_211;
 struct cstat_212	cstat_212;
+struct cstat_213	cstat_213;
 struct cstat		cstat;
 
 struct tstat_20		tstat_20;
@@ -751,6 +889,7 @@ struct tstat_29		tstat_29;
 struct tstat_210	tstat_210;
 struct tstat_211	tstat_211;
 struct tstat_212	tstat_212;
+struct tstat_213	tstat_213;
 struct tstat		tstat;
 
 struct convertall {
@@ -1274,7 +1413,7 @@ struct convertall {
 		{sizeof(struct cggen_211),
 		      offsetof(struct cstat_211, gen),   justcopy},
 		{sizeof(struct cgconf_211),
-		      offsetof(struct cstat_211, conf),   justcopy},
+		      offsetof(struct cstat_211, conf),  justcopy},
 		{sizeof(struct cgcpu_211),
 	              offsetof(struct cstat_211, cpu),   justcopy},
 		{sizeof(struct cgmem_211),
@@ -1319,13 +1458,58 @@ struct convertall {
 		{sizeof(struct cggen_212),
 		      offsetof(struct cstat_212, gen),   justcopy},
 		{sizeof(struct cgconf_212),
-		      offsetof(struct cstat_212, conf),   justcopy},
+		      offsetof(struct cstat_212, conf),  justcopy},
 		{sizeof(struct cgcpu_212),
 	              offsetof(struct cstat_212, cpu),   justcopy},
 		{sizeof(struct cgmem_212),
 	              offsetof(struct cstat_212, mem),   justcopy},
 		{sizeof(struct cgdsk_212),
 	              offsetof(struct cstat_212, dsk),   justcopy},
+	},
+
+	{SETVERSION(2,13), // 2.12 --> 2.13
+		 sizeof(struct sstat_213),	&sstat_213,
+		 sizeof(struct tstat_213), 	NULL,
+		 sizeof(struct cstat_213),	&cstat_213,	NULL,
+
+		{sizeof(struct cpustat_213),  	&sstat_213.cpu,	   scpu_to_213},
+		{sizeof(struct memstat_213),  	&sstat_213.mem,	   smem_to_213},
+		{sizeof(struct netstat_213),  	&sstat_213.net,	   justcopy},
+		{sizeof(struct intfstat_213), 	&sstat_213.intf,   justcopy},
+		{sizeof(struct dskstat_213),  	&sstat_213.dsk,	   justcopy},
+		{sizeof(struct nfsstat_213),  	&sstat_213.nfs,	   justcopy},
+		{sizeof(struct contstat_213), 	&sstat_213.cfs,	   justcopy},
+		{sizeof(struct wwwstat_213),  	&sstat_213.www,	   justcopy},
+		{sizeof(struct pressure_213),  	&sstat_213.psi,	   justcopy},
+		{sizeof(struct gpustat_213),  	&sstat_213.gpu,	   justcopy},
+		{sizeof(struct ifbstat_213),  	&sstat_213.ifb,	   sifb_to_213},
+		{sizeof(struct memnuma_213), 	&sstat_213.memnuma, justcopy},
+		{sizeof(struct cpunuma_213),  	&sstat_213.cpunuma, justcopy},
+		{sizeof(struct llcstat_213),  	&sstat_213.llc,	   justcopy},
+
+		{sizeof(struct gen_213),
+			offsetof(struct tstat_213, gen),	justcopy},
+		{sizeof(struct cpu_213),
+			offsetof(struct tstat_213, cpu),	justcopy},
+		{sizeof(struct dsk_213),
+			offsetof(struct tstat_213, dsk),	justcopy},
+		{sizeof(struct mem_213),
+			offsetof(struct tstat_213, mem),	tmem_to_213},
+		{sizeof(struct net_213),
+			offsetof(struct tstat_213, net),	justcopy},
+		{sizeof(struct gpu_213),
+			offsetof(struct tstat_213, gpu),	tgpu_to_213},
+
+		{sizeof(struct cggen_213),
+		      offsetof(struct cstat_213, gen),   justcopy},
+		{sizeof(struct cgconf_213),
+		      offsetof(struct cstat_213, conf),  justcopy},
+		{sizeof(struct cgcpu_213),
+	              offsetof(struct cstat_213, cpu),   justcopy},
+		{sizeof(struct cgmem_213),
+	              offsetof(struct cstat_213, mem),   justcopy},
+		{sizeof(struct cgdsk_213),
+	              offsetof(struct cstat_213, dsk),   justcopy},
 	},
 };
 

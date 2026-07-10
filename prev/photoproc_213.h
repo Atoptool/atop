@@ -2,12 +2,13 @@
 ** structure containing only relevant process-info extracted 
 ** from kernel's process-administration
 */
-#define PNAMLEN_21         15
-#define CMDLEN_21          255
+#define PNAMLEN_213         15
+#define CMDLEN_213          255
+#define UTSLEN_213          39
 
-struct tstat_21 {
+struct tstat_213 {
 	/* GENERAL TASK INFO 					*/
-	struct gen_21 {
+	struct gen_213 {
 		int	tgid;		/* threadgroup identification 	*/
 		int	pid;		/* process identification 	*/
 		int	ppid;           /* parent process identification*/
@@ -20,22 +21,32 @@ struct tstat_21 {
 		int	sgid;		/* saved group identification 	*/
 		int	fsgid;		/* fs    group identification 	*/
 		int	nthr;		/* number of threads in tgroup 	*/
-		char	name[PNAMLEN_21+1];/* process name string       	*/
+		char	name[PNAMLEN_213+1];/* process name string       	*/
 		char 	isproc;		/* boolean: process level?      */
 		char 	state;		/* process state ('E' = exited)	*/
 		int	excode;		/* process exit status		*/
 		time_t 	btime;		/* process start time (epoch)	*/
 		time_t 	elaps;		/* process elaps time (hertz)	*/
-		char	cmdline[CMDLEN_21+1];/* command-line string       	*/
+		char	cmdline[CMDLEN_213+1];/* command-line string       	*/
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */
-		int	envid;		/* OpenVZ support		*/
-		int	ifuture[4];     /* reserved                     */
+		int	nthridle;	/* # threads in state 'I'	*/
+
+		int	ctid;		/* OpenVZ container ID		*/
+		int	vpid;		/* OpenVZ virtual PID		*/
+
+		int	wasinactive;	/* boolean: task inactive	*/
+
+		char	utsname[UTSLEN_213+1];/* UTS name container or pod  */
+
+		int	cgroupix;	/* index in devchain -1=invalid */
+					/* lazy filling (parsable/json) */
+		int	ifuture[4];	/* reserved for future use	*/
 	} gen;
 
 	/* CPU STATISTICS						*/
-	struct cpu_21 {
+	struct cpu_213 {
 		count_t	utime;		/* time user   text (ticks) 	*/
 		count_t	stime;		/* time system text (ticks) 	*/
 		int	nice;		/* nice value                   */
@@ -44,12 +55,17 @@ struct tstat_21 {
 		int	policy;		/* scheduling policy            */
 		int	curcpu;		/* current processor            */
 		int	sleepavg;       /* sleep average percentage     */
-		int	ifuture[4];	/* reserved for future use	*/
-		count_t	cfuture[4];	/* reserved for future use	*/
+		int	ifuture[6];	/* reserved for future use	*/
+		char	wchan[16];	/* wait channel string    	*/
+		count_t	rundelay;	/* schedstat rundelay (nanosec)	*/
+		count_t	blkdelay;	/* blkio delay (ticks)		*/
+		count_t nvcsw;		/* voluntary cxt switch counts  */
+		count_t nivcsw;		/* involuntary csw counts       */
+		count_t	cfuture[3];	/* reserved for future use	*/
 	} cpu;
 
 	/* DISK STATISTICS						*/
-	struct dsk_21 {
+	struct dsk_213 {
 		count_t	rio;		/* number of read requests 	*/
 		count_t	rsz;		/* cumulative # sectors read	*/
 		count_t	wio;		/* number of write requests 	*/
@@ -60,7 +76,7 @@ struct tstat_21 {
 	} dsk;
 
 	/* MEMORY STATISTICS						*/
-	struct mem_21 {
+	struct mem_213 {
 		count_t	minflt;		/* number of page-reclaims 	*/
 		count_t	majflt;		/* number of page-faults 	*/
 		count_t	vexec;		/* virtmem execfile (Kb)        */
@@ -73,11 +89,14 @@ struct tstat_21 {
 		count_t vstack;		/* virtmem stack    (Kb)     	*/
 		count_t vlibs;		/* virtmem libexec  (Kb)     	*/
 		count_t vswap;		/* swap space used  (Kb)     	*/
-		count_t	cfuture[4];	/* reserved for future use	*/
+		count_t	vlock;		/* virtual locked   (Kb) 	*/
+		count_t oomscore;	/* OOM score (0-2000)		*/
+		count_t oomscoreadj;	/* adjustment (-1000-+1000)	*/
+		count_t	cfuture[5];	/* reserved for future use	*/
 	} mem;
 
 	/* NETWORK STATISTICS						*/
-	struct net_21 {
+	struct net_213 {
 		count_t tcpsnd;		/* number of TCP-packets sent	*/
 		count_t tcpssz;		/* cumulative size packets sent	*/
 		count_t	tcprcv;		/* number of TCP-packets recved	*/
@@ -90,4 +109,21 @@ struct tstat_21 {
 		count_t	avail2;		/* */
 		count_t	cfuture[4];	/* reserved for future use	*/
 	} net;
+
+	struct gpu_213 {
+		char	state;		// A - active,  E - Exit, '\0' - no use
+		char	type;		// C - compute, G - graphic, U - unknown
+		char	bfuture[2];	//
+		short	nrgpus;		// number of GPUs for this process
+		int32_t	gpulist;	// bitlist with GPU numbers
+
+		count_t	gpubusycum;	// cumulative gpu busy perc      -1 = n/a
+		count_t	membusycum;	// cumulative memory busy perc   -1 = n/a
+
+		count_t	memnow;		// current    memory consumption in KiB
+		count_t	memcum;		// cumulative memory consumption in KiB
+		count_t	samples;	// number of samples that this process
+					// was really active
+		count_t	cfuture[3];	//
+	} gpu;
 };

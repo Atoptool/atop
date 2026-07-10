@@ -2,6 +2,10 @@
 ** structure containing only relevant process-info extracted 
 ** from kernel's process-administration
 */
+#define PNAMLEN_29         15
+#define CMDLEN_29          255
+#define CGRLEN_29          64
+
 struct tstat_29 {
 	/* GENERAL TASK INFO 					*/
 	struct gen_29 {
@@ -17,13 +21,13 @@ struct tstat_29 {
 		int	sgid;		/* saved group identification 	*/
 		int	fsgid;		/* fs    group identification 	*/
 		int	nthr;		/* number of threads in tgroup 	*/
-		char	name[PNAMLEN+1];/* process name string       	*/
+		char	name[PNAMLEN_29+1];/* process name string       	*/
 		char 	isproc;		/* boolean: process level?      */
 		char 	state;		/* process state ('E' = exited)	*/
 		int	excode;		/* process exit status		*/
 		time_t 	btime;		/* process start time (epoch)	*/
 		time_t 	elaps;		/* process elaps time (hertz)	*/
-		char	cmdline[CMDLEN+1];/* command-line string       	*/
+		char	cmdline[CMDLEN_29+1];/* command-line string       	*/
 		int	nthrslpi;	/* # threads in state 'S'       */
 		int	nthrslpu;	/* # threads in state 'D'       */
 		int	nthrrun;	/* # threads in state 'R'       */
@@ -34,7 +38,7 @@ struct tstat_29 {
 		int	wasinactive;	/* boolean: task inactive	*/
 
 		char	container[16];	/* Docker container id (12 pos)	*/
-		char	cgpath[CGRLEN];	/* cgroup v2 path name          */
+		char	cgpath[CGRLEN_29];	/* cgroup v2 path name          */
 	} gen;
 
 	/* CPU STATISTICS						*/
