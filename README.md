@@ -78,6 +78,7 @@ In combination with the optional daemon atopgpud, it shows system-level and proc
 ## Links
 
 * A [Cheatsheet](https://www.atoptool.nl/download/ATOP-cheatsheet-keys.pdf) for key usage within atop
+* A [graphical viewer](https://github.com/davidpestana/atop-viewer) for raw log files
 * A [BPF implementation](https://github.com/bytedance/netatop-bpf) to gather network statistics per process/thread (alternative for the 'netatop' kernel module)
 * A [Web interface](https://github.com/pizhenwei/atophttpd) for atop
-* [Graphical representation of system resource utilization]( https://codeberg.org/mgellner/atopsar-plot)
+* A [graphical representation of system resource utilization](https://codeberg.org/mgellner/atopsar-plot)
