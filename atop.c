@@ -156,7 +156,7 @@
 #include "gpucom.h"
 #include "netatop.h"
 
-#define	allflags  "ab:cde:fghijklmnopqrstuvwxyz:123456789ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
+#define	allflags  "ab:cde:fghijklmnopqr::st::uvwxyz:123456789ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
 #define	MAXFL		84      /* maximum number of command-line flags  */
 
 /*
@@ -364,7 +364,7 @@ main(int argc, char *argv[])
 		*/
 		i = 0;
 
-		while (i < MAXFL-1 && (c=getopt(argc, argv, allflags)) != EOF)
+		while (i < MAXFL-1 && (c=getopt(argc, argv, allflags)) != -1)
 		{
 			switch (c)
 			{
@@ -391,37 +391,48 @@ main(int argc, char *argv[])
 				break;
 
 			   case 'r':		/* reading of raw data ?      */
-				if (optind < argc)
+				if (optarg == NULL)	// no additional argument without space in between?
 				{
-					if (*(argv[optind]) == '-')
+					// check additional argument with space in between?
+					if (optind < argc)
 					{
-						if (strlen(argv[optind]) == 1)
+						if (*argv[optind] ==  '-')
 						{
-							safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
-							optind++;
+							// just a '-' used on its own meaning stdin?
+							if (*(argv[optind]+1) == '\0')
+								optarg = argv[optind++];
+						}
+						else
+						{
+							optarg = argv[optind++];
 						}
 					}
+				}
+
+				if (optarg)
+				{
+					if (*optarg == '-')
+						safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
 					else
-					{
-						safe_strcpy(irawname, argv[optind], sizeof irawname);
-						optind++;
-					}
+						safe_strcpy(irawname, optarg, sizeof irawname);
 				}
 
 				rawreadflag++;
 				break;
 
 			   case 't':		/* twin mode ?		      */
-				// optional absolute path name of directory?
-				if (optind < argc)
+				if (optarg == NULL)	// no additional argument without space in between?
 				{
-					if (*(argv[optind]) == '/')
+					// check additional argument with space in between?
+					if (optind < argc && *argv[optind] !=  '-')
 					{
-						safe_strcpy(twindir, argv[optind],
-								sizeof twindir);
-						optind++;
+						optarg = argv[optind++];
 					}
 				}
+
+				// optional absolute path name of directory?
+				if (optarg && *optarg == '/')
+					safe_strcpy(twindir, optarg, sizeof twindir);
 
 				twinmodeflag++;
 				break;
