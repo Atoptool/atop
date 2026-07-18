@@ -22,7 +22,7 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ** See the GNU General Public License for more details.
 */
-#define _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE	200809L
 #define _XOPEN_SOURCE
 #define _GNU_SOURCE
 #define _DEFAULT_SOURCE

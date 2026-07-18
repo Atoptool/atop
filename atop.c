@@ -118,7 +118,7 @@
 ** can be linked with 'atop'; the one to use can eventually be chosen
 ** at runtime. 
 */
-#define _POSIX_C_SOURCE	
+#define _POSIX_C_SOURCE	200809L
 #define _XOPEN_SOURCE
 #define _GNU_SOURCE
 #define _DEFAULT_SOURCE
