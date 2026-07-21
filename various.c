@@ -757,27 +757,40 @@ getboot(void)
 static unsigned long long
 getbootlinux(long hertz)
 {
-	int    		 	cpid;
-	char  	  		tmpbuf[1280];
-	FILE    		*fp;
-	unsigned long 		startticks;
+	FILE			*fp;
+	char			linebuf[256];
+	unsigned long long	btime = 0;
+
+	if ((fp = fopen("/proc/stat", "r"))) {
+		while (fgets(linebuf, sizeof(linebuf), fp)) {
+			if (strncmp(linebuf, "btime ", 6) == 0) {
+				btime = atoll(linebuf + 6);
+				break;
+			}
+		}
+		fclose(fp);
+	}
+
+	if (btime)
+		return btime * hertz;
+
+	/*
+	** fallback for old kernels: dirty hack to get the boottime,
+	** since some Linux 2.6 kernels do not return a proper
+	** boottime-value with the times() system call   :-(
+	*/
+	int			cpid;
+	char			tmpbuf[1280];
+	unsigned long		startticks;
 	unsigned long long	bootjiffies = 0;
 	struct timespec		ts;
 
-	/*
-	** dirty hack to get the boottime, since the
-	** Linux 2.6 kernel (2.6.5) does not return a proper
-	** boottime-value with the times() system call   :-(
-	*/
-	if ( (cpid = fork()) == 0 )
-	{
+	if ((cpid = fork()) == 0) {
 		/*
 		** child just waiting to be killed by parent
 		*/
 		pause();
-	}
-	else
-	{
+	} else if (cpid > 0) {
 		/*
 		** parent determines start-time (in jiffies since boot) 
 		** of the child and calculates the boottime in jiffies
