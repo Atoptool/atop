@@ -2712,7 +2712,7 @@ void
 realnuma_support(void)
 {
 	FILE		*fp;
-	int		i, total, nr=0, dist[10];
+	int		i, total, nr=0, dist[10]={0};
 	char		linebuf[1024];
 
 	if ( (fp = fopen(NUMADISTANCE0, "r")) == NULL)
