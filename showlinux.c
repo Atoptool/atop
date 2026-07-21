@@ -1793,8 +1793,7 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 /*
 ** print the system-wide statistics
 */
-static void	pridisklike(extraparam *, struct perdsk *, char *,
-		      int, unsigned int *, int *, int, regex_t *);
+static void pridisklike(extraparam *, struct perdsk *, char *, int, int *, int, regex_t *);
 
 int
 prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
@@ -1806,7 +1805,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         extraparam      extra;
         int             i, lin;
         count_t         busy;
-        unsigned int    badness, highbadness=0;
+        unsigned int    badness;
 
         extra.nsecs	= nsecs;
         extra.avgval	= avgval;
@@ -1826,9 +1825,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                 badness = busy * 100 / cpubadness;
         else
                 badness = 0;
-
-        if (highbadness < badness)
-                highbadness = badness;
 
         if (extra.cputot == 0)
                 extra.cputot = 1;             /* avoid divide-by-zero */
@@ -1868,9 +1864,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = busy * 100 / cpubadness;
                         else
                                 badness = 0;
-
-                        if (highbadness < badness)
-                                highbadness = badness;
 
                         if (extra.percputot == 0)
                                 extra.percputot = 1; /* avoid divide-by-zero */
@@ -1970,9 +1963,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         else
                 badness = 0;
 
-        if (highbadness < badness)
-                highbadness = badness;
-
 	if (screen)
 	        move(curline, 0);
 
@@ -1985,8 +1975,11 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         /*
         ** SWAP statistics
         */
-        busy   = (sstat->mem.totswap - sstat->mem.freeswap)
-                                * 100.0 / sstat->mem.totswap;
+	if (sstat->mem.totswap)
+		busy = (sstat->mem.totswap - sstat->mem.freeswap)
+					* 100.0 / sstat->mem.totswap;
+	else
+		busy = 0;
 
         if (swpbadness)
         {
@@ -1996,9 +1989,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         {
                 badness = 0;
         }
-
-        if (highbadness < badness)
-                highbadness = badness;
 
 	if (screen)
         	move(curline, 0);
@@ -2026,9 +2016,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				badness = busy * 100 / membadness;
 			else
 				badness = 0;
-
-			if (highbadness < badness)
-				highbadness = badness;
 
 			if (screen)
 				move(curline, 0);
@@ -2075,9 +2062,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 				badness = busy * 100 / cpubadness;
 			else
 				badness = 0;
-
-			if (highbadness < badness)
-				highbadness = badness;
 
 			if (sstat->cpunuma.numa[extra.index].nrcpu)
 				extra.percputot = extra.pernumacputot /
@@ -2145,9 +2129,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         badness = busy * 100 / membadness;
                 else
                         badness = 0;
-
-                if (highbadness < badness)
-                        highbadness = badness;
 
                 /*
                 ** take care that this line is anyhow colored for
@@ -2219,15 +2200,12 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
         */
         extra.mstot = extra.cputot * 1000 / hertz / sstat->cpu.nrcpu; 
 
-	pridisklike(&extra, sstat->dsk.lvm, "LVM", maxlvmlines,
-			&highbadness, &curline, fixedhead,
+	pridisklike(&extra, sstat->dsk.lvm, "LVM", maxlvmlines, &curline, fixedhead,
 			selp->lvmnamesz ? &(selp->lvmregex) : (void *) 0);
 
-	pridisklike(&extra, sstat->dsk.mdd, "MDD", maxmddlines,
-			&highbadness, &curline, fixedhead, (void *) 0);
+	pridisklike(&extra, sstat->dsk.mdd, "MDD", maxmddlines, &curline, fixedhead, (void *) 0);
 
-	pridisklike(&extra, sstat->dsk.dsk, "DSK", maxdsklines,
-			&highbadness, &curline, fixedhead,
+	pridisklike(&extra, sstat->dsk.dsk, "DSK", maxdsklines, &curline, fixedhead,
 			selp->dsknamesz ? &(selp->dskregex) : (void *) 0);
 
         /*
@@ -2328,7 +2306,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         /*
                         ** calculate busy-percentage for interface
                         */
-
                        count_t ival, oval;
 
                         /*
@@ -2344,13 +2321,10 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         {
                                 if (sstat->intf.intf[extra.index].duplex)
                                        busy = (ival > oval ? ival : oval) /
-					   (sstat->intf.intf[extra.index].speed
-									*10);
+					   (sstat->intf.intf[extra.index].speed *10);
                                 else
                                        busy = (ival + oval) /
-                                           (sstat->intf.intf[extra.index].speed
-									*10);
-
+                                           (sstat->intf.intf[extra.index].speed *10);
                         }
                         else
                         {
@@ -2361,9 +2335,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = busy * 100 / netbadness;
                         else
                                 badness = 0;
-
-                        if (highbadness < badness && (supportflags & NETATOP || supportflags & NETATOPBPF) )
-                                highbadness = badness;
 
 			if (screen)
                 		move(curline, 0);
@@ -2399,8 +2370,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                         oval    = sstat->ifb.ifb[extra.index].sndb/125/nsecs;
 
 			if (sstat->ifb.ifb[extra.index].rate)
-				busy = (ival > oval ? ival : oval) *
-			                 sstat->ifb.ifb[extra.index].lanes /
+				busy = (ival > oval ? ival : oval) * sstat->ifb.ifb[extra.index].lanes /
 					(sstat->ifb.ifb[extra.index].rate * 10);
 			else
 				busy = 0;
@@ -2409,9 +2379,6 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
                                 badness = busy * 100 / netbadness;
                         else
                                 badness = 0;
-
-                        if (highbadness < badness)
-                                highbadness = badness;
 
 			if (screen)
                 		move(curline, 0);
@@ -2464,8 +2431,7 @@ prisyst(struct sstat *sstat, int curline, int nsecs, int avgval,
 */
 static void
 pridisklike(extraparam *ep, struct perdsk *dp, char *lp, 
-	int maxlines, unsigned int *highbadp, int *curlinp, int fixedhead,
-	regex_t *rep)
+	int maxlines, int *curlinp, int fixedhead, regex_t *rep)
 {
 	int 		lin;
         count_t         busy;
@@ -2480,16 +2446,15 @@ pridisklike(extraparam *ep, struct perdsk *dp, char *lp,
                 ep->iotot =  ep->perdsk[ep->index].nread +
 		             ep->perdsk[ep->index].nwrite;
 
-                busy        = (double)(ep->perdsk[ep->index].io_ms *
-						100.0 / ep->mstot);
+		if (ep->mstot)
+			busy = (double)(ep->perdsk[ep->index].io_ms * 100.0 / ep->mstot);
+		else
+			busy = 0;
 
                 if (dskbadness)
                         badness = busy * 100 / dskbadness;
                 else
                         badness = 0;
-
-                if (*highbadp < badness && (supportflags & IOSTAT) )
-                        *highbadp	= badness;
 
                 if (ep->iotot || fixedhead)
                 {
@@ -2738,10 +2703,9 @@ intfcompar(const void *a, const void *b)
         if (aspeed)
         {
                 if (aduplex)
-                        afactor = (arbyte > asbyte ? arbyte : asbyte) 
-                                                                * 10 / aspeed;
+                        afactor = (arbyte > asbyte ? arbyte : asbyte) * 10 / aspeed;
                 else
-                        afactor = (arbyte + asbyte)             * 10 / aspeed;
+                        afactor = (arbyte + asbyte)                   * 10 / aspeed;
         }
 
         /*
@@ -2750,10 +2714,9 @@ intfcompar(const void *a, const void *b)
         if (bspeed)
         {
                 if (bduplex)
-                        bfactor = (brbyte > bsbyte ? brbyte : bsbyte)
-                                                                * 10 / bspeed;
+                        bfactor = (brbyte > bsbyte ? brbyte : bsbyte) * 10 / bspeed;
                 else
-                        bfactor = (brbyte + bsbyte)             * 10 / bspeed;
+                        bfactor = (brbyte + bsbyte)                   * 10 / bspeed;
         }
 
         /*
