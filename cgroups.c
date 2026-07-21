@@ -374,6 +374,7 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 	// --------------------------------------------
 	//
 	dirp = opendir(".");
+	const int fullnamelen_below = upperlen + namelen;
 
 	while ( (entp = readdir(dirp)) )
 	{
@@ -388,7 +389,7 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 		if (entp->d_type == DT_DIR)
 			procsbelow += walkcgroup(entp->d_name,
 				ccp, ccp->cstat->gen.sequence,
-				hash, upperlen+namelen, depth+1);
+				hash, fullnamelen_below, depth+1);
 	}
 
 	closedir(dirp);
@@ -1216,13 +1217,14 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 	//
 	for (ic=im=0; ic < ncgroups; ic++)
 	{
+		struct cgchainer * const cgp = *(cgchainerp+ic);
 		int	cgroupnprocs;
 
 		// take next cgroup and add it to the merged list
 		//
-		if ( cgroupfilter((*(cgchainerp+ic))->cstat, newdepth, showresource) )
+		if ( cgroupfilter(cgp->cstat, newdepth, showresource) )
 		{
-			(cgroupsel+im)->cgp = *(cgchainerp+ic);
+			(cgroupsel+im)->cgp = cgp;
 			(cgroupsel+im)->tsp = NULL;
 
 			im++;
@@ -1234,14 +1236,13 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 			// pass the stub to the previous valid entry
 			// of this level
 			//
-			if ( (*(cgchainerp+ic))->stub)
+			if ( cgp->stub)
 			{
 				int j;
+				const int depth = cgp->cstat->gen.depth;
 
 				for (j=im-1; j > 0; j--)
 				{
-					int depth = (*(cgchainerp+ic))->cstat->gen.depth;
-
 			     		if (depth > (cgroupsel+j)->cgp->cstat->gen.depth)
 					{
 						break;
@@ -1269,14 +1270,14 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 		if (!nprocs)		// ignore processes anyhow?
 			continue;
 
-		cgroupnprocs = (*(cgchainerp+ic))->cstat->gen.nprocs;
+		cgroupnprocs = cgp->cstat->gen.nprocs;
 
 		if (!cgroupnprocs)	// no processes in this cgroup?
 			continue;
 
 		for (ip=0, is=im; ip < cgroupnprocs; ip++)
 		{
-			int pid  = (*(cgchainerp+ic))->proclist[ip];
+			int pid  = cgp->proclist[ip];
 			int hash = pid&PIDMASK;
 
 			// search for tstat struct relate to this PID via hashlist
@@ -1292,7 +1293,7 @@ mergecgrouplist(struct cglinesel **cgroupselp, int newdepth,
 					if (newdepth == 9              ||
 					    pidcur->tstat->mem.vmem > 0  )
 					{
-						(cgroupsel+im)->cgp = *(cgchainerp+ic);
+						(cgroupsel+im)->cgp = cgp;
 						(cgroupsel+im)->tsp = pidcur->tstat;
 
 						im++;
@@ -1691,6 +1692,8 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 		break;
 
            default:
+		const int use_vlinemask_bit = depth < CGRMAXDEPTH;
+		const unsigned long vlinemask_bit = use_vlinemask_bit ? (1ULL << depth) : 0;
 		for (i=0, j=0; i < cgparent->nrchild; i++, j++)
 		{
 			cgs = *((cgparent->sortlist)+i);
@@ -1701,8 +1704,8 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 			{
 				(*(cgpp+j))->stub = 1;	// no more entries on this level
 
-				if (depth < CGRMAXDEPTH)
-					vlinemask &= ~(1ULL << depth);
+				if (use_vlinemask_bit)
+					vlinemask &= ~vlinemask_bit;
 
 				(*(cgpp+j))->vlinemask = vlinemask;
 			}
@@ -1710,8 +1713,8 @@ mergelevel(struct cgsorter *cgparent, struct cgchainer **cgpp,
 			{
 				(*(cgpp+j))->stub = 0;	// more entries on this level
 
-				if (depth < CGRMAXDEPTH)
-					vlinemask |= 1ULL << depth;
+				if (use_vlinemask_bit)
+					vlinemask |= vlinemask_bit;
 
 				(*(cgpp+j))->vlinemask = vlinemask;
 			}
