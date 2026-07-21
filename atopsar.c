@@ -86,9 +86,9 @@ static char		*datemsg = "-------------------------- analysis "
 /*
 ** structure definition for print-functions
 */
-struct pridef { 
-	char    wanted;         /* selected option (boolean)              */
+struct pridef {
 	char    *cntcat;        /* used categories of counters            */
+	char    wanted;         /* selected option (boolean)              */
 	char    flag;           /* flag on command line                   */
 	void    (*prihead)(int, int, int);   /* print header of list      */
 	int     (*priline)(struct sstat *, struct tstat *, struct tstat **,
