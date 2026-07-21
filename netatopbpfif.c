@@ -49,8 +49,8 @@
 
 static int		netsock   = -1;
 
-static void	fill_networkcnt(struct tstat *, struct tstat *,
-        	                struct taskcount *);
+static void	fill_networkcnt(struct tstat *, const struct tstat *,
+        	                const struct taskcount *);
 void my_handler(int);
 
 int len;
@@ -154,7 +154,7 @@ netatop_bpf_gettask()
 void
 netatop_bpf_exitfind(unsigned long key, struct tstat *dev, struct tstat *pre)
 {
-	struct taskcount *tc = g_hash_table_lookup(ghash_net, &key);
+	const struct taskcount *tc = g_hash_table_lookup(ghash_net, &key);
 	/*
 	** correct PID found
 	*/
@@ -173,7 +173,7 @@ netatop_bpf_exitfind(unsigned long key, struct tstat *dev, struct tstat *pre)
 }
 
 static void
-fill_networkcnt(struct tstat *dev, struct tstat *pre, struct taskcount *tc)
+fill_networkcnt(struct tstat *dev, const struct tstat *pre, const struct taskcount *tc)
 {
 	dev->net.tcpsnd	= tc->tcpsndpacks - pre->net.tcpsnd;
 	dev->net.tcpssz	= tc->tcpsndbytes - pre->net.tcpssz;
