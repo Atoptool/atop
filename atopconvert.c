@@ -1645,9 +1645,10 @@ main(int argc, char *argv[])
 
 	// search for version of input file in conversion table
 	//
+	const int input_version = irh.aversion & 0x7fff;
 	for (i=0, versionix=-1; i < numconvs; i++)
 	{
-		if (convs[i].version == (irh.aversion & 0x7fff))
+		if (convs[i].version == input_version)
 		{
 			versionix = i;
 			break;
@@ -1837,45 +1838,51 @@ convert_samples(int ifd, int ofd, struct rawheader *irh, int ivix, int ovix, int
 
 			// convert process-level statistics to newer version
 			//
-			convs[i+1].tstat = malloc(convs[i+1].tstatlen *
-								irr.ndeviat);
+			const unsigned int next_tstatlen = convs[i+1].tstatlen;
+			convs[i+1].tstat = malloc(next_tstatlen * irr.ndeviat);
 			ptrverify(convs[i+1].tstat,
 			   "Malloc failed for %d stored tasks\n", irr.ndeviat);
 
-			memset(convs[i+1].tstat, 0, convs[i+1].tstatlen *
-								irr.ndeviat);
+			memset(convs[i+1].tstat, 0, next_tstatlen * irr.ndeviat);
+
+			const unsigned int curr_tstatlen = convs[i].tstatlen;
+			char *curr_tstat_ptr = convs[i].tstat;
+			char *next_tstat_ptr = convs[i+1].tstat;
 
 			for (t=0; t < irr.ndeviat; t++)	// for every task
 			{
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tgen), &(convs[i+1].tgen));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tcpu), &(convs[i+1].tcpu));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tdsk), &(convs[i+1].tdsk));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tmem), &(convs[i+1].tmem));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tnet), &(convs[i+1].tnet));
 
 				do_tconvert(
-				    convs[i].tstat  +(t*convs[i].tstatlen),
-				    convs[i+1].tstat+(t*convs[i+1].tstatlen),
+				    curr_tstat_ptr,
+				    next_tstat_ptr,
 				    &(convs[i].tgpu), &(convs[i+1].tgpu));
+
+				curr_tstat_ptr += curr_tstatlen;
+				next_tstat_ptr += next_tstatlen;
 			}
 
 			free(convs[i].tstat);
