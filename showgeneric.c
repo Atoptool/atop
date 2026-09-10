@@ -1275,6 +1275,12 @@ text_samp(time_t curtime, int nsecs,
 			   ** sort in disk activity order
 			   */
 			   case MPERCDSK:
+				if ( !(supportflags & IOSTAT) )
+				{
+					statmsg = "Ignored: no disk I/O metrics known (no root privs)";
+					break;
+				}
+
 				setprocview(0, MPERCDSK, 0, -1);
 				firstitem    = 0;
 				break;
@@ -1328,6 +1334,12 @@ text_samp(time_t curtime, int nsecs,
 			   ** disk-specific figures per process
 			   */
 			   case MPROCDSK:
+				if ( !(supportflags & IOSTAT) )
+				{
+					statmsg = "Ignored: no disk I/O metrics known (no root privs)";
+					break;
+				}
+
 				setprocview(MPROCDSK, MPERCDSK, 0, -1);
 				firstitem = 0;
 				break;
@@ -3325,6 +3337,13 @@ generic_init(void)
 			break;
 
 		   case MPERCGPU:
+			if ( !(supportflags & GPUSTAT) )
+			{
+				fprintf(stderr, "Ignored: no GPU daemon running or no -k specified\n");
+				sleep(3);
+				break;
+			}
+
 			setprocview(0, MPERCGPU, 0, -1);
 			break;
 
@@ -3333,10 +3352,25 @@ generic_init(void)
 			break;
 
 		   case MPERCDSK:
+			if ( !(supportflags & IOSTAT) )
+			{
+				fprintf(stderr, "Ignored: no disk I/O metrics known (no root privs)\n");
+				sleep(3);
+				break;
+			}
+
 			setprocview(0, MPERCDSK, 0, -1);
 			break;
 
 		   case MPERCNET:
+			if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
+			{
+				fprintf(stderr, "Ignored: 'netatop' or 'netatop-bpf' not "
+					        "active, no -K specified or no root privs\n");
+				sleep(3);
+				break;
+			}
+
 			setprocview(0, MPERCNET, 0, -1);
 			break;
 
@@ -3345,6 +3379,13 @@ generic_init(void)
 			break;
 
 		   case MPROCGPU:
+			if ( !(supportflags & GPUSTAT) )
+			{
+				fprintf(stderr, "Ignored: no GPU daemon running or no -k specified\n");
+				sleep(3);
+				break;
+			}
+
 			setprocview(MPROCGPU, MPERCGPU, 0, -1);
 			break;
 
@@ -3357,6 +3398,13 @@ generic_init(void)
 			break;
 
 		   case MPROCDSK:
+			if ( !(supportflags & IOSTAT) )
+			{
+				fprintf(stderr, "Ignored: no disk I/O metrics known (no root privs)\n");
+				sleep(3);
+				break;
+			}
+
 			setprocview(MPROCDSK, MPERCDSK, 0, -1);
 			break;
 
@@ -3364,7 +3412,7 @@ generic_init(void)
 			if ( !(supportflags & NETATOP || supportflags & NETATOPBPF) )
 			{
 				fprintf(stderr, "Ignored: 'netatop' or 'netatop-bpf' not "
-					        "active, no -K specified or no root privs");
+					        "active, no -K specified or no root privs\n");
 				sleep(3);
 				break;
 			}
