@@ -375,6 +375,12 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 	//
 	dirp = opendir(".");
 
+	// If we don't have read permission in this directory,
+	// the opendir fails. Return error in that case.
+	//
+	if (!dirp)
+		return -1;
+
 	while ( (entp = readdir(dirp)) )
 	{
 		// skip dot files/directories
