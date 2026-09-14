@@ -1249,6 +1249,7 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	register int	i, nlines = 1;
 	count_t		cputot;
 	unsigned int	badness;
+	double		cputot_inv;
 
 	/*
 	** print overall statistics
@@ -1261,24 +1262,26 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	if (cputot == 0)
 		cputot = 1;	/* avoid divide-by-zero */
 
+	cputot_inv = 100.0 / cputot;
+
 	if (cpubadness)
 		badness = ((cputot - ss->cpu.all.itime - ss->cpu.all.wtime) *
-                            100.0 / cputot) * 100 / cpubadness;
+                            cputot_inv) * 100 / cpubadness;
 	else
 		badness = 0;
 
 	preprint(badness);
 
 	printf("all %5.0lf %5.0lf %4.0lf %4.0lf %8.0lf %7.0f %6.0f %6.0lf %5.0lf",
-                (double) (ss->cpu.all.utime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.ntime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.stime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.Itime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.Stime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.steal * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.guest * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.wtime * 100.0) / cputot * ss->cpu.nrcpu,
-                (double) (ss->cpu.all.itime * 100.0) / cputot * ss->cpu.nrcpu);
+                (double) (ss->cpu.all.utime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.ntime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.stime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.Itime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.Stime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.steal * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.guest * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.wtime * cputot_inv) * ss->cpu.nrcpu,
+                (double) (ss->cpu.all.itime * cputot_inv) * ss->cpu.nrcpu);
 
 	postprint(badness);
 
@@ -1300,10 +1303,11 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			if (cputot == 0)
 				cputot = 1;	/* avoid divide-by-zero */
 
+			cputot_inv = 100.0 / cputot;
+
 			if (cpubadness)
 				badness = ((cputot - ss->cpu.cpu[i].itime -
-					    ss->cpu.cpu[i].wtime) * 100.0 /
-				            cputot) * 100 / cpubadness;
+					    ss->cpu.cpu[i].wtime) * cputot_inv) * 100 / cpubadness;
 			else
 				badness = 0;
 
@@ -1314,15 +1318,15 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			printf("%4d %5.0lf %5.0lf %4.0lf %4.0lf %8.0lf "
 			       "%7.0f %6.0lf %6.0lf %5.0lf",
 			     ss->cpu.cpu[i].cpunr,
-                 	     (double)(ss->cpu.cpu[i].utime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].ntime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].stime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].Itime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].Stime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].steal * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].guest * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].wtime * 100.0) / cputot,
-                	     (double)(ss->cpu.cpu[i].itime * 100.0) / cputot);
+                 	     (double)(ss->cpu.cpu[i].utime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].ntime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].stime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].Itime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].Stime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].steal * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].guest * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].wtime * cputot_inv),
+                	     (double)(ss->cpu.cpu[i].itime * cputot_inv));
 
 			postprint(badness);
 
@@ -1356,6 +1360,7 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	char		fmt1[16], fmt2[16], *pn;
 	count_t		avgmemuse;
 	int		len;
+	long long	samples;
 
 	for (i=0; i < ss->gpu.nrgpus; i++)	/* per GPU */
 	{
@@ -1371,11 +1376,12 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		if (wasactive == -2)      // metrics not available?
 			wasactive = 0;
 
-		if (ss->gpu.gpu[i].samples == 0)
+		samples = ss->gpu.gpu[i].samples;
+
+		if (samples == 0)
 			avgmemuse = ss->gpu.gpu[i].memusenow;
 		else
-			avgmemuse = ss->gpu.gpu[i].memusecum /
-			            ss->gpu.gpu[i].samples;
+			avgmemuse = ss->gpu.gpu[i].memusecum / samples;
 
 		// memusage > 512 MiB (rather arbitrary)?
 		//
@@ -1393,20 +1399,20 @@ gpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		if (nlines++)
 			printf("%s  ", tstamp);
 
-		if (ss->gpu.gpu[i].samples == 0)
-			ss->gpu.gpu[i].samples = 1;
+		if (samples == 0)
+			samples = 1;
 
 		if (ss->gpu.gpu[i].gpuperccum == -1)
 			safe_strcpy(fmt1, "N/A", sizeof fmt1);
 		else
 			snprintf(fmt1, sizeof fmt1, "%lld%%",
-			   ss->gpu.gpu[i].gpuperccum / ss->gpu.gpu[i].samples);
+			   ss->gpu.gpu[i].gpuperccum / samples);
 
 		if (ss->gpu.gpu[i].memperccum == -1)
 			safe_strcpy(fmt2, "N/A", sizeof fmt2);
 		else
 			snprintf(fmt2, sizeof fmt2, "%lld%%",
-			   ss->gpu.gpu[i].memperccum / ss->gpu.gpu[i].samples);
+			   ss->gpu.gpu[i].memperccum / samples);
 
 		if (ss->gpu.gpu[i].memtotnow == 0)
 			ss->gpu.gpu[i].memtotnow = 1;
@@ -1621,11 +1627,12 @@ psiline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	int pexit, int pzombie)
 {
 	// calculate pressure percentages for entire interval
-	unsigned int	csperc  = ss->psi.cpusome.total/(deltatic*10000/hz);
-	unsigned int	msperc  = ss->psi.memsome.total/(deltatic*10000/hz);
-	unsigned int	mfperc  = ss->psi.memfull.total/(deltatic*10000/hz);
-	unsigned int	isperc  = ss->psi.iosome.total /(deltatic*10000/hz);
-	unsigned int	ifperc  = ss->psi.iofull.total /(deltatic*10000/hz);
+	const long long	divisor = (long long)deltatic * 10000 / hz;
+	unsigned int	csperc  = divisor ? ss->psi.cpusome.total / divisor : 0;
+	unsigned int	msperc  = divisor ? ss->psi.memsome.total / divisor : 0;
+	unsigned int	mfperc  = divisor ? ss->psi.memfull.total / divisor : 0;
+	unsigned int	isperc  = divisor ? ss->psi.iosome.total  / divisor : 0;
+	unsigned int	ifperc  = divisor ? ss->psi.iofull.total  / divisor : 0;
 	unsigned int	badness = 0;
 
 	if (!ss->psi.present)
@@ -1703,6 +1710,7 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 	count_t		mstot, iotot;
 	struct perdsk 	*dp;
 	unsigned int	badness;
+	double		mstot_inv_100 = 0.0, mstot_inv_1000 = 0.0;
 
 	switch (selector)
 	{
@@ -1731,6 +1739,11 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
                   ss->cpu.all.Stime + ss->cpu.all.steal  )
 				* (count_t)1000 / hertz / ss->cpu.nrcpu;
 
+	if (mstot > 0) {
+		mstot_inv_100 = 100.0 / mstot;
+		mstot_inv_1000 = 1000.0 / mstot;
+	}
+
 	for (i=0; i < nunit; i++, dp++)
 	{
 		char	*pn;
@@ -1749,7 +1762,7 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 			printf("%s  ", tstamp);
 
 		if (dskbadness)
-			badness = (dp->io_ms * 100.0 / mstot) * 100/dskbadness;
+			badness = (dp->io_ms * mstot_inv_100) * 100/dskbadness;
                 else
 			badness = 0;
 
@@ -1763,11 +1776,11 @@ gendskline(struct sstat *ss, char *tstamp, char selector)
 		printf("%-14s %3.0lf%% %6.1lf %7.1lf %7.1lf %7.1lf "
 		       "%5.1lf %9.5lf ms",
 		    	pn,
-			mstot ? (double)dp->io_ms  *  100.0 / mstot   : 0.0,
-			mstot ? (double)dp->nread  * 1000.0 / mstot   : 0.0,
+			(double)dp->io_ms  *  mstot_inv_100,
+			(double)dp->nread  * mstot_inv_1000,
 			dp->nread  ?
 			        (double)dp->nrsect / dp->nread / 2.0  : 0.0,
-			mstot ? (double)dp->nwrite * 1000.0 / mstot   : 0.0,
+			(double)dp->nwrite * mstot_inv_1000,
 			dp->nwrite ?
   			        (double)dp->nwsect / dp->nwrite / 2.0 : 0.0,
 			dp->io_ms  ? (double)dp->avque / dp->io_ms    : 0.0,
