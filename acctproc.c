@@ -127,6 +127,7 @@ acctswon(void)
 	struct stat		statbuf;
 	char			*ep;
 	int			ret;
+	const int pacctadm_size = sizeof pacctadm / sizeof pacctadm[0];
 
 	/*
 	** when a particular environment variable is present, atop should
@@ -181,7 +182,7 @@ acctswon(void)
 	** for one of the standard accounting-files; in that case we
 	** open this file and get our info from here ....
 	*/
-	for (i=0, j=0; i < sizeof pacctadm/sizeof pacctadm[0]; i++)
+	for (i=0, j=0; i < pacctadm_size; i++)
 	{
 		if ( stat(pacctadm[i].name, &pacctadm[i].stat) == 0)
 			j++;
@@ -199,7 +200,7 @@ acctswon(void)
 
 		(void) wait((int *) 0); /* let the parent wait  */
 
-		for (i=0; i < sizeof pacctadm/sizeof pacctadm[0]; i++)
+		for (i=0; i < pacctadm_size; i++)
 		{
 			if ( stat(pacctadm[i].name, &statbuf) == 0)
 			{
@@ -877,6 +878,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 	struct acct_v3 		acctrec_v3;
 	struct stat		statacc;
 	int			filled;
+	const int gen_name_size = sizeof(api->gen.name);
 
 	/*
 	** if accounting not supported, skip call
@@ -973,7 +975,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec.ac_rw);
 
-			safe_strcpy(api->gen.name, acctrec.ac_comm, sizeof api->gen.name);
+			safe_strcpy(api->gen.name, acctrec.ac_comm, gen_name_size);
 			filled = 1;
 			break;
 
@@ -1001,7 +1003,7 @@ acctphotoproc(struct tstat *accproc, int nrprocs)
 			api->mem.majflt = acctexp(acctrec_v3.ac_majflt);
 			api->dsk.rio    = acctexp(acctrec_v3.ac_rw);
 
-			safe_strcpy(api->gen.name, acctrec_v3.ac_comm, sizeof api->gen.name);
+			safe_strcpy(api->gen.name, acctrec_v3.ac_comm, gen_name_size);
 			filled = 1;
 			break;
 		}
