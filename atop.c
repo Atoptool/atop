@@ -178,6 +178,7 @@ char		irawname[RAWNAMESZ];
 char		orawname[RAWNAMESZ];
 char		rawreadflag;
 char		idnamesuppress;	/* suppress UID/GID to name translation */
+char		highpriosuppress; /* suppress high priority for atop    */
 char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 char		flaglist[MAXFL];
@@ -191,7 +192,6 @@ char      	rmspaces   = 0;  /* boolean: remove spaces from command  */
 
 char            displaymode = 'T';      /* 'T' = text, 'D' = draw        */
 char            barmono     = 0; /* boolean: bar without categories?     */
-		                 /* name in case of parseable output     */
 
 char		prependenv  = 0; /* boolean: prepend selected            */
 				 /* environment variables to cmdline     */
@@ -369,6 +369,7 @@ main(int argc, char *argv[])
 			switch (c)
 			{
 			   case '?':		/* usage wanted ?             */
+			   case 'h':		/* usage wanted ?             */
 				prusage(argv[0]);
 				break;
 
@@ -441,7 +442,7 @@ main(int argc, char *argv[])
 				displaymode = 'D';
 				break;
 
-			   case 'H':		/* bar graphs ?               */
+			   case 'H':		/* bar graphs without labels? */
 				barmono = 1;
 				break;
 
@@ -455,6 +456,10 @@ main(int argc, char *argv[])
 
 			   case 'I':		/* suppress ID translation ?  */
 				idnamesuppress++;
+				break;
+
+			   case 'Q':		/* suppress high priority?    */
+				highpriosuppress++;
 				break;
 
                            case 'b':		/* begin time ?               */
@@ -654,26 +659,29 @@ main(int argc, char *argv[])
 	*/
 	regainrootprivs();
 
-	/*
-	** lock ATOP in memory to get reliable samples (also when
-	** memory is low and swapping is going on);
-	** ignored if not running under superuser privileges!
-	*/
-	rlim.rlim_cur	= RLIM_INFINITY;
-	rlim.rlim_max	= RLIM_INFINITY;
+	if ( !highpriosuppress )
+	{
+		/*
+		** lock ATOP in memory to get reliable samples (also when
+		** memory is low and swapping is going on);
+		** ignored if not running under superuser privileges!
+		*/
+		rlim.rlim_cur	= RLIM_INFINITY;
+		rlim.rlim_max	= RLIM_INFINITY;
 
-	if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
-		(void) mlockall(MCL_CURRENT|MCL_FUTURE);
+		if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
+			(void) mlockall(MCL_CURRENT|MCL_FUTURE);
+	
+		/*
+		** increment CPU scheduling-priority to get reliable samples (also
+		** during heavy CPU load);
+		** ignored if not running under superuser privileges!
+		*/
+		if ( nice(-20) == -1)
+			;
 
-	/*
-	** increment CPU scheduling-priority to get reliable samples (also
-	** during heavy CPU load);
-	** ignored if not running under superuser privileges!
-	*/
-	if ( nice(-20) == -1)
-		;
-
-	set_oom_score_adj();
+		set_oom_score_adj();
+	}
 
 	/*
 	** switch-on the process-accounting mechanism to register the
@@ -1092,6 +1100,7 @@ prusage(char *myname)
 	printf("\t  -%c  show version information\n", MVERSION);
 	printf("\t  -%c  show all processes and cgroups (i.s.o. active only)\n",
 			MALLACTIVE);
+	printf("\t  -Q  suppress higher CPU priority and memory locking for atop\n");
 	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
 	                MCALCPSS);
 	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);

@@ -64,6 +64,7 @@ Network load per process is shown only when the
 kernel module or the
 .I netatop-bpf
 BPF module has been installed.
+
 .SH TWIN MODE
 With the
 .I -t
@@ -345,6 +346,20 @@ runs with restricted view (as unprivileged user) or unrestricted view
 .I atop
 does not have the privileges (no root identity nor the necessary capabilities)
 to retrieve all counter values on system level and on process level.
+
+Since
+.I atop
+is a program that analyzes situations with overloaded CPU or memory resources,
+.I atop
+tries to run with a higher CPU priority (lower nice value) and with
+its memory locked. This will only succeed when
+.I atop
+runs with superuser privileges (i.e. has the proper capabilities).
+With the
+.I -Q
+flag
+.I atop
+will not try to increase its CPU priority or lock its memory.
 
 .SH PROCESS ACCOUNTING
 With every interval,

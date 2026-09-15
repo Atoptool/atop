@@ -99,6 +99,7 @@ extern char		irawname[];
 extern char		orawname[];
 extern char		twindir[];
 extern char		rawreadflag;
+extern char		highpriosuppress;
 extern char		connectnetatop;
 extern char		idnamesuppress;
 extern char		idnamemaximum;
