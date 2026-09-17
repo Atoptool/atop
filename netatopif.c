@@ -76,8 +76,8 @@ static struct exitstore *exitall;
 static int		 exitnum;
 static char		 exithash;
 
-static void	fill_networkcnt(struct tstat *, struct tstat *,
-        	                struct exitstore *);
+static void	fill_networkcnt(struct tstat *, const struct tstat *,
+        	                const struct exitstore *);
 
 /*
 ** open a raw socket to the IP layer (root privs required)
@@ -464,7 +464,7 @@ netatop_exithash(char hashtype)
 ** update counters in tstat struct
 */
 void
-netatop_exitfind(unsigned long key, struct tstat *dev, struct tstat *pre)
+netatop_exitfind(unsigned long key, struct tstat *dev, const struct tstat *pre)
 {
 	int 			h = HASHCALC(key);
 	struct exitstore	*esp;
@@ -524,7 +524,7 @@ netatop_exitfind(unsigned long key, struct tstat *dev, struct tstat *pre)
 }
 
 static void
-fill_networkcnt(struct tstat *dev, struct tstat *pre, struct exitstore *esp)
+fill_networkcnt(struct tstat *dev, const struct tstat *pre, const struct exitstore *esp)
 {
 	dev->net.tcpsnd	= esp->npt.tc.tcpsndpacks - pre->net.tcpsnd;
 	dev->net.tcpssz	= esp->npt.tc.tcpsndbytes - pre->net.tcpssz;
