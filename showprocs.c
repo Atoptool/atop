@@ -1630,20 +1630,20 @@ int compcmd(const void *, const void *, void *);
 char *
 procprt_CMD_a(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[15];
+        static char buf[16];
 
-        snprintf(buf, sizeof buf, "%-14.14s", curstat->gen.name);
+        snprintf(buf, sizeof buf, "%-15.15s", curstat->gen.name);
         return buf;
 }
 
 char *
 procprt_CMD_e(struct tstat *curstat, int avgval, int nsecs)
 {
-        static char buf[15]="<";
-        char        helpbuf[15];
+        static char buf[16]="<";
+        char        helpbuf[17];
 
-        snprintf(helpbuf, sizeof helpbuf, "<%.12s>",  curstat->gen.name);
-        snprintf(buf,     sizeof buf,     "%-14.14s", helpbuf);
+        snprintf(helpbuf, sizeof helpbuf, "<%.13s>",  curstat->gen.name);
+        snprintf(buf,     sizeof buf,     "%-15.15s", helpbuf);
         return buf;
 }
 
@@ -1657,7 +1657,7 @@ compcmd(const void *a, const void *b, void *dir)
 }
 
 detail_printdef procprt_CMD = 
-   {0, "CMD           ", "CMD", .ac.doactiveconverts = procprt_CMD_a, procprt_CMD_e, compcmd, 1, 14, 0};
+   {0, "CMD            ", "CMD", .ac.doactiveconverts = procprt_CMD_a, procprt_CMD_e, compcmd, 1, 15, 0};
 /***************************************************************/
 int compruid(const void *, const void *, void *);
 
