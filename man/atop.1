@@ -48,6 +48,9 @@ Generate parsable output from raw log files (white-space separated or JSON):
 .PP
 .TP 5
 .B \  atop \-r [rawfile|yyy...] [\-b [YYYYMMDD]hhmm[ss]] [\-e [YYYYMMDD]hhmm[ss]] [\-Plabel[,label]... [-Z]] [\-Jlabel[,label]...]
+
+.TP 0
+Instead from the mentioned flags also long options can be used.
 .SH DESCRIPTION
 The program
 .I atop
@@ -324,7 +327,7 @@ be modified again interactively. Specifying such key as flag
 is especially useful when running
 .I atop
 with output to a pipe or file (non-interactively).
-These flags are the same as the keys that can be pressed in interactive
+Most flags are the same as the keys that can be pressed in interactive
 mode (see section INTERACTIVE COMMANDS).
 .br
 Additional flags are available to support storage of atop-data in raw
@@ -332,11 +335,11 @@ format (see section RAW DATA STORAGE).
 
 By default,
 .I atop
-produces its output full-screen unless a flag is passed to direct
+produces its output full screen unless a flag is passed to direct
 the output to a raw log (-w) or direct the output in parseable (-P)
-or JSON output (-J). It is possible however to produce full-screen
+or JSON output (-J). It is possible however to produce full screen
 output while the output is also directed in another way. In that
-case a flag that relates to full-screen output (like -g) has to be
+case a flag that relates to full screen output (like -g) has to be
 passed on the command line explicitly.
 
 The status line in the initial screen shows if
@@ -481,17 +484,17 @@ file exceeds 200 MiB and if this
 process is the only one that is currently using the file.
 In that case the file is truncated to a size of zero.
 
-Notice that root-privileges are required to switch on/off process accounting
+Notice that root privileges are required to switch on/off process accounting
 in the kernel. You can start
 .I atop
 as a root user or specify setuid-root privileges to the executable file.
 In the latter case,
 .I atop
-switches on process accounting and drops the root-privileges again.
+switches on process accounting and drops the root privileges again.
 .br
 If
 .I atop
-does not run with root-privileges, it does not show information
+does not run with root privileges, it does not show information
 about finished processes.
 It indicates this situation with the
 message 'no procacct' in the top-right corner (instead of the counter that
@@ -540,20 +543,20 @@ considered 'critical'.
 An occupation percentage of 90% is considered 'critical'.
 Notice that this occupation percentage is the accumulated memory
 consumption of the kernel (including slab) and all processes. The
-memory for the page cache ('cache' and 'buff' in the MEM-line) and the
+memory for the page cache ('cache' and 'buff' in the MEM line) and the
 reclaimable part of the slab ('slrec') is not implied!
 .br
-If the number of pages swapped out ('swout' in the PAG-line) is larger
+If the number of pages swapped out ('swout' in the PAG line) is larger
 than 10 per second, the memory resource is considered 'critical'.
 A value of at least 1 per second is considered 'almost critical'.
 .br
 If the committed virtual memory exceeds the limit ('vmcom' and 'vmlim'
-in the SWP-line), the SWP-line is colored due to overcommitting the system.
+in the SWP line), the SWP line is colored due to overcommitting the system.
 .TP 5
 .B \ Swap
 An occupation percentage of 80% is considered 'critical'
 because swap space might be completely exhausted in the near future.
-It is not critical from a performance point-of-view.
+It is not critical from a performance point of view.
 .PP
 These default values can be modified in the configuration file
 (see separate
@@ -664,14 +667,14 @@ output. Certain keys can be used to show other information (other columns)
 for the active processes.  Some of these keys can also be used to switch
 directly from bar graph mode to particular detailed process information
 in text mode.
-Other keys can be used to influence the sort order of the active process/thread
+Other keys can be used to influence the sorting order of the active process/thread
 list (keys 'C', 'M', 'D', 'N', 'E' or 'O').
 .PP
 .TP 5
 .B g
 Show generic output (default).
 
-Per process the following fields are shown in case of a window-width
+Per process the following fields are shown in case of a window width
 of 80 positions:
 process-id, CPU consumption during
 the last interval in system and user mode, the virtual and resident
@@ -794,7 +797,7 @@ are shown as well, except the kernel processes (usually in the root cgroup).
 With key/flag '9' all active processes are shown, including the
 kernel processes.
 
-With key/flag 'a' (toggle) all cgroups and all processes are shown
+With key 'a' (toggle) or flag '-a' all cgroups and all processes are shown
 instead of only the active cgroups and processes.
 A cgroup is considered inactive when no processes are assigned to that cgroup
 nor to the cgroups underneath.
@@ -856,7 +859,7 @@ Per user the following fields are shown: number of processes active
 or terminated during last interval (or in total if combined with command 'a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a').
+(or all processes of the user if combined with command 'a' or flag '-a').
 .br
 When
 .I atop
@@ -877,10 +880,11 @@ chosen resource (default: CPU) and the user name.
 Show the process activity accumulated per program (i.e. process name).
 
 Per program the following fields are shown: number of processes active
-or terminated during last interval (or in total if combined with command 'a'),
+or terminated during last interval (or in total if combined with command 'a'
+or flag '-a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a').
+(or all processes of the user if combined with command 'a' or flag '-a').
 .br
 When
 .I atop
@@ -905,7 +909,7 @@ are shown: number of processes active
 or terminated during last interval (or in total if combined with command 'a'),
 accumulated CPU consumption during last interval in system and user mode,
 the current virtual and resident memory space consumed by active processes
-(or all processes of the user if combined with command 'a').
+(or all processes of the user if combined with command 'a' or flag '-a').
 .br
 When
 .I atop
@@ -1067,7 +1071,7 @@ Specify a regular expression string for specific user names or a numerical UID.
 From now on, only (active) processes will be shown from a user which matches
 the regular expression or numerical UID.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a name, (active)
+If the Enter key is pressed without specifying a name, (active)
 processes of all users will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1078,7 +1082,7 @@ Specify a list with one or more PIDs to be selected.
 From now on, only processes will be shown with a PID which matches
 one of the given list.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a PID, all (active)
+If the Enter key is pressed without specifying a PID, all (active)
 processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1089,7 +1093,7 @@ Specify a search string for specific process names as a regular expression.
 From now on, only processes will be shown with a name which matches the
 regular expression.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a name, all (active)
+If the Enter key is pressed without specifying a name, all (active)
 processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1100,7 +1104,7 @@ Specify a specific command line search string as a regular expression.
 From now on, only processes will be shown with a command line which
 matches the regular expression.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a string, all (active)
+If the Enter key is pressed without specifying a string, all (active)
 processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1113,7 +1117,7 @@ are expected.
 From now on, only processes will be shown that run in that specific
 container or pod.
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a container id or pod name,
+If the Enter key is pressed without specifying a container id or pod name,
 all (active) processes will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1126,7 +1130,7 @@ those specific states.
 Accepted states are: R (running), S (sleeping), D (disk sleep), I (idle),
 T (stopped), t (tracing stop), X (dead), Z (zombie) and P (parked).
 The system statistics are still system wide.
-If the Enter-key is pressed without specifying a state,
+If the Enter key is pressed without specifying a state,
 all (active) processes/threads will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1138,7 +1142,7 @@ specific disk names and specific network interface names. All
 search strings are interpreted as a regular expressions.
 From now on, only those system resources are shown that match
 the concerning regular expression.
-If the Enter-key is pressed without specifying a search string, all (active)
+If the Enter key is pressed without specifying a search string, all (active)
 system resources of that type will be shown again.
 .br
 Whether this key is active or not can be seen in the header line.
@@ -1401,7 +1405,7 @@ the number of processes that ended during the interval
 column may indicate that process accounting could not be activated
 ('no procacct').
 .br
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .PP
 .TP 5
@@ -1435,7 +1439,7 @@ In case of per-cpu occupation, the CPU number and
 the wait percentage ('wa') for that CPU are combined.
 The number of lines showing the per-cpu occupation can be limited.
 
-For virtual machines, the steal-percentage ('steal') shows
+For virtual machines, the steal percentage ('steal') shows
 the percentage of CPU time stolen by other virtual machines
 running on the same hardware.
 .br
@@ -1506,7 +1510,7 @@ Notice that
 .I average
 values for frequency and scaling are shown in the CPU line for every CPU.
 
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .PP
 .TP 5
@@ -1521,7 +1525,7 @@ or that are waiting for disk I/O. These figures are averaged over
 Furthermore the number of context switches ('csw'), the number
 of serviced interrupts ('intr') and the number of available CPUs are shown.
 
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .PP
 .TP 5
@@ -1544,7 +1548,7 @@ being in use during the sample time ('usavg'), the number of processes
 being active on the GPU at the moment of the sample ('#proc'), and
 the type of GPU.
 
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .br
 The number of lines showing the GPUs can be limited.
@@ -1579,7 +1583,7 @@ the amount of huge page memory that is really in use ('hpuse'),
 the amount of memory that is used for TCP sockets ('tcps'), and
 the amount of memory that is used for UDP sockets ('udps').
 
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .PP
 .TP 5
@@ -1612,7 +1616,7 @@ the percentage of LLC in use ('LLCXX YY%').
 
 Note that this feature depends on the 'resctrl' pseudo filesystem.
 Be sure that the kernel is built with the relevant config and
-take care that the pseudo-filesystem is mounted:
+take care that the pseudo filesystem is mounted:
 
 .B \  mount -t resctrl resctrl -o mba_MBps /sys/fs/resctrl
 (on Intel)
@@ -1709,7 +1713,7 @@ the average queue depth while busy ('avq')
 and the average number of milliseconds needed by a request ('avio')
 for seek, latency and data transfer.
 .br
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 
 The number of lines showing the units can be limited per class (LVM, MDD or
@@ -1800,7 +1804,7 @@ were delivered to local higher-layer protocols ('deliv'),
 the number of received ICMP datagrams ('icmpi'), and
 the number of transmitted ICMP datagrams ('icmpo').
 .br
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .br
 These counters are related to IPv4 and IPv6 combined.
@@ -1828,7 +1832,7 @@ the number of errors while transmitting a packet ('erro'),
 the number of received packets dropped ('drpi'), and
 the number of transmitted packets dropped ('drpo').
 .br
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .br
 The number of lines showing the network interfaces can be limited.
@@ -1854,7 +1858,7 @@ the effective amount of bits received per second ('si'),
 the effective amount of bits transmitted per second ('so'), and
 the number of lanes ('lanes').
 .br
-If the screen-width does not allow all of these counters,
+If the screen width does not allow all of these counters,
 only a relevant subset is shown.
 .br
 The number of lines showing the Infiniband ports can be limited.
@@ -1992,11 +1996,11 @@ INTERACTIVE COMMANDS and depending on the current width of your window:
 .PP
 .TP 9
 .B AVGRSZ
-The average size of one read-action on disk.
+The average size of one read action on disk.
 .PP
 .TP 9
 .B AVGWSZ
-The average size of one write-action on disk.
+The average size of one write action on disk.
 .PP
 .TP 9
 .B BANDWI
@@ -2351,7 +2355,7 @@ process accounting record.
 .PP
 .TP 9
 .B RNET
-The number of TCP- and UDP packets received by this process.
+The number of TCP and UDP packets received by this process.
 This information will only be shown when the optional module
 .I netatop
 or
@@ -2703,7 +2707,7 @@ When a sample contains the values since boot,
 shows a line just containing the label "RESET" before the
 lines for this sample are generated.
 .PP
-The first part of each output-line consists of the following six fields:
+The first part of each output line consists of the following six fields:
 .B label
 (the name of the label),
 .B host
@@ -2717,38 +2721,38 @@ The first part of each output-line consists of the following six fields:
 .B interval
 (number of seconds elapsed for this interval).
 .PP
-The subsequent fields of each output-line depend on the label:
+The subsequent fields of each output line depend on the label:
 .PP
 .TP 9
 .B CPU
 Subsequent fields:
-total number of clock-ticks per second for this machine,
+total number of clock ticks per second for this machine,
 number of processors,
-consumption for all CPUs in system mode (clock-ticks),
-consumption for all CPUs in user mode (clock-ticks),
-consumption for all CPUs in user mode for niced processes (clock-ticks),
-consumption for all CPUs in idle mode (clock-ticks),
-consumption for all CPUs in wait mode (clock-ticks),
-consumption for all CPUs in irq mode (clock-ticks),
-consumption for all CPUs in softirq mode (clock-ticks),
-consumption for all CPUs in steal mode (clock-ticks),
-consumption for all CPUs in guest mode (clock-ticks) overlapping user mode,
+consumption for all CPUs in system mode (clock ticks),
+consumption for all CPUs in user mode (clock ticks),
+consumption for all CPUs in user mode for niced processes (clock ticks),
+consumption for all CPUs in idle mode (clock ticks),
+consumption for all CPUs in wait mode (clock ticks),
+consumption for all CPUs in irq mode (clock ticks),
+consumption for all CPUs in softirq mode (clock ticks),
+consumption for all CPUs in steal mode (clock ticks),
+consumption for all CPUs in guest mode (clock ticks) overlapping user mode,
 frequency of all CPUs (MHz), frequency percentage of all CPUs,
 instructions executed by all CPUs and cycles for all CPUs.
 .TP 9
 .B cpu
 Subsequent fields:
-total number of clock-ticks per second for this machine,
-processor-number,
-consumption for this CPU in system mode (clock-ticks),
-consumption for this CPU in user mode (clock-ticks),
-consumption for this CPU in user mode for niced processes (clock-ticks),
-consumption for this CPU in idle mode (clock-ticks),
-consumption for this CPU in wait mode (clock-ticks),
-consumption for this CPU in irq mode (clock-ticks),
-consumption for this CPU in softirq mode (clock-ticks),
-consumption for this CPU in steal mode (clock-ticks),
-consumption for this CPU in guest mode (clock-ticks) overlapping user mode,
+total number of clock ticks per second for this machine,
+processor number,
+consumption for this CPU in system mode (clock ticks),
+consumption for this CPU in user mode (clock ticks),
+consumption for this CPU in user mode for niced processes (clock ticks),
+consumption for this CPU in idle mode (clock ticks),
+consumption for this CPU in wait mode (clock ticks),
+consumption for this CPU in irq mode (clock ticks),
+consumption for this CPU in softirq mode (clock ticks),
+consumption for this CPU in steal mode (clock ticks),
+consumption for this CPU in guest mode (clock ticks) overlapping user mode,
 frequency of this CPU (Mhz), frequency percentage of this CPU,
 instructions executed by this CPU and cycles for this CPU.
 .TP 9
@@ -2758,7 +2762,7 @@ number of processors,
 load average for last minute,
 load average for last five minutes,
 load average for last fifteen minutes,
-number of context-switches, and
+number of context switches, and
 number of device interrupts.
 .TP 9
 .B GPU
@@ -2978,15 +2982,15 @@ total huge pages (huge pages), and free huge pages (huge pages).
 .B NUC
 Subsequent fields:
 NUMA node number, number of processors for this node,
-consumption for node CPUs in system mode (clock-ticks),
-consumption for node CPUs in user mode (clock-ticks),
-consumption for node CPUs in user mode for niced processes (clock-ticks),
-consumption for node CPUs in idle mode (clock-ticks),
-consumption for node CPUs in wait mode (clock-ticks),
-consumption for node CPUs in irq mode (clock-ticks),
-consumption for node CPUs in softirq mode (clock-ticks),
-consumption for node CPUs in steal mode (clock-ticks), and
-consumption for node CPUs in guest mode (clock-ticks) overlapping user mode.
+consumption for node CPUs in system mode (clock ticks),
+consumption for node CPUs in user mode (clock ticks),
+consumption for node CPUs in user mode for niced processes (clock ticks),
+consumption for node CPUs in idle mode (clock ticks),
+consumption for node CPUs in wait mode (clock ticks),
+consumption for node CPUs in irq mode (clock ticks),
+consumption for node CPUs in softirq mode (clock ticks),
+consumption for node CPUs in steal mode (clock ticks), and
+consumption for node CPUs in guest mode (clock ticks) overlapping user mode.
 .TP 9
 .B CGR
 For every cgroup (level) one or two lines are shown.
@@ -3041,9 +3045,9 @@ For every process one line is shown.
 .br
 Subsequent fields:
 PID, name (between parenthesis or underscores for spaces), state,
-total number of clock-ticks per second for this machine,
-CPU-consumption in user mode (clockticks),
-CPU-consumption in system mode (clockticks),
+total number of clock ticks per second for this machine,
+CPU consumption in user mode (clockticks),
+CPU consumption in system mode (clockticks),
 nice value, priority, realtime priority,
 scheduling policy, current CPU (-1 for exited process), sleep average,
 TGID (group number of related tasks/threads), is_process (y/n),
@@ -3127,14 +3131,14 @@ kernel module
 or
 .I netatop-bpf
 installed ('y' or 'n'),
-number of TCP-packets transmitted,
-cumulative size of TCP-packets transmitted,
-number of TCP-packets received,
-cumulative size of TCP-packets received,
-number of UDP-packets transmitted,
-cumulative size of UDP-packets transmitted,
-number of UDP-packets received,
-cumulative size of UDP-packets transmitted,
+number of TCP packets transmitted,
+cumulative size of TCP packets transmitted,
+number of TCP packets received,
+cumulative size of TCP packets received,
+number of UDP packets transmitted,
+cumulative size of UDP packets transmitted,
+number of UDP packets received,
+cumulative size of UDP packets transmitted,
 number of raw packets transmitted (obsolete, always 0),
 number of raw packets received (obsolete, always 0),
 TGID (group number of related tasks/threads) and is_process (y/n).
@@ -3214,21 +3218,21 @@ interactively:
 .PP
 .B \  atop -r yy
 .PP
-View the contents of the standard logfile of 2024, November 5 from
+View the contents of the standard logfile of 2026, November 5 from
 02:00 PM onwards interactively:
 .PP
-.B \  atop -r 20241105 -b 1400
+.B \  atop -r 20261105 -b 1400
 .PP
 Read the contents of today's logfile and show the CPU utilization on
 system level as parseable output and JSON output:
 .PP
 .B \  atop -r -PCPU -JCPU
 .PP
-Concatenate all raw log files of November 2024 and generate parsable
+Concatenate all raw log files of November 2026 and generate parsable
 output about the CPU utilization:
 .PP
 .TP 12
-.B \  atopcat /var/log/atop/atop_202403?? | atop -r -  -PCPU
+.B \  atopcat /var/log/atop/atop_202603?? | atop -r -  -PCPU
 .PP
 Monitor the system load and write it to a file (in plain ASCII)
 with an interval of one minute during half an hour with active

@@ -105,7 +105,7 @@ extern char		idnamesuppress;
 extern char		idnamemaximum;
 extern char		rmspaces;
 extern time_t		begintime, endtime, cursortime;	// epoch or time in day
-extern char		flaglist[];
+extern char		flagrest[];
 extern struct handler	handlers[];
 
 extern char		displaymode;
@@ -161,7 +161,6 @@ char		generic_samp (time_t, int,
 		            int, unsigned int, char);
 void		generic_error(const char *, ...);
 void		generic_end  (void);
-void		generic_usage(void);
 
 /*
 ** miscellaneous prototypes

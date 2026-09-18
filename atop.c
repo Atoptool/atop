@@ -127,6 +127,7 @@
 #include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <time.h>
 #include <stdio.h>
 #include <errno.h>
@@ -156,8 +157,8 @@
 #include "gpucom.h"
 #include "netatop.h"
 
-#define	allflags  "ab:cde:fghijklmnopqr::st::uvwxyz:123456789ABCDEFGHIJ:KL:MNOP:QRSTUVWXYZ"
-#define	MAXFL		84      /* maximum number of command-line flags  */
+#define	MAXFL		128      /* maximum positions for command line flags  */
+#define	MAXPARAM	80 
 
 /*
 ** declaration of global variables
@@ -181,7 +182,10 @@ char		idnamesuppress;	/* suppress UID/GID to name translation */
 char		highpriosuppress; /* suppress high priority for atop    */
 char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
-char		flaglist[MAXFL];
+
+char		flaglist[MAXFL]; /* possible flags                       */
+char		flagrest[MAXFL]; /* flags remaining to be processed      */
+
 char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
 char		threadview = 0;	 /* boolean: show individual threads     */
@@ -212,7 +216,6 @@ int 		ossub;
 extern GHashTable *ghash_net;
 
 int		supportflags;	/* supported features             	*/
-char		**argvp;
 
 struct handler	handlers[MAXHANDLERS];
 int		numhandlers;
@@ -301,10 +304,219 @@ static void	engine(void);
 static void	twinprepare(void);
 static void	twinclean(void);
 
+/*
+** table defining all flags and corresponding long options
+**
+** used flags: 123456789aBb:CcDdEe:FfGgHhIiJ:jKkL:lMmNnoP:pQRr::Sst::uVvWw:XxYyZz:
+*/
+#define	PHBASEVAL 1000
+#define	PHSHOWGPU (PHBASEVAL+1)
+
+struct pardef {
+	struct option	option;
+	char		*helpmsg;
+	char		symbarg;	// symbolic argument
+} paramdef[] = {
+	{ { "twin",       optional_argument, 0,                  't' },
+		"twin mode: live measurement with possibility to review\n"
+		"earlier samples (temporary raw file created in /tmp or\n"
+		"in specified absolute directory path D)\n", 'D' },
+
+
+	{ { "showbar",    no_argument,       0,                  'B' },
+		"show bar graphs for system metrics", ' ' },
+
+	{ { "blankbars",  no_argument,       0, MBARMONO   }, // 'H'
+		"show bar graphs without categories\n", ' ' },
+
+
+	{ { "showcgr",    no_argument,       0, MCGROUPS   }, // 'G'
+		"show cgroups v2 metrics (control groups and\n"
+		"related processes)", ' ' },
+
+	{ { "cgrlevel2",  no_argument,       0,                  '2' }, NULL, ' ' },
+	{ { "cgrlevel3",  no_argument,       0,                  '3' }, NULL, ' ' },
+	{ { "cgrlevel4",  no_argument,       0,                  '4' }, NULL, ' ' },
+	{ { "cgrlevel5",  no_argument,       0,                  '5' }, NULL, ' ' },
+	{ { "cgrlevel6",  no_argument,       0,                  '6' }, NULL, ' ' },
+	{ { "cgrlevel7",  no_argument,       0,                  '7' },
+		"cgroups v2: define depth level -2 till -7 (default: -7)", ' ' },
+
+	{ { "cgrprocusr", no_argument,       0,                  '8' },
+		"cgroups v2: show processes per cgroups\n"
+		"except kernel processes in root cgroup", ' ' },
+
+	{ { "cgrprocall", no_argument,       0,                  '9' },
+		"cgroups v2: show user and kernel processes per cgroup\n", ' ' },
+
+
+	{ { "all",        no_argument,       0, MALLACTIVE }, // 'a'
+		"show all processes, threads and cgroups instead of\n"
+		"the active ones only (default)\n", ' ' },
+
+
+	{ { "read",       optional_argument, 0,                  'r' },
+		"read  raw data from file F (compressed)\n"
+		"symbolic file: y[y...] for yesterday (repeated)\n"
+		"file name '-': read raw data from stdin", 'F' },
+
+	{ { "write",      required_argument, 0,                  'w' },
+		"write raw data to file F (compressed)\n", 'F' },
+
+
+	{ { "showgen",    no_argument,       0, MPROCGEN   }, // 'g'
+		"show generic process information (default)", ' ' },
+
+	{ { "showmem",    no_argument,       0, MPROCMEM   }, // 'm'
+		"show memory-related process information", ' ' },
+
+	{ { "showdsk",    no_argument,       0, MPROCDSK   }, // 'd'
+		"show disk-related process information", ' ' },
+
+	{ { "shownet",    no_argument,       0, MPROCNET   }, // 'n'
+		"show network-related process information", ' ' },
+
+	{ { "showgpu",    no_argument,       0, PHSHOWGPU  }, // 'e' place holder
+		"show GPU-related process information", ' ' },
+
+	{ { "showcmd",    no_argument,       0, MPROCARG   }, // 'c'
+		"show command line per process", ' ' },
+
+	{ { "showsched",  no_argument,       0, MPROCSCH   }, // 's'
+		"show scheduling-related process information", ' ' },
+
+	{ { "showvar",    no_argument,       0, MPROCVAR   }, // 'v'
+		"show miscellaneous process information\n"
+		"(ppid, user/group, start and end date/time)", ' ' },
+
+	{ { "showown",    no_argument,       0, MPROCOWN   }, // 'o'
+		"show self-defined process information\n", ' ' },
+
+
+	{ { "threads",    no_argument,       0, MTHREAD    }, // 'y'
+		"show threads within process", ' ' },
+
+	{ { "sortthr",    no_argument,       0, MTHRSORT   }, // 'Y'
+		"sort threads (when combined with -y)\n", ' ' },
+
+
+	{ { "sortcpu",    no_argument,       0, MPERCCPU   }, // 'C'
+		"sort processes by cpu consumption (default)", ' ' },
+
+	{ { "sortmem",    no_argument,       0, MPERCMEM   }, // 'M'
+		"sort processes by memory consumption", ' ' },
+
+	{ { "sortdsk",    no_argument,       0, MPERCDSK   }, // 'D'
+		"sort processes by disk activity", ' ' },
+
+	{ { "sortnet",    no_argument,       0, MPERCNET   }, // 'N'
+		"sort processes by network activity", ' ' },
+
+	{ { "sortgpu",    no_argument,       0, MPERCGPU   }, // 'E'
+		"sort processes by of GPU activity\n", ' ' },
+
+
+	{ { "cumprocs",   no_argument,       0, MCUMPROC   }, // 'p'
+		"show cumulated process information per program\n"
+		"(i.e. same name)", ' ' },
+
+	{ { "cumusers",   no_argument,       0, MCUMUSER   }, // 'u'
+		"show cumulated process information per user", ' ' },
+
+	{ { "cumconts",   no_argument,       0, MCUMCONT   }, // 'j'
+		"show cumulated process info per container/pod\n", ' ' },
+
+
+	{ { "begintime",  required_argument, 0,                  'b' },
+		"begin from specified date/time [YYYYMMDD]hhmm[ss]", 'T' },
+
+	{ { "endtime",    required_argument, 0,                  'e' },
+		"finish after specified date/time [YYYYMMDD]hhmm[ss]\n", 'T' },
+
+
+	{ { "parsable",   required_argument, 0,                  'P' },
+		"generate parsable output for specified label(s)", 'L' },
+
+	{ { "rmspaces",   no_argument,       0, MRMSPACES  }, // 'Z'
+		"no spaces in parsable output for command (line)", ' ' },
+
+	{ { "json",       required_argument, 0,                  'J' },
+		"generate JSON output for specified label(s)\n", 'L' },
+
+
+	{ { "netatop",    no_argument,       0,                  'K' },
+		"connect to netatop/netatop-bpf interface\n"
+		"(default: do not connect)", ' ' },
+
+	{ { "gpud",       no_argument,       0,                  'k' },
+		"connect to external atopgpud daemon\n"
+		"(default: do not connect)\n", ' ' },
+
+
+	{ { "pss",        no_argument,       0, MCALCPSS   }, // 'R'
+		"calculate proportional set size (PSS) per process", ' ' },
+
+	{ { "wchan",      no_argument,       0, MGETWCHAN  }, // 'W'
+		"determine WCHAN (string) per thread", ' ' },
+
+	{ { "showenv",    required_argument, 0,                  'z' },
+		"specify regex E that matches environment variables\n"
+		"to be prepended to the command line\n"
+		"WARNING: don't use this flag when writing to\n"
+		"(publicly readable) raw files!\n", 'E' },
+
+
+	{ { "sysnosort",  no_argument,       0, MSYSNOSORT }, // 'F'
+		"suppress sorting of system resources", ' ' },
+
+	{ { "sysfixed",   no_argument,       0, MSYSFIXED  }, // 'f'
+		"show fixed number of lines with system metrics", ' ' },
+
+	{ { "noidname",   no_argument,       0,                  'I' },
+		"suppress UID/GID to name translation\n"
+		"(show numbers instead)", ' ' },
+
+	{ { "maxidname",  no_argument,       0,                  'i' },
+		"UID/GID translation to full name\n"
+		"(default column width is 8)", ' ' },
+
+	{ { "syslimit",   no_argument,       0, MSYSLIMIT  }, // 'l'
+		"show limited number of lines for certain system resources", ' ' },
+
+	{ { "avgpersec",  no_argument,       0, MAVGVAL    }, // '1'
+		"show average-per-second instead of total values", ' ' },
+
+	{ { "nocolors",   no_argument,       0, MCOLORS    }, // 'x'
+		"no colors in case of high occupation", ' ' },
+
+	{ { "noexits",    no_argument,       0, MSUPEXITS  }, // 'X'
+		"suppress terminated processes in output", ' ' },
+
+	{ { "nohighpri",  no_argument,       0,                  'Q' },
+		"suppress higher CPU priority and memory locking for atop", ' ' },
+
+	{ { "linelen",    required_argument, 0,                  'L' },
+		"alternate line length (default 80) in case of\n"
+		"non-fullscreen output", 'L' },
+
+	{ { "version",    no_argument,       0, MVERSION   }, // 'V'
+		"show version information", ' ' },
+
+	{ { "midnight",   no_argument,       0,                  'S' },
+		"finish atop automatically before midnight\n"
+		"instead of #samples", ' ' },
+
+
+	{ { "help",       no_argument,       0,                  'h' }, NULL },
+};
+
+struct option long_opts[MAXPARAM];
+
+
 int
 main(int argc, char *argv[])
 {
-	register int	i;
+	register int	i, j;
 	int		c;
 	char		*p;
 	struct rlimit	rlim;
@@ -319,11 +531,6 @@ main(int argc, char *argv[])
 		fprintf(stderr, "not possible to drop root privs\n");
                 exit(42);
 	}
-
-	/*
-	** preserve command arguments to allow restart of other version
-	*/
-	argvp = argv;
 
 	/*
 	** read defaults-files /etc/atoprc en $HOME/.atoprc (if any)
@@ -353,236 +560,249 @@ main(int argc, char *argv[])
 
 	/* 
 	** interpret command-line arguments & flags 
+	**
+	** dynamically prepare calling arguments for getopt_long()
 	*/
-	if (argc > 1)
+	for (i=j=0; i < (sizeof paramdef/sizeof(struct pardef)) && i < MAXPARAM && j < MAXFL-1; i++)
 	{
-		/* 
-		** gather all flags for visualization-functions
-		**
-		** generic flags will be handled here;
-		** unrecognized flags are passed to the print-routines
-		*/
-		i = 0;
+		// support long options
+		//
+		long_opts[i] = paramdef[i].option;
 
-		while (i < MAXFL-1 && (c=getopt(argc, argv, allflags)) != -1)
+		// build flaglist string
+		//
+		if (paramdef[i].option.val < PHBASEVAL)
+			flaglist[j++] = paramdef[i].option.val;
+
+		if (paramdef[i].option.has_arg != no_argument)
+			flaglist[j++] = ':';
+
+		if (paramdef[i].option.has_arg == optional_argument)
+			flaglist[j++] = ':';
+	}
+
+	/*
+	** generic flags will be handled here while
+	** screen-related flags are passed to the print routines
+	*/
+	i = 0;
+
+	while (i < MAXFL-1 && (c = getopt_long(argc, argv, flaglist, long_opts, NULL)) != -1)
+	{
+		switch (c)
 		{
-			switch (c)
+		   case '?':		/* usage wanted ?             */
+		   case 'h':		/* usage wanted ?             */
+			prusage(argv[0]);
+			break;
+
+		   case 'V':		/* version wanted ?           */
+			printf("%s\n", getstrvers());
+			exit(0);
+
+		   case 'w':		/* writing of raw data ?      */
+			safe_strcpy(orawname, optarg, sizeof orawname);
+
+			if (!rawwriteflag)
+			{	
+				rawwriteflag++;
+				handlers[numhandlers++].handle_sample = rawwrite;
+			}
+
+			break;
+
+		   case 'r':		/* reading of raw data ?      */
+			if (optarg == NULL)	// no additional argument without space in between?
 			{
-			   case '?':		/* usage wanted ?             */
-			   case 'h':		/* usage wanted ?             */
-				prusage(argv[0]);
-				break;
-
-			   case 'V':		/* version wanted ?           */
-				printf("%s\n", getstrvers());
-				exit(0);
-
-			   case 'w':		/* writing of raw data ?      */
-				if (optind >= argc)
-					prusage(argv[0]);
-
-				safe_strcpy(orawname, argv[optind++], sizeof orawname);
-
-				if (!rawwriteflag)
-				{	
-					rawwriteflag++;
-					handlers[numhandlers++].handle_sample = rawwrite;
-				}
-
-				break;
-
-			   case 'r':		/* reading of raw data ?      */
-				if (optarg == NULL)	// no additional argument without space in between?
+				// check additional argument with space in between?
+				//
+				if (optind < argc)
 				{
-					// check additional argument with space in between?
-					if (optind < argc)
+					if (*argv[optind] ==  '-')
 					{
-						if (*argv[optind] ==  '-')
-						{
-							// just a '-' used on its own meaning stdin?
-							if (*(argv[optind]+1) == '\0')
-								optarg = argv[optind++];
-						}
-						else
-						{
+						// just a '-' used on its own meaning stdin?
+						if (*(argv[optind]+1) == '\0')
 							optarg = argv[optind++];
-						}
 					}
-				}
-
-				if (optarg)
-				{
-					if (*optarg == '-')
-						safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
 					else
-						safe_strcpy(irawname, optarg, sizeof irawname);
-				}
-
-				rawreadflag++;
-				break;
-
-			   case 't':		/* twin mode ?		      */
-				if (optarg == NULL)	// no additional argument without space in between?
-				{
-					// check additional argument with space in between?
-					if (optind < argc && *argv[optind] !=  '-')
 					{
 						optarg = argv[optind++];
 					}
 				}
-
-				// optional absolute path name of directory?
-				if (optarg && *optarg == '/')
-					safe_strcpy(twindir, optarg, sizeof twindir);
-
-				twinmodeflag++;
-				break;
-
-			   case 'B':		/* bar graphs ?               */
-				displaymode = 'D';
-				break;
-
-			   case 'H':		/* bar graphs without labels? */
-				barmono = 1;
-				break;
-
-			   case 'S':		/* midnight limit ?           */
-				midnightflag++;
-				break;
-
-			   case 'i':		/* ID translation max name?   */
-				idnamemaximum++;
-				break;
-
-			   case 'I':		/* suppress ID translation ?  */
-				idnamesuppress++;
-				break;
-
-			   case 'Q':		/* suppress high priority?    */
-				highpriosuppress++;
-				break;
-
-                           case 'b':		/* begin time ?               */
-				if ( !getbranchtime(optarg, &begintime) )
-					prusage(argv[0]);
-				break;
-
-                           case 'e':		/* end   time ?               */
-				if ( !getbranchtime(optarg, &endtime) )
-					prusage(argv[0]);
-				break;
-
-                           case 'P':		/* parsable output?          */
-				if ( !parsedef(optarg) )
-					prusage(argv[0]);
-
-				if (!parseoutflag)
-				{
-					parseoutflag++;
-					handlers[numhandlers++].handle_sample = parseout;
-				}
-				break;
-
-                           case 'J':		/* json output?          */
-				if ( !jsondef(optarg) )
-					prusage(argv[0]);
-
-				if (!jsonoutflag)
-				{
-					jsonoutflag++;
-					handlers[numhandlers++].handle_sample = jsonout;
-				}
-				break;
-
-                           case 'L':		/* line length                */
-				if ( !numeric(optarg) )
-					prusage(argv[0]);
-
-				linelen = atoi(optarg);
-				break;
-
-                           case MALLACTIVE:	/* all processes/cgroups ? */
-				deviatonly = 0;
-				break;
-
-                           case MCALCPSS:	/* calculate PSS per sample ? */
-				if (rawreadflag)
-				{
-					fprintf(stderr,
-					        "PSIZE gathering depends on rawfile\n");
-					sleep(3);
-					break;
-				}
-
-                                calcpss    = 1;
-
-				if (!rootprivs())
-				{
-					fprintf(stderr,
-						"PSIZE gathering only for own "
-						"processes\n");
-					sleep(3);
-				}
-
-				break;
-
-                           case MGETWCHAN:	/* obtain wchan string?       */
-				getwchan = 1;
-				break;
-
-                           case MRMSPACES:	/* remove spaces from command */
-				rmspaces = 1;
-				break;
-
-			   case 'z':            /* prepend regex matching environment variables */
-				if (regcomp(&envregex, optarg, REG_NOSUB|REG_EXTENDED))
-				{
-					fprintf(stderr, "Invalid environment regular expression!");
-					prusage(argv[0]);
-				}
-				prependenv = 1;
-				break;
-
-                           case 'k':		/* try to open TCP connection to atopgpud */
-				connectgpud = 1;
-				break;
-
-                           case 'K':		/* try to open connection to netatop/netatop-bpf */
-				connectnetatop = 1;
-				break;
-
-			   default:		/* gather other flags */
-				flaglist[i++] = c;
 			}
 
-			/*
-			** check if this flag explicitly refers to
-			** generic (screen) output
-			*/
-			if (strchr("gmdnsevcoBGaCMDNEAupjSf", c))
-				screenoutflag++;
+			if (optarg)
+			{
+				if (*optarg == '-')
+					safe_strcpy(irawname, "/dev/stdin", sizeof irawname);
+				else
+					safe_strcpy(irawname, optarg, sizeof irawname);
+			}
+
+			rawreadflag++;
+			break;
+
+		   case 't':		/* twin mode ?		      */
+			if (optarg == NULL)	// no additional argument without space in between?
+			{
+				// check additional argument with space in between?
+				if (optind < argc && *argv[optind] !=  '-')
+				{
+					optarg = argv[optind++];
+				}
+			}
+
+			// optional absolute path name of directory?
+			if (optarg && *optarg == '/')
+				safe_strcpy(twindir, optarg, sizeof twindir);
+
+			twinmodeflag++;
+			break;
+
+		   case 'B':		/* bar graphs ?               */
+			displaymode = 'D';
+			break;
+
+		   case 'H':		/* bar graphs without labels? */
+			barmono = 1;
+			break;
+
+		   case 'S':		/* midnight limit ?           */
+			midnightflag++;
+			break;
+
+		   case 'i':		/* ID translation max name?   */
+			idnamemaximum++;
+			break;
+
+		   case 'I':		/* suppress ID translation ?  */
+			idnamesuppress++;
+			break;
+
+		   case 'Q':		/* suppress high priority?    */
+			highpriosuppress++;
+			break;
+
+		   case 'b':		/* begin time ?               */
+			if ( !getbranchtime(optarg, &begintime) )
+				prusage(argv[0]);
+			break;
+
+		   case 'e':		/* end   time ?               */
+			if ( !getbranchtime(optarg, &endtime) )
+				prusage(argv[0]);
+			break;
+
+		   case 'P':		/* parsable output?          */
+			if ( !parsedef(optarg) )
+				prusage(argv[0]);
+
+			if (!parseoutflag)
+			{
+				parseoutflag++;
+				handlers[numhandlers++].handle_sample = parseout;
+			}
+			break;
+
+		   case 'J':		/* json output?          */
+			if ( !jsondef(optarg) )
+				prusage(argv[0]);
+
+			if (!jsonoutflag)
+			{
+				jsonoutflag++;
+				handlers[numhandlers++].handle_sample = jsonout;
+			}
+			break;
+
+		   case 'L':		/* line length                */
+			if ( !numeric(optarg) )
+				prusage(argv[0]);
+
+			linelen = atoi(optarg);
+			break;
+
+		   case MALLACTIVE:	/* all processes/cgroups ? */
+			deviatonly = 0;
+			break;
+
+		   case MCALCPSS:	/* calculate PSS per sample ? */
+			if (rawreadflag)
+			{
+				fprintf(stderr, "PSIZE gathering depends on rawfile\n");
+				sleep(3);
+				break;
+			}
+
+			calcpss = 1;
+
+			if (!rootprivs())
+			{
+				fprintf(stderr, "PSIZE gathering only for own processes\n");
+				sleep(3);
+			}
+
+			break;
+
+		   case MGETWCHAN:	/* obtain wchan string?       */
+			getwchan = 1;
+			break;
+
+		   case MRMSPACES:	/* remove spaces from command */
+			rmspaces = 1;
+			break;
+
+		   case 'z':            /* prepend regex matching environment variables */
+			if (regcomp(&envregex, optarg, REG_NOSUB|REG_EXTENDED))
+			{
+				fprintf(stderr, "Invalid environment regular expression!");
+				prusage(argv[0]);
+			}
+			prependenv = 1;
+			break;
+
+		   case 'k':		/* try to open TCP connection to atopgpud */
+			connectgpud = 1;
+			break;
+
+		   case 'K':		/* try to open connection to netatop/netatop-bpf */
+			connectnetatop = 1;
+			break;
+
+		   default:		/* gather other flags */
+			if (c == PHSHOWGPU)
+				c = MPERCGPU;
+
+			flagrest[i++] = c;
 		}
 
 		/*
-		** get optional interval-value and optional number of samples	
+		** check if this flag explicitly refers to
+		** generic (screen) output
 		*/
-		if (optind < argc && optind < MAXFL)
-		{
-			if (!numeric(argv[optind]))
-				prusage(argv[0]);
-	
-			interval = atoi(argv[optind]);
-	
-			optind++;
-	
-			if (optind < argc)
-			{
-				if (!numeric(argv[optind]) )
-					prusage(argv[0]);
+		if (strchr("gmdnsevcoBGaCMDNEAupjSf", c))
+			screenoutflag++;
+	}
 
-				if ( (nsamples = atoi(argv[optind])) < 1)
-					prusage(argv[0]);
-			}
+	/*
+	** get optional interval value and optional number of samples	
+	*/
+	if (optind < argc && optind < MAXFL)
+	{
+		if (!numeric(argv[optind]))
+			prusage(argv[0]);
+	
+		interval = atoi(argv[optind]);
+
+		optind++;
+
+		if (optind < argc)
+		{
+			if (!numeric(argv[optind]) )
+				prusage(argv[0]);
+
+			if ( (nsamples = atoi(argv[optind])) < 1)
+				prusage(argv[0]);
 		}
 	}
 
@@ -1079,64 +1299,86 @@ engine(void)
 /*
 ** print usage of this command
 */
+#define MSGSTARTCOL	23
+
 void
 prusage(char *myname)
 {
-	printf("Usage: %s [-t [absdir]] [-flags] [interval [samples]]\n",
-					myname);
+	int		i, j;
+	char		msgprefix[MSGSTARTCOL+1];
+
+	// print generic part
+	//
+	printf("Usage: %s [OPTION]... [INTERVAL [SAMPLES]]\n", myname);
 	printf("\t\tor\n");
-	printf("Usage: %s -w  file  [-S] [-%c] [interval [samples]]\n",
-					myname, MALLACTIVE);
-	printf("       %s -r [file] [-b [YYYYMMDD]hhmm[ss]] [-e [YYYYMMDD]hhmm[ss]] [-flags]\n",
-					myname);
+	printf("Usage: %s -w  FILE  [OPTION]... [INTERVAL [SAMPLES]]\n", myname);
+	printf("       %s -r [FILE] [OPTION]...\n", myname);
 	printf("\n");
-	printf("\tgeneric flags:\n");
-	printf("\t  -t  twin mode: live measurement with possibility to review earlier samples\n");
-	printf("\t                 (raw file created in /tmp or in specific directory path)\n");
-	printf("\t  -%c  show bar graphs for system statistics\n", MBARGRAPH);
-	printf("\t  -%c  show bar graphs without categories\n", MBARMONO);
-	printf("\t  -%c  show cgroup v2 metrics\n", MCGROUPS);
-	printf("\t  -7  define cgroup v2 depth level -2 till -9 (default: -7)\n");
-	printf("\t  -%c  show version information\n", MVERSION);
-	printf("\t  -%c  show all processes and cgroups (i.s.o. active only)\n",
-			MALLACTIVE);
-	printf("\t  -Q  suppress higher CPU priority and memory locking for atop\n");
-	printf("\t  -%c  calculate proportional set size (PSS) per process\n", 
-	                MCALCPSS);
-	printf("\t  -%c  determine WCHAN (string) per thread\n", MGETWCHAN);
-	printf("\t  -J  generate JSON output for specified label(s)\n");
-	printf("\t  -P  generate parsable output for specified label(s)\n");
-	printf("\t  -%c  no spaces in parsable output for command (line)\n",
-			MRMSPACES);
-	printf("\t  -L  alternate line length (default 80) in case of "
-			"non-screen output\n");
-	printf("\t  -z  prepend regex matching environment variables to "
-                        "command line\n");
-	printf("\t      WARNING: don't use this flag when writing (publicly readable) raw files!\n");
-	printf("\t  -i  UID/GID translation to full name (default column width is 8)\n");
-	printf("\t  -I  suppress UID/GID to name translation (show numbers instead)\n");
-	printf("\t  -k  try to connect to external atopgpud daemon (default: do not connect)\n");
-	printf("\t  -K  try to connect to netatop/netatop-bpf interface (default: do not connect)\n");
 
-	generic_usage();
+	// print all options and help messages
+	//
+	memset(msgprefix, ' ', MSGSTARTCOL);
+	msgprefix[MSGSTARTCOL] = '\0';
+
+	for (i=0; i < sizeof paramdef / sizeof paramdef[0]; i++)
+	{
+		char optionbuf[32];
+
+		// help message vailable?
+		//
+		if (paramdef[i].helpmsg)
+		{
+			// print short flag, if available
+			//
+			if (paramdef[i].option.val < PHBASEVAL)
+				printf("  -%c, ", paramdef[i].option.val);
+			else
+				printf("      ");
+
+			// print long flag, along with (optional) argument
+			//
+			memset(optionbuf, '\0', sizeof optionbuf);
+
+			safe_strcpy(optionbuf, paramdef[i].option.name, sizeof optionbuf);
+
+			if (paramdef[i].option.has_arg == optional_argument)
+				strcat(optionbuf, "[");
+
+			if (paramdef[i].option.has_arg != no_argument)
+			{
+				strcat(optionbuf, "=");
+				optionbuf[strlen(optionbuf)] = paramdef[i].symbarg;
+			}
+
+			if (paramdef[i].option.has_arg == optional_argument)
+				strcat(optionbuf, "]");
+
+			printf("--%-14.14s ", optionbuf);
+		       
+			// print message
+			//
+			// messages that contain a '\n' should continue
+			// on the next line aligned in the right column,
+			// except when the '\n' is at the last position
+			//
+			for (j=0; paramdef[i].helpmsg[j]; j++)
+			{
+				putchar(paramdef[i].helpmsg[j]);
+
+				if (paramdef[i].helpmsg[j] == '\n' && paramdef[i].helpmsg[j+1])
+					printf("%s", msgprefix);
+			}
+
+			putchar('\n');
+		}
+	}
 
 	printf("\n");
-	printf("\tspecific flags for raw logfiles:\n");
-	printf("\t  -w  write raw data to   file (compressed)\n");
-	printf("\t  -r  read  raw data from file (compressed)\n");
-	printf("\t      symbolic file: y[y...] for yesterday (repeated)\n");
-	printf("\t      file name '-': read raw data from stdin\n");
-	printf("\t  -S  finish atop automatically before midnight "
-	                "(i.s.o. #samples)\n");
-	printf("\t  -b  begin showing data from specified date/time\n");
-	printf("\t  -e  finish showing data after specified date/time\n");
+	printf("  INTERVAL: number of seconds   (minimum 0, default 10)\n");
+	printf("  SAMPLES:  number of intervals (minimum 1, default infinite)\n");
 	printf("\n");
-	printf("\tinterval: number of seconds   (minimum 0)\n");
-	printf("\tsamples:  number of intervals (minimum 1)\n");
-	printf("\n");
-	printf("If the interval-value is zero, a new sample can be\n");
-	printf("forced manually by sending signal USR1"
-			" (kill -USR1 pid_atop)\n");
+	printf("When the interval value is zero, a new sample can be\n");
+	printf("forced manually by sending signal USR1 (kill -USR1 pid_atop)\n");
 	printf("or with the keystroke '%c' in interactive mode.\n", MSAMPNEXT);
 	printf("\n");
 	printf("Please refer to the man-page of 'atop' for more details.\n");

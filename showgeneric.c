@@ -3328,9 +3328,9 @@ generic_init(void)
 	** check if default sort order and/or showtype are overruled
 	** by command line flags
 	*/
-	for (i=0; flaglist[i]; i++)
+	for (i=0; flagrest[i]; i++)
 	{
-		switch (flaglist[i])
+		switch (flagrest[i])
 		{
 		   case MPERCCPU:
 			setprocview(0, MPERCCPU, 0, -1);
@@ -3445,10 +3445,7 @@ generic_init(void)
 			break;
 
 		   case MAVGVAL:
-			if (avgval)
-				avgval=0;
-			else
-				avgval=1;
+			avgval = 1;
 			break;
 
 		   case MCUMUSER:
@@ -3472,78 +3469,27 @@ generic_init(void)
 			break;
 
 		   case MSYSFIXED:
-			if (fixedhead)
-				fixedhead=0;
-			else
-				fixedhead=1;
+			fixedhead = 1;
 			break;
 
 		   case MSYSNOSORT:
-			if (sysnosort)
-				sysnosort=0;
-			else
-				sysnosort=1;
+			sysnosort = 1;
 			break;
 
 		   case MTHREAD:
-			if (threadview)
-				threadview = 0;
-			else
-				threadview = 1;
+			threadview = 1;
 			break;
 
 		   case MTHRSORT:
-			if (threadsort)
-				threadsort = 0;
-			else
-				threadsort = 1;
-			break;
-
-		   case MCALCPSS:
-			if (rawreadflag)
-			{
-				fprintf(stderr,
-				        "PSIZE gathering depends on rawfile\n");
-				sleep(3);
-				break;
-			}
-			if (calcpss)
-			{
-				calcpss    = 0;
-			}
-			else
-			{
-				calcpss    = 1;
-
-				if (!rootprivs())
-				{
-					fprintf(stderr,
-				 	        "PSIZE gathering only for own "
-					        "processes\n");
-					sleep(3);
-				}
-			}
-			break;
-
-		   case MGETWCHAN:
-			if (getwchan)
-				getwchan = 0;
-			else
-				getwchan = 1;
+			threadsort = 1;
 			break;
 
 		   case MSUPEXITS:
-			if (suppressexit)
-				suppressexit = 0;
-			else
-				suppressexit = 1;
+			suppressexit = 1;
 			break;
 
 		   case MCOLORS:
-			if (usecolors)
-				usecolors=0;
-			else
-				usecolors=1;
+			usecolors = 0;
 			break;
 
 		   case MSYSLIMIT:
@@ -3558,7 +3504,7 @@ generic_init(void)
 		   case '7':
 		   case '8':
 		   case '9':
-			cgroupdepth = flaglist[i] - 0x30;
+			cgroupdepth = flagrest[i] - 0x30;
 			break;
 
 		   default:
@@ -4083,61 +4029,6 @@ generic_end(void)
 	endwin();
 }
 
-/*
-** function to be called when usage-info is required
-*/
-void
-generic_usage(void)
-{
-	printf("\t  -%c  show fixed number of lines with system statistics\n",
-			MSYSFIXED);
-	printf("\t  -%c  suppress sorting of system resources\n",
-			MSYSNOSORT);
-	printf("\t  -%c  suppress terminated processes in output\n",
-			MSUPEXITS);
-	printf("\t  -%c  show limited number of lines for certain resources\n",
-			MSYSLIMIT);
-	printf("\t  -%c  show threads within process\n", MTHREAD);
-	printf("\t  -%c  sort threads (when combined with '%c')\n", MTHRSORT, MTHREAD);
-	printf("\t  -%c  show average-per-second i.s.o. total values\n\n",
-			MAVGVAL);
-	printf("\t  -%c  no colors in case of high occupation\n",
-			MCOLORS);
-	printf("\t  -%c  show general process-info (default)\n",
-			MPROCGEN);
-	printf("\t  -%c  show memory-related process-info\n",
-			MPROCMEM);
-	printf("\t  -%c  show disk-related process-info\n",
-			MPROCDSK);
-	printf("\t  -%c  show network-related process-info\n",
-			MPROCNET);
-	printf("\t  -%c  show scheduling-related process-info\n",
-			MPROCSCH);
-	printf("\t  -%c  show various process-info (ppid, user/group, "
-	                 "date/time)\n", MPROCVAR);
-	printf("\t  -%c  show command line per process\n",
-			MPROCARG);
-	printf("\t  -%c  show own defined process-info\n",
-			MPROCOWN);
-	printf("\t  -%c  show cumulated process-info per user\n",
-			MCUMUSER);
-	printf("\t  -%c  show cumulated process-info per program "
-	                "(i.e. same name)\n",
-			MCUMPROC);
-	printf("\t  -%c  show cumulated process-info per container/pod\n\n",
-			MCUMCONT);
-	printf("\t  -%c  sort processes in order of cpu consumption "
-	                "(default)\n",
-			MPERCCPU);
-	printf("\t  -%c  sort processes in order of memory consumption\n",
-			MPERCMEM);
-	printf("\t  -%c  sort processes in order of disk activity\n",
-			MPERCDSK);
-	printf("\t  -%c  sort processes in order of network activity\n",
-			MPERCNET);
-	printf("\t  -%c  sort processes in order of GPU activity\n",
-			MPERCGPU);
-}
 
 /*
 ** functions to handle a particular tag in the /etc/atoprc and .atoprc file
