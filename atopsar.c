@@ -58,7 +58,8 @@
 #include "cgroups.h"
 #include "gpucom.h"
 
-#define	MAXFL	64      /* maximum number of command-line flags  */
+#define	MAXPARAM	50	// maximum number of command parameters
+#define	MAXFL		80	// maximum number of command flags
 
 
 /*
@@ -90,6 +91,7 @@ struct pridef {
 	char    wanted;         /* selected option (boolean)              */
 	char    *cntcat;        /* used categories of counters            */
 	char    flag;           /* flag on command line                   */
+	char	*longopt;	/* long option on command line            */
 	void    (*prihead)(int, int, int);   /* print header of list      */
 	int     (*priline)(struct sstat *, struct tstat *, struct tstat **,
 		           int, time_t, time_t, time_t,
@@ -121,13 +123,59 @@ static void	reportheader(struct utsname *, time_t);
 static time_t	daylimit(time_t);
 static void	gpuhead(int, int, int);
 
+/*
+** definition of command line parameters
+*/
+static struct pardef paramdef[MAXPARAM] = {
+	{ { "read",       optional_argument, 0,                  'r' },
+		"read raw data from atop logfile F (default: today's log)\n"
+		"symbolic file: y[y...] for yesterday (repeated)\n"
+		"file name '-': read raw data from stdin\n", 'F' },
+
+        { { "summary",    required_argument, 0,                  'R' },
+                "summarize N samples into one sample", 'N' },
+
+        { { "timestamp",  no_argument,      0,                   'S' },
+                "print timestamp on every line in case of more resources", ' ' },
+
+        { { "nocolors",   no_argument,      0,                   'x' },
+                "never  use colors to indicate overload (default: only if tty)", ' ' },
+
+        { { "colors",     no_argument,      0,                   'C' },
+                "always use colors to indicate overload (default: only if tty)", ' ' },
+
+        { { "markers",    no_argument,      0,                   'M' },
+                "use markers to indicate overload (* = critical, + = almost)", ' ' },
+
+        { { "repeathead", no_argument,      0,                   'H' },
+                "repeat report headers (when tty: depending on screen lines)", ' ' },
+
+        { { "inactivetoo",no_argument,      0,                   'a' },
+                "print all resources, even when inactive\n", ' ' },
+
+	{ { "begintime",  required_argument, 0,                  'b' },
+		"begin from specified date/time [YYYYMMDD]hhmm[ss]", 'T' },
+
+	{ { "endtime",    required_argument, 0,                  'e' },
+		"finish after specified date/time [YYYYMMDD]hhmm[ss]\n", 'T' },
+
+        { { "all",        no_argument,      0,                   'A' },
+                "print all available reports\n", ' ' },
+
+};
+
+static struct option long_opts[MAXPARAM];
+
+/**************************************************************************/
 
 int
 atopsar(int argc, char *argv[])
 {
-	register int	i, c;
+	register int	i, j, c;
 	struct rlimit	rlim;
-	char		*p, *flaglist;
+	char		*p;
+	char		flaglist[MAXFL] = {'\0'}; // possible command flags
+	int		nrparam = 0;
 
 	usecolors = 't';
 
@@ -136,25 +184,35 @@ atopsar(int argc, char *argv[])
 	*/
 	if (argc > 1)
 	{
-		/* 
-		** gather all flags for the print-functions
-		*/
-		flaglist = malloc(pricnt+32);
-
-		if (!flaglist)
-			ptrverify(flaglist, "Malloc failed for %d flags\n", pricnt+32);
-
-		for (i=0; i < pricnt; i++)
-			flaglist[i] = pridef[i].flag;
-
-		flaglist[i] = 0;
-
 		/*
-		** add generic flags
+		** convert the entries of the pridef array
+		** to entries in the paramdef array to be
+		** able to use the appropriate functions
 		*/
-		strcat(flaglist, "b:e:SxCMHr:R:aA");
+		for (i=0; paramdef[i].helpmsg; i++)
+			; // count static entries
 
-		while ((c=getopt(argc, argv, flaglist)) != EOF)
+		for (j=0; j < pricnt && i < MAXPARAM; i++, j++)
+		{
+			paramdef[i].option.name	   = pridef[j].longopt;
+			paramdef[i].option.has_arg = no_argument;
+			paramdef[i].option.flag    = NULL;
+			paramdef[i].option.val     = pridef[j].flag;
+
+			paramdef[i].helpmsg        = pridef[j].about;
+			paramdef[i].symbarg        = ' ';
+		}
+
+		nrparam = i;
+
+		/* 
+		** interpret command-line arguments & flags 
+		**
+		** dynamically prepare calling arguments for getopt_long()
+		*/
+		prepcmdopts(paramdef, nrparam, long_opts, MAXPARAM, flaglist, MAXFL);
+
+		while ((c = getopt_long(argc, argv, flaglist, long_opts, NULL)) != -1)
 		{
 			switch (c)
 			{
@@ -175,10 +233,32 @@ atopsar(int argc, char *argv[])
 				break;
 
 			   case 'r':		/* reading of file data ? */
-				safe_strcpy(irawname, optarg, RAWNAMESZ);
+				if (optarg == NULL)     // no additional argument without space in between?
+				{
+					// check additional argument with space in between?
+					//
+					if (optind < argc)
+					{
+						if (*argv[optind] ==  '-')
+						{
+							// just a '-' used on its own meaning stdin?
+							if (*(argv[optind]+1) == '\0')
+								optarg = argv[optind++];
+						}
+						else
+						{
+							optarg = argv[optind++];
+						}
+					}
+				}
 
-				if (strcmp(irawname, "-") == 0)
-					safe_strcpy(irawname, "/dev/stdin", RAWNAMESZ);
+				if (optarg)
+				{
+					if (*optarg == '-')
+						safe_strcpy(irawname, "/dev/stdin", RAWNAMESZ);
+					else
+						safe_strcpy(irawname, optarg, RAWNAMESZ);
+				}
 
 				rawreadflag++;
 				break;
@@ -248,8 +328,6 @@ atopsar(int argc, char *argv[])
 					pratopsaruse(argv[0]);
 			}
 		}
-
-		free(flaglist);
 
 		/*
 		** get optional interval-value and
@@ -1026,62 +1104,22 @@ reportheader(struct utsname *uname, time_t mtime)
 void
 pratopsaruse(char *myname)
 {
-	int	i;
+	// print generic part
+        //
+        printf("Usage: %s [-r [FILE|-|date|y...]] [OPTION]...\n", myname);
+        printf("\t\tor\n");
+        printf("Usage: %s [OPTION]... INTERVAL [SAMPLES]\n", myname);
+        printf("\n");
 
-	fprintf(stderr,
-		"Usage: %s [-flags] [-r file|-|date|y...] [-R cnt] [-b time] [-e time]\n",
-								myname);
-	fprintf(stderr, "\t\tor\n");
-	fprintf(stderr,
-		"Usage: %s [-flags] interval [samples]\n", myname);
-	fprintf(stderr, "\n");
-	fprintf(stderr,
-		"\tToday's atop logfile is used by default!\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr,
-		"\tGeneric flags:\n");
-	fprintf(stderr,
-		"\t  -r  read statistical data from specific atop logfile\n");
-	fprintf(stderr,
-		"\t      (pathname, - for stdin, date in format YYYYMMDD, or y[y..])\n");
-	fprintf(stderr,
-		"\t  -R  summarize <cnt> samples into one sample\n");
-	fprintf(stderr,
-		"\t  -b  begin  showing data from  specified time as [YYYYMMDD]hhmm[ss]\n");
-	fprintf(stderr,
-		"\t  -e  finish showing data after specified time as [YYYYMMDD]hhmm[ss]\n");
-	fprintf(stderr,
-		"\t  -S  print timestamp on every line in case of more "
-		"resources\n");
-	fprintf(stderr,
-		"\t  -x  never  use colors to indicate overload"
-		" (default: only if tty)\n");
-	fprintf(stderr,
-		"\t  -C  always use colors to indicate overload"
-		" (default: only if tty)\n");
-	fprintf(stderr,
-		"\t  -M  use markers to indicate overload "
-		"(* = critical, + = almost)\n");
-	fprintf(stderr,
-		"\t  -H  repeat report headers "
-		"(in case of tty: depending on screen lines)\n");
-	fprintf(stderr,
-		"\t  -a  print all resources, even when inactive\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr,
-		"\tSpecific flags to select reports:\n");
-	fprintf(stderr,
-		"\t  -A  print all available reports\n");
+        pricmdopts(paramdef, sizeof paramdef/sizeof(struct pardef));
 
-	for (i=0; i < pricnt; i++)
-		fprintf(stderr,
-		"\t  -%c  %s\n", pridef[i].flag, pridef[i].about);
-
-	fprintf(stderr, "\n");
-	fprintf(stderr,
-                "Please refer to the man-page of 'atopsar' "
-	        "for more details.\n");
-
+        // print footer
+        //
+        printf("\n");
+        printf("  INTERVAL: number of seconds   (minimum 0)\n");
+        printf("  SAMPLES:  number of intervals (minimum 1, default infinite)\n");
+        printf("\n");
+        printf("Please refer to the man-page of 'atopsar' for more details.\n");
 
 	cleanstop(1);
 }
@@ -2567,8 +2605,8 @@ httpline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 topchead(int osvers, int osrel, int ossub)
 {
-	printf("  pid command  cpu%% |   pid command  cpu%% | "
-	       "  pid command  cpu%%_top3_");
+	printf("    pid command  cpu%% |     pid command  cpu%% | "
+	       "    pid command  cpu%%top3");
 }
 
 static int
@@ -2603,21 +2641,21 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		availcpu = 1;	/* avoid divide-by-zero */
 
 	if (nactproc >= 1 && (ps[0])->cpu.stime + (ps[0])->cpu.utime > 0)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[0])->gen.pid, (ps[0])->gen.name,
 	      (double)((ps[0])->cpu.stime + (ps[0])->cpu.utime)*100.0/availcpu);
         else
 	    printf("%19s | ", " ");
 
 	if (nactproc >= 2 && (ps[1])->cpu.stime + (ps[1])->cpu.utime > 0)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[1])->gen.pid, (ps[1])->gen.name,
 	      (double)((ps[1])->cpu.stime + (ps[1])->cpu.utime)*100.0/availcpu);
         else
 	    printf("%19s | ", " ");
 
 	if (nactproc >= 3 && (ps[2])->cpu.stime + (ps[2])->cpu.utime > 0)
-	    printf("%5d %-8.8s %3.0lf%%\n",
+	    printf("%7d %-8.8s %3.0lf%%\n",
 	      (ps[2])->gen.pid, (ps[2])->gen.name,
 	      (double)((ps[2])->cpu.stime + (ps[2])->cpu.utime)*100.0/availcpu);
         else
@@ -2633,8 +2671,8 @@ topcline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 topmhead(int osvers, int osrel, int ossub)
 {
-	printf("  pid command  mem%% |   pid command  mem%% | "
-	       "  pid command  mem%%_top3_");
+	printf("    pid command  mem%% |     pid command  mem%% | "
+	       "    pid command  mem%%top3");
 }
 
 static int
@@ -2661,21 +2699,21 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	availmem  = ss->mem.physmem * pagesize/1024;
 
         if (nactproc >= 1)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[0])->gen.pid, (ps[0])->gen.name,
 	      (double)(ps[0])->mem.rmem * 100.0 / availmem);
         else
 	    printf("%19s | ", " ");
 
         if (nactproc >= 2)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[1])->gen.pid, (ps[1])->gen.name,
 	      (double)(ps[1])->mem.rmem * 100.0 / availmem);
         else
 	    printf("%19s | ", " ");
 
         if (nactproc >= 3)
-	    printf("%5d %-8.8s %3.0lf%%\n",
+	    printf("%7d %-8.8s %3.0lf%%\n",
 	      (ps[2])->gen.pid, (ps[2])->gen.name,
 	      (double)(ps[2])->mem.rmem * 100.0 / availmem);
         else
@@ -2691,8 +2729,8 @@ topmline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 topdhead(int osvers, int osrel, int ossub)
 {
-	printf("  pid command  dsk%% |   pid command  dsk%% | "
-	       "  pid command  dsk%%_top3_");
+	printf("    pid command  dsk%% |     pid command  dsk%% | "
+	       "    pid command  dsk%%top3");
 }
 
 static int
@@ -2734,21 +2772,21 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	qsort_r(ps, nactproc, sizeof(struct tstat *), compdsk, &order);
 
         if (nactproc >= 1 && (ps[0])->dsk.rio + (ps[0])->dsk.wio > 0)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[0])->gen.pid, (ps[0])->gen.name,
 	      (double)((ps[0])->dsk.rio+(ps[0])->dsk.wio) *100.0/availdsk);
         else
 	    printf("%19s | ", " ");
 
         if (nactproc >= 2 && (ps[1])->dsk.rio + (ps[1])->dsk.wio > 0)
-	    printf("%5d %-8.8s %3.0lf%% | ",
+	    printf("%7d %-8.8s %3.0lf%% | ",
 	      (ps[1])->gen.pid, (ps[1])->gen.name,
 	      (double)((ps[1])->dsk.rio+(ps[1])->dsk.wio) *100.0/availdsk);
         else
 	    printf("%19s | ", " ");
 
         if (nactproc >= 3 && (ps[2])->dsk.rio + (ps[2])->dsk.wio > 0)
-	    printf("%5d %-8.8s %3.0lf%%\n",
+	    printf("%7d %-8.8s %3.0lf%%\n",
 	      (ps[2])->gen.pid, (ps[2])->gen.name,
 	      (double)((ps[2])->dsk.rio+(ps[2])->dsk.wio) *100.0/availdsk);
         else
@@ -2764,8 +2802,8 @@ topdline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 static void
 topnhead(int osvers, int osrel, int ossub)
 {
-	printf("  pid command  net%% |   pid command  net%% | "
-	       "  pid command  net%%_top3_");
+	printf("    pid command  net%% |     pid command  net%% | "
+	       "    pid command  net%%top3");
 }
 
 static int
@@ -2814,7 +2852,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		           (ps[0])->net.udpssz + (ps[0])->net.udprsz;
 
 		if (totbytes > 0)
-			printf("%5d %-8.8s %3.0lf%% | ",
+			printf("%7d %-8.8s %3.0lf%% | ",
 				(ps[0])->gen.pid, (ps[0])->gen.name,
 				(double)totbytes * 100.0 / availnet);
         	else
@@ -2829,7 +2867,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		           (ps[1])->net.udpssz + (ps[1])->net.udprsz;
 
 		if (totbytes > 0)
-			printf("%5d %-8.8s %3.0lf%% | ",
+			printf("%7d %-8.8s %3.0lf%% | ",
 				(ps[1])->gen.pid, (ps[1])->gen.name,
 				(double)totbytes * 100.0 / availnet);
         	else
@@ -2844,7 +2882,7 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 		           (ps[2])->net.udpssz + (ps[2])->net.udprsz;
 
 		if (totbytes > 0)
-			printf("%5d %-8.8s %3.0lf%%\n",
+			printf("%7d %-8.8s %3.0lf%%\n",
 				(ps[2])->gen.pid, (ps[2])->gen.name,
 				(double)totbytes * 100.0 / availnet);
         	else
@@ -2895,41 +2933,41 @@ topnline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 /*********************************************************************/
 struct pridef pridef[] =
 {
-   {0,  "c",  'c',  cpuhead,	cpuline,  	"cpu utilization",        },
-   {0,  "c",  'p',  prochead,	procline,  	"process(or) load",       },
-   {0,  "c",  'P',  taskhead,	taskline,  	"processes & threads",    },
-   {0,  "c",  'g',  gpuhead,	gpuline,  	"gpu utilization",        },
-   {0,  "m",  'm',  memhead,	memline,	"memory & swapspace",     },
-   {0,  "m",  's',  swaphead,	swapline,	"swap rate",              },
-   {0,  "cmd",'B',  psihead,	psiline,	"pressure stall info (PSI)",},
-   {0,  "cd", 'l',  lvmhead,	lvmline,	"logical volume activity", },
-   {0,  "cd", 'f',  mddhead,	mddline,	"multiple device activity",},
-   {0,  "cd", 'd',  dskhead,	dskline,	"disk activity",          },
-   {0,  "n",  'h',  ibhead,	ibline,		"infiniband utilization", },
-   {0,  "n",  'n',  nfmhead,	nfmline,	"NFS client mounts",      },
-   {0,  "n",  'j',  nfchead,	nfcline,	"NFS client activity",    },
-   {0,  "n",  'J',  nfshead,	nfsline,	"NFS server activity",    },
-   {0,  "n",  'i',  ifhead,	ifline,		"net-interf (general)",   },
-   {0,  "n",  'I',  IFhead,	IFline,		"net-interf (errors)",    },
-   {0,  "n",  'w',  ipv4head,	ipv4line,	"ip   v4    (general)",   },
-   {0,  "n",  'W',  IPv4head,	IPv4line,	"ip   v4    (errors)",    },
-   {0,  "n",  'y',  icmpv4head,	icmpv4line,	"icmp v4    (general)",   },
-   {0,  "n",  'Y',  ICMPv4head,	ICMPv4line,	"icmp v4    (per type)",  },
-   {0,  "n",  'u',  udpv4head,	udpv4line,  	"udp  v4",                },
-   {0,  "n",  'z',  ipv6head,	ipv6line,	"ip   v6    (general)",   },
-   {0,  "n",  'Z',  IPv6head,	IPv6line,	"ip   v6    (errors)",    },
-   {0,  "n",  'k',  icmpv6head,	icmpv6line,	"icmp v6    (general)",   },
-   {0,  "n",  'K',  ICMPv6head,	ICMPv6line,	"icmp v6    (per type)",  },
-   {0,  "n",  'U',  udpv6head,	udpv6line,  	"udp  v6",                },
-   {0,  "n",  't',  tcphead,	tcpline,  	"tcp        (general)",   },
-   {0,  "n",  'T',  TCPhead,	TCPline,  	"tcp        (errors)",    },
+   {0,  "c",  'c',  "cpu",	cpuhead,	cpuline,  	"cpu utilization",        },
+   {0,  "c",  'p',  "load",	prochead,	procline,  	"process(or) load",       },
+   {0,  "c",  'P',  "tasks",	taskhead,	taskline,  	"processes & threads",    },
+   {0,  "c",  'g',  "gpu",	gpuhead,	gpuline,  	"gpu utilization",        },
+   {0,  "m",  'm',  "memswap",	memhead,	memline,	"memory & swapspace",     },
+   {0,  "m",  's',  "swaprate",	swaphead,	swapline,	"swap rate",              },
+   {0,  "cmd",'B',  "psi",	psihead,	psiline,	"pressure stall info (PSI)",},
+   {0,  "cd", 'l',  "lvm",	lvmhead,	lvmline,	"logical volume activity", },
+   {0,  "cd", 'f',  "mdd",	mddhead,	mddline,	"multiple device activity",},
+   {0,  "cd", 'd',  "disk",	dskhead,	dskline,	"disk activity",          },
+   {0,  "n",  'h',  "infband",	ibhead,		ibline,		"infiniband utilization", },
+   {0,  "n",  'n',  "nfsmount",	nfmhead,	nfmline,	"NFS client mounts",      },
+   {0,  "n",  'j',  "nfscli",	nfchead,	nfcline,	"NFS client activity",    },
+   {0,  "n",  'J',  "nfssrv",	nfshead,	nfsline,	"NFS server activity",    },
+   {0,  "n",  'i',  "netif",	ifhead,		ifline,		"net-interf (general)",   },
+   {0,  "n",  'I',  "netiferr",	IFhead,		IFline,		"net-interf (errors)",    },
+   {0,  "n",  'w',  "netip4",	ipv4head,	ipv4line,	"ip   v4    (general)",   },
+   {0,  "n",  'W',  "netip4err",IPv4head,	IPv4line,	"ip   v4    (errors)",    },
+   {0,  "n",  'y',  "neticmp4",	icmpv4head,	icmpv4line,	"icmp v4    (general)",   },
+   {0,  "n",  'Y',  "neticmp4c",ICMPv4head,	ICMPv4line,	"icmp v4    (per type)",  },
+   {0,  "n",  'u',  "netudp4",	udpv4head,	udpv4line,  	"udp  v4",                },
+   {0,  "n",  'z',  "netip6",	ipv6head,	ipv6line,	"ip   v6    (general)",   },
+   {0,  "n",  'Z',  "netip6err",IPv6head,	IPv6line,	"ip   v6    (errors)",    },
+   {0,  "n",  'k',  "neticmp6",	icmpv6head,	icmpv6line,	"icmp v6    (general)",   },
+   {0,  "n",  'K',  "neticmpc6",ICMPv6head,	ICMPv6line,	"icmp v6    (per type)",  },
+   {0,  "n",  'U',  "netudp6",	udpv6head,	udpv6line,  	"udp  v6",                },
+   {0,  "n",  't',  "nettcp",	tcphead,	tcpline,  	"tcp        (general)",   },
+   {0,  "n",  'T',  "nettcperr",TCPhead,	TCPline,  	"tcp        (errors)",    },
 #if	HTTPSTATS
-   {0,  "n",  'o',  httphead,	httpline,  	"HTTP activity",          },
+   {0,  "n",  'o',  "http",	httphead,	httpline,  	"HTTP activity",          },
 #endif
-   {0,  "",   'O',  topchead,	topcline,  	"top-3 processes cpu",    },
-   {0,  "",   'G',  topmhead,	topmline,  	"top-3 processes memory", },
-   {0,  "",   'D',  topdhead,	topdline,  	"top-3 processes disk",   },
-   {0,  "",   'N',  topnhead,	topnline,  	"top-3 processes network",},
+   {0,  "",   'O',  "top3cpu",	topchead,	topcline,  	"top-3 processes cpu",    },
+   {0,  "",   'G',  "top3mem",	topmhead,	topmline,  	"top-3 processes memory", },
+   {0,  "",   'D',  "top3dsk",	topdhead,	topdline,  	"top-3 processes disk",   },
+   {0,  "",   'N',  "top3net",	topnhead,	topnline,  	"top-3 processes network",},
 };
 
 int	pricnt = sizeof(pridef)/sizeof(struct pridef);

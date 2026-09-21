@@ -157,7 +157,7 @@
 #include "gpucom.h"
 #include "netatop.h"
 
-#define	MAXFL		128      /* maximum positions for command line flags  */
+#define	MAXFL		128      // maximum positions for command line flags
 #define	MAXPARAM	80 
 
 /*
@@ -183,7 +183,6 @@ char		highpriosuppress; /* suppress high priority for atop    */
 char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 
-char		flaglist[MAXFL]; /* possible flags                       */
 char		flagrest[MAXFL]; /* flags remaining to be processed      */
 
 char		deviatonly = 1;
@@ -309,14 +308,9 @@ static void	twinclean(void);
 **
 ** used flags: 123456789aBb:CcDdEe:FfGgHhIiJ:jKkL:lMmNnoP:pQRr::Sst::uVvWw:XxYyZz:
 */
-#define	PHBASEVAL 1000
 #define	PHSHOWGPU (PHBASEVAL+1)
 
-struct pardef {
-	struct option	option;
-	char		*helpmsg;
-	char		symbarg;	// symbolic argument
-} paramdef[] = {
+static struct pardef paramdef[] = {
 	{ { "twin",       optional_argument, 0,                  't' },
 		"twin mode: live measurement with possibility to review\n"
 		"earlier samples (temporary raw file created in /tmp or\n"
@@ -356,12 +350,12 @@ struct pardef {
 
 
 	{ { "read",       optional_argument, 0,                  'r' },
-		"read  raw data from file F (compressed)\n"
+		"read  raw data from atop logfile F\n"
 		"symbolic file: y[y...] for yesterday (repeated)\n"
 		"file name '-': read raw data from stdin", 'F' },
 
 	{ { "write",      required_argument, 0,                  'w' },
-		"write raw data to file F (compressed)\n", 'F' },
+		"write raw data to atop logfile F\n", 'F' },
 
 
 	{ { "showgen",    no_argument,       0, MPROCGEN   }, // 'g'
@@ -510,16 +504,17 @@ struct pardef {
 	{ { "help",       no_argument,       0,                  'h' }, NULL },
 };
 
-struct option long_opts[MAXPARAM];
+static struct option long_opts[MAXPARAM];
 
 
 int
 main(int argc, char *argv[])
 {
-	register int	i, j;
+	register int	i;
 	int		c;
 	char		*p;
 	struct rlimit	rlim;
+	char		flaglist[MAXFL] = {'\0'}; // possible command flags
 
 	/*
 	** since privileged actions will be done later on, at this stage
@@ -563,23 +558,8 @@ main(int argc, char *argv[])
 	**
 	** dynamically prepare calling arguments for getopt_long()
 	*/
-	for (i=j=0; i < (sizeof paramdef/sizeof(struct pardef)) && i < MAXPARAM && j < MAXFL-1; i++)
-	{
-		// support long options
-		//
-		long_opts[i] = paramdef[i].option;
-
-		// build flaglist string
-		//
-		if (paramdef[i].option.val < PHBASEVAL)
-			flaglist[j++] = paramdef[i].option.val;
-
-		if (paramdef[i].option.has_arg != no_argument)
-			flaglist[j++] = ':';
-
-		if (paramdef[i].option.has_arg == optional_argument)
-			flaglist[j++] = ':';
-	}
+	prepcmdopts(paramdef, sizeof paramdef/sizeof(struct pardef),
+			long_opts, MAXPARAM, flaglist, MAXFL);
 
 	/*
 	** generic flags will be handled here while
@@ -1296,17 +1276,13 @@ engine(void)
 	} /* end of main-loop */
 }
 
+
 /*
 ** print usage of this command
 */
-#define MSGSTARTCOL	23
-
 void
 prusage(char *myname)
 {
-	int		i, j;
-	char		msgprefix[MSGSTARTCOL+1];
-
 	// print generic part
 	//
 	printf("Usage: %s [OPTION]... [INTERVAL [SAMPLES]]\n", myname);
@@ -1315,64 +1291,10 @@ prusage(char *myname)
 	printf("       %s -r [FILE] [OPTION]...\n", myname);
 	printf("\n");
 
-	// print all options and help messages
+	pricmdopts(paramdef, sizeof paramdef/sizeof(struct pardef));
+
+	// print footer
 	//
-	memset(msgprefix, ' ', MSGSTARTCOL);
-	msgprefix[MSGSTARTCOL] = '\0';
-
-	for (i=0; i < sizeof paramdef / sizeof paramdef[0]; i++)
-	{
-		char optionbuf[32];
-
-		// help message vailable?
-		//
-		if (paramdef[i].helpmsg)
-		{
-			// print short flag, if available
-			//
-			if (paramdef[i].option.val < PHBASEVAL)
-				printf("  -%c, ", paramdef[i].option.val);
-			else
-				printf("      ");
-
-			// print long flag, along with (optional) argument
-			//
-			memset(optionbuf, '\0', sizeof optionbuf);
-
-			safe_strcpy(optionbuf, paramdef[i].option.name, sizeof optionbuf);
-
-			if (paramdef[i].option.has_arg == optional_argument)
-				strcat(optionbuf, "[");
-
-			if (paramdef[i].option.has_arg != no_argument)
-			{
-				strcat(optionbuf, "=");
-				optionbuf[strlen(optionbuf)] = paramdef[i].symbarg;
-			}
-
-			if (paramdef[i].option.has_arg == optional_argument)
-				strcat(optionbuf, "]");
-
-			printf("--%-14.14s ", optionbuf);
-		       
-			// print message
-			//
-			// messages that contain a '\n' should continue
-			// on the next line aligned in the right column,
-			// except when the '\n' is at the last position
-			//
-			for (j=0; paramdef[i].helpmsg[j]; j++)
-			{
-				putchar(paramdef[i].helpmsg[j]);
-
-				if (paramdef[i].helpmsg[j] == '\n' && paramdef[i].helpmsg[j+1])
-					printf("%s", msgprefix);
-			}
-
-			putchar('\n');
-		}
-	}
-
 	printf("\n");
 	printf("  INTERVAL: number of seconds   (minimum 0, default 10)\n");
 	printf("  SAMPLES:  number of intervals (minimum 1, default infinite)\n");
@@ -1385,6 +1307,117 @@ prusage(char *myname)
 
 	cleanstop(1);
 }
+
+
+/*
+** dynamically prepare calling arguments for getopt_long()
+**
+** - pd:	list of parameter definitions  (input)
+** - opt:	list of struct option elements (output)
+** - flags:	list of flags                  (output)
+*/
+void
+prepcmdopts(struct pardef *pd,    int nrpardef,
+            struct option *opts,  int maxparam,
+	    char          *flags, int maxflags)
+{
+	int i, j;
+
+	for (i=j=0; i < nrpardef && i < maxparam && j < maxflags-1; i++)
+	{
+		// support long options
+		//
+		opts[i] = pd[i].option;
+
+		// build flags string
+		//
+		if (pd[i].option.val < PHBASEVAL)
+			flags[j++] = pd[i].option.val;
+
+		if (pd[i].option.has_arg != no_argument)
+			flags[j++] = ':';
+
+		if (pd[i].option.has_arg == optional_argument)
+			flags[j++] = ':';
+	}
+
+	if (i == maxparam || j == maxflags-1)
+	{
+		fprintf(stderr, "internal failure while handling options!\n");
+		cleanstop(1);
+	}
+}
+
+/*
+**
+*/
+#define MSGSTARTCOL	23
+
+void
+pricmdopts(struct pardef *pd, int nrpardef)
+{
+	int		i, j;
+	char		msgprefix[MSGSTARTCOL+1];
+
+	// print all options and help messages
+	//
+	memset(msgprefix, ' ', MSGSTARTCOL);
+	msgprefix[MSGSTARTCOL] = '\0';
+
+	for (i=0; i < nrpardef; i++)
+	{
+		char optionbuf[32];
+
+		// help message vailable?
+		//
+		if (pd[i].helpmsg)
+		{
+			// print short flag, if available
+			//
+			if (pd[i].option.val < PHBASEVAL)
+				printf("  -%c, ", pd[i].option.val);
+			else
+				printf("      ");
+
+			// print long flag, along with (optional) argument
+			//
+			memset(optionbuf, '\0', sizeof optionbuf);
+
+			safe_strcpy(optionbuf, pd[i].option.name, sizeof optionbuf);
+
+			if (pd[i].option.has_arg == optional_argument)
+				strcat(optionbuf, "[");
+
+			if (pd[i].option.has_arg != no_argument)
+			{
+				strcat(optionbuf, "=");
+				optionbuf[strlen(optionbuf)] = pd[i].symbarg;
+			}
+
+			if (pd[i].option.has_arg == optional_argument)
+				strcat(optionbuf, "]");
+
+			printf("--%-14.14s ", optionbuf);
+		       
+			// print message
+			//
+			// messages that contain a '\n' should continue
+			// on the next line aligned in the right column,
+			// except when the '\n' is at the last position
+			//
+			for (j=0; pd[i].helpmsg[j]; j++)
+			{
+				putchar(pd[i].helpmsg[j]);
+
+				if (pd[i].helpmsg[j] == '\n' && pd[i].helpmsg[j+1])
+					printf("%s", msgprefix);
+			}
+
+			putchar('\n');
+		}
+	}
+}
+
 
 /*
 ** handler for ALRM-signal

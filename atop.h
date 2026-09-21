@@ -25,6 +25,7 @@
 #define __ATOP__
 
 #include <time.h>
+#include <getopt.h>
 
 #define	EQ		0
 #define SECONDSINDAY	86400
@@ -69,11 +70,22 @@ struct netpertask;
 
 #define MAXHANDLERS	10
 
+/*
+** generic structures
+*/
 struct handler {
 	char	(*handle_sample)  (time_t, int,
        			struct devtstat *, struct sstat *,
 			struct cgchainer *, int, int, int,
 			unsigned int, char);
+};
+
+#define	PHBASEVAL 1000
+
+struct pardef {
+        struct option   option;
+        char            *helpmsg;
+        char            symbarg;        // symbolic argument
 };
 
 /*
@@ -255,5 +267,8 @@ int		netlink_recv(int, int);
 
 int		getutsname(struct tstat *);
 void		resetutsname(void);
+
+void		prepcmdopts(struct pardef *, int, struct option *, int, char *, int);
+void		pricmdopts(struct pardef *, int);
 
 #endif

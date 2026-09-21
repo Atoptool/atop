@@ -41,7 +41,7 @@ program).
 .br
 You can specify the name of the logfile with the 
 .B -r
-option of the
+(--read) option of the
 .I atopsar
 program.
 When a daily logfile of
@@ -51,20 +51,21 @@ is used, named
 (where YYYYMMDD reflects the date),
 the required date of the form YYYYMMDD can be specified with the
 .B -r
-option instead of the filename, or
+(--read) option instead of the filename, or
 the symbolic name 'y' can be used for yesterday's daily logfile
 (this can be repeated so 'yyyy' indicates the logfile of four days ago), or
 the filename '-' can be used to read raw data from stdin.
 If the
 .B -r
-option is not specified at all, today's daily logfile is used by default.
+(--read) option is not specified at all,
+today's daily logfile is used by default.
 .br
 The starting and ending times of the report can be defined using the
 options
 .B -b
-and
+(--begintime) and
 .B -e
-followed by a time argument of the form [YYYYMMDD]hhmm[ss].
+(--endtime) followed by a time argument of the form [YYYYMMDD]hhmm[ss].
 .PP
 In the second synopsis line,
 .B atopsar
@@ -89,20 +90,20 @@ Some generic flags can be specified to influence the behaviour of the
 program:
 .PP
 .TP 5
-.B -S
+.B -S, --timestamp
 By default the timestamp at the beginning of a line is suppressed if more
 lines are shown for one interval. With this flag a timestamp is
 given for every output-line (easier for post-processing).
 .PP
 .TP 5
-.B -a
+.B -a, --inactivetoo
 By default certain resources as disks and network interfaces are only
 shown when they were active during the interval.
 With this flag all resources of a given type are shown, even if
 they were inactive during the interval.
 .PP
 .TP 5
-.B -x
+.B -x, --nocolors
 By default
 .B atopsar
 only uses colors if output is directed to a terminal (window).
@@ -118,7 +119,7 @@ With the flag
 the use of colors is suppressed unconditionally.
 .PP
 .TP 5
-.B -C
+.B -C, --colors
 By default
 .B atopsar
 only uses colors if output is directed to a terminal (window).
@@ -134,7 +135,7 @@ With the flag
 colors will always be used, even if output is not directed to a terminal.
 .PP
 .TP 5
-.B -M
+.B -M, --markers
 Use markers at the end of a line to indicate that a critical occupation
 percentage has been reached ('*') or has been almost reached ('+')
 for particular resources. The marker '*' is similar to the color red
@@ -143,7 +144,7 @@ and the marker '+' to the color cyan. See the man-page of
 for a detailed description of these colors (section COLORS).
 .PP
 .TP 5
-.B -H
+.B -H, --repeathead
 Repeat the header line within a report for every
 .I N
 detail lines. The value of
@@ -152,151 +153,151 @@ is determined dynamically in case of output to a tty/window (depending
 on the number of lines); for output to a file or pipe this value is 23.
 .PP
 .TP 5
-.B -R
+.B -R, --summary=N
 Summarize
-.I cnt
+.I N
 samples into one sample. When the logfile contains e.g. samples of 10 minutes,
 the use of the flag '\-R 6' shows a report with one sample for every hour.
 .PP
 Other flags are used to define which reports are required:
 .PP
 .TP 5
-.B -A
+.B -A, --all
 Show all possible reports.
 .PP
 .TP 5
-.B -c
+.B -c, --cpu
 Report about CPU utilization (in total and per cpu).
 .PP
 .TP 5
-.B -g
+.B -g, --gpu
 Report about GPU utilization (per GPU).
 .PP
 .TP 5
-.B -p
-Report about processor-related matters, like load-averages and
+.B -p, --load
+Report about processor-related matters, like load averages and
 hardware interrupts.
 .PP
 .TP 5
-.B -P
+.B -P, --tasks
 Report about processes.
 .PP
 .TP 5
-.B -m
+.B -m, --memswap
 Current memory- and swap-occupation.
 .PP
 .TP 5
-.B -s
-Report about paging- and swapping-activity, and overcommitment.
+.B -s, --swaprate
+Report about paging and swapping activity, and overcommitment.
 .PP
 .TP 5
-.B -B
+.B -B, --psi
 Report about Pressure Stall Information (PSI).
 .PP
 .TP 5
-.B -l
+.B -l, --lvm
 Report about utilization of logical volumes.
 .PP
 .TP 5
-.B -f
+.B -f, --mdd
 Report about utilization of multiple devices.
 .PP
 .TP 5
-.B -d
+.B -d, --disk
 Report about utilization of disks.
 .PP
 .TP 5
-.B -n
+.B -n, --nfsmount
 Report about NFS mounted filesystems on NFS client.
 .PP
 .TP 5
-.B -j
+.B -j, --nfscli
 Report about NFS client activity.
 .PP
 .TP 5
-.B -J
+.B -J, --nfssrv
 Report about NFS server activity.
 .PP
 .TP 5
-.B -i
+.B -i, --netif
 Report about the network interfaces.
 .PP
 .TP 5
-.B -I
+.B -I, --netiferr
 Report about errors for network-interfaces.
 .PP
 .TP 5
-.B -w
+.B -w, --netip4
 Report about IP version 4 network traffic.
 .PP
 .TP 5
-.B -W
+.B -W, --netip4err
 Report about errors for IP version 4 traffic.
 .PP
 .TP 5
-.B -y
+.B -y, --neticmp4
 General report about ICMP version 4 layer activity.
 .PP
 .TP 5
-.B -Y
+.B -Y, --neticmp4c
 Per-type report about ICMP version 4 layer activity.
 .PP
 .TP 5
-.B -u
+.B -u, --netudp4
 Report about UDP version 4 network traffic.
 .PP
 .TP 5
-.B -z
+.B -z, --netip6
 Report about IP version 6 network traffic.
 .PP
 .TP 5
-.B -Z
+.B -Z, --netip6err
 Report about errors for IP version 6 traffic.
 .PP
 .TP 5
-.B -k
+.B -k, --neticmp6
 General report about ICMP version 6 layer activity.
 .PP
 .TP 5
-.B -K
+.B -K, --neticmp6c
 Per-type report about ICMP version 6 layer activity.
 .PP
 .TP 5
-.B -U
+.B -U, --netudp6
 Report about UDP version 6 network traffic.
 .PP
 .TP 5
-.B -t
+.B -t, --nettcp
 Report about TCP network traffic.
 .PP
 .TP 5
-.B -T
+.B -T, --nettcperr
 Report about errors for TCP-traffic.
 .PP
 .TP 5
-.B -h
+.B -h, --infband
 Report about Infiniband utilization.
 .PP
 .TP 5
-.B -O
+.B -O, --top3cpu
 Report about top-3 processes consuming most processor capacity.
 This report is only available when using a log file (not when specifying
 an interval).
 .PP
 .TP 5
-.B -G
+.B -G, --top3mem
 Report about top-3 processes consuming most resident memory.
 This report is only available when using a log file (not when specifying
 an interval).
 .PP
 .TP 5
-.B -D
+.B -D, --top3dsk
 Report about top-3 processes issuing most disk transfers.
 This report is only available when using a log file (not when specifying
 an interval).
 .PP
 .TP 5
-.B -N
+.B -N, --top3net
 Report about top-3 processes issuing most IPv4/IPv6 socket transfers.
 This report is only available when using a log file (not when specifying
 an interval).
