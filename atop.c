@@ -1283,6 +1283,11 @@ engine(void)
 void
 prusage(char *myname)
 {
+	char *p;
+
+	if ( (p = strrchr(myname, '/')) ) // remove path
+		myname = p+1;
+
 	// print generic part
 	//
 	printf("Usage: %s [OPTION]... [INTERVAL [SAMPLES]]\n", myname);

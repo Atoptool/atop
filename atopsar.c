@@ -162,6 +162,7 @@ static struct pardef paramdef[MAXPARAM] = {
         { { "all",        no_argument,      0,                   'A' },
                 "print all available reports\n", ' ' },
 
+	{ { "help",       no_argument,      0,                   '?' }, NULL },
 };
 
 static struct option long_opts[MAXPARAM];
@@ -189,7 +190,7 @@ atopsar(int argc, char *argv[])
 		** to entries in the paramdef array to be
 		** able to use the appropriate functions
 		*/
-		for (i=0; paramdef[i].helpmsg; i++)
+		for (i=0; paramdef[i].option.name; i++)
 			; // count static entries
 
 		for (j=0; j < pricnt && i < MAXPARAM; i++, j++)
@@ -1104,6 +1105,11 @@ reportheader(struct utsname *uname, time_t mtime)
 void
 pratopsaruse(char *myname)
 {
+	char *p;
+
+	if ( (p = strrchr(myname, '/')) ) // remove path
+		myname = p+1;
+
 	// print generic part
         //
         printf("Usage: %s [-r [FILE|-|date|y...]] [OPTION]...\n", myname);
