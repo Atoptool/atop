@@ -126,7 +126,7 @@ static void	gpuhead(int, int, int);
 /*
 ** definition of command line parameters
 */
-static struct pardef paramdef[MAXPARAM] = {
+static struct pardef paramdef[MAXPARAM+1] = {
 	{ { "read",       optional_argument, 0,                  'r' },
 		"read raw data from atop logfile F (default: today's log)\n"
 		"symbolic file: y[y...] for yesterday (repeated)\n"
@@ -165,7 +165,7 @@ static struct pardef paramdef[MAXPARAM] = {
 	{ { "help",       no_argument,      0,                   '?' }, NULL },
 };
 
-static struct option long_opts[MAXPARAM];
+static struct option long_opts[MAXPARAM+1];
 
 /**************************************************************************/
 
@@ -175,7 +175,7 @@ atopsar(int argc, char *argv[])
 	register int	i, j, c;
 	struct rlimit	rlim;
 	char		*p;
-	char		flaglist[MAXFL] = {'\0'}; // possible command flags
+	char		flaglist[MAXFL+1] = {'\0'}; // possible command flags
 	int		nrparam = 0;
 
 	usecolors = 't';

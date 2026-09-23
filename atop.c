@@ -183,7 +183,7 @@ char		highpriosuppress; /* suppress high priority for atop    */
 char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 
-char		flagrest[MAXFL]; /* flags remaining to be processed      */
+char		flagrest[MAXFL+1]; /* flags remaining to be processed    */
 
 char		deviatonly = 1;
 char      	usecolors  = 1;  /* boolean: colors for high occupation  */
@@ -504,7 +504,7 @@ static struct pardef paramdef[] = {
 	{ { "help",       no_argument,       0,                  'h' }, NULL },
 };
 
-static struct option long_opts[MAXPARAM];
+static struct option long_opts[MAXPARAM+1];
 
 
 int
@@ -514,7 +514,7 @@ main(int argc, char *argv[])
 	int		c;
 	char		*p;
 	struct rlimit	rlim;
-	char		flaglist[MAXFL] = {'\0'}; // possible command flags
+	char		flaglist[MAXFL+1] = {'\0'}; // possible command flags
 
 	/*
 	** since privileged actions will be done later on, at this stage
@@ -567,7 +567,7 @@ main(int argc, char *argv[])
 	*/
 	i = 0;
 
-	while (i < MAXFL-1 && (c = getopt_long(argc, argv, flaglist, long_opts, NULL)) != -1)
+	while (i < MAXFL && (c = getopt_long(argc, argv, flaglist, long_opts, NULL)) != -1)
 	{
 		switch (c)
 		{
@@ -1328,7 +1328,7 @@ prepcmdopts(struct pardef *pd,    int nrpardef,
 {
 	int i, j;
 
-	for (i=j=0; i < nrpardef && i < maxparam && j < maxflags-1; i++)
+	for (i=j=0; i < nrpardef && i < maxparam && j < maxflags; i++)
 	{
 		// support long options
 		//
@@ -1346,7 +1346,7 @@ prepcmdopts(struct pardef *pd,    int nrpardef,
 			flags[j++] = ':';
 	}
 
-	if (i == maxparam || j == maxflags-1)
+	if (i == maxparam || j == maxflags)
 	{
 		fprintf(stderr, "internal failure while handling options!\n");
 		cleanstop(1);
@@ -1354,7 +1354,7 @@ prepcmdopts(struct pardef *pd,    int nrpardef,
 }
 
 /*
-**
+** print help message for each option
 */
 #define MSGSTARTCOL	23
 
