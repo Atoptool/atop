@@ -407,7 +407,10 @@ static struct pardef paramdef[] = {
 		"sort processes by network activity", ' ' },
 
 	{ { "sortgpu",    no_argument,       0, MPERCGPU   }, // 'E'
-		"sort processes by of GPU activity\n", ' ' },
+		"sort processes by of GPU activity", ' ' },
+
+	{ { "sortauto",   no_argument,       0, MPERCAUTO  }, // 'A'
+		"sort processes by activity of busiest resource\n", ' ' },
 
 
 	{ { "cumprocs",   no_argument,       0, MCUMPROC   }, // 'p'

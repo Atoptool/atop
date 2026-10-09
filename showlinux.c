@@ -1616,6 +1616,21 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
         register int            i;
         register struct tstat   *curstat;
         double                  perc;
+	unsigned char		resource = pv->showresource;
+
+	/*
+	** in case of autofocus:
+	** determine which resource was chosen
+	*/
+	if (resource == MPERCAUTO)
+	{
+		if (procprt_RESOURCE.sortfunc == compmem)
+			resource = MPERCMEM;
+		else if (procprt_RESOURCE.sortfunc == compdsk)
+			resource = MPERCDSK;
+		else
+			resource = MPERCCPU;
+	}
 
         /*
         ** print info per actual process and maintain totals
@@ -1628,48 +1643,46 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
                         break;
 
                 /*
-                ** calculate occupation-percentage of this process
-                ** depending on selected resource
+                ** calculate resource occupation percentage of this process
                 */
-                switch (pv->showresource) 
-                {
-                   case MPERCCPU:
-                        perc = 0.0;
+		switch (resource)
+               	{
+		   case MPERCCPU:
+			perc = 0.0;
 
-                        if (sb->availcpu)
-                        {
-                                perc = (double)(curstat->cpu.stime +
-                                                curstat->cpu.utime  ) * 100 /
-                                                (sb->availcpu / sb->nrcpu);
+			if (sb->availcpu)
+			{
+				perc = (double)(curstat->cpu.stime +
+					curstat->cpu.utime  ) * 100 /
+					(sb->availcpu / sb->nrcpu);
 
-                                if (perc > 100.0 * sb->nrcpu)
-                                        perc = 100.0 * sb->nrcpu;
+				if (perc > 100.0 * sb->nrcpu)
+					perc = 100.0 * sb->nrcpu;
 
-                                if (perc > 100.0 * curstat->gen.nthr)
-                                        perc = 100.0 * curstat->gen.nthr;
-                        }
-                        break;
+				if (perc > 100.0 * curstat->gen.nthr)
+					perc = 100.0 * curstat->gen.nthr;
+			}
+			break;
 
-                   case MPERCMEM:
-                        perc = 0.0;
+		   case MPERCMEM:
+			perc = 0.0;
 
-                        if (sb->availmem)
-                        {
-                                perc = (double)curstat->mem.rmem *
-                                               100.0 / sb->availmem;
+			if (sb->availmem)
+			{
+				perc = (double)curstat->mem.rmem *
+					100.0 / sb->availmem;
 
-                                if (perc > 100.0)
-                                        perc = 100.0;
-                        }
-                        break;
+				if (perc > 100.0)
+					perc = 100.0;
+			}
+			break;
 
-                   case MPERCDSK:
-                        perc = 0.0;
+		   case MPERCDSK:
+			perc = 0.0;
 
 			if (sb->availdsk)
-                        {
+			{
 				count_t nett_wsz;
-
 
 				if (curstat->dsk.wsz > curstat->dsk.cwsz)
 					nett_wsz = curstat->dsk.wsz -
@@ -1682,32 +1695,32 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 
 				if (perc > 100.0)
 					perc = 100.0;
-                        }
-                        break;
+			}
+			break;
 
-                   case MPERCNET:
-                        perc = 0.0;
+		   case MPERCNET:
+			perc = 0.0;
 
-                        if (sb->availnet)
-                        {
-                                perc = (double)(curstat->net.tcpssz +
-                                                curstat->net.tcprsz +
-                                                curstat->net.udpssz +
-                                                curstat->net.udprsz  ) *
-                                                100.0 / sb->availnet;
+			if (sb->availnet)
+			{
+				perc = (double)(curstat->net.tcpssz +
+					curstat->net.tcprsz +
+					curstat->net.udpssz +
+					curstat->net.udprsz  ) *
+					100.0 / sb->availnet;
 
-                                if (perc > 100.0)
-                                        perc = 100.0;
-                        }
-                        break;
+				if (perc > 100.0)
+					perc = 100.0;
+			}
+			break;
 
-                   case MPERCGPU:
-                        perc = 0.0;
+		   case MPERCGPU:
+			perc = 0.0;
 
 			if (!curstat->gpu.state)
 				break;
 
-                        if (curstat->gpu.gpubusycum != -1)
+			if (curstat->gpu.gpubusycum != -1)
 			{
 				if (nsecs)
 					perc = curstat->gpu.gpubusycum / nsecs;
@@ -1716,14 +1729,14 @@ priproc(struct tstat **proclist, int firstproc, int lastproc, int curline,
 			}
 			else
 			{
-                        	perc = curstat->gpu.memnow*100 *
-				       sb->nrgpu / sb->availgpumem;
+				perc = curstat->gpu.memnow*100 *
+					sb->nrgpu / sb->availgpumem;
 			}
-                        break;
+			break;
 
-                   default:
-                        perc = 0.0;
-                }
+		   default:
+			perc = 0.0;
+		}
 
                 /*
                 ** now do the formatting of output

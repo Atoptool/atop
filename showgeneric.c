@@ -100,7 +100,7 @@ static char	keywaiting;	// set after key has been pushed back
 int		paused;    		// boolean: currently in pause-mode
 int		cgroupdepth = 7;	// default: cgroups without processes
 
-static int	setprocview(unsigned char, unsigned char, signed char, int);
+static int	setprocview(unsigned char, unsigned char, signed char, int, int);
 static void	sortprocs(struct tstat **, int, int, unsigned char, int);
 
 static int	cumusers(struct tstat **, struct tstat *, int);
@@ -189,59 +189,59 @@ generic_samp(time_t curtime, int nsecs,
 
 			   case MCGROUPS:	// switch to text mode: cgroups
 				if (supportflags & CGROUPV2)
-					setprocview(MCGROUPS, MPERCCPU, 0, -1);
+					setprocview(MCGROUPS, MPERCCPU, 0, -1, 0);
 				else
-					setprocview(MPROCGEN, MPERCCPU, 0, -1);
+					setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCGEN:	// switch to text mode: generic
-				setprocview(MPROCGEN, MPERCCPU, 0, -1);
+				setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
  			   case MPROCMEM:	// switch to text mode: memory
-				setprocview(MPROCMEM, MPERCMEM, 0, -1);
+				setprocview(MPROCMEM, MPERCMEM, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
 			   case MPROCDSK:	// switch to text mode: disk
-				setprocview(MPROCDSK, MPERCDSK, 0, -1);
+				setprocview(MPROCDSK, MPERCDSK, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
 			   case MPROCNET:	// switch to text mode: network
 				if (supportflags & NETATOP || supportflags & NETATOPBPF)
-					setprocview(MPROCNET, MPERCNET, 0, -1);
+					setprocview(MPROCNET, MPERCNET, 0, -1, 0);
 				else
-					setprocview(MPROCGEN, MPERCCPU, 0, -1);
+					setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCGPU:	// switch to text mode: GPU
 				if (supportflags & GPUSTAT)
-					setprocview(MPROCGPU, MPERCGPU, 0, -1);
+					setprocview(MPROCGPU, MPERCGPU, 0, -1, 0);
 				else
-					setprocview(MPROCGEN, MPERCCPU, 0, -1);
+					setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 
 				displaymode = 'T';
 				break;
 
 			   case MPROCSCH:	// switch to text mode: scheduling
-				setprocview(MPROCSCH, MPERCCPU, 0, -1);
+				setprocview(MPROCSCH, MPERCCPU, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
 			   case MPROCVAR:	// switch to text mode: various
-				setprocview(MPROCVAR, MPERCCPU, 0, -1);
+				setprocview(MPROCVAR, MPERCCPU, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
 			   case MPROCARG:	// switch to text mode: arguments
-				setprocview(MPROCARG, MPERCCPU, 0, -1);
+				setprocview(MPROCARG, MPERCCPU, 0, -1, 0);
 				displaymode = 'T';
 				break;
 
@@ -399,7 +399,7 @@ text_samp(time_t curtime, int nsecs,
 
                 int seclen	= val2elapstr(nsecs, buf);
                 int lenavail 	= (screen ? COLS : linelen) -
-						60 - seclen - utsnodenamelen;
+						61 - seclen - utsnodenamelen;
                 int len1	= lenavail / 3;
 
 		if (len1 <= 0)
@@ -408,7 +408,7 @@ text_samp(time_t curtime, int nsecs,
                 int len2	= lenavail - len1 - len1; 
 
 		printg("ATOP - %s%*s%s %s %s %*s"
-		       "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
+		       "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%*s%s elapsed", 
 			utsname.nodename, len1, "", 
 			format1, format2, "      ", len1, "",
 			threadview                    ? MTHREAD    : '-',
@@ -430,6 +430,8 @@ text_samp(time_t curtime, int nsecs,
 			syssel.lvmnamesz +
 			syssel.dsknamesz +
 			syssel.itfnamesz	      ? MSELSYS    : '-',
+			procview.showresource ==
+			                    MPERCAUTO ? MPERCAUTO  : '-',
 			cgroupdepth+0x30,
 			len2, "", buf);
 
@@ -493,11 +495,11 @@ text_samp(time_t curtime, int nsecs,
 			limitedlines();
 			
 			curline = prisyst(sstat, curline, nsecs, avgval,
-					fixedhead,  &syssel, 
-					maxcpulines, maxgpulines,
-					maxdsklines, maxmddlines,
-		                        maxlvmlines, maxintlines,
-					maxifblines, maxnfslines,
+					fixedhead,    &syssel, 
+					maxcpulines,  maxgpulines,
+					maxdsklines,  maxmddlines,
+		                        maxlvmlines,  maxintlines,
+					maxifblines,  maxnfslines,
 		                        maxcontlines, maxnumalines,
 					maxllclines);
 
@@ -656,8 +658,7 @@ text_samp(time_t curtime, int nsecs,
 				}
 	
 				nucum = cumusers(deviatonly ?
-							devtstat->procactive :
-							devtstat->procall,
+							devtstat->procactive : devtstat->procall,
 							tucumlist, nproc);
 	
 				curlist   = ucumlist;
@@ -819,6 +820,32 @@ text_samp(time_t curtime, int nsecs,
 				else
 					slistsz = ncurlist;
 
+			/*
+			** determine most busy resource in case of autofocus 
+			** based on the highest PSI 'some' value (CPU is default)
+			*/
+			if (procview.showresource == MPERCAUTO)
+			{
+				count_t psihighest = sstat->psi.cpusome.total;
+
+				procprt_RESOURCE.sortfunc = compcpu;
+
+				if (psihighest < sstat->psi.memsome.total)
+				{
+					psihighest = sstat->psi.memsome.total;
+					procprt_RESOURCE.sortfunc = compmem;
+				}
+
+				if (psihighest < sstat->psi.iosome.total)
+				{
+					psihighest = sstat->psi.iosome.total;
+					procprt_RESOURCE.sortfunc = compdsk;
+				}
+			}
+
+			/*
+			** print processes for current screen
+			*/
 			if (ncurlist > 0 && slistsz > 0)
 			{
 				/*
@@ -952,6 +979,33 @@ text_samp(time_t curtime, int nsecs,
 		}
 		else	// MCGROUPS: print cgroups
 		{
+			unsigned char sorted_resource = procview.showresource;
+
+			/*
+			** determine most busy resource in case of autofocus 
+			** based on the highest PSI 'some' value (CPU is default)
+			*/
+			if (procview.showresource == MPERCAUTO)
+			{
+				count_t psihighest = sstat->psi.cpusome.total;
+
+				sorted_resource = MPERCCPU;
+
+				if (psihighest < sstat->psi.memsome.total)
+				{
+					psihighest = sstat->psi.memsome.total;
+					sorted_resource = MPERCMEM;
+				}
+
+				if (psihighest < sstat->psi.iosome.total)
+				{
+					psihighest = sstat->psi.iosome.total;
+					sorted_resource = MPERCDSK;
+				}
+
+				setprocview(0, sorted_resource, -1, 0, 1); // keep autofocus
+			}
+
 			/*
 			** sort the list in required order 
 			** (default CPU-consumption) and print the list
@@ -962,7 +1016,7 @@ text_samp(time_t curtime, int nsecs,
 			if (cgroupsel == NULL           ||	// not created yet
 			    cstatdeviate != deviatonly  ||	// or not the right contents?
 			    cstatdepth   != cgroupdepth ||
-			    cstatorder   != procview.showresource)
+			    cstatorder   != sorted_resource)
 			{
 				struct tstat **tp;
 
@@ -974,13 +1028,13 @@ text_samp(time_t curtime, int nsecs,
 				*/
 				free(cgroupsort);
 
-				cgroupsort = cgsort(cgchainers, ncgroups, procview.showresource);
+				cgroupsort = cgsort(cgchainers, ncgroups, sorted_resource);
 
 				/*
 				** determine required list of processes (all or active)
 				** for memory usage even non-active processes are taken
 				*/
-				if (deviatonly && procview.showresource != MPERCMEM)
+				if (deviatonly && sorted_resource != MPERCMEM)
 				{
 					nproc = devtstat->nprocactive;
 					tp    = devtstat->procactive;
@@ -1001,14 +1055,14 @@ text_samp(time_t curtime, int nsecs,
 				** create new merged list of cgroups and processes
 				*/
 				ncurlist = mergecgrouplist(&cgroupsel, cgroupdepth,
-						cgroupsort, ncgroups, tp, nproc, procview.showresource);
+						cgroupsort, ncgroups, tp, nproc, sorted_resource);
 
 				/*
 				** preserve list characteristics
 				*/
 				cstatdeviate = deviatonly;
 				cstatdepth   = cgroupdepth;
-				cstatorder   = procview.showresource;
+				cstatorder   = sorted_resource;
 			}
 
 			/*
@@ -1259,7 +1313,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** sort in cpu activity order
 			   */
 			   case MPERCCPU:
-				setprocview(0, MPERCCPU, 0, -1);
+				setprocview(0, MPERCCPU, 0, -1, 0);
 				firstitem    = 0;
 				break;
 
@@ -1267,7 +1321,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** sort in memory consumption order
 			   */
 			   case MPERCMEM:
-				setprocview(0, MPERCMEM, 0, -1);
+				setprocview(0, MPERCMEM, 0, -1, 0);
 				firstitem    = 0;
 				break;
 
@@ -1277,11 +1331,11 @@ text_samp(time_t curtime, int nsecs,
 			   case MPERCDSK:
 				if ( !(supportflags & IOSTAT) )
 				{
-					statmsg = "Ignored: no disk I/O metrics known (no root privs)";
+					statmsg = "Ignored: disk I/O metrics not known (no root privs)";
 					break;
 				}
 
-				setprocview(0, MPERCDSK, 0, -1);
+				setprocview(0, MPERCDSK, 0, -1, 0);
 				firstitem    = 0;
 				break;
 
@@ -1296,7 +1350,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				setprocview(0, MPERCNET, 0, -1);
+				setprocview(0, MPERCNET, 0, -1, 0);
 				firstitem    = 0;
 				break;
 
@@ -1306,11 +1360,19 @@ text_samp(time_t curtime, int nsecs,
 			   case MPERCGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "Ignored: no GPU daemon running or no -k specified";
+					statmsg = "Ignored: GPU daemon not running or no -k specified";
 					break;
 				}
 
-				setprocview(0, MPERCGPU, 0, -1);
+				setprocview(0, MPERCGPU, 0, -1, 0);
+				firstitem    = 0;
+				break;
+
+			   /*
+			   ** sort in order of busiest resource (autofocus)
+			   */
+			   case MPERCAUTO:
+				setprocview(0, MPERCAUTO, 0, -1, 0);
 				firstitem    = 0;
 				break;
 
@@ -1318,7 +1380,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** general figures per process
 			   */
 			   case MPROCGEN:
-				setprocview(MPROCGEN, MPERCCPU, 0, -1);
+				setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1326,7 +1388,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** memory-specific figures per process
 			   */
 			   case MPROCMEM:
-				setprocview(MPROCMEM, MPERCMEM, 0, -1);
+				setprocview(MPROCMEM, MPERCMEM, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1336,11 +1398,11 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCDSK:
 				if ( !(supportflags & IOSTAT) )
 				{
-					statmsg = "Ignored: no disk I/O metrics known (no root privs)";
+					statmsg = "Ignored: disk I/O metrics not known (no root privs)";
 					break;
 				}
 
-				setprocview(MPROCDSK, MPERCDSK, 0, -1);
+				setprocview(MPROCDSK, MPERCDSK, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1355,7 +1417,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				setprocview(MPROCNET, MPERCNET, 0, -1);
+				setprocview(MPROCNET, MPERCNET, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1365,11 +1427,11 @@ text_samp(time_t curtime, int nsecs,
 			   case MPROCGPU:
 				if ( !(supportflags & GPUSTAT) )
 				{
-					statmsg = "Ignored: no GPU daemon running or no -k specified";
+					statmsg = "Ignored: GPU daemon not running or no -k specified";
 					break;
 				}
 
-				setprocview(MPROCGPU, MPERCGPU, 0, -1);
+				setprocview(MPROCGPU, MPERCGPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1377,7 +1439,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** various info per process
 			   */
 			   case MPROCVAR:
-				setprocview(MPROCVAR, MPERCCPU, 0, -1);
+				setprocview(MPROCVAR, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1385,7 +1447,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** command line per process
 			   */
 			   case MPROCARG:
-				setprocview(MPROCARG, MPERCCPU, 0, -1);
+				setprocview(MPROCARG, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1399,7 +1461,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				setprocview(MCGROUPS, MPERCCPU, 0, -1);	
+				setprocview(MCGROUPS, MPERCCPU, 0, -1, 0);	
 				firstitem = 0;
 				break;
 
@@ -1426,7 +1488,7 @@ text_samp(time_t curtime, int nsecs,
 					break;
 				}
 
-				setprocview(MPROCOWN, MPERCCPU, 0, -1);
+				setprocview(MPROCOWN, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1434,7 +1496,7 @@ text_samp(time_t curtime, int nsecs,
 			   ** scheduling-values per process
 			   */
 			   case MPROCSCH:
-				setprocview(MPROCSCH, MPERCCPU, 0, -1);
+				setprocview(MPROCSCH, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1445,7 +1507,7 @@ text_samp(time_t curtime, int nsecs,
 				statmsg = "Consumption per user; use 'a' to "
 				          "toggle between all/active processes";
 
-				setprocview(MCUMUSER, MPERCCPU, 0, -1);
+				setprocview(MCUMUSER, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1456,7 +1518,7 @@ text_samp(time_t curtime, int nsecs,
 				statmsg = "Consumption per program; use 'a' to "
 				          "toggle between all/active processes";
 
-				setprocview(MCUMPROC, MPERCCPU, 0, -1);
+				setprocview(MCUMPROC, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1473,7 +1535,7 @@ text_samp(time_t curtime, int nsecs,
 				statmsg = "Consumption per container/pod; use 'a' to "
 				          "toggle between all/active processes";
 
-				setprocview(MCUMCONT, MPERCCPU, 0, -1);
+				setprocview(MCUMCONT, MPERCCPU, 0, -1, 0);
 				firstitem = 0;
 				break;
 
@@ -1513,7 +1575,7 @@ text_samp(time_t curtime, int nsecs,
 			   case MORDERPROC:
 				if (procview.showtype == MCGROUPS)
 				{
-					statmsg = "Only use 'C', 'M' or 'D' for sort order of cgroups!";
+					statmsg = "Only use 'C', 'M', 'D' or 'A' (autofocus) to sort cgroups!";
 					break;
 				}
 
@@ -2187,6 +2249,9 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 		   case MPERCGPU|0x80:
 		 	columnstr = "GPU";
 			break;
+		   case MPERCAUTO|0x80:
+		 	columnstr = "AUTO";
+			break;
 		   default:
 		 	columnstr = "?";
 		}
@@ -2198,7 +2263,8 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 
 	// show current sort column and sort order
 	//
-	printw("Current sort column: %s (%s) -- New sort column (enter=keep): ", columnstr,
+	printw("Current sort column: %s (%s) -- "
+	       "New sort column or (AUTO=autofocus, enter=keep): ", columnstr,
 			procview.ascdesc == 1 ? "ascending" : "descending");
 
 	columnname[0] = '\0';
@@ -2221,15 +2287,17 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 		// find entry of required column in columns list
 		//
 		if (strcmp(columnname, "CPU") == 0)
-			rv = setprocview(0, MPERCCPU, 0, -1);
+			rv = setprocview(0, MPERCCPU, 0, -1, 0);
 		else if (strcmp(columnname, "DSK") == 0)
-			rv = setprocview(0, MPERCDSK, 0, -1);
+			rv = setprocview(0, MPERCDSK, 0, -1, 0);
 		else if (strcmp(columnname, "MEM") == 0)
-			rv = setprocview(0, MPERCMEM, 0, -1);
+			rv = setprocview(0, MPERCMEM, 0, -1, 0);
 		else if (strcmp(columnname, "NET") == 0)
-			rv = setprocview(0, MPERCNET, 0, -1);
+			rv = setprocview(0, MPERCNET, 0, -1, 0);
 		else if (strcmp(columnname, "GPU") == 0)
-			rv = setprocview(0, MPERCGPU, 0, -1);
+			rv = setprocview(0, MPERCGPU, 0, -1, 0);
+		else if (strcmp(columnname, "AUTO") == 0)
+			rv = setprocview(0, MPERCAUTO, 0, -1, 0);
 		else 
 		{
 			// or find entry of required column in columns list
@@ -2250,7 +2318,7 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 			{
 				// define as current column
 				//
-				rv = setprocview(0, 0, i, alldetaildefs[i]->ascdesc);
+				rv = setprocview(0, 0, i, alldetaildefs[i]->ascdesc, 0);
 
 				switch (rv)
 				{
@@ -2299,12 +2367,12 @@ keyhandle_sortorder(int *pstatline, char **pstatmsg, short sorthash)
 			{
 			   case 'A':
 			   case 'a':
-				setprocview(0, 0, -1, 1);
+				setprocview(0, 0, -1, 1, 0);
 				break;
 
 			   case 'D':
 			   case 'd':
-				setprocview(0, 0, -1, -1);
+				setprocview(0, 0, -1, -1, 0);
 				break;
 
 			   default:
@@ -3333,33 +3401,22 @@ generic_init(void)
 		switch (flagrest[i])
 		{
 		   case MPERCCPU:
-			setprocview(0, MPERCCPU, 0, -1);
-			break;
-
-		   case MPERCGPU:
-			if ( !(supportflags & GPUSTAT) )
-			{
-				fprintf(stderr, "Ignored: no GPU daemon running or no -k specified\n");
-				sleep(3);
-				break;
-			}
-
-			setprocview(0, MPERCGPU, 0, -1);
+			setprocview(0, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPERCMEM:
-			setprocview(0, MPERCMEM, 0, -1);
+			setprocview(0, MPERCMEM, 0, -1, 0);
 			break;
 
 		   case MPERCDSK:
 			if ( !(supportflags & IOSTAT) )
 			{
-				fprintf(stderr, "Ignored: no disk I/O metrics known (no root privs)\n");
+				fprintf(stderr, "Ignored: disk I/O metrics not known (no root privs)\n");
 				sleep(3);
 				break;
 			}
 
-			setprocview(0, MPERCDSK, 0, -1);
+			setprocview(0, MPERCDSK, 0, -1, 0);
 			break;
 
 		   case MPERCNET:
@@ -3371,41 +3428,56 @@ generic_init(void)
 				break;
 			}
 
-			setprocview(0, MPERCNET, 0, -1);
+			setprocview(0, MPERCNET, 0, -1, 0);
+			break;
+
+		   case MPERCGPU:
+			if ( !(supportflags & GPUSTAT) )
+			{
+				fprintf(stderr, "Ignored: GPU daemon not running or no -k specified\n");
+				sleep(3);
+				break;
+			}
+
+			setprocview(0, MPERCGPU, 0, -1, 0);
+			break;
+
+		   case MPERCAUTO:
+			setprocview(0, MPERCAUTO, 0, -1, 0);
 			break;
 
 		   case MPROCGEN:
-			setprocview(MPROCGEN, MPERCCPU, 0, -1);
+			setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCGPU:
 			if ( !(supportflags & GPUSTAT) )
 			{
-				fprintf(stderr, "Ignored: no GPU daemon running or no -k specified\n");
+				fprintf(stderr, "Ignored: GPU daemon not running or no -k specified\n");
 				sleep(3);
 				break;
 			}
 
-			setprocview(MPROCGPU, MPERCGPU, 0, -1);
+			setprocview(MPROCGPU, MPERCGPU, 0, -1, 0);
 			break;
 
 		   case MPROCMEM:
-			setprocview(MPROCMEM, MPERCMEM, 0, -1);
+			setprocview(MPROCMEM, MPERCMEM, 0, -1, 0);
 			break;
 
 		   case MPROCSCH:
-			setprocview(MPROCSCH, MPERCCPU, 0, -1);
+			setprocview(MPROCSCH, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCDSK:
 			if ( !(supportflags & IOSTAT) )
 			{
-				fprintf(stderr, "Ignored: no disk I/O metrics known (no root privs)\n");
+				fprintf(stderr, "Ignored: disk I/O metrics not known (no root privs)\n");
 				sleep(3);
 				break;
 			}
 
-			setprocview(MPROCDSK, MPERCDSK, 0, -1);
+			setprocview(MPROCDSK, MPERCDSK, 0, -1, 0);
 			break;
 
 		   case MPROCNET:
@@ -3417,15 +3489,15 @@ generic_init(void)
 				break;
 			}
 
-			setprocview(MPROCNET, MPERCNET, 0, -1);
+			setprocview(MPROCNET, MPERCNET, 0, -1, 0);
 			break;
 
 		   case MPROCVAR:
-			setprocview(MPROCVAR, MPERCCPU, 0, -1);
+			setprocview(MPROCVAR, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCARG:
-			setprocview(MPROCARG, MPERCCPU, 0, -1);
+			setprocview(MPROCARG, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MCGROUPS:
@@ -3437,11 +3509,11 @@ generic_init(void)
 				break;
 			}
 
-			setprocview(MCGROUPS, MPERCCPU, 0, -1);
+			setprocview(MCGROUPS, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCOWN:
-			setprocview(MPROCOWN, MPERCCPU, 0, -1);
+			setprocview(MPROCOWN, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MAVGVAL:
@@ -3449,11 +3521,11 @@ generic_init(void)
 			break;
 
 		   case MCUMUSER:
-			setprocview(MCUMUSER, MPERCCPU, 0, -1);
+			setprocview(MCUMUSER, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MCUMPROC:
-			setprocview(MCUMPROC, MPERCCPU, 0, -1);
+			setprocview(MCUMPROC, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MCUMCONT:
@@ -3465,7 +3537,7 @@ generic_init(void)
 				break;
 			}
 
-			setprocview(MCUMCONT, MPERCCPU, 0, -1);
+			setprocview(MCUMCONT, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MSYSFIXED:
@@ -3641,8 +3713,9 @@ generic_init(void)
 ** - type	type of view (generic, memory, disk, ...)
 **              0 = no change
 **
-** - resource	character 'C', 'M', 'D', 'N' or 'G' (i.e. resource percentage
-**  		to be shown in column before command)
+** - resource	character 'C', 'M', 'D', 'N' or 'G'
+**		(i.e. fixed resource percentage to be shown
+** 		in column before command) or 'A' for 'autofocus'
 **              0 = no change
 **
 ** - sortcol	index in alldetaildefs[]
@@ -3651,12 +3724,15 @@ generic_init(void)
 ** - ascdesc	ascending = 1, descending = -1
 **		0 = no change
 **
+** - keepauto 	boolean: do not overwrite resource when it currently is 'A'
+**		(autofocus)
+**
 ** return value:	0 - success
 ** 			1 - sort column not part of this view
 ** 			2 - sort column part of this view, but no sort function
 */
 static int
-setprocview(unsigned char type, unsigned char resource, signed char sortcol, int ascdesc)
+setprocview(unsigned char type, unsigned char resource, signed char sortcol, int ascdesc, int keepauto)
 {
 	static int	cgrcpubusy, cgrmemory, cgrdiskio;
 	int           	i;
@@ -3771,9 +3847,24 @@ setprocview(unsigned char type, unsigned char resource, signed char sortcol, int
 
 			procprt_RESOURCE.sortfunc = compgpu;
 			break;
+
+		   case MPERCAUTO:
+			if (procview.showtype != MCGROUPS)
+			{
+        			procview.sortcolumn = 0;
+			}
+			else
+			{
+        			procview.sortcolumn = cgrcpubusy;
+				resource = MPERCAUTO;
+			}
+
+			procprt_RESOURCE.sortfunc = compcpu;	// will be overruled later on
+			break;
 		}
 
-        	procview.showresource = resource;
+		if (!keepauto || procview.showresource != MPERCAUTO)
+        		procview.showresource = resource;
 	}
 
 	if (ascdesc)
@@ -3815,6 +3906,7 @@ static struct helptext {
 	{"\t'%c'  - sort on cpu activity\n",			MPERCCPU, 'a'},
 	{"\t'%c'  - sort on memory utilization\n",		MPERCMEM, 'a'},
 	{"\t'%c'  - sort on disk transfer rate\n",		MPERCDSK, 'a'},
+	{"\t'%c'  - sort on busiest resource (autofocus)\n",	MPERCAUTO, 'a'},
 	{"\n",							' ', 'a'},
 	{"Information in text mode about processes:\n", 	' ', 'a'},
 	{"\t'%c'  - generic info (default)\n",			MPROCGEN, 'a'},
@@ -3829,11 +3921,12 @@ static struct helptext {
 	{"\t'%c'  - use own output line definition\n",		MPROCOWN, 'a'},
 	{"\n",							' ', 'a'},
 	{"Sort list of processes in order of:\n",		' ', 'a'},
-	{"\t'%c'  - cpu activity\n",				MPERCCPU, 'a'},
-	{"\t'%c'  - memory consumption\n",			MPERCMEM, 'a'},
-	{"\t'%c'  - disk activity\n",				MPERCDSK, 'a'},
-	{"\t'%c'  - network activity\n",			MPERCNET, 'a'},
-	{"\t'%c'  - GPU activity\n",				MPERCGPU, 'a'},
+	{"\t'%c'  - cpu activity\n",				MPERCCPU,  'a'},
+	{"\t'%c'  - memory consumption\n",			MPERCMEM,  'a'},
+	{"\t'%c'  - disk activity\n",				MPERCDSK,  'a'},
+	{"\t'%c'  - activity of busiest resource (autofocus)\n",MPERCAUTO, 'a'},
+	{"\t'%c'  - network activity\n",			MPERCNET,  'a'},
+	{"\t'%c'  - GPU activity\n",				MPERCGPU,  'a'},
 	{"\t'%c'  - order active/all processes on any column\n",MORDERPROC, 'a'},
 	{"\n",							' ', 'a'},
 	{"Raw file viewing and twin mode:\n",			' ', 'r'},
@@ -4264,75 +4357,79 @@ do_flags(char *name, char *val)
 			break;
 
 		   case MPERCCPU:
-			setprocview(0, MPERCCPU, 0, -1);
+			setprocview(0, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPERCGPU:
-			setprocview(0, MPERCGPU, 0, -1);
+			setprocview(0, MPERCGPU, 0, -1, 0);
 			break;
 
 		   case MPERCMEM:
-			setprocview(0, MPERCMEM, 0, -1);
+			setprocview(0, MPERCMEM, 0, -1, 0);
 			break;
 
 		   case MPERCDSK:
-			setprocview(0, MPERCDSK, 0, -1);
+			setprocview(0, MPERCDSK, 0, -1, 0);
 			break;
 
 		   case MPERCNET:
-			setprocview(0, MPERCNET, 0, -1);
+			setprocview(0, MPERCNET, 0, -1, 0);
+			break;
+
+		   case MPERCAUTO:
+			setprocview(0, MPERCAUTO, 0, -1, 0);
 			break;
 
 		   case MPROCGEN:
-			setprocview(MPROCGEN, MPERCCPU, 0, -1);
+			setprocview(MPROCGEN, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCGPU:
-			setprocview(MPROCGPU, MPERCGPU, 0, -1);
+			setprocview(MPROCGPU, MPERCGPU, 0, -1, 0);
 			break;
 
 		   case MPROCMEM:
-			setprocview(MPROCMEM, MPERCMEM, 0, -1);
+			setprocview(MPROCMEM, MPERCMEM, 0, -1, 0);
 			break;
 
 		   case MPROCDSK:
-			setprocview(MPROCDSK, MPERCDSK, 0, -1);
+			setprocview(MPROCDSK, MPERCDSK, 0, -1, 0);
 			break;
 
 		   case MPROCNET:
-			setprocview(MPROCNET, MPERCNET, 0, -1);
+			setprocview(MPROCNET, MPERCNET, 0, -1, 0);
 			break;
 
 		   case MPROCVAR:
-			setprocview(MPROCVAR, 0, 0, 0);
+			setprocview(MPROCVAR, 0, 0, 0, 0);
 			break;
 
 		   case MPROCSCH:
-			setprocview(MPROCSCH, MPERCCPU, 0, -1);
+			setprocview(MPROCSCH, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MPROCARG:
-			setprocview(MPROCARG, 0, 0, 0);
+			setprocview(MPROCARG, 0, 0, 0, 0);
 			break;
 
 		   case MPROCOWN:
-			setprocview(MPROCOWN, 0, 0, 0);
+			setprocview(MPROCOWN, 0, 0, 0, 0);
 			break;
 
 		   case MCUMUSER:
-			setprocview(MCUMUSER, 0, 0, 0);
+			setprocview(MCUMUSER, 0, 0, 0, 0);
 			break;
 
 		   case MCUMPROC:
-			setprocview(MCUMPROC, 0, 0, 0);
+			setprocview(MCUMPROC, 0, 0, 0, 0);
 			break;
 
 		   case MCUMCONT:
-			setprocview(MCUMCONT, 0, 0, 0);
+			setprocview(MCUMCONT, 0, 0, 0, 0);
 			break;
 
 		   case MCGROUPS:
-			setprocview(MCGROUPS, MPERCCPU, 0, -1);
+			setprocview(MCGROUPS, MPERCCPU, 0, -1, 0);
 			break;
 
 		   case MALLACTIVE:

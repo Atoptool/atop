@@ -937,18 +937,14 @@ show the column).
 Selecting column 'CPU' in descending order is equivalent to pressing 'C', 
 column 'MEM' in descending order is equivalent to pressing 'M', 
 column 'DSK' in descending order is equivalent to pressing 'D', 
-column 'NET' in descending order is equivalent to pressing 'N', and
-selecting column 'GPU' in descending order is equivalent to pressing 'E'.
+column 'NET' in descending order is equivalent to pressing 'N',
+column 'GPU' in descending order is equivalent to pressing 'E', and
+selecting 'AUTO' is equivalent to pressing 'A'.
 .PP
 .TP 5
 .B C
 Sort the current list in the order of CPU consumption (default).
 The one-but-last column changes to 'CPU'.
-.PP
-.TP 5
-.B E
-Sort the current list in the order of GPU utilization.
-The one-but-last column changes to 'GPU'.
 .PP
 .TP 5
 .B M
@@ -966,6 +962,24 @@ The one-but-last column changes to 'DSK'.
 Sort the current list in the order of network bandwidth (received
 and transmitted).
 The one-but-last column changes to 'NET'.
+.PP
+.TP 5
+.B E
+Sort the current list in the order of GPU utilization.
+The one-but-last column changes to 'GPU'.
+.PP
+.TP 5
+.B A
+Sort the current list automatically in the order of the most busy
+system resource during this interval, based on the highest PSI value
+(autofocus). Such PSI value is only maintained for CPU, memory and disk.
+The one-but-last column in text mode shows either 'ACPU', 'AMEM' or 'ADSK'
+(the preceding 'A' indicates automatic sorting order).
+Also in the header line of the screen the 'A' will be shown when
+autofocus is active, also when viewing the cgroups.
+.br
+This option remains valid until another sorting order is
+explicitly selected again or another process view is chosen.
 .PP
 Miscellaneous interactive commands:
 .PP

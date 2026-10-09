@@ -223,7 +223,7 @@ char *cgroup_CGRCMD(struct cgchainer *, struct tstat *,
 				int, int, count_t, int, int *);
 
 
-// AND with 0x1f to saving entries in table
+// AND with 0x1f to save entries in table
 //
 static char *columnhead[] = {
 	[MPERCCPU&0x1f] = "CPU",
@@ -419,8 +419,25 @@ showprochead(detail_printpair *elemptr, int curlist, int totlist, struct procvie
         {
                 if (curelem.pf->elementnr == 0)     // empty header==special: RESOURCE
                 {
-			snprintf(buf, sizeof buf, "%*s", procprt_RESOURCE.width,
-						columnhead[resource&0x1f]);
+			if (resource == MPERCAUTO)
+			{
+				char tmpbuf[16];
+
+				if (procprt_RESOURCE.sortfunc == compmem)
+					snprintf(tmpbuf, sizeof tmpbuf, "A%s", columnhead[MPERCMEM&0x1f]);
+				else if (procprt_RESOURCE.sortfunc == compdsk)
+					snprintf(tmpbuf, sizeof tmpbuf, "A%s", columnhead[MPERCDSK&0x1f]);
+				else
+					snprintf(tmpbuf, sizeof tmpbuf, "A%s", columnhead[MPERCCPU&0x1f]);
+
+				snprintf(buf, sizeof buf, "%*s", procprt_RESOURCE.width, tmpbuf);
+			}
+			else
+			{
+				snprintf(buf, sizeof buf, "%*s",
+						procprt_RESOURCE.width, columnhead[resource&0x1f]);
+			}
+
                         chead = buf;
                 } 
                 else 
@@ -4485,7 +4502,7 @@ cgroup_CGRCPUBUSY(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRCPUBUSY =
-   {0, "CPUBUSY", "CGRCPUBUSY", .ac.doactiveconvertc = cgroup_CGRCPUBUSY, NULL, NULL, 0, 7, 0};
+   {0, "CPUBUSY", "CGRCPUBUSY", .ac.doactiveconvertc = cgroup_CGRCPUBUSY, NULL, compcpu, 0, 7, 0};
 /***************************************************************/
 char *
 cgroup_CGRCPUPSI(struct cgchainer *cgchain, struct tstat *tstat,
@@ -4626,7 +4643,7 @@ cgroup_CGRMEMORY(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRMEMORY =
-   {0, "MEMORY", "CGRMEMORY", .ac.doactiveconvertc = cgroup_CGRMEMORY, NULL, NULL, 0, 6, 0};
+   {0, "MEMORY", "CGRMEMORY", .ac.doactiveconvertc = cgroup_CGRMEMORY, NULL, compmem, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRMEMPSI(struct cgchainer *cgchain, struct tstat *tstat,
@@ -4750,7 +4767,7 @@ cgroup_CGRDISKIO(struct cgchainer *cgchain, struct tstat *tstat,
 }
 
 detail_printdef cgroupprt_CGRDISKIO =
-   {0, "DISKIO", "CGRDISKIO", .ac.doactiveconvertc = cgroup_CGRDISKIO, NULL, NULL, 0, 6, 0};
+   {0, "DISKIO", "CGRDISKIO", .ac.doactiveconvertc = cgroup_CGRDISKIO, NULL, compdsk, 0, 6, 0};
 /***************************************************************/
 char *
 cgroup_CGRDSKPSI(struct cgchainer *cgchain, struct tstat *tstat,

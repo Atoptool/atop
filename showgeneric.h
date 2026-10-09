@@ -35,7 +35,7 @@
 
 struct procview {
 	unsigned char	showtype;	// type of process details
-	unsigned char	showresource;	// current resource percentage
+	unsigned char	showresource;	// which resource in case of resource percentage
 	unsigned char	sortcolumn;	// column index in alldetaildefs[]
 					// 0 = resource percentage
 	signed char	ascdesc;	// 1 (ascending) or -1 (descending)
@@ -192,6 +192,7 @@ struct sselection {
 #define	MPERCMEM	'M'
 #define	MPERCNET	'N'
 #define MPERCGPU	'E'
+#define MPERCAUTO	'A'	// autofocus
 
 #define	MTHREAD		'y'
 #define	MTHRSORT	'Y'
