@@ -164,7 +164,7 @@ static WINDOW 	*headwin, *midline, *colupper, *collower;
 // struct for calling drawvertbars()
 //
 #define	MAXCAT		5	// maximum number of categories within one bar
-#define	MAXHEIGHT	25	// maximum bar height in lines
+#define	MAXHEIGHT	100	// maximum bar height in lines
 
 struct vertval {
 	int	barval;			// total value of bar
@@ -1251,7 +1251,7 @@ drawvertbars(   struct perwindow *w,
 	int 	i, j, curline, curcol, barlines, realbars,
 		realcols, availcols, needcols;
 	int	autoscale, color, labwidth = 0, spacing = 1;
-	float	valperunit, level;
+	double	valperunit, level;
 	int	ytitlelen  = strlen(ytitle), xtitlelen  = strlen(xtitle);
 	int	ytitleline, xtitlespace;
 	int	scalelen = snprintf(buf, sizeof buf, "%d", (int)barscale),
@@ -2237,6 +2237,9 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 
 		if (psilines < 7)	// not enough lines?
 			psilines = 7;
+
+		if (psilines > MAXHEIGHT)
+			psilines = MAXHEIGHT;
 	}
 	else
 	{
