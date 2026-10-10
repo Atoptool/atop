@@ -12,8 +12,9 @@
 ** E-mail:      gerlof.langeveld@atoptool.nl
 ** Date:        March/April 2023        Initial
 **              November/December 2024  Add PSI bar graphs
+**              October 2026            Improved calculation of bar graphs
 ** --------------------------------------------------------------------------
-** Copyright (C) 2023-2024 Gerlof Langeveld
+** Copyright (C) 2023-2026 Gerlof Langeveld
 **
 ** This program is free software; you can redistribute it and/or modify it
 ** under the terms of the GNU General Public License as published by the
@@ -223,13 +224,13 @@ static int	compvertval(const void *, const void *);
 static void	sortnetbars(int, struct netval **);
 static int	compnetval(const void *, const void *);
 
-static void	fillbarmaps(int, struct vertval *, float, int);
+static void	fillbarmaps(int, struct vertval *, double, int);
 
 static int	drawvertbars(struct perwindow *, float, float,
 			int, int, struct vertval *, int,
 			char *, char *, int, int, int);
 
-static void	drawpsibars(WINDOW *, int, int, int, int, int, int, int, int);
+static void	drawpsibars(WINDOW *, int, int, int, double, int, int, int, int);
 
 static int	drawnetbars(struct perwindow *, int, struct netval *,
 						int, char *,char *);
@@ -1564,7 +1565,7 @@ drawvertbars(   struct perwindow *w,
 // bar line
 /////////////////////////////////////////////////////
 static void
-fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
+fillbarmaps(int numbars, struct vertval *vvp, double valperunit, int barlines)
 {
 	int 		i, c, n, m;
 	struct vertval	*vp;
@@ -1584,7 +1585,7 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 		//
 		if (vp->numcat == 0)
 		{		
-			m = (vp->barval + valperunit/2) / valperunit;
+			m = vp->barval / valperunit;
 			memset(vp->barmap, vp->basecolor, m);
 			continue;
 		}
@@ -1598,7 +1599,7 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 			// determine the number of color/character positions 
 			// for this category
 			//
-			n = (vp->category[c].cval + valperunit/2) / valperunit;
+			n = vp->category[c].cval / valperunit;
 
 			if (n > 0 && mp - vp->barmap + n <= MAXHEIGHT)
 			{
@@ -1628,8 +1629,8 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 		//   5 bar lines (27 rounded to 25)
 		//   then 1 line should be filled with a neutral color
 		//
-		n = mp - vp->barmap;	// number of units filled
-		m = (vp->barval + valperunit/2) / valperunit;	// total units
+		n = mp - vp->barmap;		// number of units filled
+		m = vp->barval / valperunit;	// total units
 
 		if (n < m && m < MAXHEIGHT)
 			memset(mp, vp->basecolor, m-n);
@@ -1639,15 +1640,32 @@ fillbarmaps(int numbars, struct vertval *vvp, float valperunit, int barlines)
 /////////////////////////////////////////////////////
 // draw two bars for the 'some' and 'full' PSI
 // percentages
+//
+// win:		window
+// barlines:	number of lines available for bar graph
+// startline:	line   to start bar graph in window
+// startcol:	column to start bar graph in window
+// valperunit:	value represented per line in bar graph
+// barwidth:	number of columns to be used per
+// 		percentage in bar graph
+// boxed:	boolean 0 or 1 -- right vertical line wanted
+// psisomeperc:	'some' percentage to be shown
+// psifullperc:	'full' percentage to be shown
 /////////////////////////////////////////////////////
+
 static void
 drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
-	                 int valperunit, int barwidth, int boxed,
+	                 double valperunit, int barwidth, int boxed,
 			 int psisomeperc, int psifullperc)
 {
 	int	i, curline, visiblepressure;
-	int	somefromline = barlines - (psisomeperc + (valperunit/2)) / valperunit;
-	int	fullfromline = barlines - (psifullperc + (valperunit/2)) / valperunit;
+	int	somefromline, fullfromline;
+
+	// calculate line number in window from which the bar graph
+	// should be shown (earlier lines should be filled with spaces)
+	//
+	somefromline = barlines - (psisomeperc / valperunit);
+	fullfromline = barlines - (psifullperc / valperunit);
 
 	// determine if there is any visible pressure
 	//
@@ -1702,6 +1720,7 @@ drawpsibars(WINDOW *win, int barlines, int startline, int startcol,
 
 	///////////////////////
 	// draw the PSI values
+	// top-down on screen
 	///////////////////////
 	for (curline=0; curline < barlines; curline++)
 	{
@@ -1991,7 +2010,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	int		memorycol = 1, psisomeperc, psifullperc,
 			swapcol   = memorycol + MEMORYBARSZ + 1,
 			eventcol  = swapcol   + SWAPBARSZ   + 2;
-	float		valperunit;
+	double		valperunit;
 	char		formatbuf[16];
 
 	// calculate all memory values, keeping in mind:
@@ -2089,23 +2108,19 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// calculate number of lines for free, shared memory,
 	// tmpfs, slab and page cache
 	//
-	freelines  = (freemem  + valperunit/2) / valperunit;
-	freeavail  = (freemem  - MIN(freemem/2, lowwatermark) +
-						valperunit/2) / valperunit;
+	freelines  = freemem / valperunit;
+	freeavail  = (freemem - MIN(freemem/2, lowwatermark)) / valperunit;
 
-	shmemlines = (shmemrss + valperunit/2) / valperunit;
-	tmpfslines = (tmpfsmem + valperunit/2) / valperunit;
+	shmemlines = shmemrss / valperunit;
+	tmpfslines = tmpfsmem / valperunit;
 
-	slablines  = (slabmem  + valperunit/2) / valperunit;
-	slabavail  = (slabrec  - MIN(slabmem/2, lowwatermark) +
-						valperunit/2) / valperunit;
-	cachelines = (cachemem + valperunit/2) / valperunit;
-	cacheavail = (availmem - freemem - slabrec - MIN(cachemem/2, lowwatermark) +
-						valperunit/2) / valperunit;
+	slablines  = slabmem  / valperunit;
+	slabavail  = (slabrec - MIN(slabmem/2, lowwatermark)) / valperunit;
+	cachelines = cachemem / valperunit;
+	cacheavail = (availmem - freemem - slabrec - MIN(cachemem/2, lowwatermark)) / valperunit;
 
-	hugelines  = (hugefree + valperunit/2) / valperunit;
-	usedlines  =  barlines - freelines - shmemlines - hugelines -
-	              tmpfslines - slablines - cachelines;
+	hugelines  = hugefree / valperunit;
+	usedlines  = barlines - freelines - shmemlines - hugelines - tmpfslines - slablines - cachelines;
 
 	// wipe window contents
 	//
@@ -2172,8 +2187,8 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 
 		// calculate number of lines for free swap
 		//
-		freelines  = (freeswp  + (valperunit/2)) / valperunit;
-		shmemlines = (shmemswp + (valperunit/2)) / valperunit;
+		freelines  = freeswp  / valperunit;
+		shmemlines = shmemswp / valperunit;
 		usedlines  = barlines  - shmemlines - freelines;
 
 		// draw lines for free swap
@@ -2296,7 +2311,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	// draw PSI bar graph
 	//
 	if (psilines)
-		drawpsibars(w->win, psilines, 0, eventcol, 100/psilines,
+		drawpsibars(w->win, psilines, 0, eventcol, 100.0/psilines,
 					4, 1, psisomeperc, psifullperc);
 
         wrefresh(w->win);
