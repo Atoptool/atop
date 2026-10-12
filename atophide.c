@@ -83,7 +83,7 @@ static int	getrawsstat(int, struct sstat *, int);
 static int	getrawtstat(int, struct tstat *, int, int);
 
 static void	testcompval(int, char *);
-static void	anonymize(struct sstat *, struct tstat *, int);
+static void	anonymize(struct sstat *, struct tstat *, int, int);
 static char 	*findstandin(struct standin **, unsigned long *, char *, char *);
 
 // command names that will not be anonymized (in alphabetical order)
@@ -311,7 +311,7 @@ main(int argc, char *argv[])
 		// anonymize command lines and hostname
 		//
 		if (anonflag)
-			anonymize(&sstat, tstatp, rr.ndeviat);
+			anonymize(&sstat, tstatp, rr.ndeviat, numallowedcoms);
 
 		// write record header, system-level stats, process-level stats,
 		// cgroup-level stats and pidlist
@@ -355,10 +355,14 @@ static	struct standin	*cmdhead;
 static	unsigned long	cmdsequence;
 
 static void
-anonymize(struct sstat *ssp, struct tstat *tsp, int ntask)
+anonymize(struct sstat *ssp, struct tstat *tsp, int ntask, int numallowedcoms)
 {
-	int	i, r, numallowedcoms = sizeof allowedcoms/sizeof(char *);
+	int	i, r;
 	char	*standin, *p;
+	const size_t lvm_name_size = sizeof ssp->dsk.lvm[0].name;
+	const size_t nfs_mountdev_size = sizeof ssp->nfs.nfsmounts.nfsmnt[0].mountdev;
+	const size_t gen_name_size = sizeof tsp->gen.name;
+	const size_t gen_cmdline_size = sizeof tsp->gen.cmdline;
 
 	// anonimize system-level stats
 	//
@@ -372,8 +376,8 @@ anonymize(struct sstat *ssp, struct tstat *tsp, int ntask)
 		standin = findstandin(&lvmhead, &lvmsequence,
 		                      "logvol", ssp->dsk.lvm[i].name);
 
-		memset(ssp->dsk.lvm[i].name, '\0', sizeof ssp->dsk.lvm[i].name);
-		safe_strcpy(ssp->dsk.lvm[i].name, standin, sizeof ssp->dsk.lvm[i].name);
+		memset(ssp->dsk.lvm[i].name, '\0', lvm_name_size);
+		safe_strcpy(ssp->dsk.lvm[i].name, standin, lvm_name_size);
 	}
 	
 	// anonimize system-level stats
@@ -385,9 +389,9 @@ anonymize(struct sstat *ssp, struct tstat *tsp, int ntask)
 		                      "nfsmnt", ssp->nfs.nfsmounts.nfsmnt[i].mountdev);
 
 		memset(ssp->nfs.nfsmounts.nfsmnt[i].mountdev, '\0',
-					sizeof ssp->nfs.nfsmounts.nfsmnt[i].mountdev); 
+					nfs_mountdev_size);
 		safe_strcpy(ssp->nfs.nfsmounts.nfsmnt[i].mountdev, standin,
-					sizeof ssp->nfs.nfsmounts.nfsmnt[i].mountdev);
+					nfs_mountdev_size);
 	}
 	
 	// anonymize process-level stats
@@ -426,11 +430,11 @@ anonymize(struct sstat *ssp, struct tstat *tsp, int ntask)
 			standin = findstandin(&cmdhead, &cmdsequence,
 		                      		"prog", tsp->gen.name);
 
-			memset(tsp->gen.name, '\0', sizeof tsp->gen.name);
-			safe_strcpy(tsp->gen.name, standin, sizeof tsp->gen.name);
+			memset(tsp->gen.name, '\0', gen_name_size);
+			safe_strcpy(tsp->gen.name, standin, gen_name_size);
 
-			memset(tsp->gen.cmdline, '\0', sizeof tsp->gen.cmdline);
-			safe_strcpy(tsp->gen.cmdline, standin, sizeof tsp->gen.cmdline);
+			memset(tsp->gen.cmdline, '\0', gen_cmdline_size);
+			safe_strcpy(tsp->gen.cmdline, standin, gen_cmdline_size);
 		}
 	}
 }
