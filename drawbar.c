@@ -168,8 +168,8 @@ static WINDOW 	*headwin, *midline, *colupper, *collower;
 #define	MAXHEIGHT	100	// maximum bar height in lines
 
 struct vertval {
-	int	barval;			// total value of bar
 	char	*barlab;		// bar label
+	int	barval;			// total value of bar
 	char	basecolor;		// bar color or fill color
 
 	char 	barmap[MAXHEIGHT];	// color map
