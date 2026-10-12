@@ -559,7 +559,8 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	static int			arecsize, netlinkactive = 1;
 	static unsigned long long	atotsize, stotsize, maxshadowsz;
 	static time_t			reclast;
-	struct timespec			retrytimer = {0, RETRYMS/2*1000000};
+	const long			retry_ns = RETRYMS * 1000000;
+	struct timespec			retrytimer = {0, retry_ns / 2};
 	int				retrycount = RETRYCNT;
 	int				asz, rv, ssz;
 	char				abuf[16000];
@@ -653,7 +654,7 @@ awaitprocterm(int nfd, int afd, int sfd, char *accountpath,
 	while ((asz = read(afd, abuf, sizeof abuf)) == 0 && --retrycount)
 	{
 		nanosleep(&retrytimer, (struct timespec *)0);
-		retrytimer.tv_nsec = RETRYMS*1000000;
+		retrytimer.tv_nsec = retry_ns;
 	}
 
 	switch (asz)
@@ -860,7 +861,7 @@ pass2shadow(int sfd, char *sbuf, int ssz)
 	if ( fstatvfs(sfd, &statvfs) != -1)
 	{
 		if (statvfs.f_blocks == 0 			||
-		    statvfs.f_bfree * 100 / statvfs.f_blocks < 5  )
+		    statvfs.f_bfree * 20 < statvfs.f_blocks  )
 		{
 			if (nrskipped == 0)	// first skip?
 			{
