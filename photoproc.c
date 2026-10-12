@@ -219,7 +219,7 @@ photoproc(struct tstat *tasklist, int maxtask)
                 	procwchan(curtask);
 
 		if (supportflags & NETATOPBPF) {
-			struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
+			const struct taskcount *tc = g_hash_table_lookup(ghash_net, &(curtask->gen.tgid));
 			if (tc) {
 				// printf("%d %d %d %d %d\n",curtask->gen.tgid, tc->tcpsndpacks,  tc->tcprcvpacks, tc->udpsndpacks, tc->udprcvpacks);
 				curtask->net.tcpsnd = tc->tcpsndpacks;
