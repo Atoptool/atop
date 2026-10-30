@@ -104,7 +104,12 @@ struct	memstat {
 				// (in units of 'normal' pages)
 
 	count_t	lowwatermark;	// cum. low watermark of all zones (pages)
-	count_t	cfuture[4];	// reserved for future use
+
+	count_t zramvsize;	// virtual size of zram for swap or fs (bytes!)
+	count_t zramvused;	// virtual size of zram in use for swap or fs (bytes!)
+	count_t zrampcompr;	// physical compressed size of zram for swap or fs (bytes!)
+	count_t	zramptotal;	// physical size of zram for swap or fs (bytes!)
+				// i.e. compressed size plus additional admi
 };
 
 /************************************************************************/
@@ -479,9 +484,10 @@ void	zswap_support(void);
 /*
 ** return value of isdisk_...()
 */
-#define NONTYPE 0
-#define DSKTYPE 1
-#define MDDTYPE 2
-#define LVMTYPE 3
+#define NONTYPE  0
+#define DSKTYPE  1
+#define MDDTYPE  2
+#define LVMTYPE  3
+#define ZRAMTYPE 4
 
 #endif

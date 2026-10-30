@@ -854,7 +854,7 @@ sysprt_CPUIPC(struct sstat *sstat, extraparam *as, int badness, int *color)
 static int
 sysval_IPCVALIDATE(struct sstat *sstat)
 {
-	return sstat->cpu.all.cycle;
+	return sstat->cpu.all.cycle ? 1 : 0;	// return int!
 }
 
 sys_printdef syspdef_CPUIPC = {"CPUIPC", sysprt_CPUIPC, sysval_IPCVALIDATE};
@@ -1359,7 +1359,7 @@ sysprt_ANONTHP(struct sstat *sstat, extraparam *notused, int badness, int *color
 static int
 sysval_ANONTHP(struct sstat *sstat)
 {
-	return sstat->mem.anonhugepage;
+	return sstat->mem.anonhugepage ? 1 : 0;		// return int!
 }
 
 sys_printdef syspdef_ANONTHP = {"ANONTHP", sysprt_ANONTHP, sysval_ANONTHP};
@@ -1379,7 +1379,7 @@ sysprt_HUPTOT(struct sstat *sstat, extraparam *notused, int badness, int *color)
 static int
 sysval_HUPTOT(struct sstat *sstat)
 {
-	return sstat->mem.stothugepage + sstat->mem.ltothugepage;
+	return (sstat->mem.stothugepage + sstat->mem.ltothugepage) ? 1 : 0;
 }
 
 sys_printdef syspdef_HUPTOT = {"HUPTOT", sysprt_HUPTOT, sysval_HUPTOT};
@@ -1401,7 +1401,7 @@ sysprt_HUPUSE(struct sstat *sstat, extraparam *notused, int badness, int *color)
 static int
 sysval_HUPUSE(struct sstat *sstat)
 {
-	return sstat->mem.stothugepage + sstat->mem.ltothugepage;
+	return (sstat->mem.stothugepage + sstat->mem.ltothugepage) ? 1 : 0;
 }
 
 sys_printdef syspdef_HUPUSE = {"HUPUSE", sysprt_HUPUSE, sysval_HUPUSE};
@@ -1514,6 +1514,50 @@ sysprt_ZSWSTORED(struct sstat *sstat, extraparam *notused, int badness, int *col
 }
 
 sys_printdef syspdef_ZSWSTORED = {"ZSWSTORED", sysprt_ZSWSTORED, NULL};
+/*******************************************************************/
+static char *
+sysprt_ZRAMVTOT(struct sstat *sstat, extraparam *notused, int badness, int *color)
+{
+        static char buf[16]="zrtot ";
+
+	*color = -1;
+        val2memstr(sstat->mem.zramvsize, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+static int
+sysval_ZRAMUSED(struct sstat *sstat)
+{
+	return sstat->mem.zramvsize ? 1 : 0;	// return int!
+}
+
+sys_printdef syspdef_ZRAMVTOT = {"ZRAMVTOT", sysprt_ZRAMVTOT, sysval_ZRAMUSED};
+/*******************************************************************/
+static char *
+sysprt_ZRAMPUSE(struct sstat *sstat, extraparam *notused, int badness, int *color)
+{
+        static char buf[16]="zruse ";
+
+	*color = -1;
+        val2memstr(sstat->mem.zramptotal, buf+6, MBFORMAT, 0, 0);
+        return buf;
+}
+
+sys_printdef syspdef_ZRAMPUSE = {"ZRAMPUSE", sysprt_ZRAMPUSE, sysval_ZRAMUSED};
+/*******************************************************************/
+static char *
+sysprt_ZRAMRATIO(struct sstat *sstat, extraparam *notused, int badness, int *color)
+{
+        static char buf[32];
+
+	*color = -1;
+        snprintf(buf, sizeof buf, "zrrat %5.1lf%%", sstat->mem.zramvused ?
+			100.0 - (sstat->mem.zrampcompr * 100.0 / sstat->mem.zramvused) : 0.0);
+
+        return buf;
+}
+
+sys_printdef syspdef_ZRAMRATIO = {"ZRAMRATIO", sysprt_ZRAMRATIO, sysval_ZRAMUSED};
 /*******************************************************************/
 static char *
 sysprt_TCPSOCK(struct sstat *sstat, extraparam *as, int badness, int *color)

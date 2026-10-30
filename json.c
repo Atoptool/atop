@@ -504,6 +504,7 @@ json_print_MEM(char *hp, struct sstat *ss,
 			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
+		"\"pagesize\": %d, "
 		"\"physmem\": %lld, "
 		"\"freemem\": %lld, "
 		"\"cachemem\": %lld, "
@@ -524,6 +525,7 @@ json_print_MEM(char *hp, struct sstat *ss,
 		"\"availablemem\": %lld, "
 		"\"anonhugepage\": %lld}",
 		hp,
+		pagesize,
 		ss->mem.physmem * pagesize,
 		ss->mem.freemem * pagesize,
 		ss->mem.cachemem * pagesize,
@@ -551,17 +553,34 @@ json_print_SWP(char *hp, struct sstat *ss,
 			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
+		"\"pagesize\": %d, "
 		"\"totswap\": %lld, "
 		"\"freeswap\": %lld, "
 		"\"swcac\": %lld, "
 		"\"committed\": %lld, "
-		"\"commitlim\": %lld}",
+		"\"commitlim\": %lld, "
+		"\"swapcached\": %lld, "
+		"\"zswapped\": %lld, "
+		"\"zswap\": %lld, "
+		"\"zramvsize\": %lld, "
+		"\"zramvused\": %lld, "
+		"\"zrampcompr\": %lld, "
+		"\"zramptotal\": %lld}",
 		hp,
+		pagesize,
 		ss->mem.totswap * pagesize,
 		ss->mem.freeswap * pagesize,
 		ss->mem.swapcached * pagesize,
 		ss->mem.committed * pagesize,
-		ss->mem.commitlim * pagesize);
+		ss->mem.commitlim * pagesize,
+		ss->mem.swapcached * pagesize,
+		ss->mem.zswapped * pagesize,
+		ss->mem.zswap * pagesize,
+		ss->mem.zramvsize,
+		ss->mem.zramvused,
+		ss->mem.zrampcompr,
+		ss->mem.zramptotal);
+
 }
 
 static void
@@ -570,6 +589,7 @@ json_print_PAG(char *hp, struct sstat *ss,
 			 struct cgchainer *cs, int ncgroups)
 {
 	printf(", %s: {"
+		"\"pagesize\": %d, "
 		"\"compacts\": %lld, "
 		"\"numamigs\": %lld, "
 		"\"migrates\": %lld, "
@@ -581,6 +601,7 @@ json_print_PAG(char *hp, struct sstat *ss,
 		"\"swouts\": %lld, "
 		"\"oomkills\": %lld}",
 		hp,
+		pagesize,
 		ss->mem.compactstall,
 		ss->mem.numamigrate,
 		ss->mem.pgmigrate,

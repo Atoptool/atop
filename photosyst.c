@@ -120,7 +120,7 @@ static void	getperfevents(struct cpustat *, count_t);
 static int	get_infiniband(struct ifbstat *);
 static int	get_ksm(struct sstat *);
 
-static int	isdisk_name(unsigned int, unsigned int,
+static int	isdisk_name(struct sstat *, unsigned int, unsigned int,
 			char *, struct perdsk *, int);
 
 static struct bitmask *numa_allocate_cpumask(void);
@@ -1534,9 +1534,7 @@ photosyst(struct sstat *si)
 			*/
 			if (nr == 8)	/* full stats-line ? */
 			{
-				if ( isdisk_name(0, 0, diskname,
-				                 &(si->dsk.dsk[i]),
-						 MAXDKNAM) != DSKTYPE)
+				if ( isdisk_name(si, 0, 0, diskname, &(si->dsk.dsk[i]), MAXDKNAM) != DSKTYPE)
 				       continue;
 			
 				if (++i >= MAXDSK-1)
@@ -1553,6 +1551,11 @@ photosyst(struct sstat *si)
 			part_stats = 0;	/* do not try again for next cycles */
 	}
 
+
+	si->mem.zramvsize  = 0;
+	si->mem.zramvused  = 0;
+	si->mem.zrampcompr = 0;
+	si->mem.zramptotal = 0;
 
 	/*
 	** check if disk-statistics are provided (kernel 2.6 onwards)
@@ -1597,25 +1600,27 @@ photosyst(struct sstat *si)
 				** or just one of the partitions of a disk (to be
 				** skipped)
 				*/
-				switch ( isdisk_name(major, minor, diskname,
-							 &tmpdsk, MAXDKNAM) )
+				switch ( isdisk_name(si, major, minor, diskname, &tmpdsk, MAXDKNAM) )
 				{
 				   case NONTYPE:
 				       continue;
 
+				   case ZRAMTYPE: // recognize zram just for memory usage
+				       continue;
+
 				   case DSKTYPE:
 					if (si->dsk.ndsk < MAXDSK-1)
-					  si->dsk.dsk[si->dsk.ndsk++] = tmpdsk;
+						si->dsk.dsk[si->dsk.ndsk++] = tmpdsk;
 					break;
 
 				   case MDDTYPE:
 					if (si->dsk.nmdd < MAXMDD-1)
-					  si->dsk.mdd[si->dsk.nmdd++] = tmpdsk;
+						si->dsk.mdd[si->dsk.nmdd++] = tmpdsk;
 					break;
 
 				   case LVMTYPE:
 					if (si->dsk.nlvm < MAXLVM-1)
-					  si->dsk.lvm[si->dsk.nlvm++] = tmpdsk;
+						si->dsk.lvm[si->dsk.nlvm++] = tmpdsk;
 					break;
 				}
 			}
@@ -2174,14 +2179,14 @@ photosyst(struct sstat *si)
 ** and to translate name strings into (shorter) name strings
 */
 static void
-nullmodname(unsigned int major, unsigned int minor,
+nullmodname(struct sstat *si, unsigned int major, unsigned int minor,
 		char *curname, struct perdsk *px, int maxlen)
 {
 	safe_strcpy(px->name, curname, maxlen);
 }
 
 static void
-abbrevname1(unsigned int major, unsigned int minor,
+abbrevname1(struct sstat *si, unsigned int major, unsigned int minor,
 		char *curname, struct perdsk *px, int maxlen)
 {
 	char	cutype[128];
@@ -2209,7 +2214,7 @@ struct devmap {
 };
 
 static void
-lvmmapname(unsigned int major, unsigned int minor,
+lvmmapname(struct sstat *si, unsigned int major, unsigned int minor,
 		char *curname, struct perdsk *px, int maxlen)
 {
 	static int		firstcall = 1;
@@ -2295,6 +2300,59 @@ lvmmapname(unsigned int major, unsigned int minor,
 	safe_strcpy(px->name, curname, maxlen);
 }
 
+static void
+zrammodname(struct sstat *si, unsigned int major, unsigned int minor,
+		char *curname, struct perdsk *px, int maxlen)
+{
+	FILE	*fp;
+	char	path[PATH_MAX], linebuf[64];
+	count_t	sz1 = 0, sz2 = 0, sz3 = 0;
+
+	// determine (virtual) size of zram disk
+	//
+	snprintf(path, sizeof path, "/sys/dev/block/%d:%d/disksize", major, minor);
+
+	if ( (fp = fopen(path, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%llu", &sz1) == 1)
+				si->mem.zramvsize += sz1;
+			else
+				return;
+		}
+		else
+		{
+			return;
+		}
+
+		fclose(fp);
+	}
+	else
+	{
+		return;
+	}
+
+	// determine other sizes of zram disk
+	//
+	snprintf(path, sizeof path, "/sys/dev/block/%d:%d/mm_stat", major, minor);
+
+	if ( (fp = fopen(path, "r")) )
+	{
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		{
+			if (sscanf(linebuf, "%llu %llu %llu", &sz1, &sz2, &sz3) == 3)
+			{
+				si->mem.zramvused  += sz1;
+				si->mem.zrampcompr += sz2;
+				si->mem.zramptotal += sz3;
+			}
+		}
+
+		fclose(fp);
+	}
+}
+
 /*
 ** this table is used in the functions isdisk_name() and isdick_major()
 **
@@ -2307,19 +2365,21 @@ lvmmapname(unsigned int major, unsigned int minor,
 static struct {
 	char 	*regexp;
 	regex_t	compreg;
-	void	(*modname)(unsigned int, unsigned int,
+	void	(*modname)(struct sstat *, unsigned int, unsigned int,
 				char *, struct perdsk *, int);
 	int	major;	// to be filled via isdisk_name()
 	int	retval;
 } validdisk[] = {
-	{ "^ram[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
-	{ "^loop[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
 	{ "^sd[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
 	{ "^dm-[0-9][0-9]*$",			{0},  lvmmapname,  0, LVMTYPE, },
 	{ "^md[0-9][0-9]*$",			{0},  nullmodname, 0, MDDTYPE, },
 	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, 0, DSKTYPE, },
 	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$", {0}, nullmodname, 0, DSKTYPE, },
+	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$",
+						{0},  nullmodname, 0, DSKTYPE, },
+	{ "^loop[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
+	{ "^ram[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
+	{ "^zram[0-9][0-9]*$",			{0},  zrammodname, 0, ZRAMTYPE,},
 	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, 0, DSKTYPE, },
 	{ "^hd[a-z]$",				{0},  nullmodname, 0, DSKTYPE, },
 	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
@@ -2335,7 +2395,7 @@ static struct {
 };
 
 static int
-isdisk_name(unsigned int major, unsigned int minor,
+isdisk_name(struct sstat *si, unsigned int major, unsigned int minor,
            char *curname, struct perdsk *px, int maxlen)
 {
 	static int	firstcall = 1;
@@ -2366,8 +2426,7 @@ isdisk_name(unsigned int major, unsigned int minor,
 			** name-string recognized; modify name-string
 			*/
 			if (validdisk[i].retval != NONTYPE)
-				(*validdisk[i].modname)(major, minor,
-						curname, px, maxlen);
+				(*validdisk[i].modname)(si, major, minor, curname, px, maxlen);
 
 			return validdisk[i].retval;
 		}

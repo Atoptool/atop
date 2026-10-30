@@ -168,7 +168,7 @@ Memory is presented as a column in which the
 specific categories of memory consumption are shown. These categories
 are (code, data and  stack of) processes/kernel, slab caches
 (i.e. dynamically allocated kernel memory), shared memory, tmpfs,
-static huge pages, page cache and free memory.
+zram, static huge pages, page cache and free memory.
 .br
 At the left side of the memory column, a vertical green line
 shows the memory which is available (i.e. reclaimable)
@@ -1607,6 +1607,9 @@ Swap occupation and overcommit info.
 This line contains the total amount of swap space on disk ('tot'),
 the amount of free swap space ('free'),
 the size of the swap cache ('swcac'),
+the total virtual size of zram memory for swap or filesystems ('zrtot'),
+the real size (physical) used by zram for swap or filesystems ('zruse'),
+the compression ratio for zram ('zrrat'),
 the size of compressed storage used for zswap ('zswap'),
 the real (decompressed) size of the pages stored in zswap ('zstor'),
 the total size of the memory used for KSM ('ksuse', i.e. shared), and
@@ -2834,8 +2837,12 @@ size of committed space (pages),
 limit for committed space (pages),
 size of the swap cache (pages),
 the real (decompressed) size of the pages stored
-in zswap (pages), and
-the size of compressed storage used for zswap (pages).
+in zswap (pages), 
+the size of compressed storage used for zswap (pages),
+virtual size of zram for swap or filesystems (pages),
+virtual size of zram in use for swap or filesystems (pages),
+physical compressed size of zram for swap or filesystems (pages), and
+total physical size of zram i.e. compressed size plus additional admi (pages).
 .TP 9
 .B LLC
 Subsequent fields:

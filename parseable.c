@@ -487,7 +487,7 @@ print_SWP(char *hp, struct sstat *ss,
                     struct tstat *ps, int nact,
                     struct cgchainer *devchain, int ncgroups)
 {
-	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld\n",
+	printf(	"%s %u %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
 			hp,
 			pagesize,
 			ss->mem.totswap,
@@ -496,8 +496,12 @@ print_SWP(char *hp, struct sstat *ss,
 			ss->mem.committed,
 			ss->mem.commitlim,
         		ss->mem.swapcached,
-        		ss->mem.zswapped,
-        		ss->mem.zswap);
+			ss->mem.zswapped,
+			ss->mem.zswap,
+			ss->mem.zramvsize  / pagesize,
+			ss->mem.zramvused  / pagesize,
+			ss->mem.zrampcompr / pagesize,
+			ss->mem.zramptotal / pagesize);
 }
 
 void

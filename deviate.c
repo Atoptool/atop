@@ -787,6 +787,11 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->mem.ksmsharing	= cur->mem.ksmsharing;
 	dev->mem.ksmshared 	= cur->mem.ksmshared;
 
+        dev->mem.zramvsize 	= cur->mem.zramvsize;
+        dev->mem.zramvused 	= cur->mem.zramvused;
+        dev->mem.zrampcompr 	= cur->mem.zrampcompr;
+        dev->mem.zramptotal 	= cur->mem.zramptotal;
+
 	dev->mem.tcpsock	= cur->mem.tcpsock;
 	dev->mem.udpsock	= cur->mem.udpsock;
 

@@ -1999,14 +1999,14 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 {
 	static time_t	lastoomkills;
 
-	long long	totalmem, cachemem, shmemrss, tmpfsmem,
+	long long	totalmem, cachemem, shmemrss, tmpfsmem, zrammem,
 			slabmem, freemem, hugefree, hugeused, shmrssreal,
 			slabrec, availmem, lowwatermark;
 	long long	totalswp, shmemswp, freeswp;
 	char		scanseverity, swapseverity, killseverity;
 	int 		curline=0, barlines, eventlines, psilines, color;
 	int 		usedlines, freelines, cachelines, cacheavail, tmpfslines,
-			slablines, slabavail, freeavail, shmemlines, hugelines;
+			slablines, slabavail, freeavail, shmemlines, hugelines, zramlines;
 	int		memorycol = 1, psisomeperc, psifullperc,
 			swapcol   = memorycol + MEMORYBARSZ + 1,
 			eventcol  = swapcol   + SWAPBARSZ   + 2;
@@ -2026,13 +2026,14 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	//
 	totalmem	=  sstat->mem.physmem * pagesize;
 
-	cachemem	= (sstat->mem.cachemem + sstat->mem.buffermem -
-			   sstat->mem.shmem)  * pagesize;
+	cachemem	= (sstat->mem.cachemem + sstat->mem.buffermem - sstat->mem.shmem) * pagesize;
 
 	shmemrss	=  sstat->mem.shmrss  * pagesize;
 
 	slabmem		=  sstat->mem.slabmem * pagesize;
 	slabrec		=  sstat->mem.slabreclaim * pagesize;
+
+	zrammem		=  sstat->mem.zramptotal;	// already in bytes
 
 	freemem		=  sstat->mem.freemem * pagesize;
 
@@ -2113,6 +2114,7 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 
 	shmemlines = shmemrss / valperunit;
 	tmpfslines = tmpfsmem / valperunit;
+	zramlines  = zrammem  / valperunit;
 
 	slablines  = slabmem  / valperunit;
 	slabavail  = (slabrec - MIN(slabmem/2, lowwatermark)) / valperunit;
@@ -2120,7 +2122,8 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	cacheavail = (availmem - freemem - slabrec - MIN(cachemem/2, lowwatermark)) / valperunit;
 
 	hugelines  = hugefree / valperunit;
-	usedlines  = barlines - freelines - shmemlines - hugelines - tmpfslines - slablines - cachelines;
+	usedlines  = barlines - freelines - shmemlines - hugelines -
+	             tmpfslines - slablines - cachelines - zramlines;
 
 	// wipe window contents
 	//
@@ -2135,6 +2138,11 @@ drawmemory(struct perwindow *w, struct sstat *sstat, int nsecs,
 	//
 	curline += drawmemlines(w, curline, memorycol, cachelines,
 			MEMORYBARSZ, COLORMEMCACH, "pagecache", NULL, cacheavail);
+
+	// draw lines for zram memory
+	//
+	curline += drawmemlines(w, curline, memorycol, zramlines,
+			MEMORYBARSZ, COLORMEMZRAM, "zram", NULL, 0);
 
 	// draw lines for free static huge pages memory
 	// (occupied static huge pages are already part of processes

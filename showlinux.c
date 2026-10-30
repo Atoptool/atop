@@ -190,12 +190,16 @@ sys_printdef *swpsyspdefs[] = {
 	&syspdef_BLANKBOX,
 	&syspdef_ZSWPOOL,
 	&syspdef_ZSWSTORED,
+	&syspdef_BLANKBOX,
+	&syspdef_ZRAMVTOT,
+	&syspdef_ZRAMPUSE,
+	&syspdef_ZRAMRATIO,
+	&syspdef_BLANKBOX,
 	&syspdef_KSMSHARING,
 	&syspdef_KSMSHARED,
 	&syspdef_BLANKBOX,
 	&syspdef_SWPCOMMITTED,
 	&syspdef_SWPCOMMITLIM,
-	&syspdef_BLANKBOX,
         0
 };
 sys_printdef *pagsyspdefs[] = {
@@ -1057,12 +1061,16 @@ pricumproc(struct sstat *sstat, struct devtstat *devtstat,
                 if (swpline[0].f == 0)
                 {
                     make_sys_prints(swpline, MAXITEMS,
-	                "SWPTOT:5 "
+	                "SWPTOT:6 "
 	                "SWPFREE:6 "
-	                "SWPCACHE:4 "
+	                "SWPCACHE:5 "
 	                "BLANKBOX:0 "
 	                "ZSWPOOL:3 "
 	                "ZSWSTORED:3 "
+	                "BLANKBOX:0 "
+			"ZRAMVTOT:3"
+			"ZRAMPUSE:4"
+			"ZRAMRATIO:4"
 	                "BLANKBOX:0 "
 	                "KSMSHARED:2 "
 	                "KSMSHARING:2 "
