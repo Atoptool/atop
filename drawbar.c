@@ -256,9 +256,9 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 	static char	winitialized, wassorted, initlabels,
 			swapinuse, ttyrescaled;
 	static time_t	lasttime;
-	static int	nrdisk, nrallintf, nrintf;
+	static int	nrdisk, nrallintf;
 
-	int		lastchar, i, newinterval, statuscol;
+	int		lastchar, newinterval, statuscol;
 	char		*statusmsg = NULL, buf[32], lower=0, answer[16];
 
 	// when needed (re)initialize the windows for bar graphs
@@ -271,12 +271,6 @@ draw_samp(time_t curtime, int nsecs, struct sstat *sstat,
 		//
 		nrdisk    = sstat->dsk.ndsk;
 		nrallintf = sstat->intf.nrintf;
-
-		for (i=0, nrintf=0; i < sstat->intf.nrintf; i++)
-		{
-			if (sstat->intf.intf[i].type != 'v')
-				nrintf++;
-		}
 
 		// initialize graph windows
 		//
