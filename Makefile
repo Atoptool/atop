@@ -22,6 +22,8 @@ PMPATHD  = /usr/lib/systemd/system-sleep
 
 PKG_CONFIG ?= pkg-config
 
+CLANGFMT = clang-format-18
+
 override CFLAGS  := -O2 -I. -Wall $(shell $(PKG_CONFIG) --cflags glib-2.0) -Wmissing-prototypes -Wmissing-declarations -Wformat-security $(CFLAGS) # -DNOPERFEVENT   # -DHTTPSTATS
 
 CC_CHECK := $(shell echo | $(CC) -dM -E - | grep -q __clang__ && echo clang || echo gcc)
@@ -66,6 +68,9 @@ clean:
 distr:
 		rm -f *.o atop
 		tar czvf /tmp/atop.tar.gz *
+
+format:
+		$(CLANGFMT) -i $(shell find . \( -name '*.c' -o -name '*.h' \) ! -path './prev/*')
 
 # default install is based on systemd
 #

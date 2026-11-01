@@ -1,9 +1,9 @@
 /*
-** ATOP - System & Process Monitor 
-** 
+** ATOP - System & Process Monitor
+**
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
-** 
+**
 ** This source-file contains functions to read all relevant system-level
 ** figures.
 ** ==========================================================================
@@ -29,39 +29,38 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
-#define _POSIX_C_SOURCE	200809L
+#define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE
 #define _GNU_SOURCE
 #define _DEFAULT_SOURCE
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <dirent.h>
 #include <errno.h>
+#include <limits.h>
 #include <regex.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <sys/times.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <signal.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/ioctl.h>
-#include <sys/sysmacros.h>
-#include <sys/resource.h>
-#include <limits.h>
-#include <stdint.h>
+#include <unistd.h>
 
-#ifndef	NOPERFEVENT
-#include <linux/perf_event.h>
+#ifndef NOPERFEVENT
 #include <asm/unistd.h>
+#include <linux/perf_event.h>
 #endif
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 // #define	_GNU_SOURCE
 #include <sys/ipc.h>
@@ -71,2106 +70,1993 @@
 #include "ifprop.h"
 #include "photosyst.h"
 
-#define	MAXCNT	64
+#define MAXCNT 64
 
 /* recognize numa node */
-#define	NUMADIR	"/sys/devices/system/node"
+#define NUMADIR "/sys/devices/system/node"
 
 /* recognize large huge pages */
-#define	HUGEPAGEDIR	"/sys/kernel/mm/hugepages"
+#define HUGEPAGEDIR "/sys/kernel/mm/hugepages"
 
 /* recognize LLC monitor data */
-#define LLCDIR	"/sys/fs/resctrl/mon_data"
-#define L3SIZE	"/sys/devices/system/cpu/cpu0/cache/index3/size"
+#define LLCDIR "/sys/fs/resctrl/mon_data"
+#define L3SIZE "/sys/devices/system/cpu/cpu0/cache/index3/size"
 
 /* Refer to mmzone.h, the default is 11 */
-#define	MAX_ORDER	11
+#define MAX_ORDER 11
 
-#ifndef	NOPERFEVENT
+#ifndef NOPERFEVENT
 enum {
-	PERF_EVENTS_AUTO = 0,
-	PERF_EVENTS_ENABLE,
-	PERF_EVENTS_DISABLE,
+        PERF_EVENTS_AUTO = 0,
+        PERF_EVENTS_ENABLE,
+        PERF_EVENTS_DISABLE,
 };
 
-static int	perfevents = PERF_EVENTS_AUTO;
+static int perfevents = PERF_EVENTS_AUTO;
 
 struct perf_group_read {
-	uint64_t	nr;
-	uint64_t	time_enabled;
-	uint64_t	time_running;
-	uint64_t	value[2];
+        uint64_t nr;
+        uint64_t time_enabled;
+        uint64_t time_running;
+        uint64_t value[2];
 };
 
 struct perf_cpu_events {
-	int		instr_fd;
-	int		cycle_fd;
-	struct perf_group_read prev;
-	count_t		instr;
-	count_t		cycle;
+        int instr_fd;
+        int cycle_fd;
+        struct perf_group_read prev;
+        count_t instr;
+        count_t cycle;
 };
 
-static long	perf_event_open(struct perf_event_attr *, pid_t,
-                int, int, unsigned long);
-static void	add_perf_count(count_t *, count_t);
-static void	add_scaled_perf_count(count_t *, uint64_t, uint64_t, uint64_t);
-static void	getperfevents(struct cpustat *, count_t);
+static long perf_event_open(struct perf_event_attr *, pid_t, int, int, unsigned long);
+static void add_perf_count(count_t *, count_t);
+static void add_scaled_perf_count(count_t *, uint64_t, uint64_t, uint64_t);
+static void getperfevents(struct cpustat *, count_t);
 #endif
 
-static int	get_infiniband(struct ifbstat *);
-static int	get_ksm(struct sstat *);
+static int get_infiniband(struct ifbstat *);
+static int get_ksm(struct sstat *);
 
-static int	isdisk_name(struct sstat *, unsigned int, unsigned int,
-			char *, struct perdsk *, int);
+static int isdisk_name(struct sstat *, unsigned int, unsigned int, char *, struct perdsk *, int);
 
 static struct bitmask *numa_allocate_cpumask(void);
-static void	numa_free_cpumask(struct bitmask *);
-static int	numa_parse_bitmap_v2(char *, struct bitmask *);
+static void numa_free_cpumask(struct bitmask *);
+static int numa_parse_bitmap_v2(char *, struct bitmask *);
 
-static struct ipv6_stats	ipv6_tmp;
-static struct icmpv6_stats	icmpv6_tmp;
-static struct udpv6_stats	udpv6_tmp;
+static struct ipv6_stats ipv6_tmp;
+static struct icmpv6_stats icmpv6_tmp;
+static struct udpv6_stats udpv6_tmp;
 
 struct v6tab {
-	char 	*nam;
-	count_t *val;
+        char *nam;
+        count_t *val;
 };
 
-static struct v6tab 		v6tab[] = {
-    {"Ip6InReceives",		&ipv6_tmp.Ip6InReceives,                     },
-    {"Ip6InHdrErrors",		&ipv6_tmp.Ip6InHdrErrors,                    },
-    {"Ip6InTooBigErrors",	&ipv6_tmp.Ip6InTooBigErrors,                 },
-    {"Ip6InNoRoutes",		&ipv6_tmp.Ip6InNoRoutes,                     },
-    {"Ip6InAddrErrors",		&ipv6_tmp.Ip6InAddrErrors,                   },
-    {"Ip6InUnknownProtos",	&ipv6_tmp.Ip6InUnknownProtos,                },
-    {"Ip6InTruncatedPkts",	&ipv6_tmp.Ip6InTruncatedPkts,                },
-    {"Ip6InDiscards",		&ipv6_tmp.Ip6InDiscards,                     },
-    {"Ip6InDelivers",		&ipv6_tmp.Ip6InDelivers,                     },
-    {"Ip6OutForwDatagrams",	&ipv6_tmp.Ip6OutForwDatagrams,               },
-    {"Ip6OutRequests",		&ipv6_tmp.Ip6OutRequests,                    },
-    {"Ip6OutDiscards",		&ipv6_tmp.Ip6OutDiscards,                    },
-    {"Ip6OutNoRoutes",		&ipv6_tmp.Ip6OutNoRoutes,                    },
-    {"Ip6ReasmTimeout",		&ipv6_tmp.Ip6ReasmTimeout,                   },
-    {"Ip6ReasmReqds",		&ipv6_tmp.Ip6ReasmReqds,                     },
-    {"Ip6ReasmOKs",		&ipv6_tmp.Ip6ReasmOKs,                       },
-    {"Ip6ReasmFails",		&ipv6_tmp.Ip6ReasmFails,                     },
-    {"Ip6FragOKs",		&ipv6_tmp.Ip6FragOKs,                        },
-    {"Ip6FragFails",		&ipv6_tmp.Ip6FragFails,                      },
-    {"Ip6FragCreates",		&ipv6_tmp.Ip6FragCreates,                    },
-    {"Ip6InMcastPkts",		&ipv6_tmp.Ip6InMcastPkts,                    },
-    {"Ip6OutMcastPkts",		&ipv6_tmp.Ip6OutMcastPkts,                   },
- 
-    {"Icmp6InMsgs",		&icmpv6_tmp.Icmp6InMsgs,                     },
-    {"Icmp6InErrors",		&icmpv6_tmp.Icmp6InErrors,                   },
-    {"Icmp6InDestUnreachs",	&icmpv6_tmp.Icmp6InDestUnreachs,             },
-    {"Icmp6InPktTooBigs",	&icmpv6_tmp.Icmp6InPktTooBigs,               },
-    {"Icmp6InTimeExcds",	&icmpv6_tmp.Icmp6InTimeExcds,                },
-    {"Icmp6InParmProblems",	&icmpv6_tmp.Icmp6InParmProblems,             },
-    {"Icmp6InEchos",		&icmpv6_tmp.Icmp6InEchos,                    },
-    {"Icmp6InEchoReplies",	&icmpv6_tmp.Icmp6InEchoReplies,              },
-    {"Icmp6InGroupMembQueries",	&icmpv6_tmp.Icmp6InGroupMembQueries,         },
-    {"Icmp6InGroupMembResponses",
-				&icmpv6_tmp.Icmp6InGroupMembResponses,       },
-    {"Icmp6InGroupMembReductions",
-				&icmpv6_tmp.Icmp6InGroupMembReductions,      },
-    {"Icmp6InRouterSolicits",	&icmpv6_tmp.Icmp6InRouterSolicits,           },
-    {"Icmp6InRouterAdvertisements",
-				&icmpv6_tmp.Icmp6InRouterAdvertisements,     },
-    {"Icmp6InNeighborSolicits",	&icmpv6_tmp.Icmp6InNeighborSolicits,         },
-    {"Icmp6InNeighborAdvertisements",
-				&icmpv6_tmp.Icmp6InNeighborAdvertisements,   },
-    {"Icmp6InRedirects",	&icmpv6_tmp.Icmp6InRedirects,                },
-    {"Icmp6OutMsgs",		&icmpv6_tmp.Icmp6OutMsgs,                    },
-    {"Icmp6OutDestUnreachs",	&icmpv6_tmp.Icmp6OutDestUnreachs,            },
-    {"Icmp6OutPktTooBigs",	&icmpv6_tmp.Icmp6OutPktTooBigs,              },
-    {"Icmp6OutTimeExcds",	&icmpv6_tmp.Icmp6OutTimeExcds,               },
-    {"Icmp6OutParmProblems",	&icmpv6_tmp.Icmp6OutParmProblems,            },
-    {"Icmp6OutEchoReplies",	&icmpv6_tmp.Icmp6OutEchoReplies,             },
-    {"Icmp6OutRouterSolicits",	&icmpv6_tmp.Icmp6OutRouterSolicits,          },
-    {"Icmp6OutNeighborSolicits",&icmpv6_tmp.Icmp6OutNeighborSolicits,        },
-    {"Icmp6OutNeighborAdvertisements",
-				&icmpv6_tmp.Icmp6OutNeighborAdvertisements,  },
-    {"Icmp6OutRedirects",	&icmpv6_tmp.Icmp6OutRedirects,               },
-    {"Icmp6OutGroupMembResponses",
-				&icmpv6_tmp.Icmp6OutGroupMembResponses,      },
-    {"Icmp6OutGroupMembReductions",
-				&icmpv6_tmp.Icmp6OutGroupMembReductions,     },
+static struct v6tab v6tab[] = {
+    {
+        "Ip6InReceives",
+        &ipv6_tmp.Ip6InReceives,
+    },
+    {
+        "Ip6InHdrErrors",
+        &ipv6_tmp.Ip6InHdrErrors,
+    },
+    {
+        "Ip6InTooBigErrors",
+        &ipv6_tmp.Ip6InTooBigErrors,
+    },
+    {
+        "Ip6InNoRoutes",
+        &ipv6_tmp.Ip6InNoRoutes,
+    },
+    {
+        "Ip6InAddrErrors",
+        &ipv6_tmp.Ip6InAddrErrors,
+    },
+    {
+        "Ip6InUnknownProtos",
+        &ipv6_tmp.Ip6InUnknownProtos,
+    },
+    {
+        "Ip6InTruncatedPkts",
+        &ipv6_tmp.Ip6InTruncatedPkts,
+    },
+    {
+        "Ip6InDiscards",
+        &ipv6_tmp.Ip6InDiscards,
+    },
+    {
+        "Ip6InDelivers",
+        &ipv6_tmp.Ip6InDelivers,
+    },
+    {
+        "Ip6OutForwDatagrams",
+        &ipv6_tmp.Ip6OutForwDatagrams,
+    },
+    {
+        "Ip6OutRequests",
+        &ipv6_tmp.Ip6OutRequests,
+    },
+    {
+        "Ip6OutDiscards",
+        &ipv6_tmp.Ip6OutDiscards,
+    },
+    {
+        "Ip6OutNoRoutes",
+        &ipv6_tmp.Ip6OutNoRoutes,
+    },
+    {
+        "Ip6ReasmTimeout",
+        &ipv6_tmp.Ip6ReasmTimeout,
+    },
+    {
+        "Ip6ReasmReqds",
+        &ipv6_tmp.Ip6ReasmReqds,
+    },
+    {
+        "Ip6ReasmOKs",
+        &ipv6_tmp.Ip6ReasmOKs,
+    },
+    {
+        "Ip6ReasmFails",
+        &ipv6_tmp.Ip6ReasmFails,
+    },
+    {
+        "Ip6FragOKs",
+        &ipv6_tmp.Ip6FragOKs,
+    },
+    {
+        "Ip6FragFails",
+        &ipv6_tmp.Ip6FragFails,
+    },
+    {
+        "Ip6FragCreates",
+        &ipv6_tmp.Ip6FragCreates,
+    },
+    {
+        "Ip6InMcastPkts",
+        &ipv6_tmp.Ip6InMcastPkts,
+    },
+    {
+        "Ip6OutMcastPkts",
+        &ipv6_tmp.Ip6OutMcastPkts,
+    },
 
-    {"Udp6InDatagrams",		&udpv6_tmp.Udp6InDatagrams,                   },
-    {"Udp6NoPorts",		&udpv6_tmp.Udp6NoPorts,                       },
-    {"Udp6InErrors",		&udpv6_tmp.Udp6InErrors,                      },
-    {"Udp6OutDatagrams",	&udpv6_tmp.Udp6OutDatagrams,                  },
+    {
+        "Icmp6InMsgs",
+        &icmpv6_tmp.Icmp6InMsgs,
+    },
+    {
+        "Icmp6InErrors",
+        &icmpv6_tmp.Icmp6InErrors,
+    },
+    {
+        "Icmp6InDestUnreachs",
+        &icmpv6_tmp.Icmp6InDestUnreachs,
+    },
+    {
+        "Icmp6InPktTooBigs",
+        &icmpv6_tmp.Icmp6InPktTooBigs,
+    },
+    {
+        "Icmp6InTimeExcds",
+        &icmpv6_tmp.Icmp6InTimeExcds,
+    },
+    {
+        "Icmp6InParmProblems",
+        &icmpv6_tmp.Icmp6InParmProblems,
+    },
+    {
+        "Icmp6InEchos",
+        &icmpv6_tmp.Icmp6InEchos,
+    },
+    {
+        "Icmp6InEchoReplies",
+        &icmpv6_tmp.Icmp6InEchoReplies,
+    },
+    {
+        "Icmp6InGroupMembQueries",
+        &icmpv6_tmp.Icmp6InGroupMembQueries,
+    },
+    {
+        "Icmp6InGroupMembResponses",
+        &icmpv6_tmp.Icmp6InGroupMembResponses,
+    },
+    {
+        "Icmp6InGroupMembReductions",
+        &icmpv6_tmp.Icmp6InGroupMembReductions,
+    },
+    {
+        "Icmp6InRouterSolicits",
+        &icmpv6_tmp.Icmp6InRouterSolicits,
+    },
+    {
+        "Icmp6InRouterAdvertisements",
+        &icmpv6_tmp.Icmp6InRouterAdvertisements,
+    },
+    {
+        "Icmp6InNeighborSolicits",
+        &icmpv6_tmp.Icmp6InNeighborSolicits,
+    },
+    {
+        "Icmp6InNeighborAdvertisements",
+        &icmpv6_tmp.Icmp6InNeighborAdvertisements,
+    },
+    {
+        "Icmp6InRedirects",
+        &icmpv6_tmp.Icmp6InRedirects,
+    },
+    {
+        "Icmp6OutMsgs",
+        &icmpv6_tmp.Icmp6OutMsgs,
+    },
+    {
+        "Icmp6OutDestUnreachs",
+        &icmpv6_tmp.Icmp6OutDestUnreachs,
+    },
+    {
+        "Icmp6OutPktTooBigs",
+        &icmpv6_tmp.Icmp6OutPktTooBigs,
+    },
+    {
+        "Icmp6OutTimeExcds",
+        &icmpv6_tmp.Icmp6OutTimeExcds,
+    },
+    {
+        "Icmp6OutParmProblems",
+        &icmpv6_tmp.Icmp6OutParmProblems,
+    },
+    {
+        "Icmp6OutEchoReplies",
+        &icmpv6_tmp.Icmp6OutEchoReplies,
+    },
+    {
+        "Icmp6OutRouterSolicits",
+        &icmpv6_tmp.Icmp6OutRouterSolicits,
+    },
+    {
+        "Icmp6OutNeighborSolicits",
+        &icmpv6_tmp.Icmp6OutNeighborSolicits,
+    },
+    {
+        "Icmp6OutNeighborAdvertisements",
+        &icmpv6_tmp.Icmp6OutNeighborAdvertisements,
+    },
+    {
+        "Icmp6OutRedirects",
+        &icmpv6_tmp.Icmp6OutRedirects,
+    },
+    {
+        "Icmp6OutGroupMembResponses",
+        &icmpv6_tmp.Icmp6OutGroupMembResponses,
+    },
+    {
+        "Icmp6OutGroupMembReductions",
+        &icmpv6_tmp.Icmp6OutGroupMembReductions,
+    },
+
+    {
+        "Udp6InDatagrams",
+        &udpv6_tmp.Udp6InDatagrams,
+    },
+    {
+        "Udp6NoPorts",
+        &udpv6_tmp.Udp6NoPorts,
+    },
+    {
+        "Udp6InErrors",
+        &udpv6_tmp.Udp6InErrors,
+    },
+    {
+        "Udp6OutDatagrams",
+        &udpv6_tmp.Udp6OutDatagrams,
+    },
 };
 
-static int	v6tab_entries = sizeof(v6tab)/sizeof(struct v6tab);
+static int v6tab_entries = sizeof(v6tab) / sizeof(struct v6tab);
 
 // The following values are used to accumulate cpu statistics per numa.
 // The bitmask realization is from numactl
 //
-#define bitsperlonglong		(8 * sizeof(unsigned long long))
-#define howmany(x,y)		(((x)+((y)-1))/(y))
-#define longlongsneeded(n)	howmany(n, bitsperlonglong)
+#define bitsperlonglong (8 * sizeof(unsigned long long))
+#define howmany(x, y) (((x) + ((y) - 1)) / (y))
+#define longlongsneeded(n) howmany(n, bitsperlonglong)
 
-#define round_up(x,y)		(((x) + (y) - 1) & ~((y)-1))
-#define CPU_BYTES(x)		(round_up(x, bitsperlonglong)/8)
-#define CPU_LONGLONGS(x)	(CPU_BYTES(x) / sizeof(unsigned long long))
+#define round_up(x, y) (((x) + (y) - 1) & ~((y) - 1))
+#define CPU_BYTES(x) (round_up(x, bitsperlonglong) / 8)
+#define CPU_LONGLONGS(x) (CPU_BYTES(x) / sizeof(unsigned long long))
 
 struct bitmask {
-	unsigned long size; /* number of bits in the map */
-	unsigned long long *maskp;
+        unsigned long size; /* number of bits in the map */
+        unsigned long long *maskp;
 };
 
 /*
  * Allocate a bitmask for cpus, of a size large enough to
  * match the kernel's cpumask_t.
  */
-static struct bitmask *
-numa_allocate_cpumask(void)
+static struct bitmask *numa_allocate_cpumask(void)
 {
-	int ncpus = MAXCPU;
-	struct bitmask *bmp;
+        int ncpus = MAXCPU;
+        struct bitmask *bmp;
 
-	bmp = malloc(sizeof(*bmp));
-	if (!bmp)
-		ptrverify(bmp, "Malloc failed for numa bitmask");
+        bmp = malloc(sizeof(*bmp));
+        if (!bmp)
+                ptrverify(bmp, "Malloc failed for numa bitmask");
 
-	bmp->size = ncpus;
-	bmp->maskp = calloc(longlongsneeded(ncpus), sizeof(unsigned long long));
-	ptrverify((bmp->maskp), "Malloc failed for numa maskp");
+        bmp->size = ncpus;
+        bmp->maskp = calloc(longlongsneeded(ncpus), sizeof(unsigned long long));
+        ptrverify((bmp->maskp), "Malloc failed for numa maskp");
 
-	return bmp;
+        return bmp;
 }
 
-static void
-numa_free_cpumask(struct bitmask *bmp)
+static void numa_free_cpumask(struct bitmask *bmp)
 {
-	if (bmp == 0)
-		return;
+        if (bmp == 0)
+                return;
 
-	free(bmp->maskp);
-	bmp->maskp = (unsigned long long *)0xdeadcdef;  /* double free tripwire */
-	free(bmp);
-	return;
+        free(bmp->maskp);
+        bmp->maskp = (unsigned long long *)0xdeadcdef; /* double free tripwire */
+        free(bmp);
+        return;
 }
 
-static int
-numa_parse_bitmap_v2(char *line, struct bitmask *mask)
+static int numa_parse_bitmap_v2(char *line, struct bitmask *mask)
 {
-	int i;
-	char *p = strchr(line, '\n');
-	if (!p)
-		return -1;
+        int i;
+        char *p = strchr(line, '\n');
+        if (!p)
+                return -1;
 
-	int ncpus = mask->size;
+        int ncpus = mask->size;
 
-	for (i=0; p > line; i++) {
-		char *oldp, *endp;
-		oldp = p;
+        for (i = 0; p > line; i++) {
+                char *oldp, *endp;
+                oldp = p;
 
-		if (*p == ',')
-			--p;
+                if (*p == ',')
+                        --p;
 
-		while (p > line && *p != ',')
-			--p;
+                while (p > line && *p != ',')
+                        --p;
 
-		/* Eat two 32bit fields at a time to get longs */
-		if (p > line) {
-			oldp--;
-			memmove(p, p+1, oldp-p+1);
+                /* Eat two 32bit fields at a time to get longs */
+                if (p > line) {
+                        oldp--;
+                        memmove(p, p + 1, oldp - p + 1);
 
-			while (p > line && *p != ',')
-				--p;
-		}
+                        while (p > line && *p != ',')
+                                --p;
+                }
 
-		if (*p == ',')
-			p++;
+                if (*p == ',')
+                        p++;
 
-		if (i >= CPU_LONGLONGS(ncpus))
-			return -1;
+                if (i >= CPU_LONGLONGS(ncpus))
+                        return -1;
 
-		mask->maskp[i] = strtoull(p, &endp, 16);
-		if (endp != oldp)
-			return -1;
+                mask->maskp[i] = strtoull(p, &endp, 16);
+                if (endp != oldp)
+                        return -1;
 
-		p--;
-	}
+                p--;
+        }
 
-	return 0;
+        return 0;
 }
 
-void
-photosyst(struct sstat *si)
+void photosyst(struct sstat *si)
 {
-	static char	part_stats = 1; /* per-partition statistics ? */
-	static char	ib_stats = 1; 	/* InfiniBand statistics ? */
-	static char	ksm_stats = 1; 	
+        static char part_stats = 1; /* per-partition statistics ? */
+        static char ib_stats = 1;   /* InfiniBand statistics ? */
+        static char ksm_stats = 1;
 
-	static char	*lhugepagetot;	/* name of large hugepage dir total */
-					/* might be -1 if not applicable    */
-	static char	*lhugepagefree;	/* name of large hugepage dir free  */
-					/* might be -1 if not applicable    */
-	static unsigned int hpsize;
+        static char *lhugepagetot;  /* name of large hugepage dir total */
+                                    /* might be -1 if not applicable    */
+        static char *lhugepagefree; /* name of large hugepage dir free  */
+                                    /* might be -1 if not applicable    */
+        static unsigned int hpsize;
 
-	static count_t	lowwatermark;	/* accumulated low watermark zones  */
+        static count_t lowwatermark; /* accumulated low watermark zones  */
 
-        count_t onliners = 0;       	/* accumulated online CPUs          */
+        count_t onliners = 0; /* accumulated online CPUs          */
 
-
-	register int	i, nr, j;
-	count_t		cnts[MAXCNT];
-	float		lavg1, lavg5, lavg15;
-	FILE 		*fp;
-	DIR		*dirp;
-	struct dirent	*dentry;
-	char		linebuf[1024], nam[64], origdir[4096];
-	unsigned int	major, minor;
-	struct shm_info	shminfo;
-#if	HTTPSTATS
-	static int	wwwvalid = 1;
+        register int i, nr, j;
+        count_t cnts[MAXCNT];
+        float lavg1, lavg5, lavg15;
+        FILE *fp;
+        DIR *dirp;
+        struct dirent *dentry;
+        char linebuf[1024], nam[64], origdir[4096];
+        unsigned int major, minor;
+        struct shm_info shminfo;
+#if HTTPSTATS
+        static int wwwvalid = 1;
 #endif
 
-	memset(si, 0, sizeof(struct sstat));
+        memset(si, 0, sizeof(struct sstat));
 
-	if ( getcwd(origdir, sizeof origdir) == NULL)
-		mcleanstop(54, "failed to save current dir\n");
+        if (getcwd(origdir, sizeof origdir) == NULL)
+                mcleanstop(54, "failed to save current dir\n");
 
-	if ( chdir("/proc") == -1)
-		mcleanstop(54, "failed to change to /proc\n");
+        if (chdir("/proc") == -1)
+                mcleanstop(54, "failed to change to /proc\n");
 
-	/*
-	** gather various general statistics from the file /proc/stat and
-	** store them in binary form
-	*/
-	if ( (fp = fopen("stat", "r")) != NULL)
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf,
-			            "%63s %lld %lld %lld %lld %lld %lld %lld "
-			            "%lld %lld %lld %lld %lld %lld %lld %lld ",
-			  	nam,
-			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
-			  	&cnts[4],  &cnts[5],  &cnts[6],  &cnts[7],
-			  	&cnts[8],  &cnts[9],  &cnts[10], &cnts[11],
-			  	&cnts[12], &cnts[13], &cnts[14]);
+        /*
+        ** gather various general statistics from the file /proc/stat and
+        ** store them in binary form
+        */
+        if ((fp = fopen("stat", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf,
+                                    "%63s %lld %lld %lld %lld %lld %lld %lld "
+                                    "%lld %lld %lld %lld %lld %lld %lld %lld ",
+                                    nam, &cnts[0], &cnts[1], &cnts[2], &cnts[3], &cnts[4], &cnts[5],
+                                    &cnts[6], &cnts[7], &cnts[8], &cnts[9], &cnts[10], &cnts[11],
+                                    &cnts[12], &cnts[13], &cnts[14]);
 
-			if (nr < 2)		/* headerline ? --> skip */
-				continue;
+                        if (nr < 2) /* headerline ? --> skip */
+                                continue;
 
-			if ( strcmp("cpu", nam) == EQ)
-			{
-				si->cpu.all.utime	= cnts[0];
-				si->cpu.all.ntime	= cnts[1];
-				si->cpu.all.stime	= cnts[2];
-				si->cpu.all.itime	= cnts[3];
+                        if (strcmp("cpu", nam) == EQ) {
+                                si->cpu.all.utime = cnts[0];
+                                si->cpu.all.ntime = cnts[1];
+                                si->cpu.all.stime = cnts[2];
+                                si->cpu.all.itime = cnts[3];
 
-				if (nr > 5)	/* 2.6 kernel? */
-				{
-					si->cpu.all.wtime	= cnts[4];
-					si->cpu.all.Itime	= cnts[5];
-					si->cpu.all.Stime	= cnts[6];
+                                if (nr > 5) /* 2.6 kernel? */
+                                {
+                                        si->cpu.all.wtime = cnts[4];
+                                        si->cpu.all.Itime = cnts[5];
+                                        si->cpu.all.Stime = cnts[6];
 
-					if (nr > 8)	/* steal support */
-						si->cpu.all.steal = cnts[7];
+                                        if (nr > 8) /* steal support */
+                                                si->cpu.all.steal = cnts[7];
 
-					if (nr > 9)	/* guest support */
-						si->cpu.all.guest = cnts[8];
-				}
-				continue;
-			}
+                                        if (nr > 9) /* guest support */
+                                                si->cpu.all.guest = cnts[8];
+                                }
+                                continue;
+                        }
 
-			if ( strncmp("cpu", nam, 3) == EQ)
-			{
-				i = atoi(&nam[3]);
+                        if (strncmp("cpu", nam, 3) == EQ) {
+                                i = atoi(&nam[3]);
 
-				if (i >= MAXCPU)
-				{
-					fprintf(stderr, "cpu %s exceeds maximum of %d\n", nam, MAXCPU);
-					continue;
-				}
+                                if (i >= MAXCPU) {
+                                        fprintf(stderr, "cpu %s exceeds maximum of %d\n", nam,
+                                                MAXCPU);
+                                        continue;
+                                }
 
-				si->cpu.cpu[i].cpunr	= i;
-				si->cpu.cpu[i].online	= 1;
-				si->cpu.cpu[i].utime	= cnts[0];
-				si->cpu.cpu[i].ntime	= cnts[1];
-				si->cpu.cpu[i].stime	= cnts[2];
-				si->cpu.cpu[i].itime	= cnts[3];
+                                si->cpu.cpu[i].cpunr = i;
+                                si->cpu.cpu[i].online = 1;
+                                si->cpu.cpu[i].utime = cnts[0];
+                                si->cpu.cpu[i].ntime = cnts[1];
+                                si->cpu.cpu[i].stime = cnts[2];
+                                si->cpu.cpu[i].itime = cnts[3];
 
-				if (nr > 5)	/* 2.6 kernel? */
-				{
-					si->cpu.cpu[i].wtime	= cnts[4];
-					si->cpu.cpu[i].Itime	= cnts[5];
-					si->cpu.cpu[i].Stime	= cnts[6];
+                                if (nr > 5) /* 2.6 kernel? */
+                                {
+                                        si->cpu.cpu[i].wtime = cnts[4];
+                                        si->cpu.cpu[i].Itime = cnts[5];
+                                        si->cpu.cpu[i].Stime = cnts[6];
 
-					if (nr > 8)	/* steal support */
-						si->cpu.cpu[i].steal = cnts[7];
+                                        if (nr > 8) /* steal support */
+                                                si->cpu.cpu[i].steal = cnts[7];
 
-					if (nr > 9)	/* guest support */
-						si->cpu.cpu[i].guest = cnts[8];
-				}
+                                        if (nr > 9) /* guest support */
+                                                si->cpu.cpu[i].guest = cnts[8];
+                                }
 
-				si->cpu.nrcpu++;
+                                si->cpu.nrcpu++;
 
-				// accumulate the squares of the online CPUs
-				// to detect online/offline changes during
-				// the last interval
-				//
-				// the square of the CPU numbers avoid that
-				// switching off CPU 5 and 6, while switching
-				// on CPU 4 and 7 would not be detected
-				//
-				onliners += i*i;
+                                // accumulate the squares of the online CPUs
+                                // to detect online/offline changes during
+                                // the last interval
+                                //
+                                // the square of the CPU numbers avoid that
+                                // switching off CPU 5 and 6, while switching
+                                // on CPU 4 and 7 would not be detected
+                                //
+                                onliners += i * i;
 
-				if (si->cpu.maxcpu < i+1)
-					si->cpu.maxcpu = i+1;
+                                if (si->cpu.maxcpu < i + 1)
+                                        si->cpu.maxcpu = i + 1;
 
-				continue;
-			}
+                                continue;
+                        }
 
-			if ( strcmp("ctxt", nam) == EQ)
-			{
-				si->cpu.csw	= cnts[0];
-				continue;
-			}
+                        if (strcmp("ctxt", nam) == EQ) {
+                                si->cpu.csw = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("intr", nam) == EQ)
-			{
-				si->cpu.devint	= cnts[0];
-				continue;
-			}
+                        if (strcmp("intr", nam) == EQ) {
+                                si->cpu.devint = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("processes", nam) == EQ)
-			{
-				si->cpu.nprocs	= cnts[0];
-				continue;
-			}
+                        if (strcmp("processes", nam) == EQ) {
+                                si->cpu.nprocs = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("swap", nam) == EQ)   /* < 2.6 */
-			{
-				si->mem.swins	= cnts[0];
-				si->mem.swouts	= cnts[1];
-				continue;
-			}
-		}
+                        if (strcmp("swap", nam) == EQ) /* < 2.6 */
+                        {
+                                si->mem.swins = cnts[0];
+                                si->mem.swouts = cnts[1];
+                                continue;
+                        }
+                }
 
-		fclose(fp);
+                fclose(fp);
 
-		if (si->cpu.nrcpu == 0)
-			si->cpu.nrcpu = 1;
-	}
+                if (si->cpu.nrcpu == 0)
+                        si->cpu.nrcpu = 1;
+        }
 
-	/*
-	** gather loadaverage values from the file /proc/loadavg and
-	** store them in binary form
-	*/
-	if ( (fp = fopen("loadavg", "r")) != NULL)
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if ( sscanf(linebuf, "%f %f %f",
-				&lavg1, &lavg5, &lavg15) == 3)
-			{
-				si->cpu.lavg1	= lavg1;
-				si->cpu.lavg5	= lavg5;
-				si->cpu.lavg15	= lavg15;
-			}
-		}
+        /*
+        ** gather loadaverage values from the file /proc/loadavg and
+        ** store them in binary form
+        */
+        if ((fp = fopen("loadavg", "r")) != NULL) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%f %f %f", &lavg1, &lavg5, &lavg15) == 3) {
+                                si->cpu.lavg1 = lavg1;
+                                si->cpu.lavg5 = lavg5;
+                                si->cpu.lavg15 = lavg15;
+                        }
+                }
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	/*
-	** gather frequency scaling info.
-        ** sources (in order of preference): 
+        /*
+        ** gather frequency scaling info.
+        ** sources (in order of preference):
         **     /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
         ** or
         **     /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
         **     /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
         **
-	** store them in binary form
-	*/
+        ** store them in binary form
+        */
         static char fn[512];
-        int didone=0;
+        int didone = 0;
 
-	// check governor statistics
-	//
-        for (i=0; i < si->cpu.maxcpu; ++i)
+        // check governor statistics
+        //
+        for (i = 0; i < si->cpu.maxcpu; ++i) {
+                long long f = 0;
+
+                if (!si->cpu.cpu[i].online)
+                        continue;
+
+                snprintf(fn, sizeof fn, "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
+                         i);
+
+                if ((fp = fopen(fn, "r")) != 0) {
+                        long long hits = 0;
+                        long long maxfreq = 0;
+                        long long cnt = 0;
+                        long long sum = 0;
+
+                        while (fscanf(fp, "%lld %lld", &f, &cnt) == 2) {
+                                f /= 1000;
+                                sum += (f * cnt);
+                                hits += cnt;
+
+                                if (f > maxfreq)
+                                        maxfreq = f;
+                        }
+
+                        si->cpu.cpu[i].freqcnt.maxfreq = maxfreq;
+                        si->cpu.cpu[i].freqcnt.cnt = sum;
+                        si->cpu.cpu[i].freqcnt.ticks = hits;
+
+                        fclose(fp);
+                        didone = 1;
+                } else {
+                        break;
+                }
+        }
+
+        if (!didone) // did not get processor freq statistics yet
         {
-		long long f=0;
+                long long f = 0;
 
-		if (!si->cpu.cpu[i].online)
-			continue;
+                for (i = 0; i < si->cpu.maxcpu; ++i) {
+                        if (!si->cpu.cpu[i].online)
+                                continue;
 
-		snprintf(fn, sizeof fn,
-                   "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state", i);
+                        snprintf(fn, sizeof fn,
+                                 "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
 
-		if ((fp=fopen(fn, "r")) != 0)
-		{
-                    long long hits=0;
-                    long long maxfreq=0;
-                    long long cnt=0;
-                    long long sum=0;
+                        if ((fp = fopen(fn, "r")) != 0) {
+                                if (fscanf(fp, "%lld", &f) == 1) {
+                                        // convert KHz to MHz
+                                        si->cpu.cpu[i].freqcnt.maxfreq = f / 1000;
+                                }
 
-                    while (fscanf(fp, "%lld %lld", &f, &cnt) == 2)
-                    {
-                            f		/= 1000;
-                            sum 	+= (f*cnt);
-                            hits	+= cnt;
+                                fclose(fp);
+                        } else {
+                                si->cpu.cpu[i].freqcnt.maxfreq = 0;
+                        }
 
-                            if (f > maxfreq)
-                    		maxfreq=f;
-                    }
+                        snprintf(fn, sizeof fn,
+                                 "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", i);
 
-                    si->cpu.cpu[i].freqcnt.maxfreq = maxfreq;
-                    si->cpu.cpu[i].freqcnt.cnt	   = sum;
-                    si->cpu.cpu[i].freqcnt.ticks   = hits;
+                        if ((fp = fopen(fn, "r")) != 0) {
+                                if (fscanf(fp, "%lld", &f) == 1) {
+                                        // convert KHz to MHz
+                                        si->cpu.cpu[i].freqcnt.cnt = f / 1000;
+                                        si->cpu.cpu[i].freqcnt.ticks = 0;
+                                }
 
-                    fclose(fp);
-	            didone=1;
-		}
-		else
-		{
-			break;
-		}
-	}
-
-        if (!didone)     // did not get processor freq statistics yet
-	{
-		long long f=0;
-
-        	for (i=0; i < si->cpu.maxcpu; ++i)
-        	{
-			if (!si->cpu.cpu[i].online)
-				continue;
-
-        		snprintf(fn, sizeof fn, 
-               		       "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
-
-               	 	if ((fp=fopen(fn, "r")) != 0)
-                	{
-                        	if (fscanf(fp, "%lld", &f) == 1)
-                        	{
-  					// convert KHz to MHz
-	                        	si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
-                        	}
-
-                        	fclose(fp);
-                	}
-                	else 
-                	{
-	                	si->cpu.cpu[i].freqcnt.maxfreq=0;
-                	}
-
-                	snprintf(fn, sizeof fn,
-                       		"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
-		       	i);
-        
-                	if ((fp=fopen(fn, "r")) != 0)
-                	{
-                 		if (fscanf(fp, "%lld", &f) == 1)
-                        	{
-   					// convert KHz to MHz
-                                	si->cpu.cpu[i].freqcnt.cnt   = f/1000;
-                                	si->cpu.cpu[i].freqcnt.ticks = 0;
-                        	}
-	
-                        	fclose(fp);
-                        	didone=1;
-                	}
-                	else
-                	{
-                        	si->cpu.cpu[i].freqcnt.cnt	= 0;
-                        	si->cpu.cpu[i].freqcnt.ticks 	= 0;
-                	}
-		}
+                                fclose(fp);
+                                didone = 1;
+                        } else {
+                                si->cpu.cpu[i].freqcnt.cnt = 0;
+                                si->cpu.cpu[i].freqcnt.ticks = 0;
+                        }
+                }
         } // for all CPUs
 
-        if (!didone)     // did not get processor freq statistics.
-                         // use /proc/cpuinfo
+        if (!didone) // did not get processor freq statistics.
+                     // use /proc/cpuinfo
         {
-	        if ( (fp = fopen("cpuinfo", "r")) != NULL)
-                {
+                if ((fp = fopen("cpuinfo", "r")) != NULL) {
                         // get information from the lines
                         // processor\t: 0
                         // cpu MHz\t\t: 800.000
-                        
-                        int cpuno=-1;
 
-		        while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-                        {
-                                if (strncmp(linebuf, "processor", 9)== EQ)
-					sscanf(linebuf, "%*s %*s %d", &cpuno);
+                        int cpuno = -1;
 
-                                if (strncmp(linebuf, "cpu MHz", 7) == EQ)
-				{
-                                        if (cpuno >= 0 && cpuno < si->cpu.maxcpu)
-					{
-						sscanf(linebuf,
-							"%*s %*s %*s %lld",
-                                	     		&(si->cpu.cpu[cpuno].freqcnt.cnt));
-					}
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                if (strncmp(linebuf, "processor", 9) == EQ)
+                                        sscanf(linebuf, "%*s %*s %d", &cpuno);
+
+                                if (strncmp(linebuf, "cpu MHz", 7) == EQ) {
+                                        if (cpuno >= 0 && cpuno < si->cpu.maxcpu) {
+                                                sscanf(linebuf, "%*s %*s %*s %lld",
+                                                       &(si->cpu.cpu[cpuno].freqcnt.cnt));
+                                        }
                                 }
                         }
 
-			fclose(fp);
+                        fclose(fp);
                 }
-
         }
 
-	/*
-	** gather virtual memory statistics from the file /proc/vmstat and
-	** store them in binary form (>= kernel 2.6)
-	*/
-	si->mem.oomkills     = -1;
+        /*
+        ** gather virtual memory statistics from the file /proc/vmstat and
+        ** store them in binary form (>= kernel 2.6)
+        */
+        si->mem.oomkills = -1;
 
-	si->mem.allocstall   = 0;
-	si->mem.numamigrate  = 0;
-	si->mem.pgmigrate    = 0;
+        si->mem.allocstall = 0;
+        si->mem.numamigrate = 0;
+        si->mem.pgmigrate = 0;
 
-	if ( (fp = fopen("vmstat", "r")) != NULL)
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
+        if ((fp = fopen("vmstat", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
 
-			if (nr < 2)		/* headerline ? --> skip */
-				continue;
+                        if (nr < 2) /* headerline ? --> skip */
+                                continue;
 
-			/* pgpgin & pgpgout fields in KB from vmstat */
-			if ( strcmp("pgpgin", nam) == EQ)
-			{
-				si->mem.pgins   = cnts[0] * 1024 / pagesize;
-				continue;
-			}
+                        /* pgpgin & pgpgout fields in KB from vmstat */
+                        if (strcmp("pgpgin", nam) == EQ) {
+                                si->mem.pgins = cnts[0] * 1024 / pagesize;
+                                continue;
+                        }
 
-			if ( strcmp("pgpgout", nam) == EQ)
-			{
-				si->mem.pgouts   = cnts[0] * 1024 / pagesize;
-				continue;
-			}
+                        if (strcmp("pgpgout", nam) == EQ) {
+                                si->mem.pgouts = cnts[0] * 1024 / pagesize;
+                                continue;
+                        }
 
-			if ( strcmp("pswpin", nam) == EQ)
-			{
-				si->mem.swins   = cnts[0];
-				continue;
-			}
+                        if (strcmp("pswpin", nam) == EQ) {
+                                si->mem.swins = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("pswpout", nam) == EQ)
-			{
-				si->mem.swouts  = cnts[0];
-				continue;
-			}
+                        if (strcmp("pswpout", nam) == EQ) {
+                                si->mem.swouts = cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgscan_kswapd", nam, 13) == EQ)
-			{
-				si->mem.pgscans += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgscan_kswapd", nam, 13) == EQ) {
+                                si->mem.pgscans += cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgscan_direct", nam, 13) == EQ)
-			{
-				si->mem.pgscans += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgscan_direct", nam, 13) == EQ) {
+                                si->mem.pgscans += cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgscan_khugepaged", nam, 17) == EQ)
-			{
-				si->mem.pgscans += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgscan_khugepaged", nam, 17) == EQ) {
+                                si->mem.pgscans += cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgsteal_kswapd", nam, 14) == EQ)
-			{
-				si->mem.pgsteal += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgsteal_kswapd", nam, 14) == EQ) {
+                                si->mem.pgsteal += cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgsteal_direct", nam, 14) == EQ)
-			{
-				si->mem.pgsteal += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgsteal_direct", nam, 14) == EQ) {
+                                si->mem.pgsteal += cnts[0];
+                                continue;
+                        }
 
-			if ( strncmp("pgsteal_khugepaged", nam, 18) == EQ)
-			{
-				si->mem.pgsteal += cnts[0];
-				continue;
-			}
+                        if (strncmp("pgsteal_khugepaged", nam, 18) == EQ) {
+                                si->mem.pgsteal += cnts[0];
+                                continue;
+                        }
 
-			// more counters might start with "allocstall"
-			if ( strncmp("allocstall", nam, 10) == EQ)
-			{
-				si->mem.allocstall += cnts[0];
-				continue;
-			}
+                        // more counters might start with "allocstall"
+                        if (strncmp("allocstall", nam, 10) == EQ) {
+                                si->mem.allocstall += cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("oom_kill", nam) == EQ)
-			{
-				si->mem.oomkills = cnts[0];
-				continue;
-			}
+                        if (strcmp("oom_kill", nam) == EQ) {
+                                si->mem.oomkills = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("compact_stall", nam) == EQ) {
-				si->mem.compactstall = cnts[0];
-				continue;
-			}
+                        if (strcmp("compact_stall", nam) == EQ) {
+                                si->mem.compactstall = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("numa_pages_migrated", nam) == EQ) {
-				si->mem.numamigrate = cnts[0];
-				continue;
-			}
+                        if (strcmp("numa_pages_migrated", nam) == EQ) {
+                                si->mem.numamigrate = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("pgmigrate_success", nam) == EQ) {
-				si->mem.pgmigrate = cnts[0];
-				continue;
-			}
+                        if (strcmp("pgmigrate_success", nam) == EQ) {
+                                si->mem.pgmigrate = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("zswpout", nam) == EQ) {
-				si->mem.zswouts = cnts[0];
-				continue;
-			}
+                        if (strcmp("zswpout", nam) == EQ) {
+                                si->mem.zswouts = cnts[0];
+                                continue;
+                        }
 
-			if ( strcmp("zswpin", nam) == EQ) {
-				si->mem.zswins = cnts[0];
-				continue;
-			}
-		}
+                        if (strcmp("zswpin", nam) == EQ) {
+                                si->mem.zswins = cnts[0];
+                                continue;
+                        }
+                }
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	/*
-	** gather memory-related statistics from the file /proc/meminfo and
-	** store them in binary form
-	**
-	** in the file /proc/meminfo a 2.4 kernel starts with two lines
-	** headed by the strings "Mem:" and "Swap:" containing all required
-	** fields, except proper value for page cache
+        /*
+        ** gather memory-related statistics from the file /proc/meminfo and
+        ** store them in binary form
+        **
+        ** in the file /proc/meminfo a 2.4 kernel starts with two lines
+        ** headed by the strings "Mem:" and "Swap:" containing all required
+        ** fields, except proper value for page cache
         ** if these lines are present we try to skip parsing the rest
-	** of the lines; if these lines are not present we should get the
-	** required field from other lines
-	*/
-	si->mem.physmem	 	= (count_t)-1; 
-	si->mem.freemem		= (count_t)-1;
-	si->mem.buffermem	= (count_t)-1;
-	si->mem.cachemem  	= (count_t)-1;
-	si->mem.slabmem		= (count_t) 0;
-	si->mem.slabreclaim	= (count_t) 0;
-	si->mem.shmem 		= (count_t) 0;
-	si->mem.totswap  	= (count_t)-1;
-	si->mem.freeswap 	= (count_t)-1;
-	si->mem.swapcached 	= (count_t) 0;
-	si->mem.committed 	= (count_t) 0;
-	si->mem.pagetables 	= (count_t) 0;
-
-	if ( (fp = fopen("meminfo", "r")) != NULL)
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf,
-				"%63s %lld %lld %lld %lld %lld %lld %lld "
-			        "%lld %lld %lld\n",
-				nam,
-			  	&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
-			  	&cnts[4],  &cnts[5],  &cnts[6],  &cnts[7],
-			  	&cnts[8],  &cnts[9]);
-
-			if (nr < 2)		/* headerline ? --> skip */
-				continue;
-
-			if ( strcmp("Mem:", nam) == EQ)
-			{
-				si->mem.physmem	 	= cnts[0] / pagesize; 
-				si->mem.freemem		= cnts[2] / pagesize;
-				si->mem.buffermem	= cnts[4] / pagesize;
-			}
-			else	if ( strcmp("Swap:", nam) == EQ)
-				{
-					si->mem.totswap  = cnts[0] / pagesize;
-					si->mem.freeswap = cnts[2] / pagesize;
-				}
-			else	if (strcmp("Cached:", nam) == EQ)
-				{
-					if (si->mem.cachemem  == (count_t)-1)
-					{
-						si->mem.cachemem  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("Dirty:", nam) == EQ)
-				{
-					si->mem.cachedrt  =
-							cnts[0]*1024/pagesize;
-				}
-			else	if (strcmp("MemTotal:", nam) == EQ)
-				{
-					if (si->mem.physmem  == (count_t)-1)
-					{
-						si->mem.physmem  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("MemFree:", nam) == EQ)
-				{
-					if (si->mem.freemem  == (count_t)-1)
-					{
-						si->mem.freemem  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("MemAvailable:", nam) == EQ)
-				{
-					si->mem.availablemem  =
-							cnts[0]*1024/pagesize;
-				}
-			else	if (strcmp("Buffers:", nam) == EQ)
-				{
-					if (si->mem.buffermem  == (count_t)-1)
-					{
-						si->mem.buffermem  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("Shmem:", nam) == EQ)
-				{
-					si->mem.shmem = cnts[0]*1024/pagesize;
-				}
-			else	if (strcmp("SwapTotal:", nam) == EQ)
-				{
-					if (si->mem.totswap  == (count_t)-1)
-					{
-						si->mem.totswap  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("SwapFree:", nam) == EQ)
-				{
-					if (si->mem.freeswap  == (count_t)-1)
-					{
-						si->mem.freeswap  =
-							cnts[0]*1024/pagesize;
-					}
-				}
-			else	if (strcmp("SwapCached:", nam) == EQ)
-				{
-					si->mem.swapcached  =
-							cnts[0]*1024/pagesize;
-				}
-			else	if (strcmp("Slab:", nam) == EQ)
-				{
-					si->mem.slabmem = cnts[0]*1024/pagesize;
-				}
-			else	if (strcmp("SReclaimable:", nam) == EQ)
-				{
-					si->mem.slabreclaim = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("Committed_AS:", nam) == EQ)
-				{
-					si->mem.committed = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("CommitLimit:", nam) == EQ)
-				{
-					si->mem.commitlim = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("AnonHugePages:", nam) == EQ)
-				{
-					si->mem.anonhugepage = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("HugePages_Total:", nam) == EQ)
-				{
-					si->mem.stothugepage = cnts[0];
-				}
-			else	if (strcmp("HugePages_Free:", nam) == EQ)
-				{
-					si->mem.sfreehugepage = cnts[0];
-				}
-			else	if (strcmp("Hugepagesize:", nam) == EQ)
-				{
-					si->mem.shugepagesz = cnts[0]*1024;
-				}
-			else	if (strcmp("PageTables:", nam) == EQ)
-				{
-					si->mem.pagetables = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("Zswap:", nam) == EQ)
-				{
-					si->mem.zswap = cnts[0]*1024/
-								pagesize;
-				}
-			else	if (strcmp("Zswapped:", nam) == EQ)
-				{
-					si->mem.zswapped = cnts[0]*1024/
-								pagesize;
-				}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** calculate the accumulated low watermark of all memory zones
-	** 
-	** since this is a time-consuming operation the value is determined
-	** only once, even if it changes when /proc/sys/vm/min_free_kbytes
-	** is modified (frequent modification is unlikely)
-	*/
-	if (lowwatermark == 0)
-	{
-		if ( (fp = fopen("zoneinfo", "r")) != NULL)
-		{
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
-
-				if (nr < 2)
-					continue;
-
-				if ( strcmp("low", nam) == EQ)
-					lowwatermark += cnts[0];
-			}
-
-			fclose(fp);
-		}
-	}
-
-	si->mem.lowwatermark = lowwatermark;
-
-	/*
- 	** gather values of larger huge pages that are not provided
-	** by /proc/meminfo
-	**
-	** all required hugepage info can be found in:
-	**
-	**    /sys/kernel/mm/hugepages/hugepages-1048576kB
-	**                                                /free_hugepages
-	**                                                /nr_hugepages
-	**
-	**    /sys/kernel/mm/hugepages/hugepages-2048kB
-	**                                                /free_hugepages
-	**                                                /nr_hugepages
-	**
-	** the info about the smaller hugepages (2M) is already
-	** read from /proc/memory
-	** 
-	** first time initialization:
-	**   find out if there is a large hugepage directory
-	*/
-	if (!lhugepagetot)
-	{
-		lhugepagetot  = (char *) -1;	// should be overwritten
-		lhugepagefree = (char *) -1;	// should be overwritten
-
-		dirp = opendir(HUGEPAGEDIR);
-
-		if (dirp)
-		{
-			/*
-			** read directory entries that start with "hugepages-"
-			*/
-			while ( (dentry = readdir(dirp)) )
-			{
-				if (strncmp(dentry->d_name, "hugepages-", 10))
-					continue;
-
-				hpsize = strtoul(dentry->d_name+10, NULL, 0) * 1024;
-
-				if (hpsize == si->mem.shugepagesz)
-					continue;	// values already known
-
-				/*
- 				** directory name of larger hugepages found:
-				** store for use in subsequent intervals
-				*/
-				lhugepagetot = malloc(sizeof HUGEPAGEDIR + 1 +
-							strlen(dentry->d_name) + 1 +
-							sizeof "nr_hugepages" + 1);
-
-				ptrverify(lhugepagetot,
-					"Malloc failed for huge page total");
-
-				snprintf(lhugepagetot,
-						sizeof HUGEPAGEDIR + 1 +
-				                strlen(dentry->d_name) + 1 +
-						sizeof "nr_hugepages" + 1,
-						"%s/%s/nr_hugepages", HUGEPAGEDIR, dentry->d_name);
-
-
-				lhugepagefree = malloc(sizeof HUGEPAGEDIR + 1 +
-							strlen(dentry->d_name) + 1 +
-							sizeof "free_hugepages" + 1);
-
-				ptrverify(lhugepagefree,
-					"Malloc failed for huge page free");
-
-				snprintf(lhugepagefree, sizeof HUGEPAGEDIR + 1 + 
-				                        strlen(dentry->d_name) + 1 +
-                                                        sizeof "free_hugepages" + 1,
-						"%s/%s/free_hugepages", HUGEPAGEDIR, dentry->d_name);
-
-				break;
-			}
-
-			closedir(dirp);
-		}
-	}
-
-	// large hugepages for each interval:
-	//
-	if ( lhugepagetot != (char *)-1 && (fp = fopen(lhugepagetot, "r")) != NULL)
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			nr = sscanf(linebuf, "%lld", &si->mem.ltothugepage);
-
-		fclose(fp);
-	}
-
-	if ( lhugepagefree != (char *)-1 && (fp = fopen(lhugepagefree, "r")) != NULL)
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			nr = sscanf(linebuf, "%lld", &si->mem.lfreehugepage);
-
-		fclose(fp);
-	}
-
-	si->mem.lhugepagesz = hpsize;
-
-	/*
-	** gather vmware-related statistics from /sys/kernel/debug/vmmemctl
-	** (only present if balloon driver enabled) or from /proc/vmmemctl
-	** for older balloon driver implementations
-	*/ 
-	si->mem.vmwballoon = (count_t) -1;
-
-	if ( (fp = fopen("/sys/kernel/debug/vmmemctl", "r")) != NULL ||
-	     (fp = fopen("/proc/vmmemctl",             "r")) != NULL   )
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf, "%63s %lld ", nam, &cnts[0]);
-
-			if ( strcmp("current:", nam) == EQ)
-			{
-				si->mem.vmwballoon = cnts[0];
-				break;
-			}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** ZFSonlinux: gather size of ARC cache in memory
-	** searching for:
-	** 	size       4    519101312
-	*/ 
-	si->mem.zfsarcsize = (count_t) -1;
-
-	if ( (fp = fopen("spl/kstat/zfs/arcstats", "r")) != NULL)
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf,
-				"%63s %lld %lld", nam, &cnts[0], &cnts[1]);
-
-			if (nr < 3)
-				continue;
-
-			if ( strcmp("size", nam) == EQ)
-			{
-				si->mem.zfsarcsize = cnts[1] / pagesize;
-				break;
-			}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** gather per numa memory-related statistics from the file
-	** /sys/devices/system/node/node0/meminfo, and store them in binary form.
-	*/
-	dirp = opendir(NUMADIR);
-
-	if (dirp)
-	{
-		/*
-		** read every directory-entry and search for all numa nodes
-		*/
-		while ( (dentry = readdir(dirp)) )
-		{
-			if (strncmp(dentry->d_name, "node", 4))
-				continue;
-
-			j = strtoul(dentry->d_name + 4, NULL, 0);
-
-			if (j >= MAXNUMA)	// too many NUMA nodes?
-				continue;	// skip (no break, because order unknown)
-
-			si->memnuma.nrnuma++;
-
-			snprintf(fn, sizeof fn, NUMADIR "/%s/meminfo", dentry->d_name);
-
-			if ( (fp = fopen(fn, "r")) != NULL)
-			{
-				while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-				{
-					nr = sscanf(&linebuf[5],
-						"%lld %63s %lld\n",
-						&cnts[0], nam, &cnts[1]);
-
-					if (cnts[0] != j)
-						continue;
-
-					si->memnuma.numa[j].numanr = j;
-					if ( strcmp("MemTotal:", nam) == EQ)
-						si->memnuma.numa[j].totmem = cnts[1]*1024/pagesize;
-					else if ( strcmp("MemFree:", nam) == EQ)
-						si->memnuma.numa[j].freemem = cnts[1]*1024/pagesize;
-					else if ( strcmp("FilePages:", nam) == EQ)
-						si->memnuma.numa[j].filepage = cnts[1]*1024/pagesize;
-					else if ( strcmp("Active:", nam) == EQ)
-						si->memnuma.numa[j].active = cnts[1]*1024/pagesize;
-					else if ( strcmp("Inactive:", nam) == EQ)
-						si->memnuma.numa[j].inactive = cnts[1]*1024/pagesize;
-					else if ( strcmp("Dirty:", nam) == EQ)
-						si->memnuma.numa[j].dirtymem = cnts[1]*1024/pagesize;
-					else if ( strcmp("Shmem:", nam) == EQ)
-						si->memnuma.numa[j].shmem = cnts[1]*1024/pagesize;
-					else if ( strcmp("Slab:", nam) == EQ)
-						si->memnuma.numa[j].slabmem = cnts[1]*1024/pagesize;
-					else if ( strcmp("SReclaimable:", nam) == EQ)
-						si->memnuma.numa[j].slabreclaim = cnts[1]*1024/pagesize;
-					else if ( strcmp("HugePages_Total:", nam) == EQ)
-						si->memnuma.numa[j].tothp = cnts[1];
-					else if ( strcmp("HugePages_Free:", nam) == EQ)
-						si->memnuma.numa[j].freehp = cnts[1];
-				}
-
-				fclose(fp);
-			}
-		}
-
-		closedir(dirp);
-	}
-
-	/* gather fragmentation level for per numa, only for 'Normal' */
-	if (si->memnuma.nrnuma > 0)
-	{
-		char tmp[64];
-		float frag[MAX_ORDER];
-
-		/* If kernel CONFIG_COMPACTION is enabled, get the percentage directly */
-		if ( (fp = fopen("/sys/kernel/debug/extfrag/unusable_index", "r")) != NULL )
-		{
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
-			{
-				nr = sscanf(&linebuf[5],
-					"%lld, %63s %63s %f %f %f %f %f %f %f %f %f %f %f\n",
-					&cnts[0], tmp, nam, &frag[0], &frag[1], &frag[2],
-					&frag[3], &frag[4], &frag[5], &frag[6], &frag[7],
-					&frag[8], &frag[9], &frag[10]);
-
-				if ( nr < 3 || strcmp("Normal", nam) != 0 )
-					continue;
-
-				for (i = 0; i < MAX_ORDER; i++)
-					si->memnuma.numa[cnts[0]].frag += frag[i];
-
-				si->memnuma.numa[cnts[0]].frag /= MAX_ORDER;
-			}
-			fclose(fp);
-		}
-		/* If CONFIG_COMPACTION is not enabled, calculate from buddyinfo file */
-		else if ( (fp = fopen("/proc/buddyinfo", "r")) != NULL )
-		{
-			count_t free_page[MAX_ORDER];
-			count_t total_free, prev_free;
-			float total_frag;
-
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL )
-			{
-				nr = sscanf(&linebuf[5],
-					"%lld, %63s %63s %lld %lld %lld %lld %lld "
-					"%lld %lld %lld %lld %lld %lld\n",
-					&cnts[0], tmp, nam, &cnts[1], &cnts[2], &cnts[3],
-					&cnts[4], &cnts[5], &cnts[6], &cnts[7], &cnts[8],
-					&cnts[9], &cnts[10], &cnts[11]);
-
-				if (nr < 3 || strcmp("Normal", nam) != 0 )
-					continue;
-
-				/* get free pages numbers for each order, and total free pages */
-				total_free = 0;
-				total_frag = 0.00;
-				for (i = 0; i < MAX_ORDER; i++)
-				{
-					free_page[i] = cnts[i+1] << i;
-					total_free += free_page[i];
-				}
-				/* get fragmentation level for each order, then summarize */
-				for (i = 0; i < MAX_ORDER; i++)
-				{
-					prev_free = 0;
-					for (j = 0; j < i; j++)
-						prev_free += free_page[j];
-					total_frag += (float)prev_free/total_free;
-				}
-
-				if (cnts[0] < MAXNUMA)
-					si->memnuma.numa[cnts[0]].frag = total_frag/MAX_ORDER;
-			}
-			fclose(fp);
-		}
-	}
-
-	/*
-	** accumulate each cpu statistic for per NUMA, and identify numa/cpu
-	** relationship from /sys/devices/system/node/node0/cpumap.
-	*/
-	if (si->memnuma.nrnuma > 1)
-	{
-		char *line = NULL;
-		size_t len = 0;
-		struct bitmask *mask;
-
-		mask = numa_allocate_cpumask();
-
-		si->cpunuma.nrnuma = si->memnuma.nrnuma;
-
-		for (j=0; j < si->cpunuma.nrnuma; j++)
-		{
-			snprintf(fn, sizeof fn, NUMADIR "/node%d/cpumap", j);
-
-			if ( (fp = fopen(fn, "r")) != 0)
-			{
-				if ( getdelim(&line, &len, '\n', fp) > 0 )
-				{
-					if (numa_parse_bitmap_v2(line, mask) < 0)
-					{
-						mcleanstop(54, "failed to parse numa bitmap\n");
-					}
-				}
-				fclose(fp);
-			}
-
-			for (i=0; i < mask->size && i < MAXCPU; i++)
-			{
-				if ( (si->cpu.cpu[i].online &&
-					mask->maskp[i/bitsperlonglong] >> (i % bitsperlonglong)) & 1 )
-				{
-					si->cpunuma.numa[j].nrcpu++;
-					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
-					si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
-					si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
-					si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
-					si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
-					si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
-					si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
-					si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
-					si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
-				}
-			}
-			si->cpunuma.numa[j].numanr = j;
-		}
-
-		free(line);
-		numa_free_cpumask(mask);
-	}
-	else
-	{
-		si->cpunuma.nrnuma = 0;
-	}
-
-	/*
-	** gather network-related statistics
- 	** 	- interface stats from the file /proc/net/dev
- 	** 	- IPv4      stats from the file /proc/net/snmp
- 	** 	- IPv6      stats from the file /proc/net/snmp6
- 	** 	- sock mem  stats from the file /proc/net/sockstat
-	*/
-
-	/*
-	** interface statistics
-	*/
-	initifprop();   // periodically refresh interface properties
-
-	if ( (fp = fopen("net/dev", "r")) != NULL)
-	{
-		struct ifprop ifprop;
-		char *cp;
-
-		i = 0;
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if ( (cp = strchr(linebuf, ':')) != NULL)
-				*cp = ' ';      /* substitute ':' by space */
-
-			nr = sscanf(linebuf,
+        ** of the lines; if these lines are not present we should get the
+        ** required field from other lines
+        */
+        si->mem.physmem = (count_t)-1;
+        si->mem.freemem = (count_t)-1;
+        si->mem.buffermem = (count_t)-1;
+        si->mem.cachemem = (count_t)-1;
+        si->mem.slabmem = (count_t)0;
+        si->mem.slabreclaim = (count_t)0;
+        si->mem.shmem = (count_t)0;
+        si->mem.totswap = (count_t)-1;
+        si->mem.freeswap = (count_t)-1;
+        si->mem.swapcached = (count_t)0;
+        si->mem.committed = (count_t)0;
+        si->mem.pagetables = (count_t)0;
+
+        if ((fp = fopen("meminfo", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf,
+                                    "%63s %lld %lld %lld %lld %lld %lld %lld "
+                                    "%lld %lld %lld\n",
+                                    nam, &cnts[0], &cnts[1], &cnts[2], &cnts[3], &cnts[4], &cnts[5],
+                                    &cnts[6], &cnts[7], &cnts[8], &cnts[9]);
+
+                        if (nr < 2) /* headerline ? --> skip */
+                                continue;
+
+                        if (strcmp("Mem:", nam) == EQ) {
+                                si->mem.physmem = cnts[0] / pagesize;
+                                si->mem.freemem = cnts[2] / pagesize;
+                                si->mem.buffermem = cnts[4] / pagesize;
+                        } else if (strcmp("Swap:", nam) == EQ) {
+                                si->mem.totswap = cnts[0] / pagesize;
+                                si->mem.freeswap = cnts[2] / pagesize;
+                        } else if (strcmp("Cached:", nam) == EQ) {
+                                if (si->mem.cachemem == (count_t)-1) {
+                                        si->mem.cachemem = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("Dirty:", nam) == EQ) {
+                                si->mem.cachedrt = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("MemTotal:", nam) == EQ) {
+                                if (si->mem.physmem == (count_t)-1) {
+                                        si->mem.physmem = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("MemFree:", nam) == EQ) {
+                                if (si->mem.freemem == (count_t)-1) {
+                                        si->mem.freemem = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("MemAvailable:", nam) == EQ) {
+                                si->mem.availablemem = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("Buffers:", nam) == EQ) {
+                                if (si->mem.buffermem == (count_t)-1) {
+                                        si->mem.buffermem = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("Shmem:", nam) == EQ) {
+                                si->mem.shmem = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("SwapTotal:", nam) == EQ) {
+                                if (si->mem.totswap == (count_t)-1) {
+                                        si->mem.totswap = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("SwapFree:", nam) == EQ) {
+                                if (si->mem.freeswap == (count_t)-1) {
+                                        si->mem.freeswap = cnts[0] * 1024 / pagesize;
+                                }
+                        } else if (strcmp("SwapCached:", nam) == EQ) {
+                                si->mem.swapcached = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("Slab:", nam) == EQ) {
+                                si->mem.slabmem = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("SReclaimable:", nam) == EQ) {
+                                si->mem.slabreclaim = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("Committed_AS:", nam) == EQ) {
+                                si->mem.committed = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("CommitLimit:", nam) == EQ) {
+                                si->mem.commitlim = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("AnonHugePages:", nam) == EQ) {
+                                si->mem.anonhugepage = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("HugePages_Total:", nam) == EQ) {
+                                si->mem.stothugepage = cnts[0];
+                        } else if (strcmp("HugePages_Free:", nam) == EQ) {
+                                si->mem.sfreehugepage = cnts[0];
+                        } else if (strcmp("Hugepagesize:", nam) == EQ) {
+                                si->mem.shugepagesz = cnts[0] * 1024;
+                        } else if (strcmp("PageTables:", nam) == EQ) {
+                                si->mem.pagetables = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("Zswap:", nam) == EQ) {
+                                si->mem.zswap = cnts[0] * 1024 / pagesize;
+                        } else if (strcmp("Zswapped:", nam) == EQ) {
+                                si->mem.zswapped = cnts[0] * 1024 / pagesize;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** calculate the accumulated low watermark of all memory zones
+        **
+        ** since this is a time-consuming operation the value is determined
+        ** only once, even if it changes when /proc/sys/vm/min_free_kbytes
+        ** is modified (frequent modification is unlikely)
+        */
+        if (lowwatermark == 0) {
+                if ((fp = fopen("zoneinfo", "r")) != NULL) {
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(linebuf, "%63s %lld", nam, &cnts[0]);
+
+                                if (nr < 2)
+                                        continue;
+
+                                if (strcmp("low", nam) == EQ)
+                                        lowwatermark += cnts[0];
+                        }
+
+                        fclose(fp);
+                }
+        }
+
+        si->mem.lowwatermark = lowwatermark;
+
+        /*
+        ** gather values of larger huge pages that are not provided
+        ** by /proc/meminfo
+        **
+        ** all required hugepage info can be found in:
+        **
+        **    /sys/kernel/mm/hugepages/hugepages-1048576kB
+        **                                                /free_hugepages
+        **                                                /nr_hugepages
+        **
+        **    /sys/kernel/mm/hugepages/hugepages-2048kB
+        **                                                /free_hugepages
+        **                                                /nr_hugepages
+        **
+        ** the info about the smaller hugepages (2M) is already
+        ** read from /proc/memory
+        **
+        ** first time initialization:
+        **   find out if there is a large hugepage directory
+        */
+        if (!lhugepagetot) {
+                lhugepagetot = (char *)-1;  // should be overwritten
+                lhugepagefree = (char *)-1; // should be overwritten
+
+                dirp = opendir(HUGEPAGEDIR);
+
+                if (dirp) {
+                        /*
+                        ** read directory entries that start with "hugepages-"
+                        */
+                        while ((dentry = readdir(dirp))) {
+                                if (strncmp(dentry->d_name, "hugepages-", 10))
+                                        continue;
+
+                                hpsize = strtoul(dentry->d_name + 10, NULL, 0) * 1024;
+
+                                if (hpsize == si->mem.shugepagesz)
+                                        continue; // values already known
+
+                                /*
+                                ** directory name of larger hugepages found:
+                                ** store for use in subsequent intervals
+                                */
+                                lhugepagetot =
+                                    malloc(sizeof HUGEPAGEDIR + 1 + strlen(dentry->d_name) + 1 +
+                                           sizeof "nr_hugepages" + 1);
+
+                                ptrverify(lhugepagetot, "Malloc failed for huge page total");
+
+                                snprintf(lhugepagetot,
+                                         sizeof HUGEPAGEDIR + 1 + strlen(dentry->d_name) + 1 +
+                                             sizeof "nr_hugepages" + 1,
+                                         "%s/%s/nr_hugepages", HUGEPAGEDIR, dentry->d_name);
+
+                                lhugepagefree =
+                                    malloc(sizeof HUGEPAGEDIR + 1 + strlen(dentry->d_name) + 1 +
+                                           sizeof "free_hugepages" + 1);
+
+                                ptrverify(lhugepagefree, "Malloc failed for huge page free");
+
+                                snprintf(lhugepagefree,
+                                         sizeof HUGEPAGEDIR + 1 + strlen(dentry->d_name) + 1 +
+                                             sizeof "free_hugepages" + 1,
+                                         "%s/%s/free_hugepages", HUGEPAGEDIR, dentry->d_name);
+
+                                break;
+                        }
+
+                        closedir(dirp);
+                }
+        }
+
+        // large hugepages for each interval:
+        //
+        if (lhugepagetot != (char *)-1 && (fp = fopen(lhugepagetot, "r")) != NULL) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL)
+                        nr = sscanf(linebuf, "%lld", &si->mem.ltothugepage);
+
+                fclose(fp);
+        }
+
+        if (lhugepagefree != (char *)-1 && (fp = fopen(lhugepagefree, "r")) != NULL) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL)
+                        nr = sscanf(linebuf, "%lld", &si->mem.lfreehugepage);
+
+                fclose(fp);
+        }
+
+        si->mem.lhugepagesz = hpsize;
+
+        /*
+        ** gather vmware-related statistics from /sys/kernel/debug/vmmemctl
+        ** (only present if balloon driver enabled) or from /proc/vmmemctl
+        ** for older balloon driver implementations
+        */
+        si->mem.vmwballoon = (count_t)-1;
+
+        if ((fp = fopen("/sys/kernel/debug/vmmemctl", "r")) != NULL ||
+            (fp = fopen("/proc/vmmemctl", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%63s %lld ", nam, &cnts[0]);
+
+                        if (strcmp("current:", nam) == EQ) {
+                                si->mem.vmwballoon = cnts[0];
+                                break;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** ZFSonlinux: gather size of ARC cache in memory
+        ** searching for:
+        ** 	size       4    519101312
+        */
+        si->mem.zfsarcsize = (count_t)-1;
+
+        if ((fp = fopen("spl/kstat/zfs/arcstats", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%63s %lld %lld", nam, &cnts[0], &cnts[1]);
+
+                        if (nr < 3)
+                                continue;
+
+                        if (strcmp("size", nam) == EQ) {
+                                si->mem.zfsarcsize = cnts[1] / pagesize;
+                                break;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** gather per numa memory-related statistics from the file
+        ** /sys/devices/system/node/node0/meminfo, and store them in binary form.
+        */
+        dirp = opendir(NUMADIR);
+
+        if (dirp) {
+                /*
+                ** read every directory-entry and search for all numa nodes
+                */
+                while ((dentry = readdir(dirp))) {
+                        if (strncmp(dentry->d_name, "node", 4))
+                                continue;
+
+                        j = strtoul(dentry->d_name + 4, NULL, 0);
+
+                        if (j >= MAXNUMA) // too many NUMA nodes?
+                                continue; // skip (no break, because order unknown)
+
+                        si->memnuma.nrnuma++;
+
+                        snprintf(fn, sizeof fn, NUMADIR "/%s/meminfo", dentry->d_name);
+
+                        if ((fp = fopen(fn, "r")) != NULL) {
+                                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                        nr = sscanf(&linebuf[5], "%lld %63s %lld\n", &cnts[0], nam,
+                                                    &cnts[1]);
+
+                                        if (cnts[0] != j)
+                                                continue;
+
+                                        si->memnuma.numa[j].numanr = j;
+                                        if (strcmp("MemTotal:", nam) == EQ)
+                                                si->memnuma.numa[j].totmem =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("MemFree:", nam) == EQ)
+                                                si->memnuma.numa[j].freemem =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("FilePages:", nam) == EQ)
+                                                si->memnuma.numa[j].filepage =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("Active:", nam) == EQ)
+                                                si->memnuma.numa[j].active =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("Inactive:", nam) == EQ)
+                                                si->memnuma.numa[j].inactive =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("Dirty:", nam) == EQ)
+                                                si->memnuma.numa[j].dirtymem =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("Shmem:", nam) == EQ)
+                                                si->memnuma.numa[j].shmem =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("Slab:", nam) == EQ)
+                                                si->memnuma.numa[j].slabmem =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("SReclaimable:", nam) == EQ)
+                                                si->memnuma.numa[j].slabreclaim =
+                                                    cnts[1] * 1024 / pagesize;
+                                        else if (strcmp("HugePages_Total:", nam) == EQ)
+                                                si->memnuma.numa[j].tothp = cnts[1];
+                                        else if (strcmp("HugePages_Free:", nam) == EQ)
+                                                si->memnuma.numa[j].freehp = cnts[1];
+                                }
+
+                                fclose(fp);
+                        }
+                }
+
+                closedir(dirp);
+        }
+
+        /* gather fragmentation level for per numa, only for 'Normal' */
+        if (si->memnuma.nrnuma > 0) {
+                char tmp[64];
+                float frag[MAX_ORDER];
+
+                /* If kernel CONFIG_COMPACTION is enabled, get the percentage directly */
+                if ((fp = fopen("/sys/kernel/debug/extfrag/unusable_index", "r")) != NULL) {
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(&linebuf[5],
+                                            "%lld, %63s %63s %f %f %f %f %f %f %f %f %f %f %f\n",
+                                            &cnts[0], tmp, nam, &frag[0], &frag[1], &frag[2],
+                                            &frag[3], &frag[4], &frag[5], &frag[6], &frag[7],
+                                            &frag[8], &frag[9], &frag[10]);
+
+                                if (nr < 3 || strcmp("Normal", nam) != 0)
+                                        continue;
+
+                                for (i = 0; i < MAX_ORDER; i++)
+                                        si->memnuma.numa[cnts[0]].frag += frag[i];
+
+                                si->memnuma.numa[cnts[0]].frag /= MAX_ORDER;
+                        }
+                        fclose(fp);
+                }
+                /* If CONFIG_COMPACTION is not enabled, calculate from buddyinfo file */
+                else if ((fp = fopen("/proc/buddyinfo", "r")) != NULL) {
+                        count_t free_page[MAX_ORDER];
+                        count_t total_free, prev_free;
+                        float total_frag;
+
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(&linebuf[5],
+                                            "%lld, %63s %63s %lld %lld %lld %lld %lld "
+                                            "%lld %lld %lld %lld %lld %lld\n",
+                                            &cnts[0], tmp, nam, &cnts[1], &cnts[2], &cnts[3],
+                                            &cnts[4], &cnts[5], &cnts[6], &cnts[7], &cnts[8],
+                                            &cnts[9], &cnts[10], &cnts[11]);
+
+                                if (nr < 3 || strcmp("Normal", nam) != 0)
+                                        continue;
+
+                                /* get free pages numbers for each order, and total free pages */
+                                total_free = 0;
+                                total_frag = 0.00;
+                                for (i = 0; i < MAX_ORDER; i++) {
+                                        free_page[i] = cnts[i + 1] << i;
+                                        total_free += free_page[i];
+                                }
+                                /* get fragmentation level for each order, then summarize */
+                                for (i = 0; i < MAX_ORDER; i++) {
+                                        prev_free = 0;
+                                        for (j = 0; j < i; j++)
+                                                prev_free += free_page[j];
+                                        total_frag += (float)prev_free / total_free;
+                                }
+
+                                if (cnts[0] < MAXNUMA)
+                                        si->memnuma.numa[cnts[0]].frag = total_frag / MAX_ORDER;
+                        }
+                        fclose(fp);
+                }
+        }
+
+        /*
+        ** accumulate each cpu statistic for per NUMA, and identify numa/cpu
+        ** relationship from /sys/devices/system/node/node0/cpumap.
+        */
+        if (si->memnuma.nrnuma > 1) {
+                char *line = NULL;
+                size_t len = 0;
+                struct bitmask *mask;
+
+                mask = numa_allocate_cpumask();
+
+                si->cpunuma.nrnuma = si->memnuma.nrnuma;
+
+                for (j = 0; j < si->cpunuma.nrnuma; j++) {
+                        snprintf(fn, sizeof fn, NUMADIR "/node%d/cpumap", j);
+
+                        if ((fp = fopen(fn, "r")) != 0) {
+                                if (getdelim(&line, &len, '\n', fp) > 0) {
+                                        if (numa_parse_bitmap_v2(line, mask) < 0) {
+                                                mcleanstop(54, "failed to parse numa bitmap\n");
+                                        }
+                                }
+                                fclose(fp);
+                        }
+
+                        for (i = 0; i < mask->size && i < MAXCPU; i++) {
+                                if ((si->cpu.cpu[i].online &&
+                                     mask->maskp[i / bitsperlonglong] >> (i % bitsperlonglong)) &
+                                    1) {
+                                        si->cpunuma.numa[j].nrcpu++;
+                                        si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
+                                        si->cpunuma.numa[j].ntime += si->cpu.cpu[i].ntime;
+                                        si->cpunuma.numa[j].stime += si->cpu.cpu[i].stime;
+                                        si->cpunuma.numa[j].itime += si->cpu.cpu[i].itime;
+                                        si->cpunuma.numa[j].wtime += si->cpu.cpu[i].wtime;
+                                        si->cpunuma.numa[j].Itime += si->cpu.cpu[i].Itime;
+                                        si->cpunuma.numa[j].Stime += si->cpu.cpu[i].Stime;
+                                        si->cpunuma.numa[j].steal += si->cpu.cpu[i].steal;
+                                        si->cpunuma.numa[j].guest += si->cpu.cpu[i].guest;
+                                }
+                        }
+                        si->cpunuma.numa[j].numanr = j;
+                }
+
+                free(line);
+                numa_free_cpumask(mask);
+        } else {
+                si->cpunuma.nrnuma = 0;
+        }
+
+        /*
+        ** gather network-related statistics
+        ** 	- interface stats from the file /proc/net/dev
+        ** 	- IPv4      stats from the file /proc/net/snmp
+        ** 	- IPv6      stats from the file /proc/net/snmp6
+        ** 	- sock mem  stats from the file /proc/net/sockstat
+        */
+
+        /*
+        ** interface statistics
+        */
+        initifprop(); // periodically refresh interface properties
+
+        if ((fp = fopen("net/dev", "r")) != NULL) {
+                struct ifprop ifprop;
+                char *cp;
+
+                i = 0;
+
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if ((cp = strchr(linebuf, ':')) != NULL)
+                                *cp = ' '; /* substitute ':' by space */
+
+                        nr = sscanf(linebuf,
                                     "%15s %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld %lld %lld %lld %lld %lld %lld %lld "
                                     "%lld\n",
-				  si->intf.intf[i].name,
-				&(si->intf.intf[i].rbyte),
-				&(si->intf.intf[i].rpack),
-				&(si->intf.intf[i].rerrs),
-				&(si->intf.intf[i].rdrop),
-				&(si->intf.intf[i].rfifo),
-				&(si->intf.intf[i].rframe),
-				&(si->intf.intf[i].rcompr),
-				&(si->intf.intf[i].rmultic),
-				&(si->intf.intf[i].sbyte),
-				&(si->intf.intf[i].spack),
-				&(si->intf.intf[i].serrs),
-				&(si->intf.intf[i].sdrop),
-				&(si->intf.intf[i].sfifo),
-				&(si->intf.intf[i].scollis),
-				&(si->intf.intf[i].scarrier),
-				&(si->intf.intf[i].scompr));
-
-			/*
-			** skip header line and lines without stats
-			*/
-			if (nr != 17)
-				continue;
-
-			/*
-			** skip interfaces that are invalidated
-			** (mainly virtual interfaces)
-			** because the total number of interfaces
-			** exceeds the maximum supported by atop (MAXINTF)
-			*/
-			safe_strcpy(ifprop.name, si->intf.intf[i].name, sizeof ifprop.name);
-
-			if (!getifprop(&ifprop))
-				continue;
-
-			/*
-			** accept this interface but skip the remaining
-			** interfaces because we reached the total number
-			** of interfaces supported by atop (MAXINTF)
-			*/
-			if (++i >= MAXINTF-1)
-				break;
-		}
-
-		si->intf.intf[i].name[0] = '\0'; /* set terminator for table */
-		si->intf.nrintf = i;
-
-		fclose(fp);
-	}
-
-	/*
-	** IP version 4 statistics
-	*/
-	if ( (fp = fopen("net/snmp", "r")) != NULL)
-	{
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf,
-			 "%63s %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-			 "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
-			 "%lld\n",
-				nam,
-				&cnts[0],  &cnts[1],  &cnts[2],  &cnts[3],
-				&cnts[4],  &cnts[5],  &cnts[6],  &cnts[7],
-				&cnts[8],  &cnts[9],  &cnts[10], &cnts[11],
-				&cnts[12], &cnts[13], &cnts[14], &cnts[15],
-				&cnts[16], &cnts[17], &cnts[18], &cnts[19],
-				&cnts[20], &cnts[21], &cnts[22], &cnts[23],
-				&cnts[24], &cnts[25], &cnts[26], &cnts[27],
-				&cnts[28], &cnts[29], &cnts[30], &cnts[31],
-				&cnts[32], &cnts[33], &cnts[34], &cnts[35],
-				&cnts[36], &cnts[37], &cnts[38], &cnts[39]);
-
-			if (nr < 2)		/* headerline ? --> skip */
-				continue;
-
-			if ( strcmp("Ip:", nam) == 0)
-			{
-				memcpy(&si->net.ipv4, cnts,
-						sizeof si->net.ipv4);
-				continue;
-			}
-	
-			if ( strcmp("Icmp:", nam) == 0)
-			{
-				memcpy(&si->net.icmpv4, cnts,
-						sizeof si->net.icmpv4);
-				continue;
-			}
-	
-			if ( strcmp("Tcp:", nam) == 0)
-			{
-				memcpy(&si->net.tcp, cnts,
-						sizeof si->net.tcp);
-				continue;
-			}
-	
-			if ( strcmp("Udp:", nam) == 0)
-			{
-				memcpy(&si->net.udpv4, cnts,
-						sizeof si->net.udpv4);
-				continue;
-			}
-		}
-	
-		fclose(fp);
-	}
-
-	/*
-	** IP version 6 statistics
-	*/
-	memset(&ipv6_tmp,   0, sizeof ipv6_tmp);
-	memset(&icmpv6_tmp, 0, sizeof icmpv6_tmp);
-	memset(&udpv6_tmp,  0, sizeof udpv6_tmp);
-
-	if ( (fp = fopen("net/snmp6", "r")) != NULL)
-	{
-		count_t	countval;
-		int	cur = 0;
-
-		/*
-		** one name-value pair per line
-		*/
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-		   	nr = sscanf(linebuf, "%63s %lld", nam, &countval);
-
-			if (nr < 2)		/* unexpected line ? --> skip */
-				continue;
-
-		   	if (strcmp(v6tab[cur].nam, nam) == 0)
-		   	{
-		   		*(v6tab[cur].val) = countval;
-		   	}
-		   	else
-		   	{
-		   		for (cur=0; cur < v6tab_entries; cur++)
-					if (strcmp(v6tab[cur].nam, nam) == 0)
-						break;
-
-				if (cur < v6tab_entries) /* found ? */
-		   			*(v6tab[cur].val) = countval;
-			}
-
-			if (++cur >= v6tab_entries)
-				cur = 0;
-		}
-
-		memcpy(&si->net.ipv6,   &ipv6_tmp,   sizeof ipv6_tmp);
-		memcpy(&si->net.icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
-		memcpy(&si->net.udpv6,  &udpv6_tmp,  sizeof udpv6_tmp);
-
-		fclose(fp);
-	}
-
-	/*
-	** IP version 4: TCP & UDP memory allocations.
-	*/
-	if ( (fp = fopen("net/sockstat", "r")) != NULL)
-	{
-		char tcpmem[16], udpmem[16];
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf,
-				"%15s %*s %*d %15s %lld %*s %*d %*s %*d %15s %lld\n",
-				nam, udpmem, &cnts[0], tcpmem, &cnts[1]);
-
-			if ( strcmp("TCP:", nam) == 0)
-			{
-				if ( strcmp("mem", tcpmem) == 0) {
-					si->mem.tcpsock = cnts[1];
-				}
-				continue;
-			}
-
-			if ( strcmp("UDP:", nam) == 0)
-			{
-				if ( strcmp("mem", udpmem) == 0) {
-					si->mem.udpsock = cnts[0];
-				}
-				continue;
-			}
-		}
-		fclose(fp);
-	}
-
-	/*
-	** check if extended partition-statistics are provided < kernel 2.6
-	*/
-	if ( part_stats && (fp = fopen("partitions", "r")) != NULL)
-	{
-		char diskname[256];
-
-		i = 0;
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) )
-		{
-			nr = sscanf(linebuf,
-			      "%*d %*d %*d %255s %lld %*d %lld %*d "
-			      "%lld %*d %lld %*d %lld %lld %lld",
-			        diskname,
-				&(si->dsk.dsk[i].nread),
-				&(si->dsk.dsk[i].nrsect),
-				&(si->dsk.dsk[i].nwrite),
-				&(si->dsk.dsk[i].nwsect),
-				&(si->dsk.dsk[i].inflight),
-				&(si->dsk.dsk[i].io_ms),
-				&(si->dsk.dsk[i].avque) );
-
-			/*
-			** check if this line concerns the entire disk
-			** or just one of the partitions of a disk (to be
-			** skipped)
-			*/
-			if (nr == 8)	/* full stats-line ? */
-			{
-				if ( isdisk_name(si, 0, 0, diskname, &(si->dsk.dsk[i]), MAXDKNAM) != DSKTYPE)
-				       continue;
-			
-				if (++i >= MAXDSK-1)
-					break;
-			}
-		}
-
-		si->dsk.dsk[i].name[0] = '\0'; /* set terminator for table */
-		si->dsk.ndsk = i;
-
-		fclose(fp);
-
-		if (i == 0)
-			part_stats = 0;	/* do not try again for next cycles */
-	}
-
-
-	si->mem.zramvsize  = 0;
-	si->mem.zramvused  = 0;
-	si->mem.zrampcompr = 0;
-	si->mem.zramptotal = 0;
-
-	/*
-	** check if disk-statistics are provided (kernel 2.6 onwards)
-	*/
-	if ( (fp = fopen("diskstats", "r")) != NULL)
-	{
-		char 		diskname[256];
-		struct perdsk	tmpdsk;
-
-		si->dsk.ndsk = 0;
-		si->dsk.nmdd = 0;
-		si->dsk.nlvm = 0;
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) )
-		{
-			/* discards are not supported in older kernels */
- 			tmpdsk.ndisc = -1;
-
-			nr = sscanf(linebuf,
-			      "%u %u %255s "		// ident
-                              "%lld %*d %lld %*d "	// reads
-			      "%lld %*d %lld %*d "	// writes
-			      "%lld %lld %lld "		// misc
-			      "%lld %*d %lld %*d",	// discards
-				&major, &minor, diskname,
-				&tmpdsk.nread,  &tmpdsk.nrsect,
-				&tmpdsk.nwrite, &tmpdsk.nwsect,
-				&tmpdsk.inflight, &tmpdsk.io_ms, &tmpdsk.avque,
-				&tmpdsk.ndisc,  &tmpdsk.ndsect);
-
-			if (nr >= 10)	/* full stats-line ? */
-			{
-				/*
-  				** when no transfers issued, skip disk (partition)
-				*/
-				if (tmpdsk.nread + tmpdsk.nwrite +
-				     (tmpdsk.ndisc == -1 ? 0 : tmpdsk.ndisc) == 0)
-					continue;
-
-				/*
-				** check if this line concerns the entire disk
-				** or just one of the partitions of a disk (to be
-				** skipped)
-				*/
-				switch ( isdisk_name(si, major, minor, diskname, &tmpdsk, MAXDKNAM) )
-				{
-				   case NONTYPE:
-				       continue;
-
-				   case ZRAMTYPE: // recognize zram just for memory usage
-				       continue;
-
-				   case DSKTYPE:
-					if (si->dsk.ndsk < MAXDSK-1)
-						si->dsk.dsk[si->dsk.ndsk++] = tmpdsk;
-					break;
-
-				   case MDDTYPE:
-					if (si->dsk.nmdd < MAXMDD-1)
-						si->dsk.mdd[si->dsk.nmdd++] = tmpdsk;
-					break;
-
-				   case LVMTYPE:
-					if (si->dsk.nlvm < MAXLVM-1)
-						si->dsk.lvm[si->dsk.nlvm++] = tmpdsk;
-					break;
-				}
-			}
-		}
-
-		/*
- 		** set terminator for table
- 		*/
-		si->dsk.dsk[si->dsk.ndsk].name[0] = '\0';
-		si->dsk.mdd[si->dsk.nmdd].name[0] = '\0';
-		si->dsk.lvm[si->dsk.nlvm].name[0] = '\0'; 
-
-		fclose(fp);
-	}
-
-	/*
- 	** get information about the shared memory statistics
-	*/
-	if ( shmctl(0, SHM_INFO, (struct shmid_ds *)&shminfo) != -1)
-	{
-		si->mem.shmrss = shminfo.shm_rss;
-		si->mem.shmswp = shminfo.shm_swp;
-	}
-
-	/*
-	** NFS server statistics
-	*/
-	if ( (fp = fopen("net/rpc/nfsd", "r")) != NULL)
-	{
-		char    label[32];
-		count_t	cnt[40];
-
-		/*
-		** every line starts with a small label,
-		** followed by upto 60 counters
-		*/
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			memset(cnt, 0, sizeof cnt);
-
-			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld",
-			            label,
-			            &cnt[0],  &cnt[1],  &cnt[2],  &cnt[3],
-			            &cnt[4],  &cnt[5],  &cnt[6],  &cnt[7],
-			            &cnt[8],  &cnt[9],  &cnt[10], &cnt[11],
-			            &cnt[12], &cnt[13], &cnt[14], &cnt[15],
-			            &cnt[16], &cnt[17], &cnt[18], &cnt[19],
-			            &cnt[20], &cnt[21], &cnt[22], &cnt[23],
-			            &cnt[24], &cnt[25], &cnt[26], &cnt[27],
-			            &cnt[28], &cnt[29], &cnt[30], &cnt[31],
-			            &cnt[32], &cnt[33], &cnt[34], &cnt[35],
-			            &cnt[36], &cnt[37], &cnt[38], &cnt[39]);
-
-			if (nr < 2)		// unexpected empty line ?
-				continue;
-
-		   	if (strcmp(label, "rc") == 0)
-		   	{
-				si->nfs.server.rchits = cnt[0];
-				si->nfs.server.rcmiss = cnt[1];
-				si->nfs.server.rcnoca = cnt[2];
-
-				continue;
-			}
-
-		   	if (strcmp(label, "io") == 0)
-		   	{
-				si->nfs.server.nrbytes = cnt[0];
-				si->nfs.server.nwbytes = cnt[1];
-
-				continue;
-			}
-
-		   	if (strcmp(label, "net") == 0)
-		   	{
-				si->nfs.server.netcnt    = cnt[0];
-				si->nfs.server.netudpcnt = cnt[1];
-				si->nfs.server.nettcpcnt = cnt[2];
-				si->nfs.server.nettcpcon = cnt[3];
-
-				continue;
-			}
-
-		   	if (strcmp(label, "rpc") == 0)
-		   	{
-				si->nfs.server.rpccnt    = cnt[0];
-				si->nfs.server.rpcbadfmt = cnt[1];
-				si->nfs.server.rpcbadaut = cnt[2];
-				si->nfs.server.rpcbadcln = cnt[3];
-
-				continue;
-			}
-			//
-			// first counter behind 'proc..' is number of
-			// counters that follow
-		   	if (strcmp(label, "proc2") == 0)
-		   	{
-				si->nfs.server.rpcread  += cnt[7]; // offset+1
-				si->nfs.server.rpcwrite += cnt[9]; // offset+1
-				continue;
-			}
-		   	if (strcmp(label, "proc3") == 0)
-		   	{
-				si->nfs.server.rpcread  += cnt[7]; // offset+1
-				si->nfs.server.rpcwrite += cnt[8]; // offset+1
-				continue;
-			}
-		   	if (strcmp(label, "proc4ops") == 0)
-		   	{
-				si->nfs.server.rpcread  += cnt[26]; // offset+1
-				si->nfs.server.rpcwrite += cnt[39]; // offset+1
-				continue;
-			}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** NFS client statistics
-	*/
-	if ( (fp = fopen("net/rpc/nfs", "r")) != NULL)
-	{
-		char    label[32];
-		count_t	cnt[10];
-
-		/*
-		** every line starts with a small label,
-		** followed by counters
-		*/
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			memset(cnt, 0, sizeof cnt);
-
-			nr = sscanf(linebuf, "%31s %lld %lld %lld %lld %lld"
-			                          "%lld %lld %lld %lld %lld",
-			            label,
-			            &cnt[0], &cnt[1], &cnt[2], &cnt[3],
-			            &cnt[4], &cnt[5], &cnt[6], &cnt[7],
-			            &cnt[8], &cnt[9]);
-
-			if (nr < 2)		// unexpected empty line ?
-				continue;
-
-		   	if (strcmp(label, "rpc") == 0)
-		   	{
-				si->nfs.client.rpccnt        = cnt[0];
-				si->nfs.client.rpcretrans    = cnt[1];
-				si->nfs.client.rpcautrefresh = cnt[2];
-				continue;
-			}
-
-			// first counter behind 'proc..' is number of
-			// counters that follow
-		   	if (strcmp(label, "proc2") == 0)
-		   	{
-				si->nfs.client.rpcread  += cnt[7]; // offset+1
-				si->nfs.client.rpcwrite += cnt[9]; // offset+1
-				continue;
-			}
-		   	if (strcmp(label, "proc3") == 0)
-		   	{
-				si->nfs.client.rpcread  += cnt[7]; // offset+1
-				si->nfs.client.rpcwrite += cnt[8]; // offset+1
-				continue;
-			}
-		   	if (strcmp(label, "proc4") == 0)
-		   	{
-				si->nfs.client.rpcread  += cnt[2]; // offset+1
-				si->nfs.client.rpcwrite += cnt[3]; // offset+1
-				continue;
-			}
-		}
-
-		fclose(fp);
-	}
-
-	/*
-	** NFS client: per-mount statistics
-	*/
-	regainrootprivs();
-
-	if ( (fp = fopen("self/mountstats", "r")) != NULL)
-	{
-		char 	mountdev[128], fstype[32] = "", label[32];
-                count_t	cnt[8];
-
-		i = 0;
-
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			// if 'device' line, just remember the mounted device
-			if (sscanf(linebuf,
-				"device %127s mounted on %*s with fstype %31s",
-				mountdev, fstype) == 2)
-			{
-				continue;
-			}
-
-			if (strncmp(fstype, "nfs", 3) != 0)
-				continue;
-
-			// this is line with NFS client stats
-			nr = sscanf(linebuf,
-                                "%31s %lld %lld %lld %lld %lld %lld %lld %lld",
-				label, &cnt[0], &cnt[1], &cnt[2], &cnt[3],
-				       &cnt[4], &cnt[5], &cnt[6], &cnt[7]);
-
-			if (nr >= 2 )
-			{
-		   		if (strcmp(label, "age:") == 0)
-				{
-				    safe_strcpy(si->nfs.nfsmounts.nfsmnt[i].mountdev, mountdev,
-					    sizeof si->nfs.nfsmounts.nfsmnt[i].mountdev);
-
-				    si->nfs.nfsmounts.nfsmnt[i].age = cnt[0];
-				}
-
-		   		if (strcmp(label, "bytes:") == 0)
-				{
-				    si->nfs.nfsmounts.nfsmnt[i].bytesread     = cnt[0];
-				    si->nfs.nfsmounts.nfsmnt[i].byteswrite    = cnt[1];
-				    si->nfs.nfsmounts.nfsmnt[i].bytesdread    = cnt[2];
-				    si->nfs.nfsmounts.nfsmnt[i].bytesdwrite   = cnt[3];
-				    si->nfs.nfsmounts.nfsmnt[i].bytestotread  = cnt[4];
-				    si->nfs.nfsmounts.nfsmnt[i].bytestotwrite = cnt[5];
-				    si->nfs.nfsmounts.nfsmnt[i].pagesmread    = cnt[6];
-				    si->nfs.nfsmounts.nfsmnt[i].pagesmwrite   = cnt[7];
-
-				    if (++i >= MAXNFSMOUNT-1)
-					break;
-				}
-			}
-		}
-
-		si->nfs.nfsmounts.nrmounts = i;
-
-		fclose(fp);
-	}
-
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
-
-	/*
-	** pressure statistics in /proc/pressure (>= 4.20)
-	**
-	** cpu:      some avg10=0.00 avg60=1.37 avg300=3.73 total=30995960
-	** cpu:      full avg10=0.00 avg60=0.00 avg300=0.00 total=0
-	** io:       some avg10=0.00 avg60=8.83 avg300=22.86 total=141658568
-	** io:       full avg10=0.00 avg60=8.33 avg300=21.56 total=133129045
-	** memory:   some avg10=0.00 avg60=0.74 avg300=1.67 total=10663184
-	** memory:   full avg10=0.00 avg60=0.45 avg300=0.94 total=6461782
-	**
-	** verify if pressure stats supported by this system
-	*/
-	if ( chdir("pressure") == 0)
- 	{
-		struct psi 	psitemp;
-		char 		psitype;
-		char 		psiformat[] =
-				"%c%*s avg10=%f avg60=%f avg300=%f total=%llu";
-
-		si->psi.present = 1;
-
-		if ( (fp = fopen("cpu", "r")) != NULL)
-		{
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, psiformat,
-			            	&psitype,
-					&psitemp.avg10, &psitemp.avg60,
-					&psitemp.avg300, &psitemp.total);
-
-				if (nr == 5)	// complete line ?
-				{
-					if (psitype == 's')
-						memmove(&(si->psi.cpusome),
-							&psitemp, sizeof psitemp);
-					// cpu full always seems to be zero
-				}
-			}
-			fclose(fp);
-		}
-
-		if ( (fp = fopen("memory", "r")) != NULL)
-		{
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, psiformat,
-			            	&psitype,
-					&psitemp.avg10, &psitemp.avg60,
-					&psitemp.avg300, &psitemp.total);
-
-				if (nr == 5)
-				{
-					if (psitype == 's')
-						memmove(&(si->psi.memsome),
-							&psitemp, sizeof psitemp);
-					else
-						memmove(&(si->psi.memfull),
-							&psitemp, sizeof psitemp);
-				}
-			}
-			fclose(fp);
-		}
-
-		if ( (fp = fopen("io", "r")) != NULL)
-		{
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, psiformat,
-			            	&psitype,
-					&psitemp.avg10, &psitemp.avg60,
-					&psitemp.avg300, &psitemp.total);
-
-				if (nr == 5)
-				{
-					if (psitype == 's')
-						memmove(&(si->psi.iosome),
-							&psitemp,
-							sizeof psitemp);
-					else
-						memmove(&(si->psi.iofull),
-							&psitemp,
-							sizeof psitemp);
-				}
-			}
-			fclose(fp);
-		}
-
-		if ( chdir("..") == -1)
-			mcleanstop(54, "failed to return to /proc\n");
-	}
-	else
-	{
-		si->psi.present = 0;
-	}
-
-	/*
-	** Container statistics (if any)
-	*/
-	if ( (fp = fopen("user_beancounters", "r")) != NULL)
-	{
-		unsigned long	ctid;
-		char    	label[32];
-		count_t		cnt;
-
-		i = -1;
-
-		/*
-		** lines introducing a new container have an extra
-		** field with the container id at the beginning.
-		*/
-		while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			nr = sscanf(linebuf, "%lu: %31s %lld",
-			            		&ctid, label, &cnt);
-
-			if (nr == 3)		// new container ?
-			{
-				if (++i >= MAXCONTAINER)
-					break;
-
-				si->cfs.cont[i].ctid = ctid;
-			}
-			else
-			{
-				nr = sscanf(linebuf, "%31s %lld", label, &cnt);
-
-				if (nr != 2)
-					continue;
-			}
-
-			if (i == -1)	// no container defined yet
-				continue;
-
-	   		if (strcmp(label, "numproc") == 0)
-	   		{
-				si->cfs.cont[i].numproc = cnt;
-				continue;
-			}
-
-	   		if (strcmp(label, "physpages") == 0)
-	   		{
-				si->cfs.cont[i].physpages = cnt;
-				continue;
-			}
-		}
-
-		fclose(fp);
-
-		si->cfs.nrcontainer = i+1;
-
-		if ( (fp = fopen("vz/vestat", "r")) != NULL)
-		{
-			unsigned long	ctid;
-			count_t		cnt[8];
-
-			/*
-			** relevant lines start with container id
-			*/
-			while ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-			{
-				nr = sscanf(linebuf, "%lu  %lld %lld %lld %lld"
-			                             "%lld %lld %lld %lld %lld",
-			            	&ctid,
-					&cnt[0], &cnt[1], &cnt[2], &cnt[3],
-			            	&cnt[4], &cnt[5], &cnt[6], &cnt[7],
-					&cnt[8]);
-
-				if (nr < 9)	// irrelevant contents
-					continue;
-
-				// relevant stats: search for containerid
-				for (i=0; i < si->cfs.nrcontainer; i++)
-				{
-					if (si->cfs.cont[i].ctid == ctid)
-						break;
-				}
-
-				if (i >= si->cfs.nrcontainer)
-					continue;	// container not found
-
-				si->cfs.cont[i].user   = cnt[0];
-				si->cfs.cont[i].nice   = cnt[1];
-				si->cfs.cont[i].system = cnt[2];
-				si->cfs.cont[i].uptime = cnt[3];
-			}
-
-			fclose(fp);
-		}
-	}
-
-	/*
-	** gather per LLC related statistics from the file
-	** /sys/fs/resctrl/mon_data/mon_L3_XX
-	*/
-	dirp = opendir(LLCDIR);
-
-	if (dirp)
-	{
-		static int l3_cache_size;
-
-		if (!l3_cache_size)
-		{
-			if ( (fp = fopen(L3SIZE, "r")) != NULL)
-			{
-				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-				{
-					sscanf(linebuf, "%dK\n", &l3_cache_size);
-					l3_cache_size *= 1024;
-				}
-
-				fclose(fp);
-			}
-		}
-
-		/*
-		** walk the LLC directory, gather each LLC
-		*/
-		while ( (dentry = readdir(dirp)) )
-		{
-			struct perllc *llc = &si->llc.perllc[si->llc.nrllcs];
-			unsigned long llc_occupancy;
-
-			if (strncmp(dentry->d_name, "mon_L3_", 7))
-				continue;
-
-			/* get cache id from directory name like mon_L3_00 */
-			sscanf(dentry->d_name + 7, "%hhu\n", &llc->id);
-
-			snprintf(fn, sizeof fn, LLCDIR "/%s/llc_occupancy", dentry->d_name);
-			if ( (fp = fopen(fn, "r")) != NULL)
-			{
-				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-				{
-					sscanf(linebuf, "%lu\n", &llc_occupancy);
-					llc->occupancy = (float)llc_occupancy / l3_cache_size;
-				}
-
-				fclose(fp);
-			}
-
-			snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_local_bytes", dentry->d_name);
-			if ( (fp = fopen(fn, "r")) != NULL)
-			{
-				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-				{
-					sscanf(linebuf, "%llu\n", &llc->mbm_local);
-				}
-
-				fclose(fp);
-			}
-
-			snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_total_bytes", dentry->d_name);
-			if ( (fp = fopen(fn, "r")) != NULL)
-			{
-				if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-				{
-					sscanf(linebuf, "%llu\n", &llc->mbm_total);
-				}
-				fclose(fp);
-			}
-
-			if (++si->llc.nrllcs >= MAXLLC) /* too many LLC ? */
-				break;
-		}
-
-		closedir(dirp);
-	}
-
-	/*
- 	** verify presence of InfiniBand controllers
-	** warning: possibly switches to other directory
-	*/
-	if (ib_stats)
-		ib_stats = get_infiniband(&(si->ifb));
-
-	/*
-	** get counters related to ksm
-	*/
-	if (ksm_stats)
-		ksm_stats = get_ksm(si);
-
-	/*
- 	** return to original directory
-	*/
-	if ( chdir(origdir) == -1)
-		mcleanstop(55, "failed to change to %s\n", origdir);
-
-#ifndef	NOPERFEVENT
-	/*
-	** get low-level CPU event counters
-	*/
+                                    si->intf.intf[i].name, &(si->intf.intf[i].rbyte),
+                                    &(si->intf.intf[i].rpack), &(si->intf.intf[i].rerrs),
+                                    &(si->intf.intf[i].rdrop), &(si->intf.intf[i].rfifo),
+                                    &(si->intf.intf[i].rframe), &(si->intf.intf[i].rcompr),
+                                    &(si->intf.intf[i].rmultic), &(si->intf.intf[i].sbyte),
+                                    &(si->intf.intf[i].spack), &(si->intf.intf[i].serrs),
+                                    &(si->intf.intf[i].sdrop), &(si->intf.intf[i].sfifo),
+                                    &(si->intf.intf[i].scollis), &(si->intf.intf[i].scarrier),
+                                    &(si->intf.intf[i].scompr));
+
+                        /*
+                        ** skip header line and lines without stats
+                        */
+                        if (nr != 17)
+                                continue;
+
+                        /*
+                        ** skip interfaces that are invalidated
+                        ** (mainly virtual interfaces)
+                        ** because the total number of interfaces
+                        ** exceeds the maximum supported by atop (MAXINTF)
+                        */
+                        safe_strcpy(ifprop.name, si->intf.intf[i].name, sizeof ifprop.name);
+
+                        if (!getifprop(&ifprop))
+                                continue;
+
+                        /*
+                        ** accept this interface but skip the remaining
+                        ** interfaces because we reached the total number
+                        ** of interfaces supported by atop (MAXINTF)
+                        */
+                        if (++i >= MAXINTF - 1)
+                                break;
+                }
+
+                si->intf.intf[i].name[0] = '\0'; /* set terminator for table */
+                si->intf.nrintf = i;
+
+                fclose(fp);
+        }
+
+        /*
+        ** IP version 4 statistics
+        */
+        if ((fp = fopen("net/snmp", "r")) != NULL) {
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr =
+                            sscanf(linebuf,
+                                   "%63s %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+                                   "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+                                   "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+                                   "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld "
+                                   "%lld\n",
+                                   nam, &cnts[0], &cnts[1], &cnts[2], &cnts[3], &cnts[4], &cnts[5],
+                                   &cnts[6], &cnts[7], &cnts[8], &cnts[9], &cnts[10], &cnts[11],
+                                   &cnts[12], &cnts[13], &cnts[14], &cnts[15], &cnts[16], &cnts[17],
+                                   &cnts[18], &cnts[19], &cnts[20], &cnts[21], &cnts[22], &cnts[23],
+                                   &cnts[24], &cnts[25], &cnts[26], &cnts[27], &cnts[28], &cnts[29],
+                                   &cnts[30], &cnts[31], &cnts[32], &cnts[33], &cnts[34], &cnts[35],
+                                   &cnts[36], &cnts[37], &cnts[38], &cnts[39]);
+
+                        if (nr < 2) /* headerline ? --> skip */
+                                continue;
+
+                        if (strcmp("Ip:", nam) == 0) {
+                                memcpy(&si->net.ipv4, cnts, sizeof si->net.ipv4);
+                                continue;
+                        }
+
+                        if (strcmp("Icmp:", nam) == 0) {
+                                memcpy(&si->net.icmpv4, cnts, sizeof si->net.icmpv4);
+                                continue;
+                        }
+
+                        if (strcmp("Tcp:", nam) == 0) {
+                                memcpy(&si->net.tcp, cnts, sizeof si->net.tcp);
+                                continue;
+                        }
+
+                        if (strcmp("Udp:", nam) == 0) {
+                                memcpy(&si->net.udpv4, cnts, sizeof si->net.udpv4);
+                                continue;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** IP version 6 statistics
+        */
+        memset(&ipv6_tmp, 0, sizeof ipv6_tmp);
+        memset(&icmpv6_tmp, 0, sizeof icmpv6_tmp);
+        memset(&udpv6_tmp, 0, sizeof udpv6_tmp);
+
+        if ((fp = fopen("net/snmp6", "r")) != NULL) {
+                count_t countval;
+                int cur = 0;
+
+                /*
+                ** one name-value pair per line
+                */
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%63s %lld", nam, &countval);
+
+                        if (nr < 2) /* unexpected line ? --> skip */
+                                continue;
+
+                        if (strcmp(v6tab[cur].nam, nam) == 0) {
+                                *(v6tab[cur].val) = countval;
+                        } else {
+                                for (cur = 0; cur < v6tab_entries; cur++)
+                                        if (strcmp(v6tab[cur].nam, nam) == 0)
+                                                break;
+
+                                if (cur < v6tab_entries) /* found ? */
+                                        *(v6tab[cur].val) = countval;
+                        }
+
+                        if (++cur >= v6tab_entries)
+                                cur = 0;
+                }
+
+                memcpy(&si->net.ipv6, &ipv6_tmp, sizeof ipv6_tmp);
+                memcpy(&si->net.icmpv6, &icmpv6_tmp, sizeof icmpv6_tmp);
+                memcpy(&si->net.udpv6, &udpv6_tmp, sizeof udpv6_tmp);
+
+                fclose(fp);
+        }
+
+        /*
+        ** IP version 4: TCP & UDP memory allocations.
+        */
+        if ((fp = fopen("net/sockstat", "r")) != NULL) {
+                char tcpmem[16], udpmem[16];
+
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%15s %*s %*d %15s %lld %*s %*d %*s %*d %15s %lld\n",
+                                    nam, udpmem, &cnts[0], tcpmem, &cnts[1]);
+
+                        if (strcmp("TCP:", nam) == 0) {
+                                if (strcmp("mem", tcpmem) == 0) {
+                                        si->mem.tcpsock = cnts[1];
+                                }
+                                continue;
+                        }
+
+                        if (strcmp("UDP:", nam) == 0) {
+                                if (strcmp("mem", udpmem) == 0) {
+                                        si->mem.udpsock = cnts[0];
+                                }
+                                continue;
+                        }
+                }
+                fclose(fp);
+        }
+
+        /*
+        ** check if extended partition-statistics are provided < kernel 2.6
+        */
+        if (part_stats && (fp = fopen("partitions", "r")) != NULL) {
+                char diskname[256];
+
+                i = 0;
+
+                while (fgets(linebuf, sizeof(linebuf), fp)) {
+                        nr = sscanf(linebuf,
+                                    "%*d %*d %*d %255s %lld %*d %lld %*d "
+                                    "%lld %*d %lld %*d %lld %lld %lld",
+                                    diskname, &(si->dsk.dsk[i].nread), &(si->dsk.dsk[i].nrsect),
+                                    &(si->dsk.dsk[i].nwrite), &(si->dsk.dsk[i].nwsect),
+                                    &(si->dsk.dsk[i].inflight), &(si->dsk.dsk[i].io_ms),
+                                    &(si->dsk.dsk[i].avque));
+
+                        /*
+                        ** check if this line concerns the entire disk
+                        ** or just one of the partitions of a disk (to be
+                        ** skipped)
+                        */
+                        if (nr == 8) /* full stats-line ? */
+                        {
+                                if (isdisk_name(si, 0, 0, diskname, &(si->dsk.dsk[i]), MAXDKNAM) !=
+                                    DSKTYPE)
+                                        continue;
+
+                                if (++i >= MAXDSK - 1)
+                                        break;
+                        }
+                }
+
+                si->dsk.dsk[i].name[0] = '\0'; /* set terminator for table */
+                si->dsk.ndsk = i;
+
+                fclose(fp);
+
+                if (i == 0)
+                        part_stats = 0; /* do not try again for next cycles */
+        }
+
+        si->mem.zramvsize = 0;
+        si->mem.zramvused = 0;
+        si->mem.zrampcompr = 0;
+        si->mem.zramptotal = 0;
+
+        /*
+        ** check if disk-statistics are provided (kernel 2.6 onwards)
+        */
+        if ((fp = fopen("diskstats", "r")) != NULL) {
+                char diskname[256];
+                struct perdsk tmpdsk;
+
+                si->dsk.ndsk = 0;
+                si->dsk.nmdd = 0;
+                si->dsk.nlvm = 0;
+
+                while (fgets(linebuf, sizeof(linebuf), fp)) {
+                        /* discards are not supported in older kernels */
+                        tmpdsk.ndisc = -1;
+
+                        nr = sscanf(linebuf,
+                                    "%u %u %255s "       // ident
+                                    "%lld %*d %lld %*d " // reads
+                                    "%lld %*d %lld %*d " // writes
+                                    "%lld %lld %lld "    // misc
+                                    "%lld %*d %lld %*d", // discards
+                                    &major, &minor, diskname, &tmpdsk.nread, &tmpdsk.nrsect,
+                                    &tmpdsk.nwrite, &tmpdsk.nwsect, &tmpdsk.inflight, &tmpdsk.io_ms,
+                                    &tmpdsk.avque, &tmpdsk.ndisc, &tmpdsk.ndsect);
+
+                        if (nr >= 10) /* full stats-line ? */
+                        {
+                                /*
+                                ** when no transfers issued, skip disk (partition)
+                                */
+                                if (tmpdsk.nread + tmpdsk.nwrite +
+                                        (tmpdsk.ndisc == -1 ? 0 : tmpdsk.ndisc) ==
+                                    0)
+                                        continue;
+
+                                /*
+                                ** check if this line concerns the entire disk
+                                ** or just one of the partitions of a disk (to be
+                                ** skipped)
+                                */
+                                switch (
+                                    isdisk_name(si, major, minor, diskname, &tmpdsk, MAXDKNAM)) {
+                                case NONTYPE:
+                                        continue;
+
+                                case ZRAMTYPE: // recognize zram just for memory usage
+                                        continue;
+
+                                case DSKTYPE:
+                                        if (si->dsk.ndsk < MAXDSK - 1)
+                                                si->dsk.dsk[si->dsk.ndsk++] = tmpdsk;
+                                        break;
+
+                                case MDDTYPE:
+                                        if (si->dsk.nmdd < MAXMDD - 1)
+                                                si->dsk.mdd[si->dsk.nmdd++] = tmpdsk;
+                                        break;
+
+                                case LVMTYPE:
+                                        if (si->dsk.nlvm < MAXLVM - 1)
+                                                si->dsk.lvm[si->dsk.nlvm++] = tmpdsk;
+                                        break;
+                                }
+                        }
+                }
+
+                /*
+                ** set terminator for table
+                */
+                si->dsk.dsk[si->dsk.ndsk].name[0] = '\0';
+                si->dsk.mdd[si->dsk.nmdd].name[0] = '\0';
+                si->dsk.lvm[si->dsk.nlvm].name[0] = '\0';
+
+                fclose(fp);
+        }
+
+        /*
+        ** get information about the shared memory statistics
+        */
+        if (shmctl(0, SHM_INFO, (struct shmid_ds *)&shminfo) != -1) {
+                si->mem.shmrss = shminfo.shm_rss;
+                si->mem.shmswp = shminfo.shm_swp;
+        }
+
+        /*
+        ** NFS server statistics
+        */
+        if ((fp = fopen("net/rpc/nfsd", "r")) != NULL) {
+                char label[32];
+                count_t cnt[40];
+
+                /*
+                ** every line starts with a small label,
+                ** followed by upto 60 counters
+                */
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        memset(cnt, 0, sizeof cnt);
+
+                        nr = sscanf(linebuf,
+                                    "%31s %lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld",
+                                    label, &cnt[0], &cnt[1], &cnt[2], &cnt[3], &cnt[4], &cnt[5],
+                                    &cnt[6], &cnt[7], &cnt[8], &cnt[9], &cnt[10], &cnt[11],
+                                    &cnt[12], &cnt[13], &cnt[14], &cnt[15], &cnt[16], &cnt[17],
+                                    &cnt[18], &cnt[19], &cnt[20], &cnt[21], &cnt[22], &cnt[23],
+                                    &cnt[24], &cnt[25], &cnt[26], &cnt[27], &cnt[28], &cnt[29],
+                                    &cnt[30], &cnt[31], &cnt[32], &cnt[33], &cnt[34], &cnt[35],
+                                    &cnt[36], &cnt[37], &cnt[38], &cnt[39]);
+
+                        if (nr < 2) // unexpected empty line ?
+                                continue;
+
+                        if (strcmp(label, "rc") == 0) {
+                                si->nfs.server.rchits = cnt[0];
+                                si->nfs.server.rcmiss = cnt[1];
+                                si->nfs.server.rcnoca = cnt[2];
+
+                                continue;
+                        }
+
+                        if (strcmp(label, "io") == 0) {
+                                si->nfs.server.nrbytes = cnt[0];
+                                si->nfs.server.nwbytes = cnt[1];
+
+                                continue;
+                        }
+
+                        if (strcmp(label, "net") == 0) {
+                                si->nfs.server.netcnt = cnt[0];
+                                si->nfs.server.netudpcnt = cnt[1];
+                                si->nfs.server.nettcpcnt = cnt[2];
+                                si->nfs.server.nettcpcon = cnt[3];
+
+                                continue;
+                        }
+
+                        if (strcmp(label, "rpc") == 0) {
+                                si->nfs.server.rpccnt = cnt[0];
+                                si->nfs.server.rpcbadfmt = cnt[1];
+                                si->nfs.server.rpcbadaut = cnt[2];
+                                si->nfs.server.rpcbadcln = cnt[3];
+
+                                continue;
+                        }
+                        //
+                        // first counter behind 'proc..' is number of
+                        // counters that follow
+                        if (strcmp(label, "proc2") == 0) {
+                                si->nfs.server.rpcread += cnt[7];  // offset+1
+                                si->nfs.server.rpcwrite += cnt[9]; // offset+1
+                                continue;
+                        }
+                        if (strcmp(label, "proc3") == 0) {
+                                si->nfs.server.rpcread += cnt[7];  // offset+1
+                                si->nfs.server.rpcwrite += cnt[8]; // offset+1
+                                continue;
+                        }
+                        if (strcmp(label, "proc4ops") == 0) {
+                                si->nfs.server.rpcread += cnt[26];  // offset+1
+                                si->nfs.server.rpcwrite += cnt[39]; // offset+1
+                                continue;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** NFS client statistics
+        */
+        if ((fp = fopen("net/rpc/nfs", "r")) != NULL) {
+                char label[32];
+                count_t cnt[10];
+
+                /*
+                ** every line starts with a small label,
+                ** followed by counters
+                */
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        memset(cnt, 0, sizeof cnt);
+
+                        nr = sscanf(linebuf,
+                                    "%31s %lld %lld %lld %lld %lld"
+                                    "%lld %lld %lld %lld %lld",
+                                    label, &cnt[0], &cnt[1], &cnt[2], &cnt[3], &cnt[4], &cnt[5],
+                                    &cnt[6], &cnt[7], &cnt[8], &cnt[9]);
+
+                        if (nr < 2) // unexpected empty line ?
+                                continue;
+
+                        if (strcmp(label, "rpc") == 0) {
+                                si->nfs.client.rpccnt = cnt[0];
+                                si->nfs.client.rpcretrans = cnt[1];
+                                si->nfs.client.rpcautrefresh = cnt[2];
+                                continue;
+                        }
+
+                        // first counter behind 'proc..' is number of
+                        // counters that follow
+                        if (strcmp(label, "proc2") == 0) {
+                                si->nfs.client.rpcread += cnt[7];  // offset+1
+                                si->nfs.client.rpcwrite += cnt[9]; // offset+1
+                                continue;
+                        }
+                        if (strcmp(label, "proc3") == 0) {
+                                si->nfs.client.rpcread += cnt[7];  // offset+1
+                                si->nfs.client.rpcwrite += cnt[8]; // offset+1
+                                continue;
+                        }
+                        if (strcmp(label, "proc4") == 0) {
+                                si->nfs.client.rpcread += cnt[2];  // offset+1
+                                si->nfs.client.rpcwrite += cnt[3]; // offset+1
+                                continue;
+                        }
+                }
+
+                fclose(fp);
+        }
+
+        /*
+        ** NFS client: per-mount statistics
+        */
+        regainrootprivs();
+
+        if ((fp = fopen("self/mountstats", "r")) != NULL) {
+                char mountdev[128], fstype[32] = "", label[32];
+                count_t cnt[8];
+
+                i = 0;
+
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        // if 'device' line, just remember the mounted device
+                        if (sscanf(linebuf, "device %127s mounted on %*s with fstype %31s",
+                                   mountdev, fstype) == 2) {
+                                continue;
+                        }
+
+                        if (strncmp(fstype, "nfs", 3) != 0)
+                                continue;
+
+                        // this is line with NFS client stats
+                        nr = sscanf(linebuf, "%31s %lld %lld %lld %lld %lld %lld %lld %lld", label,
+                                    &cnt[0], &cnt[1], &cnt[2], &cnt[3], &cnt[4], &cnt[5], &cnt[6],
+                                    &cnt[7]);
+
+                        if (nr >= 2) {
+                                if (strcmp(label, "age:") == 0) {
+                                        safe_strcpy(si->nfs.nfsmounts.nfsmnt[i].mountdev, mountdev,
+                                                    sizeof si->nfs.nfsmounts.nfsmnt[i].mountdev);
+
+                                        si->nfs.nfsmounts.nfsmnt[i].age = cnt[0];
+                                }
+
+                                if (strcmp(label, "bytes:") == 0) {
+                                        si->nfs.nfsmounts.nfsmnt[i].bytesread = cnt[0];
+                                        si->nfs.nfsmounts.nfsmnt[i].byteswrite = cnt[1];
+                                        si->nfs.nfsmounts.nfsmnt[i].bytesdread = cnt[2];
+                                        si->nfs.nfsmounts.nfsmnt[i].bytesdwrite = cnt[3];
+                                        si->nfs.nfsmounts.nfsmnt[i].bytestotread = cnt[4];
+                                        si->nfs.nfsmounts.nfsmnt[i].bytestotwrite = cnt[5];
+                                        si->nfs.nfsmounts.nfsmnt[i].pagesmread = cnt[6];
+                                        si->nfs.nfsmounts.nfsmnt[i].pagesmwrite = cnt[7];
+
+                                        if (++i >= MAXNFSMOUNT - 1)
+                                                break;
+                                }
+                        }
+                }
+
+                si->nfs.nfsmounts.nrmounts = i;
+
+                fclose(fp);
+        }
+
+        if (!droprootprivs())
+                mcleanstop(42, "failed to drop root privs\n");
+
+        /*
+        ** pressure statistics in /proc/pressure (>= 4.20)
+        **
+        ** cpu:      some avg10=0.00 avg60=1.37 avg300=3.73 total=30995960
+        ** cpu:      full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+        ** io:       some avg10=0.00 avg60=8.83 avg300=22.86 total=141658568
+        ** io:       full avg10=0.00 avg60=8.33 avg300=21.56 total=133129045
+        ** memory:   some avg10=0.00 avg60=0.74 avg300=1.67 total=10663184
+        ** memory:   full avg10=0.00 avg60=0.45 avg300=0.94 total=6461782
+        **
+        ** verify if pressure stats supported by this system
+        */
+        if (chdir("pressure") == 0) {
+                struct psi psitemp;
+                char psitype;
+                char psiformat[] = "%c%*s avg10=%f avg60=%f avg300=%f total=%llu";
+
+                si->psi.present = 1;
+
+                if ((fp = fopen("cpu", "r")) != NULL) {
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(linebuf, psiformat, &psitype, &psitemp.avg10,
+                                            &psitemp.avg60, &psitemp.avg300, &psitemp.total);
+
+                                if (nr == 5) // complete line ?
+                                {
+                                        if (psitype == 's')
+                                                memmove(&(si->psi.cpusome), &psitemp,
+                                                        sizeof psitemp);
+                                        // cpu full always seems to be zero
+                                }
+                        }
+                        fclose(fp);
+                }
+
+                if ((fp = fopen("memory", "r")) != NULL) {
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(linebuf, psiformat, &psitype, &psitemp.avg10,
+                                            &psitemp.avg60, &psitemp.avg300, &psitemp.total);
+
+                                if (nr == 5) {
+                                        if (psitype == 's')
+                                                memmove(&(si->psi.memsome), &psitemp,
+                                                        sizeof psitemp);
+                                        else
+                                                memmove(&(si->psi.memfull), &psitemp,
+                                                        sizeof psitemp);
+                                }
+                        }
+                        fclose(fp);
+                }
+
+                if ((fp = fopen("io", "r")) != NULL) {
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(linebuf, psiformat, &psitype, &psitemp.avg10,
+                                            &psitemp.avg60, &psitemp.avg300, &psitemp.total);
+
+                                if (nr == 5) {
+                                        if (psitype == 's')
+                                                memmove(&(si->psi.iosome), &psitemp,
+                                                        sizeof psitemp);
+                                        else
+                                                memmove(&(si->psi.iofull), &psitemp,
+                                                        sizeof psitemp);
+                                }
+                        }
+                        fclose(fp);
+                }
+
+                if (chdir("..") == -1)
+                        mcleanstop(54, "failed to return to /proc\n");
+        } else {
+                si->psi.present = 0;
+        }
+
+        /*
+        ** Container statistics (if any)
+        */
+        if ((fp = fopen("user_beancounters", "r")) != NULL) {
+                unsigned long ctid;
+                char label[32];
+                count_t cnt;
+
+                i = -1;
+
+                /*
+                ** lines introducing a new container have an extra
+                ** field with the container id at the beginning.
+                */
+                while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        nr = sscanf(linebuf, "%lu: %31s %lld", &ctid, label, &cnt);
+
+                        if (nr == 3) // new container ?
+                        {
+                                if (++i >= MAXCONTAINER)
+                                        break;
+
+                                si->cfs.cont[i].ctid = ctid;
+                        } else {
+                                nr = sscanf(linebuf, "%31s %lld", label, &cnt);
+
+                                if (nr != 2)
+                                        continue;
+                        }
+
+                        if (i == -1) // no container defined yet
+                                continue;
+
+                        if (strcmp(label, "numproc") == 0) {
+                                si->cfs.cont[i].numproc = cnt;
+                                continue;
+                        }
+
+                        if (strcmp(label, "physpages") == 0) {
+                                si->cfs.cont[i].physpages = cnt;
+                                continue;
+                        }
+                }
+
+                fclose(fp);
+
+                si->cfs.nrcontainer = i + 1;
+
+                if ((fp = fopen("vz/vestat", "r")) != NULL) {
+                        unsigned long ctid;
+                        count_t cnt[8];
+
+                        /*
+                        ** relevant lines start with container id
+                        */
+                        while (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                nr = sscanf(linebuf,
+                                            "%lu  %lld %lld %lld %lld"
+                                            "%lld %lld %lld %lld %lld",
+                                            &ctid, &cnt[0], &cnt[1], &cnt[2], &cnt[3], &cnt[4],
+                                            &cnt[5], &cnt[6], &cnt[7], &cnt[8]);
+
+                                if (nr < 9) // irrelevant contents
+                                        continue;
+
+                                // relevant stats: search for containerid
+                                for (i = 0; i < si->cfs.nrcontainer; i++) {
+                                        if (si->cfs.cont[i].ctid == ctid)
+                                                break;
+                                }
+
+                                if (i >= si->cfs.nrcontainer)
+                                        continue; // container not found
+
+                                si->cfs.cont[i].user = cnt[0];
+                                si->cfs.cont[i].nice = cnt[1];
+                                si->cfs.cont[i].system = cnt[2];
+                                si->cfs.cont[i].uptime = cnt[3];
+                        }
+
+                        fclose(fp);
+                }
+        }
+
+        /*
+        ** gather per LLC related statistics from the file
+        ** /sys/fs/resctrl/mon_data/mon_L3_XX
+        */
+        dirp = opendir(LLCDIR);
+
+        if (dirp) {
+                static int l3_cache_size;
+
+                if (!l3_cache_size) {
+                        if ((fp = fopen(L3SIZE, "r")) != NULL) {
+                                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                        sscanf(linebuf, "%dK\n", &l3_cache_size);
+                                        l3_cache_size *= 1024;
+                                }
+
+                                fclose(fp);
+                        }
+                }
+
+                /*
+                ** walk the LLC directory, gather each LLC
+                */
+                while ((dentry = readdir(dirp))) {
+                        struct perllc *llc = &si->llc.perllc[si->llc.nrllcs];
+                        unsigned long llc_occupancy;
+
+                        if (strncmp(dentry->d_name, "mon_L3_", 7))
+                                continue;
+
+                        /* get cache id from directory name like mon_L3_00 */
+                        sscanf(dentry->d_name + 7, "%hhu\n", &llc->id);
+
+                        snprintf(fn, sizeof fn, LLCDIR "/%s/llc_occupancy", dentry->d_name);
+                        if ((fp = fopen(fn, "r")) != NULL) {
+                                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                        sscanf(linebuf, "%lu\n", &llc_occupancy);
+                                        llc->occupancy = (float)llc_occupancy / l3_cache_size;
+                                }
+
+                                fclose(fp);
+                        }
+
+                        snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_local_bytes", dentry->d_name);
+                        if ((fp = fopen(fn, "r")) != NULL) {
+                                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                        sscanf(linebuf, "%llu\n", &llc->mbm_local);
+                                }
+
+                                fclose(fp);
+                        }
+
+                        snprintf(fn, sizeof fn, LLCDIR "/%s/mbm_total_bytes", dentry->d_name);
+                        if ((fp = fopen(fn, "r")) != NULL) {
+                                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                                        sscanf(linebuf, "%llu\n", &llc->mbm_total);
+                                }
+                                fclose(fp);
+                        }
+
+                        if (++si->llc.nrllcs >= MAXLLC) /* too many LLC ? */
+                                break;
+                }
+
+                closedir(dirp);
+        }
+
+        /*
+        ** verify presence of InfiniBand controllers
+        ** warning: possibly switches to other directory
+        */
+        if (ib_stats)
+                ib_stats = get_infiniband(&(si->ifb));
+
+        /*
+        ** get counters related to ksm
+        */
+        if (ksm_stats)
+                ksm_stats = get_ksm(si);
+
+        /*
+        ** return to original directory
+        */
+        if (chdir(origdir) == -1)
+                mcleanstop(55, "failed to change to %s\n", origdir);
+
+#ifndef NOPERFEVENT
+        /*
+        ** get low-level CPU event counters
+        */
         getperfevents(&(si->cpu), onliners);
 #endif
 
-	/*
-	** fetch application-specific counters
-	*/
-#if	HTTPSTATS
-	if ( wwwvalid)
-		wwwvalid = getwwwstat(80, &(si->www));
+        /*
+        ** fetch application-specific counters
+        */
+#if HTTPSTATS
+        if (wwwvalid)
+                wwwvalid = getwwwstat(80, &(si->www));
 #endif
 }
 
@@ -2178,179 +2064,159 @@ photosyst(struct sstat *si)
 ** set of subroutines to determine which disks should be monitored
 ** and to translate name strings into (shorter) name strings
 */
-static void
-nullmodname(struct sstat *si, unsigned int major, unsigned int minor,
-		char *curname, struct perdsk *px, int maxlen)
+static void nullmodname(struct sstat *si, unsigned int major, unsigned int minor, char *curname,
+                        struct perdsk *px, int maxlen)
 {
-	safe_strcpy(px->name, curname, maxlen);
+        safe_strcpy(px->name, curname, maxlen);
 }
 
-static void
-abbrevname1(struct sstat *si, unsigned int major, unsigned int minor,
-		char *curname, struct perdsk *px, int maxlen)
+static void abbrevname1(struct sstat *si, unsigned int major, unsigned int minor, char *curname,
+                        struct perdsk *px, int maxlen)
 {
-	char	cutype[128];
-	int	hostnum, busnum, targetnum, lunnum;
+        char cutype[128];
+        int hostnum, busnum, targetnum, lunnum;
 
-	sscanf(curname, "%[^/]/host%d/bus%d/target%d/lun%d",
-			cutype, &hostnum, &busnum, &targetnum, &lunnum);
+        sscanf(curname, "%[^/]/host%d/bus%d/target%d/lun%d", cutype, &hostnum, &busnum, &targetnum,
+               &lunnum);
 
-	snprintf(px->name, maxlen, "%c-h%db%dt%d", 
-			cutype[0], hostnum, busnum, targetnum);
+        snprintf(px->name, maxlen, "%c-h%db%dt%d", cutype[0], hostnum, busnum, targetnum);
 }
 
 /*
 ** recognize LVM logical volumes
 */
-#define	NUMDMHASH	64
-#define	DMHASH(x,y)	(((x)+(y))%NUMDMHASH)	
-#define	MAPDIR		"/dev/mapper"
+#define NUMDMHASH 64
+#define DMHASH(x, y) (((x) + (y)) % NUMDMHASH)
+#define MAPDIR "/dev/mapper"
 
 struct devmap {
-	unsigned int	major;
-	unsigned int	minor;
-	char		name[MAXDKNAM];
-	struct devmap	*next;
+        unsigned int major;
+        unsigned int minor;
+        char name[MAXDKNAM];
+        struct devmap *next;
 };
 
-static void
-lvmmapname(struct sstat *si, unsigned int major, unsigned int minor,
-		char *curname, struct perdsk *px, int maxlen)
+static void lvmmapname(struct sstat *si, unsigned int major, unsigned int minor, char *curname,
+                       struct perdsk *px, int maxlen)
 {
-	static int		firstcall = 1;
-	static struct devmap	*devmaps[NUMDMHASH], *dmp;
-	int			hashix;
+        static int firstcall = 1;
+        static struct devmap *devmaps[NUMDMHASH], *dmp;
+        int hashix;
 
-	/*
- 	** setup a list of major-minor numbers of dm-devices with their
-	** corresponding name
-	*/
-	if (firstcall)
-	{
-		DIR		*dirp;
-		struct dirent	*dentry;
-		struct stat	statbuf;
-		char		path[PATH_MAX];
+        /*
+        ** setup a list of major-minor numbers of dm-devices with their
+        ** corresponding name
+        */
+        if (firstcall) {
+                DIR *dirp;
+                struct dirent *dentry;
+                struct stat statbuf;
+                char path[PATH_MAX];
 
-		if ( (dirp = opendir(MAPDIR)) )
-		{
-			/*
-	 		** read every directory-entry and search for
-			** block devices
-			*/
-			while ( (dentry = readdir(dirp)) )
-			{
-				snprintf(path, sizeof path, "%s/%s", 
-						MAPDIR, dentry->d_name);
+                if ((dirp = opendir(MAPDIR))) {
+                        /*
+                        ** read every directory-entry and search for
+                        ** block devices
+                        */
+                        while ((dentry = readdir(dirp))) {
+                                snprintf(path, sizeof path, "%s/%s", MAPDIR, dentry->d_name);
 
-				if ( stat(path, &statbuf) == -1 )
-					continue;
+                                if (stat(path, &statbuf) == -1)
+                                        continue;
 
-				if ( ! S_ISBLK(statbuf.st_mode) )
-					continue;
-				/*
- 				** allocate struct to store name
-				*/
-				if ( !(dmp = malloc(sizeof (struct devmap))))
-					continue;
+                                if (!S_ISBLK(statbuf.st_mode))
+                                        continue;
+                                /*
+                                ** allocate struct to store name
+                                */
+                                if (!(dmp = malloc(sizeof(struct devmap))))
+                                        continue;
 
-				/*
- 				** store info in hash list
-				*/
-				safe_strcpy(dmp->name, dentry->d_name, sizeof dmp->name);
-				dmp->major 	= major(statbuf.st_rdev);
-				dmp->minor 	= minor(statbuf.st_rdev);
+                                /*
+                                ** store info in hash list
+                                */
+                                safe_strcpy(dmp->name, dentry->d_name, sizeof dmp->name);
+                                dmp->major = major(statbuf.st_rdev);
+                                dmp->minor = minor(statbuf.st_rdev);
 
-				hashix = DMHASH(dmp->major, dmp->minor);
+                                hashix = DMHASH(dmp->major, dmp->minor);
 
-				dmp->next	= devmaps[hashix];
+                                dmp->next = devmaps[hashix];
 
-				devmaps[hashix]	= dmp;
-			}
+                                devmaps[hashix] = dmp;
+                        }
 
-			closedir(dirp);
-		}
+                        closedir(dirp);
+                }
 
-		firstcall = 0;
-	}
+                firstcall = 0;
+        }
 
-	/*
- 	** find info in hash list
-	*/
-	hashix  = DMHASH(major, minor);
-	dmp	= devmaps[hashix];
+        /*
+        ** find info in hash list
+        */
+        hashix = DMHASH(major, minor);
+        dmp = devmaps[hashix];
 
-	while (dmp)
-	{
-		if (dmp->major == major && dmp->minor == minor)
-		{
-			/*
-		 	** info found in hash list; fill proper name
-			*/
-			safe_strcpy(px->name, dmp->name, maxlen);
-			return;
-		}
+        while (dmp) {
+                if (dmp->major == major && dmp->minor == minor) {
+                        /*
+                        ** info found in hash list; fill proper name
+                        */
+                        safe_strcpy(px->name, dmp->name, maxlen);
+                        return;
+                }
 
-		dmp = dmp->next;
-	}
+                dmp = dmp->next;
+        }
 
-	/*
-	** info not found in hash list; fill original name
-	*/
-	safe_strcpy(px->name, curname, maxlen);
+        /*
+        ** info not found in hash list; fill original name
+        */
+        safe_strcpy(px->name, curname, maxlen);
 }
 
-static void
-zrammodname(struct sstat *si, unsigned int major, unsigned int minor,
-		char *curname, struct perdsk *px, int maxlen)
+static void zrammodname(struct sstat *si, unsigned int major, unsigned int minor, char *curname,
+                        struct perdsk *px, int maxlen)
 {
-	FILE	*fp;
-	char	path[PATH_MAX], linebuf[64];
-	count_t	sz1 = 0, sz2 = 0, sz3 = 0;
+        FILE *fp;
+        char path[PATH_MAX], linebuf[64];
+        count_t sz1 = 0, sz2 = 0, sz3 = 0;
 
-	// determine (virtual) size of zram disk
-	//
-	snprintf(path, sizeof path, "/sys/dev/block/%d:%d/disksize", major, minor);
+        // determine (virtual) size of zram disk
+        //
+        snprintf(path, sizeof path, "/sys/dev/block/%d:%d/disksize", major, minor);
 
-	if ( (fp = fopen(path, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%llu", &sz1) == 1)
-				si->mem.zramvsize += sz1;
-			else
-				return;
-		}
-		else
-		{
-			return;
-		}
+        if ((fp = fopen(path, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%llu", &sz1) == 1)
+                                si->mem.zramvsize += sz1;
+                        else
+                                return;
+                } else {
+                        return;
+                }
 
-		fclose(fp);
-	}
-	else
-	{
-		return;
-	}
+                fclose(fp);
+        } else {
+                return;
+        }
 
-	// determine other sizes of zram disk
-	//
-	snprintf(path, sizeof path, "/sys/dev/block/%d:%d/mm_stat", major, minor);
+        // determine other sizes of zram disk
+        //
+        snprintf(path, sizeof path, "/sys/dev/block/%d:%d/mm_stat", major, minor);
 
-	if ( (fp = fopen(path, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%llu %llu %llu", &sz1, &sz2, &sz3) == 3)
-			{
-				si->mem.zramvused  += sz1;
-				si->mem.zrampcompr += sz2;
-				si->mem.zramptotal += sz3;
-			}
-		}
+        if ((fp = fopen(path, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%llu %llu %llu", &sz1, &sz2, &sz3) == 3) {
+                                si->mem.zramvused += sz1;
+                                si->mem.zrampcompr += sz2;
+                                si->mem.zramptotal += sz3;
+                        }
+                }
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 }
 
 /*
@@ -2363,237 +2229,345 @@ zrammodname(struct sstat *si, unsigned int major, unsigned int minor,
 ** are also recognized to skip them as fast as possible
 */
 static struct {
-	char 	*regexp;
-	regex_t	compreg;
-	void	(*modname)(struct sstat *, unsigned int, unsigned int,
-				char *, struct perdsk *, int);
-	int	major;	// to be filled via isdisk_name()
-	int	retval;
+        char *regexp;
+        regex_t compreg;
+        void (*modname)(struct sstat *, unsigned int, unsigned int, char *, struct perdsk *, int);
+        int major; // to be filled via isdisk_name()
+        int retval;
 } validdisk[] = {
-	{ "^sd[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
-	{ "^dm-[0-9][0-9]*$",			{0},  lvmmapname,  0, LVMTYPE, },
-	{ "^md[0-9][0-9]*$",			{0},  nullmodname, 0, MDDTYPE, },
-	{ "^vd[a-z][a-z]*$",                    {0},  nullmodname, 0, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*n[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
-	{ "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$",
-						{0},  nullmodname, 0, DSKTYPE, },
-	{ "^loop[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
-	{ "^ram[0-9][0-9]*$",			{0},  (void *)0,   0, NONTYPE, },
-	{ "^zram[0-9][0-9]*$",			{0},  zrammodname, 0, ZRAMTYPE,},
-	{ "^nbd[0-9][0-9]*$",			{0},  nullmodname, 0, DSKTYPE, },
-	{ "^hd[a-z]$",				{0},  nullmodname, 0, DSKTYPE, },
-	{ "^rd/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
-	{ "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
-	{ "^fio[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
-	{ "/host.*/bus.*/target.*/lun.*/disc",	{0},  abbrevname1, 0, DSKTYPE, },
-	{ "^xvd[a-z][a-z]*[0-9]*$",		{0},  nullmodname, 0, DSKTYPE, },
-	{ "^dasd[a-z][a-z]*$",			{0},  nullmodname, 0, DSKTYPE, },
-	{ "^mmcblk[0-9][0-9]*$",		{0},  nullmodname, 0, DSKTYPE, },
-	{ "^emcpower[a-z][a-z]*$",		{0},  nullmodname, 0, DSKTYPE, },
-	{ "^rbd[0-9][0-9]*$",			{0},  nullmodname, 0, DSKTYPE, },
-	{ "^rbd[0-9][0-9]*p[0-9][0-9]*$",	{0},  nullmodname, 0, DSKTYPE, },
+    {
+        "^sd[a-z][a-z]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^dm-[0-9][0-9]*$",
+        {0},
+        lvmmapname,
+        0,
+        LVMTYPE,
+    },
+    {
+        "^md[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        MDDTYPE,
+    },
+    {
+        "^vd[a-z][a-z]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^nvme[0-9][0-9]*n[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^nvme[0-9][0-9]*c[0-9][0-9]*n[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^loop[0-9][0-9]*$",
+        {0},
+        (void *)0,
+        0,
+        NONTYPE,
+    },
+    {
+        "^ram[0-9][0-9]*$",
+        {0},
+        (void *)0,
+        0,
+        NONTYPE,
+    },
+    {
+        "^zram[0-9][0-9]*$",
+        {0},
+        zrammodname,
+        0,
+        ZRAMTYPE,
+    },
+    {
+        "^nbd[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^hd[a-z]$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^rd/c[0-9][0-9]*d[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^cciss/c[0-9][0-9]*d[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^fio[a-z][a-z]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "/host.*/bus.*/target.*/lun.*/disc",
+        {0},
+        abbrevname1,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^xvd[a-z][a-z]*[0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^dasd[a-z][a-z]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^mmcblk[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^emcpower[a-z][a-z]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^rbd[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
+    {
+        "^rbd[0-9][0-9]*p[0-9][0-9]*$",
+        {0},
+        nullmodname,
+        0,
+        DSKTYPE,
+    },
 };
 
-static int
-isdisk_name(struct sstat *si, unsigned int major, unsigned int minor,
-           char *curname, struct perdsk *px, int maxlen)
+static int isdisk_name(struct sstat *si, unsigned int major, unsigned int minor, char *curname,
+                       struct perdsk *px, int maxlen)
 {
-	static int	firstcall = 1;
-	register int	i;
+        static int firstcall = 1;
+        register int i;
 
-	if (firstcall)		/* compile the regular expressions */
-	{
-		for (i=0; i < sizeof validdisk/sizeof validdisk[0]; i++)
-			regcomp(&validdisk[i].compreg, validdisk[i].regexp,
-								REG_NOSUB);
-		firstcall = 0;
-	}
+        if (firstcall) /* compile the regular expressions */
+        {
+                for (i = 0; i < sizeof validdisk / sizeof validdisk[0]; i++)
+                        regcomp(&validdisk[i].compreg, validdisk[i].regexp, REG_NOSUB);
+                firstcall = 0;
+        }
 
-	/*
-	** try to recognize one of the compiled regular expressions
-	*/
-	for (i=0; i < sizeof validdisk/sizeof validdisk[0]; i++)
-	{
-		if (regexec(&validdisk[i].compreg, curname, 0, NULL, 0) == 0)
-		{
-			/*
-			** store major number of driver
-			*/
-			if (major)
-				validdisk[i].major = major;
+        /*
+        ** try to recognize one of the compiled regular expressions
+        */
+        for (i = 0; i < sizeof validdisk / sizeof validdisk[0]; i++) {
+                if (regexec(&validdisk[i].compreg, curname, 0, NULL, 0) == 0) {
+                        /*
+                        ** store major number of driver
+                        */
+                        if (major)
+                                validdisk[i].major = major;
 
-			/*
-			** name-string recognized; modify name-string
-			*/
-			if (validdisk[i].retval != NONTYPE)
-				(*validdisk[i].modname)(si, major, minor, curname, px, maxlen);
+                        /*
+                        ** name-string recognized; modify name-string
+                        */
+                        if (validdisk[i].retval != NONTYPE)
+                                (*validdisk[i].modname)(si, major, minor, curname, px, maxlen);
 
-			return validdisk[i].retval;
-		}
-	}
+                        return validdisk[i].retval;
+                }
+        }
 
-	return NONTYPE;
+        return NONTYPE;
 }
 
-
-int
-isdisk_major(unsigned int major)
+int isdisk_major(unsigned int major)
 {
-	register int	i;
+        register int i;
 
-	/*
-	** search for the major number of the disk
-	*/
-	for (i=0; i < sizeof validdisk/sizeof validdisk[0]; i++)
-	{
-		if (major == validdisk[i].major)
-			return validdisk[i].retval;
-	}
+        /*
+        ** search for the major number of the disk
+        */
+        for (i = 0; i < sizeof validdisk / sizeof validdisk[0]; i++) {
+                if (major == validdisk[i].major)
+                        return validdisk[i].retval;
+        }
 
-	return NONTYPE;
+        return NONTYPE;
 }
-
 
 /*
 ** get stats of all InfiniBand ports below
 **    /sys/class/infiniband/<controller>/ports/<port#>/....
 */
 static struct ibcachent {
-	char		*ibha;		// InfiniBand Host Adaptor
-	unsigned short	port;		// port number
-	unsigned short	lanes;		// number of lanes
-	count_t 	rate;		// transfer rate in bytes/sec
-	char 		*pathrcvb;	// path name for received bytes
-	char 		*pathsndb;	// path name for transmitted bytes
-	char 		*pathrcvp;	// path name for received packets
-	char 		*pathsndp;	// path name for transmitted packets
+        char *ibha;           // InfiniBand Host Adaptor
+        unsigned short port;  // port number
+        unsigned short lanes; // number of lanes
+        count_t rate;         // transfer rate in bytes/sec
+        char *pathrcvb;       // path name for received bytes
+        char *pathsndb;       // path name for transmitted bytes
+        char *pathrcvp;       // path name for received packets
+        char *pathsndp;       // path name for transmitted packets
 } ibcache[MAXIBPORT];
 
-static int	nib;			// number of IB ports in cache
+static int nib; // number of IB ports in cache
 
-static void	ibprep(struct ibcachent *);
-static int	ibstat(struct ibcachent *, struct perifb *);
+static void ibprep(struct ibcachent *);
+static int ibstat(struct ibcachent *, struct perifb *);
 
-static int
-get_infiniband(struct ifbstat *si)
+static int get_infiniband(struct ifbstat *si)
 {
-	static int	firstcall = 1;
-	int		i;
+        static int firstcall = 1;
+        int i;
 
-	// verify if InfiniBand used in this system
-	if ( chdir("/sys/class/infiniband") == -1)
-		return 0;	// no path, no IB, so don't try again
+        // verify if InfiniBand used in this system
+        if (chdir("/sys/class/infiniband") == -1)
+                return 0; // no path, no IB, so don't try again
 
-	if (firstcall)
-	{
-		char		path[PATH_MAX], *p;
-		struct stat	statbuf;
-		struct dirent	*contdent, *portdent;
-		DIR		*contp, *portp;
+        if (firstcall) {
+                char path[PATH_MAX], *p;
+                struct stat statbuf;
+                struct dirent *contdent, *portdent;
+                DIR *contp, *portp;
 
-		firstcall = 0;
+                firstcall = 0;
 
-		/*
-		** once setup a cache with all info that is needed
-		** to gather the necessary stats with every subsequent
-		** call, including  path names, etcetera.
-		*/
-		if ( (contp = opendir(".")) )
-		{
-			/*
- 			** read every directory-entry and search for
-			** subdirectories (i.e. controllers)
-			*/
-			while ( (contdent = readdir(contp)) )
-			{
-				// skip . and ..
-				if (contdent->d_name[0] == '.')
-					continue;
+                /*
+                ** once setup a cache with all info that is needed
+                ** to gather the necessary stats with every subsequent
+                ** call, including  path names, etcetera.
+                */
+                if ((contp = opendir("."))) {
+                        /*
+                        ** read every directory-entry and search for
+                        ** subdirectories (i.e. controllers)
+                        */
+                        while ((contdent = readdir(contp))) {
+                                // skip . and ..
+                                if (contdent->d_name[0] == '.')
+                                        continue;
 
-				if ( stat(contdent->d_name, &statbuf) == -1 )
-					continue;
-	
-				if ( ! S_ISDIR(statbuf.st_mode) )
-					continue;
+                                if (stat(contdent->d_name, &statbuf) == -1)
+                                        continue;
 
-				// controller found
-				// store controller name for cache
-				//
-				p = malloc( strlen(contdent->d_name)+1 );
+                                if (!S_ISDIR(statbuf.st_mode))
+                                        continue;
 
-				ptrverify(p, "Malloc failed for Infiniband controller name");
+                                // controller found
+                                // store controller name for cache
+                                //
+                                p = malloc(strlen(contdent->d_name) + 1);
 
-				safe_strcpy(p, contdent->d_name, strlen(contdent->d_name)+1);
+                                ptrverify(p, "Malloc failed for Infiniband controller name");
 
-				if (strlen(contdent->d_name) > MAXIBNAME-1)
-					p[MAXIBNAME-1] = '\0';
+                                safe_strcpy(p, contdent->d_name, strlen(contdent->d_name) + 1);
 
-				// discover all ports
-				//
-				snprintf(path, sizeof path, "%s/ports",
-							contdent->d_name);
+                                if (strlen(contdent->d_name) > MAXIBNAME - 1)
+                                        p[MAXIBNAME - 1] = '\0';
 
-				if ( (portp = opendir(path)) )
-				{
-					/*
- 					** read every directory-entry and
-					** search for subdirectories (i.e.
-					** port numbers)
-					*/
-					while ( (portdent = readdir(portp)) )
-					{
-						int port;
+                                // discover all ports
+                                //
+                                snprintf(path, sizeof path, "%s/ports", contdent->d_name);
 
-						// skip . and ..
-						if (portdent->d_name[0] == '.')
-							continue;
+                                if ((portp = opendir(path))) {
+                                        /*
+                                        ** read every directory-entry and
+                                        ** search for subdirectories (i.e.
+                                        ** port numbers)
+                                        */
+                                        while ((portdent = readdir(portp))) {
+                                                int port;
 
-						port = atoi(portdent->d_name);
+                                                // skip . and ..
+                                                if (portdent->d_name[0] == '.')
+                                                        continue;
 
-						if (!port)
-							continue;
+                                                port = atoi(portdent->d_name);
 
-						// valid port
-						// fill cache info
-						//
-						ibcache[nib].port = port;
-						ibcache[nib].ibha = p;
+                                                if (!port)
+                                                        continue;
 
-						ibprep(&ibcache[nib]);
+                                                // valid port
+                                                // fill cache info
+                                                //
+                                                ibcache[nib].port = port;
+                                                ibcache[nib].ibha = p;
 
-						if (++nib >= MAXIBPORT)
-							break;
-					}
+                                                ibprep(&ibcache[nib]);
 
-					closedir(portp);
+                                                if (++nib >= MAXIBPORT)
+                                                        break;
+                                        }
 
-					if (nib >= MAXIBPORT)
-						break;
-				}
-			}
+                                        closedir(portp);
 
-			closedir(contp);
-		}
-	}
+                                        if (nib >= MAXIBPORT)
+                                                break;
+                                }
+                        }
 
-	/*
-	** get static and variable metrics
-	*/
-	for (i=0; i < nib; i++)
-	{
-		// static metrics from cache
-		safe_strcpy(si->ifb[i].ibname, ibcache[i].ibha, sizeof si->ifb[i].ibname);
+                        closedir(contp);
+                }
+        }
 
-		si->ifb[i].portnr = ibcache[i].port;
-		si->ifb[i].lanes  = ibcache[i].lanes;
-		si->ifb[i].rate   = ibcache[i].rate;
+        /*
+        ** get static and variable metrics
+        */
+        for (i = 0; i < nib; i++) {
+                // static metrics from cache
+                safe_strcpy(si->ifb[i].ibname, ibcache[i].ibha, sizeof si->ifb[i].ibname);
 
-		// variable metrics from sysfs
-		ibstat(&(ibcache[i]), &(si->ifb[i]));
-	}	
+                si->ifb[i].portnr = ibcache[i].port;
+                si->ifb[i].lanes = ibcache[i].lanes;
+                si->ifb[i].rate = ibcache[i].rate;
 
-	si->nrports = nib;
-	return 1;
+                // variable metrics from sysfs
+                ibstat(&(ibcache[i]), &(si->ifb[i]));
+        }
+
+        si->nrports = nib;
+        return 1;
 }
 
 /*
@@ -2601,643 +2575,569 @@ get_infiniband(struct ifbstat *si)
 ** from <contr>/ports/<port>/rate --> e.g. "100 Gb/sec (4X EDR)"
 ** and assemble path names to be used for counters later on
 */
-static void
-ibprep(struct ibcachent *ibc)
+static void ibprep(struct ibcachent *ibc)
 {
-	FILE	*fp;
-	char	path[PATH_MAX], linebuf[64], speedunit;
+        FILE *fp;
+        char path[PATH_MAX], linebuf[64], speedunit;
 
-	// determine port rate and number of lanes
-	snprintf(path, sizeof path, "%s/ports/%d/rate", ibc->ibha, ibc->port); 
+        // determine port rate and number of lanes
+        snprintf(path, sizeof path, "%s/ports/%d/rate", ibc->ibha, ibc->port);
 
-	if ( (fp = fopen(path, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			(void) sscanf(linebuf, "%lld %c%*s (%huX",
-				&(ibc->rate), &speedunit, &(ibc->lanes));
+        if ((fp = fopen(path, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        (void)sscanf(linebuf, "%lld %c%*s (%huX", &(ibc->rate), &speedunit,
+                                     &(ibc->lanes));
 
-			// calculate megabits/second
-			switch (speedunit)
-			{
-			   case 'M':
-			   case 'm':
-				break;
-			   case 'G':
-			   case 'g':
-				ibc->rate *= 1000;
-				break;
-			   case 'T':
-			   case 't':
-				ibc->rate *= 1000000;
-				break;
-			}
+                        // calculate megabits/second
+                        switch (speedunit) {
+                        case 'M':
+                        case 'm':
+                                break;
+                        case 'G':
+                        case 'g':
+                                ibc->rate *= 1000;
+                                break;
+                        case 'T':
+                        case 't':
+                                ibc->rate *= 1000000;
+                                break;
+                        }
 
-		}
-		else
-		{
-			ibc->lanes = 0;
-			ibc->rate = 0;
-		}
+                } else {
+                        ibc->lanes = 0;
+                        ibc->rate = 0;
+                }
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	// build all pathnames to obtain the counters
-	// of this port later on
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_data",
-						    ibc->ibha, ibc->port);
-	ibc->pathrcvb = malloc( strlen(path)+1 );
-	safe_strcpy(ibc->pathrcvb, path, strlen(path)+1);
+        // build all pathnames to obtain the counters
+        // of this port later on
+        snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_data", ibc->ibha, ibc->port);
+        ibc->pathrcvb = malloc(strlen(path) + 1);
+        safe_strcpy(ibc->pathrcvb, path, strlen(path) + 1);
 
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_data",
-						    ibc->ibha, ibc->port);
-	ibc->pathsndb = malloc( strlen(path)+1 );
-	safe_strcpy(ibc->pathsndb, path, strlen(path)+1);
+        snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_data", ibc->ibha, ibc->port);
+        ibc->pathsndb = malloc(strlen(path) + 1);
+        safe_strcpy(ibc->pathsndb, path, strlen(path) + 1);
 
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_packets",
-						    ibc->ibha, ibc->port);
-	ibc->pathrcvp = malloc( strlen(path)+1 );
-	safe_strcpy(ibc->pathrcvp, path, strlen(path)+1);
+        snprintf(path, sizeof path, "%s/ports/%d/counters/port_rcv_packets", ibc->ibha, ibc->port);
+        ibc->pathrcvp = malloc(strlen(path) + 1);
+        safe_strcpy(ibc->pathrcvp, path, strlen(path) + 1);
 
-	snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_packets",
-						    ibc->ibha, ibc->port);
-	ibc->pathsndp = malloc( strlen(path)+1 );
-	safe_strcpy(ibc->pathsndp, path, strlen(path)+1);
+        snprintf(path, sizeof path, "%s/ports/%d/counters/port_xmit_packets", ibc->ibha, ibc->port);
+        ibc->pathsndp = malloc(strlen(path) + 1);
+        safe_strcpy(ibc->pathsndp, path, strlen(path) + 1);
 }
 
 /*
 ** read necessary variable counters for this IB port
 */
-static int
-ibstat(struct ibcachent *ibc, struct perifb *ifb)
+static int ibstat(struct ibcachent *ibc, struct perifb *ifb)
 {
-	FILE	*fp;
-	char	linebuf[64];
+        FILE *fp;
+        char linebuf[64];
 
-	if ( (fp = fopen(ibc->pathrcvb, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%lld", &(ifb->rcvb)) == 0)
-				ifb->rcvb = 0;
-		}
-		else
-		{
-			ifb->rcvb = 0;
-		}
-		fclose(fp);
-	}
+        if ((fp = fopen(ibc->pathrcvb, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%lld", &(ifb->rcvb)) == 0)
+                                ifb->rcvb = 0;
+                } else {
+                        ifb->rcvb = 0;
+                }
+                fclose(fp);
+        }
 
-	if ( (fp = fopen(ibc->pathsndb, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%lld", &(ifb->sndb)) == 0)
-				ifb->sndb = 0;
-		}
-		else
-		{
-			ifb->sndb = 0;
-		}
-		fclose(fp);
-	}
+        if ((fp = fopen(ibc->pathsndb, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%lld", &(ifb->sndb)) == 0)
+                                ifb->sndb = 0;
+                } else {
+                        ifb->sndb = 0;
+                }
+                fclose(fp);
+        }
 
-	if ( (fp = fopen(ibc->pathrcvp, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%lld", &(ifb->rcvp)) == 0)
-				ifb->rcvp = 0;
-		}
-		else
-		{
-			ifb->rcvp = 0;
-		}
-		fclose(fp);
-	}
+        if ((fp = fopen(ibc->pathrcvp, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%lld", &(ifb->rcvp)) == 0)
+                                ifb->rcvp = 0;
+                } else {
+                        ifb->rcvp = 0;
+                }
+                fclose(fp);
+        }
 
-	if ( (fp = fopen(ibc->pathsndp, "r")) )
-	{
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-		{
-			if (sscanf(linebuf, "%lld", &(ifb->sndp)) == 0)
-				ifb->sndp = 0;
-		}
-		else
-		{
-			ifb->sndp = 0;
-		}
-		fclose(fp);
-	}
+        if ((fp = fopen(ibc->pathsndp, "r"))) {
+                if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                        if (sscanf(linebuf, "%lld", &(ifb->sndp)) == 0)
+                                ifb->sndp = 0;
+                } else {
+                        ifb->sndp = 0;
+                }
+                fclose(fp);
+        }
 
-	return 1;
+        return 1;
 }
 
 /*
 ** retrieve ksm values (if switched on)
 */
-static int
-get_ksm(struct sstat *si)
+static int get_ksm(struct sstat *si)
 {
-	FILE *fp;
-	int  state;
+        FILE *fp;
+        int state;
 
-	si->mem.ksmsharing = -1;
-	si->mem.ksmshared  = -1;
+        si->mem.ksmsharing = -1;
+        si->mem.ksmshared = -1;
 
-	if ((fp=fopen("/sys/kernel/mm/ksm/run", "r")) != 0)
-	{
-		if (fscanf(fp, "%d", &state) == 1)
-		{
-			if (state == 0)
-			{
-				fclose(fp);
-				return 0; // no more calling
-			}
-		}
+        if ((fp = fopen("/sys/kernel/mm/ksm/run", "r")) != 0) {
+                if (fscanf(fp, "%d", &state) == 1) {
+                        if (state == 0) {
+                                fclose(fp);
+                                return 0; // no more calling
+                        }
+                }
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	if ((fp=fopen("/sys/kernel/mm/ksm/pages_sharing", "r")) != 0)
-	{
-		if (fscanf(fp, "%lld", &(si->mem.ksmsharing)) != 1)
-			si->mem.ksmsharing = 0;
+        if ((fp = fopen("/sys/kernel/mm/ksm/pages_sharing", "r")) != 0) {
+                if (fscanf(fp, "%lld", &(si->mem.ksmsharing)) != 1)
+                        si->mem.ksmsharing = 0;
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	if ((fp=fopen("/sys/kernel/mm/ksm/pages_shared", "r")) != 0)
-	{
-		if (fscanf(fp, "%lld", &(si->mem.ksmshared)) != 1)
-			si->mem.ksmshared = 0;
+        if ((fp = fopen("/sys/kernel/mm/ksm/pages_shared", "r")) != 0) {
+                if (fscanf(fp, "%lld", &(si->mem.ksmshared)) != 1)
+                        si->mem.ksmshared = 0;
 
-		fclose(fp);
-	}
+                fclose(fp);
+        }
 
-	return 1;
+        return 1;
 }
-
 
 /*
 ** determine if this system uses *real* NUMA rather than *fake* NUMA
 ** which is the case when not all node distances have the same value
 */
-#define	NUMADISTANCE0	"/sys/devices/system/node/node0/distance"
+#define NUMADISTANCE0 "/sys/devices/system/node/node0/distance"
 
-void
-realnuma_support(void)
+void realnuma_support(void)
 {
-	FILE		*fp;
-	int		i, total, nr=0, dist[10];
-	char		linebuf[1024];
+        FILE *fp;
+        int i, total, nr = 0, dist[10];
+        char linebuf[1024];
 
-	if ( (fp = fopen(NUMADISTANCE0, "r")) == NULL)
-		return;		// open failed
+        if ((fp = fopen(NUMADISTANCE0, "r")) == NULL)
+                return; // open failed
 
-	if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
-	{
-		nr = sscanf(linebuf, "%d %d %d %d %d %d %d %d %d %d",
-			&dist[0], &dist[1], &dist[2], &dist[3],
-			&dist[4], &dist[5], &dist[6], &dist[7],
-			&dist[8], &dist[9]);
-	}
+        if (fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                nr = sscanf(linebuf, "%d %d %d %d %d %d %d %d %d %d", &dist[0], &dist[1], &dist[2],
+                            &dist[3], &dist[4], &dist[5], &dist[6], &dist[7], &dist[8], &dist[9]);
+        }
 
-	fclose(fp);
+        fclose(fp);
 
-	if (nr <= 0)	// any recognized numerical distances?
-		return;
+        if (nr <= 0) // any recognized numerical distances?
+                return;
 
-	// totalize all distances
-       	for (i=0, total=0; i < nr; i++)
-		total += dist[i];
+        // totalize all distances
+        for (i = 0, total = 0; i < nr; i++)
+                total += dist[i];
 
-	// average distance not equal to the first distance?
-	if (total / i != dist[0])
-		supportflags |= REALNUMA;
+        // average distance not equal to the first distance?
+        if (total / i != dist[0])
+                supportflags |= REALNUMA;
 }
-
 
 /*
 ** determine if this system uses zswap
 */
-void
-zswap_support(void)
+void zswap_support(void)
 {
-	FILE *fp;
-	char  state;
+        FILE *fp;
+        char state;
 
-	if ((fp=fopen("/sys/module/zswap/parameters/enabled", "r")) == NULL)
-		return;		// open failed
+        if ((fp = fopen("/sys/module/zswap/parameters/enabled", "r")) == NULL)
+                return; // open failed
 
-	if (fscanf(fp, "%c", &state) == 1 && state == 'Y')
-		supportflags |= ZSWAP;
+        if (fscanf(fp, "%c", &state) == 1 && state == 'Y')
+                supportflags |= ZSWAP;
 
-	fclose(fp);
+        fclose(fp);
 }
 
-
-#if	HTTPSTATS
+#if HTTPSTATS
 /*
 ** retrieve statistics from local HTTP daemons
 ** via http://localhost/server-status?auto
 */
-int
-getwwwstat(unsigned short port, struct wwwstat *wp)
+int getwwwstat(unsigned short port, struct wwwstat *wp)
 {
-	int 			sockfd, tobefound;
-	FILE			*sockfp;
-	struct sockaddr_in	sockname;
-	char			linebuf[4096];
-	char			label[512];
-	long long		value;
+        int sockfd, tobefound;
+        FILE *sockfp;
+        struct sockaddr_in sockname;
+        char linebuf[4096];
+        char label[512];
+        long long value;
 
-	memset(wp, 0, sizeof *wp);
+        memset(wp, 0, sizeof *wp);
 
-	/*
-	** allocate a socket and connect to the local HTTP daemon
-	*/
-	if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		return 0;
+        /*
+        ** allocate a socket and connect to the local HTTP daemon
+        */
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+                return 0;
 
-	sockname.sin_family		= AF_INET;
-	sockname.sin_addr.s_addr	= htonl(INADDR_LOOPBACK);
-	sockname.sin_port		= htons(port);
+        sockname.sin_family = AF_INET;
+        sockname.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        sockname.sin_port = htons(port);
 
-	if ( connect(sockfd, (struct sockaddr *) &sockname,
-						sizeof sockname) == -1)
-	{
-		close(sockfd);
-		return 0;
-	}
+        if (connect(sockfd, (struct sockaddr *)&sockname, sizeof sockname) == -1) {
+                close(sockfd);
+                return 0;
+        }
 
-	/*
-	** write a GET-request for /server-status
-	*/
-	if ( write(sockfd, HTTPREQ, sizeof HTTPREQ) < sizeof HTTPREQ)
-	{
-		close(sockfd);
-		return 0;
-	}
+        /*
+        ** write a GET-request for /server-status
+        */
+        if (write(sockfd, HTTPREQ, sizeof HTTPREQ) < sizeof HTTPREQ) {
+                close(sockfd);
+                return 0;
+        }
 
-	/*
-	** remap socket descriptor to a stream to allow stdio calls
-	*/
-	sockfp = fdopen(sockfd, "r+");
+        /*
+        ** remap socket descriptor to a stream to allow stdio calls
+        */
+        sockfp = fdopen(sockfd, "r+");
 
-	/*
-	** read response line by line
-	*/
-	tobefound = 5;		/* number of values to be searched */
+        /*
+        ** read response line by line
+        */
+        tobefound = 5; /* number of values to be searched */
 
-	while ( fgets(linebuf, sizeof linebuf, sockfp) && tobefound)
-	{
-		/*
-		** handle line containing status code
-		*/
-		if ( strncmp(linebuf, "HTTP/", 5) == 0)
-		{
-			sscanf(linebuf, "%511s %lld %*s\n", label, &value);
+        while (fgets(linebuf, sizeof linebuf, sockfp) && tobefound) {
+                /*
+                ** handle line containing status code
+                */
+                if (strncmp(linebuf, "HTTP/", 5) == 0) {
+                        sscanf(linebuf, "%511s %lld %*s\n", label, &value);
 
-			if (value != 200)	/* HTTP-request okay? */
-			{
-				fclose(sockfp);
-				close(sockfd);
-				return 0;
-			}
+                        if (value != 200) /* HTTP-request okay? */
+                        {
+                                fclose(sockfp);
+                                close(sockfd);
+                                return 0;
+                        }
 
-			continue;
-		}
+                        continue;
+                }
 
-		/*
-		** decode line and search for the required counters
-		*/
-		if (sscanf(linebuf, "%511[^:]: %lld\n", label, &value) == 2)
-		{
-			if ( strcmp(label, "Total Accesses") == 0)
-			{
-				wp->accesses = value;
-				tobefound--;
-			}
+                /*
+                ** decode line and search for the required counters
+                */
+                if (sscanf(linebuf, "%511[^:]: %lld\n", label, &value) == 2) {
+                        if (strcmp(label, "Total Accesses") == 0) {
+                                wp->accesses = value;
+                                tobefound--;
+                        }
 
-			if ( strcmp(label, "Total kBytes") == 0)
-			{
-				wp->totkbytes = value;
-				tobefound--;
-			}
+                        if (strcmp(label, "Total kBytes") == 0) {
+                                wp->totkbytes = value;
+                                tobefound--;
+                        }
 
-			if ( strcmp(label, "Uptime") == 0)
-			{
-				wp->uptime = value;
-				tobefound--;
-			}
+                        if (strcmp(label, "Uptime") == 0) {
+                                wp->uptime = value;
+                                tobefound--;
+                        }
 
-			if ( strcmp(label, "BusyWorkers") == 0)
-			{
-				wp->bworkers = value;
-				tobefound--;
-			}
+                        if (strcmp(label, "BusyWorkers") == 0) {
+                                wp->bworkers = value;
+                                tobefound--;
+                        }
 
-			if ( strcmp(label, "IdleWorkers") == 0)
-			{
-				wp->iworkers = value;
-				tobefound--;
-			}
-		}
-	}
+                        if (strcmp(label, "IdleWorkers") == 0) {
+                                wp->iworkers = value;
+                                tobefound--;
+                        }
+                }
+        }
 
-	fclose(sockfp);
-	close(sockfd);
+        fclose(sockfp);
+        close(sockfd);
 
-	return 1;
+        return 1;
 }
 #endif
-
-
 
 /*
 ** retrieve low-level CPU events:
 ** 	instructions and cycles per CPU
 */
-#ifndef	NOPERFEVENT
+#ifndef NOPERFEVENT
 
-void
-do_perfevents(char *tagname, char *tagvalue)
+void do_perfevents(char *tagname, char *tagvalue)
 {
-	if (!strcmp("enable", tagvalue))
-		perfevents = PERF_EVENTS_ENABLE;
-	else if (!strcmp("disable", tagvalue))
-		perfevents = PERF_EVENTS_DISABLE;
-	else
-	{
-		if (run_in_guest())
-			perfevents = PERF_EVENTS_DISABLE;
-		else
-			perfevents = PERF_EVENTS_ENABLE;
-	}
+        if (!strcmp("enable", tagvalue))
+                perfevents = PERF_EVENTS_ENABLE;
+        else if (!strcmp("disable", tagvalue))
+                perfevents = PERF_EVENTS_DISABLE;
+        else {
+                if (run_in_guest())
+                        perfevents = PERF_EVENTS_DISABLE;
+                else
+                        perfevents = PERF_EVENTS_ENABLE;
+        }
 }
 
-static int
-enable_perfevents()
+static int enable_perfevents()
 {
-	if (perfevents == PERF_EVENTS_AUTO)
-		do_perfevents("perfevents", "auto");
+        if (perfevents == PERF_EVENTS_AUTO)
+                do_perfevents("perfevents", "auto");
 
-	return perfevents == PERF_EVENTS_ENABLE;
+        return perfevents == PERF_EVENTS_ENABLE;
 }
 
-static long
-perf_event_open(struct perf_event_attr *hwevent, pid_t pid,
-                int cpu, int groupfd, unsigned long flags)
+static long perf_event_open(struct perf_event_attr *hwevent, pid_t pid, int cpu, int groupfd,
+                            unsigned long flags)
 {
-	return syscall(__NR_perf_event_open, hwevent, pid, cpu, groupfd, flags);
+        return syscall(__NR_perf_event_open, hwevent, pid, cpu, groupfd, flags);
 }
 
-static void
-add_perf_count(count_t *total, count_t count)
+static void add_perf_count(count_t *total, count_t count)
 {
-	if (count > LLONG_MAX - *total)
-		*total = LLONG_MAX;
-	else
-		*total += count;
+        if (count > LLONG_MAX - *total)
+                *total = LLONG_MAX;
+        else
+                *total += count;
 }
 
-static void
-add_scaled_perf_count(count_t *total, uint64_t count,
-		      uint64_t enabled, uint64_t running)
+static void add_scaled_perf_count(count_t *total, uint64_t count, uint64_t enabled,
+                                  uint64_t running)
 {
 #if defined(__SIZEOF_INT128__)
-	__uint128_t scaled;
+        __uint128_t scaled;
 #else
-	long double scaled;
+        long double scaled;
 #endif
 
-	if (!running)
-		return;
+        if (!running)
+                return;
 
 #if defined(__SIZEOF_INT128__)
-	scaled = (__uint128_t)count * enabled / running;
+        scaled = (__uint128_t)count * enabled / running;
 #else
-	scaled = (long double)count * enabled / running;
+        scaled = (long double)count * enabled / running;
 #endif
 
-	if (scaled > LLONG_MAX)
-		*total = LLONG_MAX;
-	else
-		add_perf_count(total, (count_t)scaled);
+        if (scaled > LLONG_MAX)
+                *total = LLONG_MAX;
+        else
+                add_perf_count(total, (count_t)scaled);
 }
 
-static void
-getperfevents(struct cpustat *cs, count_t onliners)
+static void getperfevents(struct cpustat *cs, count_t onliners)
 {
-	static int	cpualloced, prev_nrcpu;
-	static struct perf_cpu_events *events;
-	static count_t	prev_onliners;
-	int		i;
+        static int cpualloced, prev_nrcpu;
+        static struct perf_cpu_events *events;
+        static count_t prev_onliners;
+        int i;
 
-	/*
-	** irrecoverable failure?
-	*/
-	if (!enable_perfevents() || cpualloced == -1)
-		return;
+        /*
+        ** irrecoverable failure?
+        */
+        if (!enable_perfevents() || cpualloced == -1)
+                return;
 
-	/*
- 	** (re)initialize perf event counter retrieval
-	** at startup or after CPU configuration has changed
-	**
-	** to detect if the CPU configuration has changed, it is
-	** not enough to verify the number of online CPUs because
-	** CPU 5 might have been disabled while CPU 6 might have
-	** been enabled in the same interval
-	** therefore, the squares of the online CPUs will be accumulated
-	** in the variable 'onliners' to be verified if the CPU
-	** configuration has been modified
-	*/
-	if (cpualloced != cs->maxcpu || prev_onliners != onliners || prev_nrcpu != cs->nrcpu)
-	{
-		struct perf_event_attr  pea;
-		int			success=0, minfds = cs->nrcpu*2 + 32;
-		struct rlimit		rlim;
+        /*
+        ** (re)initialize perf event counter retrieval
+        ** at startup or after CPU configuration has changed
+        **
+        ** to detect if the CPU configuration has changed, it is
+        ** not enough to verify the number of online CPUs because
+        ** CPU 5 might have been disabled while CPU 6 might have
+        ** been enabled in the same interval
+        ** therefore, the squares of the online CPUs will be accumulated
+        ** in the variable 'onliners' to be verified if the CPU
+        ** configuration has been modified
+        */
+        if (cpualloced != cs->maxcpu || prev_onliners != onliners || prev_nrcpu != cs->nrcpu) {
+                struct perf_event_attr pea;
+                int success = 0, minfds = cs->nrcpu * 2 + 32;
+                struct rlimit rlim;
 
-		if (cpualloced > 0)		// already initialized before?
-		{
-			// revert earlier allocations
-			//
-	 		regainrootprivs();
+                if (cpualloced > 0) // already initialized before?
+                {
+                        // revert earlier allocations
+                        //
+                        regainrootprivs();
 
-			for (i=0; i < cpualloced; i++)
-			{
-				if (events[i].instr_fd >= 0)
-					close(events[i].instr_fd);
+                        for (i = 0; i < cpualloced; i++) {
+                                if (events[i].instr_fd >= 0)
+                                        close(events[i].instr_fd);
 
-				if (events[i].cycle_fd >= 0)
-					close(events[i].cycle_fd);
-			}
+                                if (events[i].cycle_fd >= 0)
+                                        close(events[i].cycle_fd);
+                        }
 
-			if (! droprootprivs())
-				mcleanstop(42, "failed to drop root privs\n");
+                        if (!droprootprivs())
+                                mcleanstop(42, "failed to drop root privs\n");
 
-			free(events);
-		}
-	
-		/* for perf events two file descriptors will
-		** be opened permanently per CPU, so take care
-		** that enough open files are allowed for this process
-		*/
-		getrlimit(RLIMIT_NOFILE, &rlim);
+                        free(events);
+                }
 
-		if (rlim.rlim_cur < minfds)	// default not enough?
-		{
-			rlim.rlim_cur = minfds;
-			(void) setrlimit(RLIMIT_NOFILE, &rlim);
-		}
+                /* for perf events two file descriptors will
+                ** be opened permanently per CPU, so take care
+                ** that enough open files are allowed for this process
+                */
+                getrlimit(RLIMIT_NOFILE, &rlim);
 
-		/*
-		** allocate space for per-cpu file descriptors
-		*/
-		prev_onliners = onliners;
-		prev_nrcpu    = cs->nrcpu;
+                if (rlim.rlim_cur < minfds) // default not enough?
+                {
+                        rlim.rlim_cur = minfds;
+                        (void)setrlimit(RLIMIT_NOFILE, &rlim);
+                }
 
-		cpualloced    = cs->maxcpu;
-		events        = calloc(cpualloced, sizeof(*events));
-		ptrverify(events, "Malloc failed for perf events\n");
+                /*
+                ** allocate space for per-cpu file descriptors
+                */
+                prev_onliners = onliners;
+                prev_nrcpu = cs->nrcpu;
 
-		for (i=0; i < cpualloced; i++)
-			events[i].instr_fd = events[i].cycle_fd = -1;
+                cpualloced = cs->maxcpu;
+                events = calloc(cpualloced, sizeof(*events));
+                ptrverify(events, "Malloc failed for perf events\n");
 
-		/*
-		** fill perf_event_attr struct with appropriate values
-		*/
-		memset(&pea, 0, sizeof(struct perf_event_attr));
+                for (i = 0; i < cpualloced; i++)
+                        events[i].instr_fd = events[i].cycle_fd = -1;
 
-		pea.type    = PERF_TYPE_HARDWARE;
-		pea.size    = sizeof(struct perf_event_attr);
-		pea.inherit = 1;
-		pea.read_format = PERF_FORMAT_GROUP |
-		                  PERF_FORMAT_TOTAL_TIME_ENABLED |
-		                  PERF_FORMAT_TOTAL_TIME_RUNNING;
+                /*
+                ** fill perf_event_attr struct with appropriate values
+                */
+                memset(&pea, 0, sizeof(struct perf_event_attr));
 
-	 	regainrootprivs();
+                pea.type = PERF_TYPE_HARDWARE;
+                pea.size = sizeof(struct perf_event_attr);
+                pea.inherit = 1;
+                pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_TOTAL_TIME_ENABLED |
+                                  PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-		for (i=0; i < cpualloced; i++)
-		{
-			if (!cs->cpu[i].online)
-				continue;
+                regainrootprivs();
 
-			/*
-			** Keep instructions and cycles on the same time slice so
-			** IPC remains meaningful while allowing the group to be
-			** multiplexed with other perf event users.
-			*/
-			pea.disabled = 1;
-			pea.config = PERF_COUNT_HW_INSTRUCTIONS;
+                for (i = 0; i < cpualloced; i++) {
+                        if (!cs->cpu[i].online)
+                                continue;
 
-			events[i].instr_fd = perf_event_open(&pea, -1, i, -1,
-							PERF_FLAG_FD_CLOEXEC);
+                        /*
+                        ** Keep instructions and cycles on the same time slice so
+                        ** IPC remains meaningful while allowing the group to be
+                        ** multiplexed with other perf event users.
+                        */
+                        pea.disabled = 1;
+                        pea.config = PERF_COUNT_HW_INSTRUCTIONS;
 
-			if (events[i].instr_fd < 0)
-				continue;
+                        events[i].instr_fd = perf_event_open(&pea, -1, i, -1, PERF_FLAG_FD_CLOEXEC);
 
-			pea.disabled = 0;
-			pea.config = PERF_COUNT_HW_CPU_CYCLES;
+                        if (events[i].instr_fd < 0)
+                                continue;
 
-			events[i].cycle_fd = perf_event_open(&pea, -1, i,
-							events[i].instr_fd,
-							PERF_FLAG_FD_CLOEXEC);
+                        pea.disabled = 0;
+                        pea.config = PERF_COUNT_HW_CPU_CYCLES;
 
-			if (events[i].cycle_fd < 0 ||
-			    ioctl(events[i].instr_fd, PERF_EVENT_IOC_ENABLE,
-			          PERF_IOC_FLAG_GROUP) < 0)
-			{
-				if (events[i].cycle_fd >= 0)
-					close(events[i].cycle_fd);
+                        events[i].cycle_fd =
+                            perf_event_open(&pea, -1, i, events[i].instr_fd, PERF_FLAG_FD_CLOEXEC);
 
-				close(events[i].instr_fd);
-				events[i].instr_fd = -1;
-				events[i].cycle_fd = -1;
-				continue;
-			}
+                        if (events[i].cycle_fd < 0 ||
+                            ioctl(events[i].instr_fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP) <
+                                0) {
+                                if (events[i].cycle_fd >= 0)
+                                        close(events[i].cycle_fd);
 
-			success++;
-		}
+                                close(events[i].instr_fd);
+                                events[i].instr_fd = -1;
+                                events[i].cycle_fd = -1;
+                                continue;
+                        }
 
-		if (! droprootprivs())
-			mcleanstop(42, "failed to drop root privs\n");
+                        success++;
+                }
 
-		/*
-		** all failed (probably no kernel support)?
-		*/
-		if (success == 0)	
-		{
-			free(events);
-			events = NULL;
-			cpualloced = -1;	// irrecoverable failure
-		}
-		else
-		{
-			cs->all.instr = 1;
-			cs->all.cycle = 1;
-		}
+                if (!droprootprivs())
+                        mcleanstop(42, "failed to drop root privs\n");
 
-		return;		// initialization finished for first sample
-	}
+                /*
+                ** all failed (probably no kernel support)?
+                */
+                if (success == 0) {
+                        free(events);
+                        events = NULL;
+                        cpualloced = -1; // irrecoverable failure
+                } else {
+                        cs->all.instr = 1;
+                        cs->all.cycle = 1;
+                }
 
-	/*
-	** every sample: check if counters available anyhow
-	*/
-	if (cpualloced <= 0)
-		return;
+                return; // initialization finished for first sample
+        }
 
-	/*
-   	** retrieve counters per CPU and in total
-	*/
-	cs->all.instr = 0;
-	cs->all.cycle = 0;
+        /*
+        ** every sample: check if counters available anyhow
+        */
+        if (cpualloced <= 0)
+                return;
 
-        for (i=0; i < cpualloced; i++)
-        {
-		if (!cs->cpu[i].online)
-			continue;
+        /*
+        ** retrieve counters per CPU and in total
+        */
+        cs->all.instr = 0;
+        cs->all.cycle = 0;
 
-		if (events[i].instr_fd >= 0)
-		{
-			struct perf_group_read value;
-			ssize_t size;
-			uint64_t enabled, running;
+        for (i = 0; i < cpualloced; i++) {
+                if (!cs->cpu[i].online)
+                        continue;
 
-			size = read(events[i].instr_fd, &value, sizeof(value));
+                if (events[i].instr_fd >= 0) {
+                        struct perf_group_read value;
+                        ssize_t size;
+                        uint64_t enabled, running;
 
-			if (size != sizeof(value) || value.nr != 2)
-			{
-				fprintf(stderr, "%s:%d - Error %d reading perf counters\n",
-				        __FILE__, __LINE__, size < 0 ? errno : EIO);
-				continue;
-			}
+                        size = read(events[i].instr_fd, &value, sizeof(value));
 
-			enabled = value.time_enabled - events[i].prev.time_enabled;
-			running = value.time_running - events[i].prev.time_running;
+                        if (size != sizeof(value) || value.nr != 2) {
+                                fprintf(stderr, "%s:%d - Error %d reading perf counters\n",
+                                        __FILE__, __LINE__, size < 0 ? errno : EIO);
+                                continue;
+                        }
 
-			/* Scale interval deltas before rebuilding cumulative counts. */
-			add_scaled_perf_count(&events[i].instr,
-				value.value[0] - events[i].prev.value[0], enabled, running);
-			add_scaled_perf_count(&events[i].cycle,
-				value.value[1] - events[i].prev.value[1], enabled, running);
-			events[i].prev = value;
+                        enabled = value.time_enabled - events[i].prev.time_enabled;
+                        running = value.time_running - events[i].prev.time_running;
 
-			cs->cpu[i].instr = events[i].instr;
-			cs->cpu[i].cycle = events[i].cycle;
-			add_perf_count(&cs->all.instr, cs->cpu[i].instr);
-			add_perf_count(&cs->all.cycle, cs->cpu[i].cycle);
-		}
+                        /* Scale interval deltas before rebuilding cumulative counts. */
+                        add_scaled_perf_count(&events[i].instr,
+                                              value.value[0] - events[i].prev.value[0], enabled,
+                                              running);
+                        add_scaled_perf_count(&events[i].cycle,
+                                              value.value[1] - events[i].prev.value[1], enabled,
+                                              running);
+                        events[i].prev = value;
+
+                        cs->cpu[i].instr = events[i].instr;
+                        cs->cpu[i].cycle = events[i].cycle;
+                        add_perf_count(&cs->all.instr, cs->cpu[i].instr);
+                        add_perf_count(&cs->all.cycle, cs->cpu[i].cycle);
+                }
         }
 }
 
 #else /* ! NOPERFEVENT */
-void
-do_perfevents(char *tagname, char *tagvalue)
+void do_perfevents(char *tagname, char *tagvalue)
 {
-	if (strcmp("disable", tagvalue))
-		mcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
+        if (strcmp("disable", tagvalue))
+                mcleanstop(1, "atop built with NOPERFEVENT, cannot use perfevents\n");
 }
 #endif

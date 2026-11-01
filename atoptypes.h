@@ -16,7 +16,7 @@
 #ifndef __ATOPTYPES__
 #define __ATOPTYPES__
 
-typedef	long long	count_t;	// type for counters (perfmetrics)
+typedef long long count_t; // type for counters (perfmetrics)
 
 struct tstat;
 struct devtstat;

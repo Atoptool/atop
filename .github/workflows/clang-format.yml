@@ -1,0 +1,54 @@
+name: Clang Format Check
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - '**/man/**'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - '**/man/**'
+
+concurrency:
+  group: clang-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-format-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Clang
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install software-properties-common -y
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/llvm-toolchain.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/llvm-toolchain.gpg] http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main" | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -y
+          sudo apt-get install clang-format-18 -y
+
+      - name: Run clang-format
+        id: clang-format
+        run: |
+          make format
+          DIFF=$(git diff -- . ':(exclude)prev/**')
+          if [ ! -z "$DIFF" ]; then
+            ENCODED_DIFF=$(echo "$DIFF" | base64 -w 0)
+            echo "diff=$ENCODED_DIFF" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Check for formatting changes
+        if: ${{ steps.clang-format.outputs.diff }}
+        run: |
+          echo "ERROR: Code is not formatted correctly. Here is the diff:"
+          echo "${{ steps.clang-format.outputs.diff }}" | base64 --decode
+          exit 1
+        shell: bash

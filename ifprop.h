@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -29,18 +29,18 @@
 #ifndef __IFPROP__
 #define __IFPROP__
 
-struct ifprop	{
-	char		type;		/* type: 'e' - ethernet		*/
-					/*       'w' - wireless  	*/
-					/*       'v' - virtual  	*/
-	char		name[31];	/* name of interface  		*/
-	long int	speed;		/* in megabits per second	*/
-	char		fullduplex;	/* boolean			*/
+struct ifprop {
+        char type;       /* type: 'e' - ethernet		*/
+                         /*       'w' - wireless  	*/
+                         /*       'v' - virtual  	*/
+        char name[31];   /* name of interface  		*/
+        long int speed;  /* in megabits per second	*/
+        char fullduplex; /* boolean			*/
 
-	struct ifprop	*next;		/* next in hash list		*/
+        struct ifprop *next; /* next in hash list		*/
 };
 
-int 	getifprop(struct ifprop *);
-void 	initifprop(void);
+int getifprop(struct ifprop *);
+void initifprop(void);
 
 #endif

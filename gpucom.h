@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -26,23 +26,21 @@
 ** --------------------------------------------------------------------------
 */
 
-#ifndef	__GPUCOM__
-#define	__GPUCOM__
+#ifndef __GPUCOM__
+#define __GPUCOM__
 
 #include "photoproc.h"
 
-#define APIVERSION	2
+#define APIVERSION 2
 
 struct gpupidstat {
-	long		pid;
-	struct gpu	gpu;
+        long pid;
+        struct gpu gpu;
 };
 
-int	gpud_init(void);
-int	gpud_statrequest(void);
-int	gpud_statresponse(int, struct pergpu *, struct gpupidstat **);
+int gpud_init(void);
+int gpud_statrequest(void);
+int gpud_statresponse(int, struct pergpu *, struct gpupidstat **);
 
-void	gpumergeproc(struct tstat      *, int,
-                     struct tstat      *, int,
-                     struct gpupidstat *, int);
+void gpumergeproc(struct tstat *, int, struct tstat *, int, struct gpupidstat *, int);
 #endif

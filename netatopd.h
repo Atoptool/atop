@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -29,17 +29,17 @@
 #ifndef __NETATOPD__
 #define __NETATOPD__
 
-#define SEMAKEY         1541961
+#define SEMAKEY 1541961
 
-#define NETEXITFILE     "/run/netatop.log"
-#define MYMAGIC         (unsigned int) 0xfeedb0b0
+#define NETEXITFILE "/run/netatop.log"
+#define MYMAGIC (unsigned int)0xfeedb0b0
 
 struct naheader {
-        u_int32_t	magic;	// magic number MYMAGIC
-        u_int32_t	curseq;	// sequence number of last netpertask
-        u_int16_t	hdrlen;	// length of this header
-        u_int16_t	ntplen;	// length of netpertask structure
-        pid_t    	mypid;	// PID of netatopd itself
+        u_int32_t magic;  // magic number MYMAGIC
+        u_int32_t curseq; // sequence number of last netpertask
+        u_int16_t hdrlen; // length of this header
+        u_int16_t ntplen; // length of netpertask structure
+        pid_t mypid;      // PID of netatopd itself
 };
 
 #endif

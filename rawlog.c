@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -26,262 +26,245 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
-#define _POSIX_C_SOURCE	200809L
+#define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE
 #define _GNU_SOURCE
 #define _DEFAULT_SOURCE
 
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <ctype.h>
-#include <string.h>
-#include <sys/utsname.h>
-#include <string.h>
 #include <regex.h>
-#include <zlib.h>
-#include <sys/time.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/param.h>
 #include <sys/resource.h>
-#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <sys/uio.h>
+#include <sys/utsname.h>
+#include <time.h>
+#include <unistd.h>
+#include <zlib.h>
 
 #include "atop.h"
+#include "cgroups.h"
 #include "photoproc.h"
 #include "photosyst.h"
-#include "cgroups.h"
+#include "rawlog.h"
 #include "showgeneric.h"
 #include "showlinux.h"
-#include "rawlog.h"
 
-#define	BASEPATH	"/var/log/atop"  
+#define BASEPATH "/var/log/atop"
 
-static int	getrawrec  (int, struct rawrecord *, int, int);
-static int	getrawsstat(int, struct sstat *, int);
-static int	getrawtstat(int, struct tstat *, int, int);
-static int	getrawcstat(int, struct cgchainer **,
-			unsigned long, unsigned long,
-                        unsigned long, int, int);
+static int getrawrec(int, struct rawrecord *, int, int);
+static int getrawsstat(int, struct sstat *, int);
+static int getrawtstat(int, struct tstat *, int, int);
+static int getrawcstat(int, struct cgchainer **, unsigned long, unsigned long, unsigned long, int,
+                       int);
 
-static int	rawwopen(void);
-static int	readchunk(int, void *, int);
-static int	lookslikedatetome(char *);
-static void	testcompval(int, char *);
+static int rawwopen(void);
+static int readchunk(int, void *, int);
+static int lookslikedatetome(char *);
+static void testcompval(int, char *);
 
 /*
 ** write a raw record to file
 ** (file is opened/created during the first call)
 */
-char
-rawwrite(time_t curtime, int numsecs, 
-         struct devtstat *devtstat, struct sstat *sstat,
-	 struct cgchainer *devchain, int ncgroups, int npids,
-         int nexit, unsigned int noverflow, char flag)
+char rawwrite(time_t curtime, int numsecs, struct devtstat *devtstat, struct sstat *sstat,
+              struct cgchainer *devchain, int ncgroups, int npids, int nexit,
+              unsigned int noverflow, char flag)
 {
-	static int		rawfd = -1;
-	struct rawrecord	rr;
-	int			rv;
-	struct stat		filestat;
+        static int rawfd = -1;
+        struct rawrecord rr;
+        int rv;
+        struct stat filestat;
 
-	Byte			scompbuf[sizeof(struct sstat)], *pcompbuf,
-				*ccompbuf = NULL, *icompbuf = NULL;
+        Byte scompbuf[sizeof(struct sstat)], *pcompbuf, *ccompbuf = NULL, *icompbuf = NULL;
 
-	unsigned long		soriglen = sizeof scompbuf, scomplen = compressBound(soriglen),
-				poriglen, pcomplen,
-				coriglen, ccomplen,
-				ioriglen, icomplen;
+        unsigned long soriglen = sizeof scompbuf, scomplen = compressBound(soriglen), poriglen,
+                      pcomplen, coriglen, ccomplen, ioriglen, icomplen;
 
-	struct iovec 		iov[5];
-	int			nrvectors;
+        struct iovec iov[5];
+        int nrvectors;
 
-	/*
-	** first call:
-	**	take care that the log file is opened
-	*/
-	if (rawfd == -1)
-		rawfd = rawwopen();
+        /*
+        ** first call:
+        **	take care that the log file is opened
+        */
+        if (rawfd == -1)
+                rawfd = rawwopen();
 
-	/*
- 	** register current size of file in order to "roll back"
-	** writes that have been done while not *all* writes could
-	** succeed, e.g. when file system full
-	*/
-	(void) fstat(rawfd, &filestat);
+        /*
+        ** register current size of file in order to "roll back"
+        ** writes that have been done while not *all* writes could
+        ** succeed, e.g. when file system full
+        */
+        (void)fstat(rawfd, &filestat);
 
-	/*
-	** compress system level metrics
-	*/
-	rv = compress(scompbuf, &scomplen, (Byte *)sstat, soriglen);
+        /*
+        ** compress system level metrics
+        */
+        rv = compress(scompbuf, &scomplen, (Byte *)sstat, soriglen);
 
-	testcompval(rv, "compress system stats");
+        testcompval(rv, "compress system stats");
 
-	/*
-	** compress process level metrics
-	*/
-	poriglen = sizeof(struct tstat) * devtstat->ntaskall;
-	pcomplen = compressBound(poriglen);
+        /*
+        ** compress process level metrics
+        */
+        poriglen = sizeof(struct tstat) * devtstat->ntaskall;
+        pcomplen = compressBound(poriglen);
 
-	pcompbuf = malloc(pcomplen);
+        pcompbuf = malloc(pcomplen);
 
-	ptrverify(pcompbuf, "Malloc failed for process compression buffer\n");
+        ptrverify(pcompbuf, "Malloc failed for process compression buffer\n");
 
-	rv = compress(pcompbuf, &pcomplen, (Byte *)devtstat->taskall, poriglen);
+        rv = compress(pcompbuf, &pcomplen, (Byte *)devtstat->taskall, poriglen);
 
-	testcompval(rv, "compress processes");
+        testcompval(rv, "compress processes");
 
-	/*
-	** compress cgroup level metrics
-	*/
-	if (supportflags & CGROUPV2)
-	{
-		/*
-		** calculate the size of all contiguous cstat structs
-		** and compress
-		*/
-		coriglen = (char *)(devchain+ncgroups-1)->cstat -
-			   (char *) devchain->cstat +
-			           (devchain+ncgroups-1)->cstat->gen.structlen;
+        /*
+        ** compress cgroup level metrics
+        */
+        if (supportflags & CGROUPV2) {
+                /*
+                ** calculate the size of all contiguous cstat structs
+                ** and compress
+                */
+                coriglen = (char *)(devchain + ncgroups - 1)->cstat - (char *)devchain->cstat +
+                           (devchain + ncgroups - 1)->cstat->gen.structlen;
 
-		ccomplen  = compressBound(coriglen);
+                ccomplen = compressBound(coriglen);
 
-		ccompbuf = malloc(ccomplen);
+                ccompbuf = malloc(ccomplen);
 
-		ptrverify(ccompbuf, "Malloc failed for cgroup compression buffer\n");
+                ptrverify(ccompbuf, "Malloc failed for cgroup compression buffer\n");
 
-		rv = compress(ccompbuf, &ccomplen, (Byte *)devchain->cstat, coriglen);
+                rv = compress(ccompbuf, &ccomplen, (Byte *)devchain->cstat, coriglen);
 
-		testcompval(rv, "compress cgroups");
+                testcompval(rv, "compress cgroups");
 
-		/*
-		** calculate the size of the cgroups pidlist
-		** and compress
-		*/
-		ioriglen = npids * sizeof(pid_t);
-		icomplen = compressBound(ioriglen);
+                /*
+                ** calculate the size of the cgroups pidlist
+                ** and compress
+                */
+                ioriglen = npids * sizeof(pid_t);
+                icomplen = compressBound(ioriglen);
 
-		icompbuf = malloc(icomplen);
+                icompbuf = malloc(icomplen);
 
-		ptrverify(icompbuf, "Malloc failed for cgroup compression pidlist\n");
+                ptrverify(icompbuf, "Malloc failed for cgroup compression pidlist\n");
 
-		rv = compress(icompbuf, &icomplen, (Byte *)devchain->proclist, ioriglen);
+                rv = compress(icompbuf, &icomplen, (Byte *)devchain->proclist, ioriglen);
 
-		nrvectors = 5;
-	}
-	else
-	{
-		coriglen  = ccomplen = 0;
-		ioriglen  = icomplen = 0;
-	
-		nrvectors = 3;
-	}
+                nrvectors = 5;
+        } else {
+                coriglen = ccomplen = 0;
+                ioriglen = icomplen = 0;
 
-	/*
-	** fill record header and write to file
-	*/
-	memset(&rr, 0, sizeof rr);
+                nrvectors = 3;
+        }
 
-	rr.curtime	= curtime;
-	rr.interval	= numsecs;
-	rr.flags	= 0;
-	rr.ndeviat	= devtstat->ntaskall;
-	rr.nactproc	= devtstat->nprocactive;
-	rr.ntask	= devtstat->ntaskall;
-	rr.nexit	= nexit;
-	rr.noverflow	= noverflow;
-	rr.totproc	= devtstat->nprocall;
-	rr.totrun	= devtstat->totrun;
-	rr.totslpi	= devtstat->totslpi;
-	rr.totslpu	= devtstat->totslpu;
-	rr.totidle	= devtstat->totidle;
-	rr.totzomb	= devtstat->totzombie;
-	rr.ncgroups	= ncgroups;
-	rr.ncgpids	= npids;
-	rr.scomplen	= scomplen;
-	rr.pcomplen	= pcomplen;
-	rr.ccomplen	= ccomplen;
-	rr.coriglen	= coriglen;
-	rr.icomplen	= icomplen;
+        /*
+        ** fill record header and write to file
+        */
+        memset(&rr, 0, sizeof rr);
 
-	if (flag&RRBOOT)
-		rr.flags |= RRBOOT;
+        rr.curtime = curtime;
+        rr.interval = numsecs;
+        rr.flags = 0;
+        rr.ndeviat = devtstat->ntaskall;
+        rr.nactproc = devtstat->nprocactive;
+        rr.ntask = devtstat->ntaskall;
+        rr.nexit = nexit;
+        rr.noverflow = noverflow;
+        rr.totproc = devtstat->nprocall;
+        rr.totrun = devtstat->totrun;
+        rr.totslpi = devtstat->totslpi;
+        rr.totslpu = devtstat->totslpu;
+        rr.totidle = devtstat->totidle;
+        rr.totzomb = devtstat->totzombie;
+        rr.ncgroups = ncgroups;
+        rr.ncgpids = npids;
+        rr.scomplen = scomplen;
+        rr.pcomplen = pcomplen;
+        rr.ccomplen = ccomplen;
+        rr.coriglen = coriglen;
+        rr.icomplen = icomplen;
 
-	if (supportflags & ACCTACTIVE)
-		rr.flags |= RRACCTACTIVE;
+        if (flag & RRBOOT)
+                rr.flags |= RRBOOT;
 
-	if (supportflags & IOSTAT)
-		rr.flags |= RRIOSTAT;
+        if (supportflags & ACCTACTIVE)
+                rr.flags |= RRACCTACTIVE;
 
-	if (supportflags & NETATOP)
-		rr.flags |= RRNETATOP;
+        if (supportflags & IOSTAT)
+                rr.flags |= RRIOSTAT;
 
-	if (supportflags & NETATOPD)
-		rr.flags |= RRNETATOPD;
+        if (supportflags & NETATOP)
+                rr.flags |= RRNETATOP;
 
-	if (supportflags & CGROUPV2)
-		rr.flags |= RRCGRSTAT;
+        if (supportflags & NETATOPD)
+                rr.flags |= RRNETATOPD;
 
-	if (supportflags & CONTAINERSTAT)
-		rr.flags |= RRCONTAINERSTAT;
+        if (supportflags & CGROUPV2)
+                rr.flags |= RRCGRSTAT;
 
-	if (supportflags & GPUSTAT)
-		rr.flags |= RRGPUSTAT;
+        if (supportflags & CONTAINERSTAT)
+                rr.flags |= RRCONTAINERSTAT;
 
-	/*
-	** writev can be used to write different chunks of data to
-	** a regular (raw) file in one operation atomically (i.e. without
-	** intermingling with data written by other processes).
-	** however, this call does not avoid that only part of the
-	** data is written to the (raw) file!
-	*/
-	iov[0].iov_base = &rr;
-	iov[0].iov_len  = sizeof(rr);
+        if (supportflags & GPUSTAT)
+                rr.flags |= RRGPUSTAT;
 
-	iov[1].iov_base = scompbuf;
-	iov[1].iov_len  = scomplen;
+        /*
+        ** writev can be used to write different chunks of data to
+        ** a regular (raw) file in one operation atomically (i.e. without
+        ** intermingling with data written by other processes).
+        ** however, this call does not avoid that only part of the
+        ** data is written to the (raw) file!
+        */
+        iov[0].iov_base = &rr;
+        iov[0].iov_len = sizeof(rr);
 
-	iov[2].iov_base = pcompbuf;
-	iov[2].iov_len  = pcomplen;
+        iov[1].iov_base = scompbuf;
+        iov[1].iov_len = scomplen;
 
-	iov[3].iov_base = ccompbuf;
-	iov[3].iov_len  = ccomplen;
+        iov[2].iov_base = pcompbuf;
+        iov[2].iov_len = pcomplen;
 
-	iov[4].iov_base = icompbuf;
-	iov[4].iov_len  = icomplen;
+        iov[3].iov_base = ccompbuf;
+        iov[3].iov_len = ccomplen;
 
-	if ( writev(rawfd, iov, nrvectors) <
-			sizeof(rr) + scomplen + pcomplen + ccomplen + icomplen)
-	{
-		/*
-		** restore original file size from before partly write
-		** to keep file consistency
-		*/
-		if ( ftruncate(rawfd, filestat.st_size) == -1)
-			mcleanstop(8,
-			   "failed to write raw/status/process record to %s\n",
-			   orawname);
+        iov[4].iov_base = icompbuf;
+        iov[4].iov_len = icomplen;
 
-		mcleanstop(7,
-		   "failed to write raw/status/process record to %s\n",
-		   orawname);
-	}
+        if (writev(rawfd, iov, nrvectors) <
+            sizeof(rr) + scomplen + pcomplen + ccomplen + icomplen) {
+                /*
+                ** restore original file size from before partly write
+                ** to keep file consistency
+                */
+                if (ftruncate(rawfd, filestat.st_size) == -1)
+                        mcleanstop(8, "failed to write raw/status/process record to %s\n",
+                                   orawname);
 
-	free(pcompbuf);
+                mcleanstop(7, "failed to write raw/status/process record to %s\n", orawname);
+        }
 
-	if (supportflags & CGROUPV2)
-	{
-		free(ccompbuf);
-		free(icompbuf);
-	}
+        free(pcompbuf);
 
-	return '\0';
+        if (supportflags & CGROUPV2) {
+                free(ccompbuf);
+                free(icompbuf);
+        }
+
+        return '\0';
 }
-
 
 /*
 ** open a raw file for writing
@@ -296,940 +279,857 @@ rawwrite(time_t curtime, int numsecs,
 **
 ** return the filedescriptor of the raw file
 */
-static int
-rawwopen()
+static int rawwopen()
 {
-	struct rawheader	rh;
-	struct rawrecord	rr;
-	int			fd, rv;
-	struct stat		filestats;
-	time_t			prevtime = 0;
+        struct rawheader rh;
+        struct rawrecord rr;
+        int fd, rv;
+        struct stat filestats;
+        time_t prevtime = 0;
 
-	/*
-	** check if the file exists already
-	*/
-	if ( (fd = open(orawname, O_RDWR)) >= 0 )
-	{
-		/*
-		** check if the file already contains a file header (and records)
-		*/
-		if (fstat(fd, &filestats) == 0 && filestats.st_size > 0)
-		{
-			/*
-			** read and verify raw file header
-			*/
-			if ( read(fd, &rh, sizeof rh) < sizeof rh)
-				mcleanstop(7, "%s - cannot read header\n", orawname);
+        /*
+        ** check if the file exists already
+        */
+        if ((fd = open(orawname, O_RDWR)) >= 0) {
+                /*
+                ** check if the file already contains a file header (and records)
+                */
+                if (fstat(fd, &filestats) == 0 && filestats.st_size > 0) {
+                        /*
+                        ** read and verify raw file header
+                        */
+                        if (read(fd, &rh, sizeof rh) < sizeof rh)
+                                mcleanstop(7, "%s - cannot read header\n", orawname);
 
-			if (rh.magic != MYMAGIC)
-				mcleanstop(7, "file %s exists but does not contain raw "
-					"atop output (wrong magic number)\n", orawname);
+                        if (rh.magic != MYMAGIC)
+                                mcleanstop(7,
+                                           "file %s exists but does not contain raw "
+                                           "atop output (wrong magic number)\n",
+                                           orawname);
 
-			if ( rh.sstatlen	!= sizeof(struct sstat)		||
-			     rh.tstatlen	!= sizeof(struct tstat)		||
-			     rh.cstatlen	!= sizeof(struct cstat)		||
-		    	     rh.rawheadlen	!= sizeof(struct rawheader)	||
-			     rh.rawreclen	!= sizeof(struct rawrecord)	  )
-			{
-				fprintf(stderr,
-					"existing file %s has incompatible header\n",
-					orawname);
+                        if (rh.sstatlen != sizeof(struct sstat) ||
+                            rh.tstatlen != sizeof(struct tstat) ||
+                            rh.cstatlen != sizeof(struct cstat) ||
+                            rh.rawheadlen != sizeof(struct rawheader) ||
+                            rh.rawreclen != sizeof(struct rawrecord)) {
+                                fprintf(stderr, "existing file %s has incompatible header\n",
+                                        orawname);
 
-				if (rh.aversion & 0x8000 &&
-				   (rh.aversion & 0x7fff) != getnumvers())
-				{
-					fprintf(stderr,
-						"(created by version %d.%d - "
-						"current version %d.%d)\n",
-						(rh.aversion >> 8) & 0x7f,
-						 rh.aversion & 0xff,
-						 getnumvers() >> 8,
-						 getnumvers() & 0x7f);
-				}
+                                if (rh.aversion & 0x8000 &&
+                                    (rh.aversion & 0x7fff) != getnumvers()) {
+                                        fprintf(stderr,
+                                                "(created by version %d.%d - "
+                                                "current version %d.%d)\n",
+                                                (rh.aversion >> 8) & 0x7f, rh.aversion & 0xff,
+                                                getnumvers() >> 8, getnumvers() & 0x7f);
+                                }
 
-				cleanstop(7);
-			}
+                                cleanstop(7);
+                        }
 
-			if ((rh.supportflags&CGROUPV2) != (supportflags&CGROUPV2))
-				mcleanstop(7, "%s - different cgroup version in existing raw log\n", orawname);
+                        if ((rh.supportflags & CGROUPV2) != (supportflags & CGROUPV2))
+                                mcleanstop(7, "%s - different cgroup version in existing raw log\n",
+                                           orawname);
 
-			if (rh.hertz != hertz)
-				mcleanstop(7, "%s - different hertz in existing raw log\n", orawname);
+                        if (rh.hertz != hertz)
+                                mcleanstop(7, "%s - different hertz in existing raw log\n",
+                                           orawname);
 
-			if (rh.pagesize != pagesize)
-				mcleanstop(7, "%s - different page size in existing raw log\n", orawname);
+                        if (rh.pagesize != pagesize)
+                                mcleanstop(7, "%s - different page size in existing raw log\n",
+                                           orawname);
 
-			/*
-			** loop through the existing sample records in the file
-			** to do some sanity checking and to find out if the end
-			** of the file is consistent (the latter is already
-			** verified by the getrawrec() function)
-			*/
-			while ( (rv = getrawrec(fd, &rr, rh.rawreclen, 1)) == rh.rawreclen)
-			{
-				if (	rr.curtime  < prevtime			||
-					rr.ccomplen > rr.coriglen		||
-					rr.scomplen > sizeof(struct sstat)	||
-					rr.pcomplen > sizeof(struct tstat) * rr.ndeviat)
-				{
-					mcleanstop(7,
-						"Inconsistencies found in existing raw file\n");
-				}
+                        /*
+                        ** loop through the existing sample records in the file
+                        ** to do some sanity checking and to find out if the end
+                        ** of the file is consistent (the latter is already
+                        ** verified by the getrawrec() function)
+                        */
+                        while ((rv = getrawrec(fd, &rr, rh.rawreclen, 1)) == rh.rawreclen) {
+                                if (rr.curtime < prevtime || rr.ccomplen > rr.coriglen ||
+                                    rr.scomplen > sizeof(struct sstat) ||
+                                    rr.pcomplen > sizeof(struct tstat) * rr.ndeviat) {
+                                        mcleanstop(7,
+                                                   "Inconsistencies found in existing raw file\n");
+                                }
 
-				prevtime = rr.curtime;
+                                prevtime = rr.curtime;
 
-				lseek(fd, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen, SEEK_CUR);
-			}
+                                lseek(fd, rr.scomplen + rr.pcomplen + rr.ccomplen + rr.icomplen,
+                                      SEEK_CUR);
+                        }
 
-			if (rv != 0)
-			{
-				mcleanstop(7,
-					"Incomplete record header in existing raw file\n");
-			}
+                        if (rv != 0) {
+                                mcleanstop(7, "Incomplete record header in existing raw file\n");
+                        }
 
-			return fd;
-		}
-	}
-	else
-	{
-		/*
-		** file does not exist (or can not be opened)
-		*/
-		if ( (fd = creat(orawname, 0666)) == -1)
-		{
-			fprintf(stderr, "%s - ", orawname);
-			perror("create raw file");
-			cleanstop(7);
-		}
-	}
+                        return fd;
+                }
+        } else {
+                /*
+                ** file does not exist (or can not be opened)
+                */
+                if ((fd = creat(orawname, 0666)) == -1) {
+                        fprintf(stderr, "%s - ", orawname);
+                        perror("create raw file");
+                        cleanstop(7);
+                }
+        }
 
-	/*
-	** empty file is opened now
-	** write a raw file header
-	*/
-	memset(&rh, 0, sizeof rh);
+        /*
+        ** empty file is opened now
+        ** write a raw file header
+        */
+        memset(&rh, 0, sizeof rh);
 
-	rh.magic	= MYMAGIC;
-	rh.aversion	= getnumvers() | 0x8000;
-	rh.sstatlen	= sizeof(struct sstat);
-	rh.tstatlen	= sizeof(struct tstat);
-	rh.cstatlen	= sizeof(struct cstat);
-	rh.rawheadlen	= sizeof(struct rawheader);
-	rh.rawreclen	= sizeof(struct rawrecord);
-	rh.supportflags	= supportflags | RAWLOGNG;
-	rh.osrel	= osrel;
-	rh.osvers	= osvers;
-	rh.ossub	= ossub;
-	rh.hertz	= hertz;
-	rh.pagesize	= pagesize;
-	rh.pidwidth	= getpidwidth();
+        rh.magic = MYMAGIC;
+        rh.aversion = getnumvers() | 0x8000;
+        rh.sstatlen = sizeof(struct sstat);
+        rh.tstatlen = sizeof(struct tstat);
+        rh.cstatlen = sizeof(struct cstat);
+        rh.rawheadlen = sizeof(struct rawheader);
+        rh.rawreclen = sizeof(struct rawrecord);
+        rh.supportflags = supportflags | RAWLOGNG;
+        rh.osrel = osrel;
+        rh.osvers = osvers;
+        rh.ossub = ossub;
+        rh.hertz = hertz;
+        rh.pagesize = pagesize;
+        rh.pidwidth = getpidwidth();
 
-	memcpy(&rh.utsname, &utsname, sizeof rh.utsname);
+        memcpy(&rh.utsname, &utsname, sizeof rh.utsname);
 
-	if ( write(fd, &rh, sizeof rh) == -1)
-	{
-		fprintf(stderr, "%s - ", orawname);
-		perror("write raw header");
-		cleanstop(7);
-	}
+        if (write(fd, &rh, sizeof rh) == -1) {
+                fprintf(stderr, "%s - ", orawname);
+                perror("write raw header");
+                cleanstop(7);
+        }
 
-	return fd;
+        return fd;
 }
 
 /*
 ** read the contents of a raw file
 */
-#define	OFFCHUNK	256
+#define OFFCHUNK 256
 
-int
-rawread(void)
+int rawread(void)
 {
-	static struct devtstat	devtstat;
-
-	int			i, j, v, rv, rawfd, len, isregular = 1;
-	char			*py;
-	struct rawheader	rh;
-	struct rawrecord	rr;
-	struct sstat		sstat;
-	struct cgchainer	*devchain = NULL;
-
-	struct stat		filestat;
-
-	/*
-	** variables to maintain the offsets of the raw records
-	** to be able to see previous samples again
-	*/
-	off_t			*offlist = NULL;
-	unsigned int		offsize = 0;
-	unsigned int		offcur  = 0;
-	char			lastcmd = 'X', flags;
-
-	time_t			timenow;
-	struct tm		*tp;
-
-	switch ( len = strlen(irawname) )
-	{
-	   /*
-	   ** if no filename is specified, assemble the name of the raw file
-	   */
-	   case 0:
-		timenow	= time(0);
-		tp	= localtime(&timenow);
-
-		snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-			BASEPATH, 
-			tp->tm_year+1900,
-			tp->tm_mon+1,
-			tp->tm_mday);
-
-		break;
-
-	   /*
-	   ** if date specified as filename in format YYYYMMDD, assemble
-	   ** the full pathname of the raw file
-	   */
-	   case 8:
-		if ( access(irawname, F_OK) == 0) 
-			break;		/* existing file */
-
-		if (lookslikedatetome(irawname))
-		{
-			char	savedname[16];
-
-			safe_strcpy(savedname, irawname, sizeof savedname);
-
-			snprintf(irawname, RAWNAMESZ, "%s/atop_%s", BASEPATH, savedname);
-			break;
-		}
-
-	   /*
-	   ** if one or more 'y' (yesterday) characters are used and that
-	   ** string is not known as an existing file, the standard logfile
-	   ** is shown from N days ago (N is determined by the number
-	   ** of y's).
-	   */
-	   default:
-		if ( access(irawname, F_OK) == 0) 
-			break;		/* existing file */
-
-		/*
-		** make a string existing of y's to compare with
-		*/
-		py = malloc(len+1);
-
-		ptrverify(py, "Malloc failed for 'yes' sequence\n");
-
-		memset(py, 'y', len);
-		*(py+len) = '\0';
-
-		if ( strcmp(irawname, py) == 0 )
-		{
-			timenow	 = time(0);
-			timenow -= len*3600*24;
-			tp	 = localtime(&timenow);
-
-			snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d",
-				BASEPATH, 
-				tp->tm_year+1900,
-				tp->tm_mon+1,
-				tp->tm_mday);
-		}
-
-		free(py);
-	}
-
-	/*
-	** make sure the file is a regular file (seekable) or
-	** a pipe (not seekable)
-	*/
-	if (stat(irawname, &filestat) == -1)
-	{
-		fprintf(stderr, "%s - ", irawname);
-		perror("stat raw file");
-		cleanstop(7);
-	}
-
-	if (!S_ISREG(filestat.st_mode) && !S_ISFIFO(filestat.st_mode))
-	{
-		fprintf(stderr, "raw file must be a regular file or pipe\n");
-		cleanstop(7);
-	}
-
-	isregular = S_ISREG(filestat.st_mode);
-
-	/*
-	** open raw file for reading
-	*/
-	if ( (rawfd = open(irawname, O_RDONLY)) == -1)
-	{
-		fprintf(stderr, "%s - ", irawname);
-		perror("open raw file");
-		cleanstop(7);
-	}
-
-	/*
-	** make the kernel readahead more effective
-       	*/
-	if (isregular)
-		posix_fadvise(rawfd, 0, 0, POSIX_FADV_SEQUENTIAL);
-
-	/*
-	** read the raw header and verify the magic
-	*/
-	if ( readchunk(rawfd, &rh, sizeof rh) < sizeof rh)
-	{
-		fprintf(stderr, "can not read raw file header\n");
-		cleanstop(7);
-	}
-
-	if (rh.magic != MYMAGIC)
-	{
-		fprintf(stderr, "file %s does not contain raw atop/atopsar "
-				"output (wrong magic number)\n", irawname);
-		cleanstop(7);
-	}
-
-	/*
-	** magic okay, but file-layout might have been modified
-	*/
-	if (rh.sstatlen   != sizeof(struct sstat)		||
-	    rh.tstatlen   != sizeof(struct tstat)		||
-	    rh.cstatlen   != sizeof(struct cstat)		||
-	    rh.rawheadlen != sizeof(struct rawheader)		||
-	    rh.rawreclen  != sizeof(struct rawrecord)		  )
-	{
-		fprintf(stderr, "sstatlen: %d/%lu\n", rh.sstatlen, sizeof(struct sstat));
-		fprintf(stderr, "cstatlen: %d/%lu\n", rh.cstatlen, sizeof(struct cstat));
-		fprintf(stderr, "tstatlen: %d/%lu\n", rh.tstatlen, sizeof(struct tstat));
-		fprintf(stderr, "headlen:  %d/%lu\n", rh.rawheadlen, sizeof(struct rawheader));
-		fprintf(stderr, "reclen:   %d/%lu\n", rh.rawreclen, sizeof(struct rawrecord));
-		fprintf(stderr,
-			"\nraw file %s has incompatible format\n", irawname);
-
-		if (rh.aversion & 0x8000 &&
-       		   (rh.aversion & 0x7fff) != getnumvers())
-		{
-			fprintf(stderr,
-				"(created by version %d.%d - "
-				"current version %d.%d)\n",
-				(rh.aversion >> 8) & 0x7f,
-				 rh.aversion       & 0xff,
-				 getnumvers() >> 8,
-				 getnumvers() & 0x7f);
-		}
-		else
-		{
-			fprintf(stderr,
-				"(files from other system architectures might"
-				" be binary incompatible)\n");
-		}
-
-		close(rawfd);
-
-		cleanstop(7);
-	}
-
-	memcpy(&utsname, &rh.utsname, sizeof utsname);
-	utsnodenamelen = strlen(utsname.nodename);
-
-	supportflags = rh.supportflags;
-	osrel        = rh.osrel;
-	osvers       = rh.osvers;
-	ossub        = rh.ossub;
-	interval     = 0;
-
-	if (rh.hertz)
-		hertz    = rh.hertz;
-
-	if (rh.pagesize)
-		pagesize = rh.pagesize;
-
-	if (rh.pidwidth)
-		pidwidth = rh.pidwidth;
-	else	
-		pidwidth = 5;
-
-	/*
-	** allocate a list for backtracking of rawrecord-offsets
-	*/
-	if (isregular)
-	{
-		offlist = malloc(sizeof(off_t) * OFFCHUNK);
-
-		ptrverify(offlist, "Malloc failed for backtrack list\n");
-
-		offsize = OFFCHUNK;
-
-		*offlist = lseek(rawfd, 0, SEEK_CUR);
-		offcur   = 1;
-	}
-
-	/*
-	** read a raw record header until end-of-file
-	*/
-	sampcnt = 0;
-
-	while (lastcmd && lastcmd != 'q')
-	{
-		while ( (rv = getrawrec(rawfd, &rr, rh.rawreclen, isregular)) == rh.rawreclen)
-		{
-			unsigned int	k, l;
-
-			cursortime = rr.curtime;	// maintain current
-
-			/*
-			** normalize the begintime and endtime if the
-			** format hh:mm has been used instead of an
-			** absolute date-time string
-			** (only happens for the first record)
-			*/
-			if (begintime <= SECONDSINDAY)
-				begintime = normalize_epoch(cursortime, begintime);
-
-			if (endtime && endtime <= SECONDSINDAY)
-				endtime = normalize_epoch(cursortime, endtime);
-
-			/*
-			** store the offset of the raw record in the offset list
-			** in case of offset list overflow, extend the list
-			*/
-			if (isregular)
-			{
-				*(offlist+offcur) = lseek(rawfd, 0, SEEK_CUR) - rh.rawreclen;
-
-				if ( ++offcur >= offsize )
-				{
-					offlist = realloc(offlist,
-				             (offsize+OFFCHUNK)*sizeof(off_t));
-
-					ptrverify(offlist,
-				        "Realloc failed for backtrack list\n");
-
-					offsize+= OFFCHUNK;
-				}
-			}
-	
-			/*
-			** check if this sample is within the time-range
-			** specified with the -b and -e flags (if any)
-			*/
-			if ( (begintime > cursortime) )
-			{
-				lastcmd = 1;
-						
-				if (isregular)
-				{
-					static off_t curr_pos = -1;
-					off_t next_pos;
-
-					lastcmd = 1;
-					next_pos = lseek(rawfd, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen, SEEK_CUR);
-
-					if ((curr_pos >> READAHEADOFF) != (next_pos >> READAHEADOFF))
-					{
-						int liResult;
-
-						/* just read READAHEADSIZE bytes into page cache */
-						char *buf = malloc(READAHEADSIZE);
-
-						ptrverify(buf, "Malloc failed for readahead");
-
-						liResult = pread(rawfd, buf, READAHEADSIZE, next_pos & ~(READAHEADSIZE - 1));
-
-						if(liResult == -1)
-						{
-							char lcMessage[64];
-
-							snprintf(lcMessage, sizeof(lcMessage) - 1,
-								  "%s:%d - Error %d in readahead\n",
-							          __FILE__, __LINE__, errno);
-							fprintf(stderr, "%s", lcMessage);
-						}
-
-						free(buf);
-					}
-					curr_pos = next_pos;
-					continue;
-				}
-				else	// named pipe not seekable
-				{
-					char *dummybuf = malloc(rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen);
-
-					ptrverify(dummybuf, "Malloc rawlog pipe buffer failed\n");
-
-					readchunk(rawfd, dummybuf, rr.scomplen+rr.pcomplen+rr.ccomplen+rr.icomplen);
-
-					free(dummybuf);
-				}
-
-				continue;
-			}
-
-			begintime = 0;	// allow earlier times from now on
-
-			if ( (endtime && endtime < cursortime) )
-			{
-				if (isregular)
-					free(offlist);
-
-				close(rawfd);
-				return isregular;
-			}
-
-			/*
-			** allocate space, read compressed system-level
-			** metrics and decompress
-			*/
-			if ( !getrawsstat(rawfd, &sstat, rr.scomplen) )
-				cleanstop(7);
-
-			/*
-			** allocate space, read compressed process-level
-			** metrics and decompress
-			*/
-			devtstat.taskall = malloc(sizeof(struct tstat) * rr.ndeviat);
-
-			if (rr.totproc < rr.nactproc)	// compat old raw files
-				devtstat.procall = malloc(sizeof(struct tstat *)
-								* rr.nactproc);
-			else
-				devtstat.procall = malloc(sizeof(struct tstat *)
-								* rr.totproc);
-
-			devtstat.procactive = malloc(sizeof(struct tstat *) *
-								rr.nactproc);
-
-			ptrverify(devtstat.taskall,
-			          "Malloc failed for %d stored tasks\n",
-			          rr.ndeviat);
-
-			ptrverify(devtstat.procall,
-			          "Malloc failed for total %d processes\n",
-			          rr.totproc);
-
-			ptrverify(devtstat.procactive,
-			          "Malloc failed for %d active processes\n",
-			          rr.nactproc);
-
-			if ( !getrawtstat(rawfd, devtstat.taskall,
-						rr.pcomplen, rr.ndeviat) )
-				cleanstop(7);
-
-
-			for (i=j=k=l=0; i < rr.ndeviat; i++)
-			{
-				if ( (devtstat.taskall+i)->gen.isproc)
-				{
-					devtstat.procall[j++] = devtstat.taskall+i;
-
-					if (! (devtstat.taskall+i)->gen.wasinactive)
-						devtstat.procactive[k++] = devtstat.taskall+i;
-				}
-
-				if (! (devtstat.taskall+i)->gen.wasinactive)
-					l++;
-			}
-
-			devtstat.ntaskall	= i;
-			devtstat.nprocall	= j;
-			devtstat.nprocactive	= k;
-			devtstat.ntaskactive	= l;
-
- 			devtstat.totrun		= rr.totrun;
- 			devtstat.totslpi	= rr.totslpi;
- 			devtstat.totslpu	= rr.totslpu;
- 			devtstat.totidle	= rr.totidle;
- 			devtstat.totzombie	= rr.totzomb;
-
-			/*
-			** allocate space, read compressed cgroup-level
-			** metrics, the pidlist and decompress
-			*/
-			if (rr.flags & RRCGRSTAT)
-			{
-				if ( !getrawcstat(rawfd, &devchain, rr.ccomplen, rr.coriglen,
-							rr.icomplen, rr.ncgroups, rr.ncgpids) )
-				cleanstop(7);
-			}
-
-			/*
-			** activate the installed print function to visualize
-			** the system metrics, process metrics and cgroup metrics
-			*/
-			sampcnt++;
-
-			if ( (rh.supportflags & RAWLOGNG) == RAWLOGNG)
-			{
-				if (rr.flags & RRACCTACTIVE)
-					supportflags |=  ACCTACTIVE;
-				else
-					supportflags &= ~ACCTACTIVE;
-
-				if (rr.flags & RRIOSTAT)
-					supportflags |=  IOSTAT;
-				else
-					supportflags &= ~IOSTAT;
-			}
-
-			if (rr.flags & RRNETATOP)
-				supportflags |=  NETATOP;
-			else
-				supportflags &= ~NETATOP;
-
-			if (rr.flags & RRNETATOPD)
-				supportflags |=  NETATOPD;
-			else
-				supportflags &= ~NETATOPD;
-
-			if (rr.flags & RRCGRSTAT)
-				supportflags |=  CGROUPV2;
-			else
-				supportflags &= ~CGROUPV2;
-
-			if (rr.flags & RRCONTAINERSTAT)
-				supportflags |=  CONTAINERSTAT;
-			else
-				supportflags &= ~CONTAINERSTAT;
-
-			if (rr.flags & RRGPUSTAT)
-				supportflags |=  GPUSTAT;
-			else
-				supportflags &= ~GPUSTAT;
-
-			flags = rr.flags & RRBOOT;
-
-			nrgpus = sstat.gpu.nrgpus;
-
-			if (isregular)
-			{
-				(void) fstat(rawfd, &filestat);
-
-				if ( filestat.st_size -
-			     		lseek(rawfd, (off_t)0, SEEK_CUR)
-							<= rh.rawreclen)
-					flags |= RRLAST;
-			}
-
-			do
-			{
-				for (v=0; handlers[v].handle_sample; v++)
-				{
-					lastcmd = (handlers[v].handle_sample)(rr.curtime,
-				     		rr.interval, &devtstat, &sstat,
-				     		devchain, rr.ncgroups, rr.ncgpids,
-			             		rr.nexit, rr.noverflow, flags);
-				}
-			}
-			while (!isregular &&
-				( lastcmd == MSAMPPREV		||
-				  lastcmd == MRESET     	||
-				  lastcmd == MEND	     	||
-				 (lastcmd == MSAMPBRANCH &&
-						begintime < cursortime) ));
-
-			free(devtstat.taskall);
-			free(devtstat.procall);
-			free(devtstat.procactive);
-
-			if (rr.flags & RRCGRSTAT)
-			{
-				free(devchain->cstat);
-				free(devchain->proclist);
-				free(devchain);
-			}
-
-			switch (lastcmd)
-			{
-		   	   case MSAMPPREV:
-				if (offcur >= 2)
-					offcur -= 2;
-				else
-					offcur  = 0;
-
-				lseek(rawfd, *(offlist+offcur), SEEK_SET);
-				break;
-
-		   	   case MRESET:
-				lseek(rawfd, *offlist, SEEK_SET);
-				offcur = 1;
-				break;
-
-			   case MEND:
-				begintime = 0x7fffffff;
-				lastcmd = MSAMPBRANCH;
-				break;
-
-			   case MSAMPBRANCH:
-				if (begintime < cursortime && isregular)
-				{
-					lseek(rawfd, *offlist, SEEK_SET);
-					offcur = 1;
-				}
-			}
-		}
-
-		begintime = 0;	// allow earlier times from now on
-
-		if (isregular)
-		{
-			if (rv != 0)	// inconsistent/incomplete raw file?
-				mcleanstop(7, "inconsistent raw file!\n");
-
-			if (offcur >= 1)
-				offcur--;
-
-			lseek(rawfd, *(offlist+offcur), SEEK_SET);
-		}
-		else
-		{
-			lastcmd = 'q';
-		}
-	}
-
-	if (isregular)
-		free(offlist);
-
-	close(rawfd);
-
-	return isregular;
+        static struct devtstat devtstat;
+
+        int i, j, v, rv, rawfd, len, isregular = 1;
+        char *py;
+        struct rawheader rh;
+        struct rawrecord rr;
+        struct sstat sstat;
+        struct cgchainer *devchain = NULL;
+
+        struct stat filestat;
+
+        /*
+        ** variables to maintain the offsets of the raw records
+        ** to be able to see previous samples again
+        */
+        off_t *offlist = NULL;
+        unsigned int offsize = 0;
+        unsigned int offcur = 0;
+        char lastcmd = 'X', flags;
+
+        time_t timenow;
+        struct tm *tp;
+
+        switch (len = strlen(irawname)) {
+        /*
+        ** if no filename is specified, assemble the name of the raw file
+        */
+        case 0:
+                timenow = time(0);
+                tp = localtime(&timenow);
+
+                snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d", BASEPATH, tp->tm_year + 1900,
+                         tp->tm_mon + 1, tp->tm_mday);
+
+                break;
+
+        /*
+        ** if date specified as filename in format YYYYMMDD, assemble
+        ** the full pathname of the raw file
+        */
+        case 8:
+                if (access(irawname, F_OK) == 0)
+                        break; /* existing file */
+
+                if (lookslikedatetome(irawname)) {
+                        char savedname[16];
+
+                        safe_strcpy(savedname, irawname, sizeof savedname);
+
+                        snprintf(irawname, RAWNAMESZ, "%s/atop_%s", BASEPATH, savedname);
+                        break;
+                }
+
+        /*
+        ** if one or more 'y' (yesterday) characters are used and that
+        ** string is not known as an existing file, the standard logfile
+        ** is shown from N days ago (N is determined by the number
+        ** of y's).
+        */
+        default:
+                if (access(irawname, F_OK) == 0)
+                        break; /* existing file */
+
+                /*
+                ** make a string existing of y's to compare with
+                */
+                py = malloc(len + 1);
+
+                ptrverify(py, "Malloc failed for 'yes' sequence\n");
+
+                memset(py, 'y', len);
+                *(py + len) = '\0';
+
+                if (strcmp(irawname, py) == 0) {
+                        timenow = time(0);
+                        timenow -= len * 3600 * 24;
+                        tp = localtime(&timenow);
+
+                        snprintf(irawname, RAWNAMESZ, "%s/atop_%04d%02d%02d", BASEPATH,
+                                 tp->tm_year + 1900, tp->tm_mon + 1, tp->tm_mday);
+                }
+
+                free(py);
+        }
+
+        /*
+        ** make sure the file is a regular file (seekable) or
+        ** a pipe (not seekable)
+        */
+        if (stat(irawname, &filestat) == -1) {
+                fprintf(stderr, "%s - ", irawname);
+                perror("stat raw file");
+                cleanstop(7);
+        }
+
+        if (!S_ISREG(filestat.st_mode) && !S_ISFIFO(filestat.st_mode)) {
+                fprintf(stderr, "raw file must be a regular file or pipe\n");
+                cleanstop(7);
+        }
+
+        isregular = S_ISREG(filestat.st_mode);
+
+        /*
+        ** open raw file for reading
+        */
+        if ((rawfd = open(irawname, O_RDONLY)) == -1) {
+                fprintf(stderr, "%s - ", irawname);
+                perror("open raw file");
+                cleanstop(7);
+        }
+
+        /*
+        ** make the kernel readahead more effective
+        */
+        if (isregular)
+                posix_fadvise(rawfd, 0, 0, POSIX_FADV_SEQUENTIAL);
+
+        /*
+        ** read the raw header and verify the magic
+        */
+        if (readchunk(rawfd, &rh, sizeof rh) < sizeof rh) {
+                fprintf(stderr, "can not read raw file header\n");
+                cleanstop(7);
+        }
+
+        if (rh.magic != MYMAGIC) {
+                fprintf(stderr,
+                        "file %s does not contain raw atop/atopsar "
+                        "output (wrong magic number)\n",
+                        irawname);
+                cleanstop(7);
+        }
+
+        /*
+        ** magic okay, but file-layout might have been modified
+        */
+        if (rh.sstatlen != sizeof(struct sstat) || rh.tstatlen != sizeof(struct tstat) ||
+            rh.cstatlen != sizeof(struct cstat) || rh.rawheadlen != sizeof(struct rawheader) ||
+            rh.rawreclen != sizeof(struct rawrecord)) {
+                fprintf(stderr, "sstatlen: %d/%lu\n", rh.sstatlen, sizeof(struct sstat));
+                fprintf(stderr, "cstatlen: %d/%lu\n", rh.cstatlen, sizeof(struct cstat));
+                fprintf(stderr, "tstatlen: %d/%lu\n", rh.tstatlen, sizeof(struct tstat));
+                fprintf(stderr, "headlen:  %d/%lu\n", rh.rawheadlen, sizeof(struct rawheader));
+                fprintf(stderr, "reclen:   %d/%lu\n", rh.rawreclen, sizeof(struct rawrecord));
+                fprintf(stderr, "\nraw file %s has incompatible format\n", irawname);
+
+                if (rh.aversion & 0x8000 && (rh.aversion & 0x7fff) != getnumvers()) {
+                        fprintf(stderr,
+                                "(created by version %d.%d - "
+                                "current version %d.%d)\n",
+                                (rh.aversion >> 8) & 0x7f, rh.aversion & 0xff, getnumvers() >> 8,
+                                getnumvers() & 0x7f);
+                } else {
+                        fprintf(stderr, "(files from other system architectures might"
+                                        " be binary incompatible)\n");
+                }
+
+                close(rawfd);
+
+                cleanstop(7);
+        }
+
+        memcpy(&utsname, &rh.utsname, sizeof utsname);
+        utsnodenamelen = strlen(utsname.nodename);
+
+        supportflags = rh.supportflags;
+        osrel = rh.osrel;
+        osvers = rh.osvers;
+        ossub = rh.ossub;
+        interval = 0;
+
+        if (rh.hertz)
+                hertz = rh.hertz;
+
+        if (rh.pagesize)
+                pagesize = rh.pagesize;
+
+        if (rh.pidwidth)
+                pidwidth = rh.pidwidth;
+        else
+                pidwidth = 5;
+
+        /*
+        ** allocate a list for backtracking of rawrecord-offsets
+        */
+        if (isregular) {
+                offlist = malloc(sizeof(off_t) * OFFCHUNK);
+
+                ptrverify(offlist, "Malloc failed for backtrack list\n");
+
+                offsize = OFFCHUNK;
+
+                *offlist = lseek(rawfd, 0, SEEK_CUR);
+                offcur = 1;
+        }
+
+        /*
+        ** read a raw record header until end-of-file
+        */
+        sampcnt = 0;
+
+        while (lastcmd && lastcmd != 'q') {
+                while ((rv = getrawrec(rawfd, &rr, rh.rawreclen, isregular)) == rh.rawreclen) {
+                        unsigned int k, l;
+
+                        cursortime = rr.curtime; // maintain current
+
+                        /*
+                        ** normalize the begintime and endtime if the
+                        ** format hh:mm has been used instead of an
+                        ** absolute date-time string
+                        ** (only happens for the first record)
+                        */
+                        if (begintime <= SECONDSINDAY)
+                                begintime = normalize_epoch(cursortime, begintime);
+
+                        if (endtime && endtime <= SECONDSINDAY)
+                                endtime = normalize_epoch(cursortime, endtime);
+
+                        /*
+                        ** store the offset of the raw record in the offset list
+                        ** in case of offset list overflow, extend the list
+                        */
+                        if (isregular) {
+                                *(offlist + offcur) = lseek(rawfd, 0, SEEK_CUR) - rh.rawreclen;
+
+                                if (++offcur >= offsize) {
+                                        offlist =
+                                            realloc(offlist, (offsize + OFFCHUNK) * sizeof(off_t));
+
+                                        ptrverify(offlist, "Realloc failed for backtrack list\n");
+
+                                        offsize += OFFCHUNK;
+                                }
+                        }
+
+                        /*
+                        ** check if this sample is within the time-range
+                        ** specified with the -b and -e flags (if any)
+                        */
+                        if ((begintime > cursortime)) {
+                                lastcmd = 1;
+
+                                if (isregular) {
+                                        static off_t curr_pos = -1;
+                                        off_t next_pos;
+
+                                        lastcmd = 1;
+                                        next_pos = lseek(rawfd,
+                                                         rr.scomplen + rr.pcomplen + rr.ccomplen +
+                                                             rr.icomplen,
+                                                         SEEK_CUR);
+
+                                        if ((curr_pos >> READAHEADOFF) !=
+                                            (next_pos >> READAHEADOFF)) {
+                                                int liResult;
+
+                                                /* just read READAHEADSIZE bytes into page cache */
+                                                char *buf = malloc(READAHEADSIZE);
+
+                                                ptrverify(buf, "Malloc failed for readahead");
+
+                                                liResult = pread(rawfd, buf, READAHEADSIZE,
+                                                                 next_pos & ~(READAHEADSIZE - 1));
+
+                                                if (liResult == -1) {
+                                                        char lcMessage[64];
+
+                                                        snprintf(lcMessage, sizeof(lcMessage) - 1,
+                                                                 "%s:%d - Error %d in readahead\n",
+                                                                 __FILE__, __LINE__, errno);
+                                                        fprintf(stderr, "%s", lcMessage);
+                                                }
+
+                                                free(buf);
+                                        }
+                                        curr_pos = next_pos;
+                                        continue;
+                                } else // named pipe not seekable
+                                {
+                                        char *dummybuf = malloc(rr.scomplen + rr.pcomplen +
+                                                                rr.ccomplen + rr.icomplen);
+
+                                        ptrverify(dummybuf, "Malloc rawlog pipe buffer failed\n");
+
+                                        readchunk(rawfd, dummybuf,
+                                                  rr.scomplen + rr.pcomplen + rr.ccomplen +
+                                                      rr.icomplen);
+
+                                        free(dummybuf);
+                                }
+
+                                continue;
+                        }
+
+                        begintime = 0; // allow earlier times from now on
+
+                        if ((endtime && endtime < cursortime)) {
+                                if (isregular)
+                                        free(offlist);
+
+                                close(rawfd);
+                                return isregular;
+                        }
+
+                        /*
+                        ** allocate space, read compressed system-level
+                        ** metrics and decompress
+                        */
+                        if (!getrawsstat(rawfd, &sstat, rr.scomplen))
+                                cleanstop(7);
+
+                        /*
+                        ** allocate space, read compressed process-level
+                        ** metrics and decompress
+                        */
+                        devtstat.taskall = malloc(sizeof(struct tstat) * rr.ndeviat);
+
+                        if (rr.totproc < rr.nactproc) // compat old raw files
+                                devtstat.procall = malloc(sizeof(struct tstat *) * rr.nactproc);
+                        else
+                                devtstat.procall = malloc(sizeof(struct tstat *) * rr.totproc);
+
+                        devtstat.procactive = malloc(sizeof(struct tstat *) * rr.nactproc);
+
+                        ptrverify(devtstat.taskall, "Malloc failed for %d stored tasks\n",
+                                  rr.ndeviat);
+
+                        ptrverify(devtstat.procall, "Malloc failed for total %d processes\n",
+                                  rr.totproc);
+
+                        ptrverify(devtstat.procactive, "Malloc failed for %d active processes\n",
+                                  rr.nactproc);
+
+                        if (!getrawtstat(rawfd, devtstat.taskall, rr.pcomplen, rr.ndeviat))
+                                cleanstop(7);
+
+                        for (i = j = k = l = 0; i < rr.ndeviat; i++) {
+                                if ((devtstat.taskall + i)->gen.isproc) {
+                                        devtstat.procall[j++] = devtstat.taskall + i;
+
+                                        if (!(devtstat.taskall + i)->gen.wasinactive)
+                                                devtstat.procactive[k++] = devtstat.taskall + i;
+                                }
+
+                                if (!(devtstat.taskall + i)->gen.wasinactive)
+                                        l++;
+                        }
+
+                        devtstat.ntaskall = i;
+                        devtstat.nprocall = j;
+                        devtstat.nprocactive = k;
+                        devtstat.ntaskactive = l;
+
+                        devtstat.totrun = rr.totrun;
+                        devtstat.totslpi = rr.totslpi;
+                        devtstat.totslpu = rr.totslpu;
+                        devtstat.totidle = rr.totidle;
+                        devtstat.totzombie = rr.totzomb;
+
+                        /*
+                        ** allocate space, read compressed cgroup-level
+                        ** metrics, the pidlist and decompress
+                        */
+                        if (rr.flags & RRCGRSTAT) {
+                                if (!getrawcstat(rawfd, &devchain, rr.ccomplen, rr.coriglen,
+                                                 rr.icomplen, rr.ncgroups, rr.ncgpids))
+                                        cleanstop(7);
+                        }
+
+                        /*
+                        ** activate the installed print function to visualize
+                        ** the system metrics, process metrics and cgroup metrics
+                        */
+                        sampcnt++;
+
+                        if ((rh.supportflags & RAWLOGNG) == RAWLOGNG) {
+                                if (rr.flags & RRACCTACTIVE)
+                                        supportflags |= ACCTACTIVE;
+                                else
+                                        supportflags &= ~ACCTACTIVE;
+
+                                if (rr.flags & RRIOSTAT)
+                                        supportflags |= IOSTAT;
+                                else
+                                        supportflags &= ~IOSTAT;
+                        }
+
+                        if (rr.flags & RRNETATOP)
+                                supportflags |= NETATOP;
+                        else
+                                supportflags &= ~NETATOP;
+
+                        if (rr.flags & RRNETATOPD)
+                                supportflags |= NETATOPD;
+                        else
+                                supportflags &= ~NETATOPD;
+
+                        if (rr.flags & RRCGRSTAT)
+                                supportflags |= CGROUPV2;
+                        else
+                                supportflags &= ~CGROUPV2;
+
+                        if (rr.flags & RRCONTAINERSTAT)
+                                supportflags |= CONTAINERSTAT;
+                        else
+                                supportflags &= ~CONTAINERSTAT;
+
+                        if (rr.flags & RRGPUSTAT)
+                                supportflags |= GPUSTAT;
+                        else
+                                supportflags &= ~GPUSTAT;
+
+                        flags = rr.flags & RRBOOT;
+
+                        nrgpus = sstat.gpu.nrgpus;
+
+                        if (isregular) {
+                                (void)fstat(rawfd, &filestat);
+
+                                if (filestat.st_size - lseek(rawfd, (off_t)0, SEEK_CUR) <=
+                                    rh.rawreclen)
+                                        flags |= RRLAST;
+                        }
+
+                        do {
+                                for (v = 0; handlers[v].handle_sample; v++) {
+                                        lastcmd = (handlers[v].handle_sample)(
+                                            rr.curtime, rr.interval, &devtstat, &sstat, devchain,
+                                            rr.ncgroups, rr.ncgpids, rr.nexit, rr.noverflow, flags);
+                                }
+                        } while (!isregular &&
+                                 (lastcmd == MSAMPPREV || lastcmd == MRESET || lastcmd == MEND ||
+                                  (lastcmd == MSAMPBRANCH && begintime < cursortime)));
+
+                        free(devtstat.taskall);
+                        free(devtstat.procall);
+                        free(devtstat.procactive);
+
+                        if (rr.flags & RRCGRSTAT) {
+                                free(devchain->cstat);
+                                free(devchain->proclist);
+                                free(devchain);
+                        }
+
+                        switch (lastcmd) {
+                        case MSAMPPREV:
+                                if (offcur >= 2)
+                                        offcur -= 2;
+                                else
+                                        offcur = 0;
+
+                                lseek(rawfd, *(offlist + offcur), SEEK_SET);
+                                break;
+
+                        case MRESET:
+                                lseek(rawfd, *offlist, SEEK_SET);
+                                offcur = 1;
+                                break;
+
+                        case MEND:
+                                begintime = 0x7fffffff;
+                                lastcmd = MSAMPBRANCH;
+                                break;
+
+                        case MSAMPBRANCH:
+                                if (begintime < cursortime && isregular) {
+                                        lseek(rawfd, *offlist, SEEK_SET);
+                                        offcur = 1;
+                                }
+                        }
+                }
+
+                begintime = 0; // allow earlier times from now on
+
+                if (isregular) {
+                        if (rv != 0) // inconsistent/incomplete raw file?
+                                mcleanstop(7, "inconsistent raw file!\n");
+
+                        if (offcur >= 1)
+                                offcur--;
+
+                        lseek(rawfd, *(offlist + offcur), SEEK_SET);
+                } else {
+                        lastcmd = 'q';
+                }
+        }
+
+        if (isregular)
+                free(offlist);
+
+        close(rawfd);
+
+        return isregular;
 }
-
 
 /*
 ** read the next raw record from the raw logfile
 */
-static int
-getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
+static int getrawrec(int rawfd, struct rawrecord *prr, int rrlen, int isregular)
 {
-	// read rawrecord (header) itself
-	//
-	struct stat	stat;
-	int 		n = readchunk(rawfd, prr, rrlen);
-	int		totcomplen = prr->scomplen + prr->pcomplen + prr->ccomplen + prr->icomplen;
-	off_t		curoffset = lseek(rawfd, 0, SEEK_CUR);
-	int		i, completesample = 0;
+        // read rawrecord (header) itself
+        //
+        struct stat stat;
+        int n = readchunk(rawfd, prr, rrlen);
+        int totcomplen = prr->scomplen + prr->pcomplen + prr->ccomplen + prr->icomplen;
+        off_t curoffset = lseek(rawfd, 0, SEEK_CUR);
+        int i, completesample = 0;
 
-	// verify file consistency:
-	// 	are all expected compressed buffers written
-	//	behind the raw record header?
-	//
-	if (n == rrlen && isregular)
-	{
-		// even though the writing atop uses the writev() system call to offer
-		// the record header and all compressed data in one go, the writev()
-		// does not write all chunks atomically.
-		// therefore, still a race condition might occur that the record header
-		// is written but not the related compressed data, so  the file consistency
-		// is verified in a loop that lasts for maximum 2 seconds
-		//
-		for (i=0; i < 40; i++)
-		{
-			if ( fstat(rawfd, &stat) == 0 &&
-			     stat.st_size - curoffset >= totcomplen)
-			{
-				completesample = 1;
-				break;
-			}
-			else
-			{
-				usleep(50000);		// sleep for .05 second
-			}
-		}
+        // verify file consistency:
+        // 	are all expected compressed buffers written
+        //	behind the raw record header?
+        //
+        if (n == rrlen && isregular) {
+                // even though the writing atop uses the writev() system call to offer
+                // the record header and all compressed data in one go, the writev()
+                // does not write all chunks atomically.
+                // therefore, still a race condition might occur that the record header
+                // is written but not the related compressed data, so  the file consistency
+                // is verified in a loop that lasts for maximum 2 seconds
+                //
+                for (i = 0; i < 40; i++) {
+                        if (fstat(rawfd, &stat) == 0 && stat.st_size - curoffset >= totcomplen) {
+                                completesample = 1;
+                                break;
+                        } else {
+                                usleep(50000); // sleep for .05 second
+                        }
+                }
 
-		if (!completesample)
-			mcleanstop(9, "raw file is incomplete!\n");
-	}
+                if (!completesample)
+                        mcleanstop(9, "raw file is incomplete!\n");
+        }
 
-	return n;
+        return n;
 }
-
 
 /*
 ** read the system-level statistics from the current offset
 */
-static int
-getrawsstat(int rawfd, struct sstat *sp, int complen)
+static int getrawsstat(int rawfd, struct sstat *sp, int complen)
 {
-	Byte		*compbuf;
-	unsigned long	uncomplen = sizeof(struct sstat);
-	int		rv;
+        Byte *compbuf;
+        unsigned long uncomplen = sizeof(struct sstat);
+        int rv;
 
-	compbuf = malloc(complen);
+        compbuf = malloc(complen);
 
-	ptrverify(compbuf, "Malloc failed for reading compressed sysstats\n");
+        ptrverify(compbuf, "Malloc failed for reading compressed sysstats\n");
 
-	if ( readchunk(rawfd, compbuf, complen) < complen)
-	{
-		free(compbuf);
-		return 0;
-	}
+        if (readchunk(rawfd, compbuf, complen) < complen) {
+                free(compbuf);
+                return 0;
+        }
 
-	rv = uncompress((Byte *)sp, &uncomplen, compbuf, complen);
+        rv = uncompress((Byte *)sp, &uncomplen, compbuf, complen);
 
-	testcompval(rv, "uncompress");
+        testcompval(rv, "uncompress");
 
-	free(compbuf);
+        free(compbuf);
 
-	return 1;
+        return 1;
 }
-
 
 /*
 ** read the process-level statistics from the current offset
 */
-static int
-getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
+static int getrawtstat(int rawfd, struct tstat *pp, int complen, int ndeviat)
 {
-	Byte		*compbuf;
-	unsigned long	uncomplen = sizeof(struct tstat) * ndeviat;
-	int		rv;
+        Byte *compbuf;
+        unsigned long uncomplen = sizeof(struct tstat) * ndeviat;
+        int rv;
 
-	compbuf = malloc(complen);
+        compbuf = malloc(complen);
 
-	ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
+        ptrverify(compbuf, "Malloc failed for reading compressed procstats\n");
 
-	if ( readchunk(rawfd, compbuf, complen) < complen)
-	{
-		free(compbuf);
-		return 0;
-	}
+        if (readchunk(rawfd, compbuf, complen) < complen) {
+                free(compbuf);
+                return 0;
+        }
 
-	rv = uncompress((Byte *)pp, &uncomplen, compbuf, complen);
+        rv = uncompress((Byte *)pp, &uncomplen, compbuf, complen);
 
-	testcompval(rv, "uncompress");
+        testcompval(rv, "uncompress");
 
-	free(compbuf);
+        free(compbuf);
 
-	return 1;
+        return 1;
 }
-
 
 /*
 ** read the cgroup-level statistics and pidlist from the current offset
 */
-static int
-getrawcstat(int rawfd, struct cgchainer **cpp,
-		unsigned long ccomplen, unsigned long coriglen,
-		unsigned long icomplen, int ncgroups, int npids)
+static int getrawcstat(int rawfd, struct cgchainer **cpp, unsigned long ccomplen,
+                       unsigned long coriglen, unsigned long icomplen, int ncgroups, int npids)
 {
-	Byte		*ccompbuf, *corigbuf, *icompbuf, *iorigbuf;
-	int		rv;
-	unsigned long	ioriglen = npids * sizeof(pid_t);
+        Byte *ccompbuf, *corigbuf, *icompbuf, *iorigbuf;
+        int rv;
+        unsigned long ioriglen = npids * sizeof(pid_t);
 
-	/*
-	** read all cstat structs
-	*/
-	ccompbuf = malloc(ccomplen);
-	corigbuf = malloc(coriglen);
+        /*
+        ** read all cstat structs
+        */
+        ccompbuf = malloc(ccomplen);
+        corigbuf = malloc(coriglen);
 
-	ptrverify(ccompbuf, "Malloc failed for reading compressed cgroups\n");
-	ptrverify(corigbuf, "Malloc failed for decompressing cgroups\n");
+        ptrverify(ccompbuf, "Malloc failed for reading compressed cgroups\n");
+        ptrverify(corigbuf, "Malloc failed for decompressing cgroups\n");
 
-	if ( readchunk(rawfd, ccompbuf, ccomplen) < ccomplen)
-	{
-		free(ccompbuf);
-		free(corigbuf);
-		return 0;
-	}
+        if (readchunk(rawfd, ccompbuf, ccomplen) < ccomplen) {
+                free(ccompbuf);
+                free(corigbuf);
+                return 0;
+        }
 
-	rv = uncompress((Byte *)corigbuf, &coriglen, ccompbuf, ccomplen);
+        rv = uncompress((Byte *)corigbuf, &coriglen, ccompbuf, ccomplen);
 
-	testcompval(rv, "uncompress cgroups");
+        testcompval(rv, "uncompress cgroups");
 
-	free(ccompbuf);
+        free(ccompbuf);
 
-	/*
-	** read pidlist
-	*/
-	icompbuf = malloc(icomplen);
-	iorigbuf = malloc(ioriglen);
+        /*
+        ** read pidlist
+        */
+        icompbuf = malloc(icomplen);
+        iorigbuf = malloc(ioriglen);
 
-	ptrverify(icompbuf, "Malloc failed for reading pidlist\n");
-	ptrverify(iorigbuf, "Malloc failed for decompresssed pidlist\n");
+        ptrverify(icompbuf, "Malloc failed for reading pidlist\n");
+        ptrverify(iorigbuf, "Malloc failed for decompresssed pidlist\n");
 
-	if ( readchunk(rawfd, icompbuf, icomplen) < icomplen)
-	{
-		free(corigbuf);
-		free(icompbuf);
-		free(iorigbuf);
+        if (readchunk(rawfd, icompbuf, icomplen) < icomplen) {
+                free(corigbuf);
+                free(icompbuf);
+                free(iorigbuf);
 
-		return 0;
-	}
+                return 0;
+        }
 
-	rv = uncompress((Byte *)iorigbuf, &ioriglen, icompbuf, icomplen);
+        rv = uncompress((Byte *)iorigbuf, &ioriglen, icompbuf, icomplen);
 
-	testcompval(rv, "uncompress cgroups pidlist");
+        testcompval(rv, "uncompress cgroups pidlist");
 
-	free(icompbuf);
+        free(icompbuf);
 
-	/*
-	** reconstruct an array of cgchainer structs from which
-	** each entry refers to one cstat struct and its own start
-	** entry in the pidlist
-	*/
-	cgbuildarray(cpp, (char *)corigbuf, (char *)iorigbuf, ncgroups);
+        /*
+        ** reconstruct an array of cgchainer structs from which
+        ** each entry refers to one cstat struct and its own start
+        ** entry in the pidlist
+        */
+        cgbuildarray(cpp, (char *)corigbuf, (char *)iorigbuf, ncgroups);
 
-	return 1;
+        return 1;
 }
 
-
-/* 
+/*
 ** verify if a particular ascii-string is in the format yyyymmdd
 */
-static int
-lookslikedatetome(char *p)
+static int lookslikedatetome(char *p)
 {
-	register int 	i;
+        register int i;
 
-	for (i=0; i < 8; i++)
-		if ( !isdigit(*(p+i)) )
-			return 0;
+        for (i = 0; i < 8; i++)
+                if (!isdigit(*(p + i)))
+                        return 0;
 
-	if (*p != '2')
-		return 0;	/* adapt this in the year 3000 */
+        if (*p != '2')
+                return 0; /* adapt this in the year 3000 */
 
-	if ( *(p+4) > '1')
-		return 0;
+        if (*(p + 4) > '1')
+                return 0;
 
-	if ( *(p+6) > '3')
-		return 0;
+        if (*(p + 6) > '3')
+                return 0;
 
-	return 1;	/* yes, looks like a date to me */
+        return 1; /* yes, looks like a date to me */
 }
-
 
 /*
 ** test return code of (de)compression and
 ** terminate when wrong
 */
-static void
-testcompval(int rv, char *func)
+static void testcompval(int rv, char *func)
 {
-	switch (rv)
-	{
-	   case Z_OK:
-	   case Z_STREAM_END:
-	   case Z_NEED_DICT:
-		break;
+        switch (rv) {
+        case Z_OK:
+        case Z_STREAM_END:
+        case Z_NEED_DICT:
+                break;
 
-	   case Z_MEM_ERROR:
-		mcleanstop(7, "atop/atopsar - "
-		        "%s: failed due to lack of memory\n", func);
+        case Z_MEM_ERROR:
+                mcleanstop(7,
+                           "atop/atopsar - "
+                           "%s: failed due to lack of memory\n",
+                           func);
 
-	   case Z_BUF_ERROR:
-		mcleanstop(7, "atop/atopsar - "
-			"%s: failed due to lack of room in buffer\n", func);
+        case Z_BUF_ERROR:
+                mcleanstop(7,
+                           "atop/atopsar - "
+                           "%s: failed due to lack of room in buffer\n",
+                           func);
 
-   	   case Z_DATA_ERROR:
-		mcleanstop(7, "atop/atopsar - "
-		        "%s: failed due to corrupted/incomplete data\n", func);
+        case Z_DATA_ERROR:
+                mcleanstop(7,
+                           "atop/atopsar - "
+                           "%s: failed due to corrupted/incomplete data\n",
+                           func);
 
-	   default:
-		mcleanstop(7, "atop/atopsar - "
-		        "%s: unexpected error %d\n", func, rv);
-	}
+        default:
+                mcleanstop(7,
+                           "atop/atopsar - "
+                           "%s: unexpected error %d\n",
+                           func, rv);
+        }
 }
-
 
 /*
 ** read chunk of data with specified length
@@ -1237,26 +1137,23 @@ testcompval(int rv, char *func)
 **
 ** returns: number of bytes read
 */
-static int
-readchunk(int fd, void *buf, int len)
+static int readchunk(int fd, void *buf, int len)
 {
-	char	*p = buf;
-	int	n;
+        char *p = buf;
+        int n;
 
-	while (len > 0)
-	{
- 		switch (n = read(fd, p, len))
-		{
-		   case 0:	// EOF?
-			return (char *)p - (char *)buf;
-		   case -1:
-			perror("read raw file");
-			cleanstop(9);
-		   default:
-			len -= n;
-			p   += n;
-		}
-	}
+        while (len > 0) {
+                switch (n = read(fd, p, len)) {
+                case 0: // EOF?
+                        return (char *)p - (char *)buf;
+                case -1:
+                        perror("read raw file");
+                        cleanstop(9);
+                default:
+                        len -= n;
+                        p += n;
+                }
+        }
 
-	return (char *)p - (char *)buf;
+        return (char *)p - (char *)buf;
 }

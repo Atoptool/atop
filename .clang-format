@@ -1,0 +1,17 @@
+Language:        Cpp
+BasedOnStyle:    LLVM
+
+IndentWidth:     8
+TabWidth:        8
+ColumnLimit:     100
+Standard:        Latest
+
+PointerAlignment: Right
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction:    true
+  AfterExternBlock: true
+
+AllowShortFunctionsOnASingleLine: None
+AlignEscapedNewlines: Right

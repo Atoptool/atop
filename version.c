@@ -1,30 +1,27 @@
 /* No manual changes in this file */
-#include <stdio.h>
-#include <string.h>
 #include "version.h"
 #include "versdate.h"
+#include <stdio.h>
+#include <string.h>
 
 static char atopversion[] = ATOPVERS;
-static char atopdate[]    = ATOPDATE;
+static char atopdate[] = ATOPDATE;
 
-char *
-getstrvers(void)
+char *getstrvers(void)
 {
-	static char vers[256];
+        static char vers[256];
 
-	snprintf(vers, sizeof vers,
-		"Version: %s - %s     <gerlof.langeveld@atoptool.nl>",
-		atopversion, atopdate);
+        snprintf(vers, sizeof vers, "Version: %s - %s     <gerlof.langeveld@atoptool.nl>",
+                 atopversion, atopdate);
 
-	return vers;
+        return vers;
 }
 
-unsigned short
-getnumvers(void)
+unsigned short getnumvers(void)
 {
-	int	vers1, vers2;
+        int vers1, vers2;
 
-	sscanf(atopversion, "%u.%u", &vers1, &vers2);
+        sscanf(atopversion, "%u.%u", &vers1, &vers2);
 
-	return (unsigned short) ((vers1 << 8) + vers2);
+        return (unsigned short)((vers1 << 8) + vers2);
 }
