@@ -31,6 +31,8 @@
 #ifndef __SHOWLINUX__
 #define __SHOWLINUX__
 
+#include "atoptypes.h"
+
 #define MAXITEMS 80    /* The maximum number of items per line */
 
 /*

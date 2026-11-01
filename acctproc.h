@@ -25,6 +25,8 @@
 #ifndef __ACCTPROC__
 #define __ACCTPROC__
 
+#include "atoptypes.h"
+
 int 		acctswon(void);
 void		acctswoff(void);
 unsigned long 	acctprocnt(void);

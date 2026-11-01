@@ -24,6 +24,7 @@
 #ifndef __PHOTOSYST__
 #define __PHOTOSYST__
 
+#include "atoptypes.h"
 #include "netstats.h"
 
 #define	MAXCPU		4096	// specify power of two

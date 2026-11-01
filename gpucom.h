@@ -29,6 +29,8 @@
 #ifndef	__GPUCOM__
 #define	__GPUCOM__
 
+#include "photoproc.h"
+
 #define APIVERSION	2
 
 struct gpupidstat {

@@ -28,6 +28,8 @@
 #ifndef __PARSEABLE__
 #define __PARSEABLE__
 
+#include "atoptypes.h"
+
 int 	parsedef(char *);
 char	parseout(time_t, int,
 		struct devtstat *, struct sstat *,

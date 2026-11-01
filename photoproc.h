@@ -26,6 +26,8 @@
 #ifndef __PHOTOPROC__
 #define __PHOTOPROC__
 
+#include <stdint.h>
+
 #define	PNAMLEN		15
 #define	CMDLEN		255
 #define	CGRLEN		64
@@ -195,8 +197,6 @@ int		pdb_srchresidue(struct tstat *, struct pinfo **);
 /*
 ** prototypes for raw process-statistics functions
 */
-struct netpertask;
-
 void		deviattask(struct tstat *, unsigned long,
  		           struct tstat *, unsigned long, 
  		           struct devtstat *, struct sstat *);

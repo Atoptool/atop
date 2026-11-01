@@ -29,6 +29,8 @@
 #ifndef __NETATOP__
 #define __NETATOP__
 
+#include "atoptypes.h"
+
 #define	COMLEN	16
 
 struct taskcount {

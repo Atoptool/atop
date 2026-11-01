@@ -29,6 +29,8 @@
 #ifndef __RAWLOG__
 #define __RAWLOG__
 
+#include "atoptypes.h"
+
 /*
 ** structure describing the raw file contents
 **

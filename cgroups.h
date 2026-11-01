@@ -24,6 +24,8 @@
 #ifndef __CGROUPS__
 #define __CGROUPS__
 
+#include "atoptypes.h"
+
 // structure containing general info and metrics per cgroup (directory)
 //
 struct cstat {
@@ -121,8 +123,6 @@ struct cgchainer {
 // structure to be used for printing a merged list
 // of cgroups and processes
 //
-struct tstat;
-
 struct cglinesel {
 	struct cgchainer *cgp;	// always filled with reference to cgroup
 	struct tstat     *tsp;	// filled for process info, otherwise NULL

@@ -24,8 +24,12 @@
 #ifndef __ATOP__
 #define __ATOP__
 
-#include <time.h>
 #include <getopt.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <time.h>
+
+#include "atoptypes.h"
 
 #define	EQ		0
 #define SECONDSINDAY	86400
@@ -46,14 +50,6 @@
 #define	PBFORMAT	9
 #define	PBFORMAT_INT	10
 #define	EBFORMAT	11
-
-typedef	long long	count_t;
-
-struct tstat;
-struct devtstat;
-struct sstat;
-struct cgchainer;
-struct netpertask;
 
 /* 
 ** miscellaneous flags

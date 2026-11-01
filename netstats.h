@@ -29,6 +29,8 @@
 #ifndef __NETSTATS__
 #define __NETSTATS__
 
+#include "atoptypes.h"
+
 /*
 ** structures defined from the output of /proc/net/snmp and /proc/net/snmp6
 */

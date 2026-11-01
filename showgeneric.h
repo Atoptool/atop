@@ -24,6 +24,8 @@
 #ifndef __SHOWGENERIC__
 #define __SHOWGENERIC__
 
+#include "atoptypes.h"
+
 #define USERSTUB	9999999
 #define MAXUSERSEL	64
 #define MAXPID		32
