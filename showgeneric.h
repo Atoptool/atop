@@ -24,219 +24,220 @@
 #ifndef __SHOWGENERIC__
 #define __SHOWGENERIC__
 
-#define USERSTUB	9999999
-#define MAXUSERSEL	64
-#define MAXPID		32
+#include "atoptypes.h"
+
+#define USERSTUB 9999999
+#define MAXUSERSEL 64
+#define MAXPID 32
 
 // minimum screen dimensions
 //
-#define MINLINES        24
-#define MINCOLUMNS      60
+#define MINLINES 24
+#define MINCOLUMNS 60
 
 struct procview {
-	unsigned char	showtype;	// type of process details
-	unsigned char	showresource;	// which resource in case of resource percentage
-	unsigned char	sortcolumn;	// column index in alldetaildefs[]
-					// 0 = resource percentage
-	signed char	ascdesc;	// 1 (ascending) or -1 (descending)
+        unsigned char showtype;     // type of process details
+        unsigned char showresource; // which resource in case of resource percentage
+        unsigned char sortcolumn;   // column index in alldetaildefs[]
+                                    // 0 = resource percentage
+        signed char ascdesc;        // 1 (ascending) or -1 (descending)
 };
 
-
 struct syscap {
-	int	nrcpu;
-	count_t	availcpu;
-	count_t	availmem;
-	count_t	availdsk;
-	count_t	availnet;
-	int	nrgpu;
-	count_t	availgpumem; 	// GPU memory in Kb!
-	int	nrmemnuma;
-	int	nrcpunuma;
+        int nrcpu;
+        count_t availcpu;
+        count_t availmem;
+        count_t availdsk;
+        count_t availnet;
+        int nrgpu;
+        count_t availgpumem; // GPU memory in Kb!
+        int nrmemnuma;
+        int nrcpunuma;
 };
 
 struct pselection {
-	char	username[256];
-	uid_t	userid[MAXUSERSEL];
+        char username[256];
+        uid_t userid[MAXUSERSEL];
 
-	pid_t	pid[MAXPID];
+        pid_t pid[MAXPID];
 
-	char	progname[64];
-	int	prognamesz;
-	regex_t	progregex;
+        char progname[64];
+        int prognamesz;
+        regex_t progregex;
 
-	char	argname[64];
-	int	argnamesz;
-	regex_t	argregex;
+        char argname[64];
+        int argnamesz;
+        regex_t argregex;
 
-	char 	utsname[UTSLEN+1];
+        char utsname[UTSLEN + 1];
 
-	char	states[16];
+        char states[16];
 };
 
 struct sselection {
-	char	lvmname[64];	// logical volume selection
-	int	lvmnamesz;
-	regex_t	lvmregex;
+        char lvmname[64]; // logical volume selection
+        int lvmnamesz;
+        regex_t lvmregex;
 
-	char	dskname[64];	// disk selection
-	int	dsknamesz;
-	regex_t	dskregex;
+        char dskname[64]; // disk selection
+        int dsknamesz;
+        regex_t dskregex;
 
-	char	itfname[64];	// network interface selection
-	int	itfnamesz;
-	regex_t	itfregex;
+        char itfname[64]; // network interface selection
+        int itfnamesz;
+        regex_t itfregex;
 };
 
 /*
 ** color definitions
 */
-#define COLOR_MYORANGE  20
-#define COLOR_MYGREEN   21
-#define COLOR_MYGREY    22
-#define COLOR_MYLGREY   23
+#define COLOR_MYORANGE 20
+#define COLOR_MYGREEN 21
+#define COLOR_MYGREY 22
+#define COLOR_MYLGREY 23
 
-#define COLOR_MYBROWN1  24
-#define COLOR_MYBROWN2  25
+#define COLOR_MYBROWN1 24
+#define COLOR_MYBROWN2 25
 
-#define COLOR_MYBLUE0   26
-#define COLOR_MYBLUE1   27
-#define COLOR_MYBLUE2   28
-#define COLOR_MYBLUE3   29
-#define COLOR_MYBLUE4   30
-#define COLOR_MYBLUE5   31
+#define COLOR_MYBLUE0 26
+#define COLOR_MYBLUE1 27
+#define COLOR_MYBLUE2 28
+#define COLOR_MYBLUE3 29
+#define COLOR_MYBLUE4 30
+#define COLOR_MYBLUE5 31
 
-#define COLOR_MYGREEN0  35
-#define COLOR_MYGREEN1  36
-#define COLOR_MYGREEN2  37
+#define COLOR_MYGREEN0 35
+#define COLOR_MYGREEN1 36
+#define COLOR_MYGREEN2 37
 
 /*
 ** color pair definitions
 */
-#define FGCOLORBORDER   1
-#define	FGCOLORINFO	2
-#define	FGCOLORALMOST	3
-#define	FGCOLORCRIT	4
-#define	FGCOLORTHR	5
-#define	FGCOLORGREY	6
-#define	FGCOLORAVAIL	7
+#define FGCOLORBORDER 1
+#define FGCOLORINFO 2
+#define FGCOLORALMOST 3
+#define FGCOLORCRIT 4
+#define FGCOLORTHR 5
+#define FGCOLORGREY 6
+#define FGCOLORAVAIL 7
 
-#define WHITE_GREEN     10
-#define WHITE_ORANGE    11
-#define WHITE_RED       12
-#define WHITE_GREY      13
-#define WHITE_BLUE      14
-#define WHITE_MAGENTA   15
+#define WHITE_GREEN 10
+#define WHITE_ORANGE 11
+#define WHITE_RED 12
+#define WHITE_GREY 13
+#define WHITE_BLUE 14
+#define WHITE_MAGENTA 15
 
-#define WHITE_BROWN1    18
-#define WHITE_BROWN2    19
+#define WHITE_BROWN1 18
+#define WHITE_BROWN2 19
 
-#define WHITE_BLUE0     20
-#define WHITE_BLUE1     21
-#define WHITE_BLUE2     22
-#define WHITE_BLUE3     23
-#define WHITE_BLUE4     24
-#define WHITE_BLUE5     25
+#define WHITE_BLUE0 20
+#define WHITE_BLUE1 21
+#define WHITE_BLUE2 22
+#define WHITE_BLUE3 23
+#define WHITE_BLUE4 24
+#define WHITE_BLUE5 25
 
-#define WHITE_GREEN0    30
-#define WHITE_GREEN1    31
-#define WHITE_GREEN2    32
+#define WHITE_GREEN0 30
+#define WHITE_GREEN1 31
+#define WHITE_GREEN2 32
 
 /*
 ** text and bar color selections
 */
-#define COLOROKAY       WHITE_GREEN
-#define COLORWARN       WHITE_ORANGE
-#define COLORBAD        WHITE_RED
+#define COLOROKAY WHITE_GREEN
+#define COLORWARN WHITE_ORANGE
+#define COLORBAD WHITE_RED
 
-#define COLORCPUSYS     WHITE_BLUE1
-#define COLORCPUUSR     WHITE_BLUE2
-#define COLORCPUINTR    WHITE_BLUE3
-#define COLORCPUSTEAL   WHITE_BLUE4
-#define COLORCPUGUEST   WHITE_BLUE5
+#define COLORCPUSYS WHITE_BLUE1
+#define COLORCPUUSR WHITE_BLUE2
+#define COLORCPUINTR WHITE_BLUE3
+#define COLORCPUSTEAL WHITE_BLUE4
+#define COLORCPUGUEST WHITE_BLUE5
 
-#define COLORMEMFREE    WHITE_GREEN
-#define COLORMEMCACH    WHITE_ORANGE
-#define COLORMEMHUGE    WHITE_BLUE5
-#define COLORMEMUSED    WHITE_GREY
-#define COLORMEMSHM     WHITE_BROWN1
-#define COLORMEMTMP     WHITE_BLUE
-#define COLORMEMZRAM    WHITE_BROWN2
-#define COLORMEMSLAB    WHITE_MAGENTA
-#define COLORMEMBAR     WHITE_BLUE3
+#define COLORMEMFREE WHITE_GREEN
+#define COLORMEMCACH WHITE_ORANGE
+#define COLORMEMHUGE WHITE_BLUE5
+#define COLORMEMUSED WHITE_GREY
+#define COLORMEMSHM WHITE_BROWN1
+#define COLORMEMTMP WHITE_BLUE
+#define COLORMEMZRAM WHITE_BROWN2
+#define COLORMEMSLAB WHITE_MAGENTA
+#define COLORMEMBAR WHITE_BLUE3
 
-#define COLORDSKREAD	WHITE_GREEN1
-#define COLORDSKWRITE	WHITE_GREEN2
+#define COLORDSKREAD WHITE_GREEN1
+#define COLORDSKWRITE WHITE_GREEN2
 
-#define COLORNETRECV	WHITE_BROWN1
-#define COLORNETSEND	WHITE_BROWN2
+#define COLORNETRECV WHITE_BROWN1
+#define COLORNETSEND WHITE_BROWN2
 
 /*
 ** list with keystrokes/flags
 */
-#define	MPROCGEN	'g'
-#define	MPROCMEM	'm'
-#define	MPROCDSK	'd'
-#define	MPROCNET	'n'
-#define MPROCGPU	'e'
-#define	MPROCSCH	's'
-#define	MPROCVAR	'v'
-#define	MPROCARG	'c'
-#define	MCGROUPS	'G'
-#define MPROCOWN	'o'
+#define MPROCGEN 'g'
+#define MPROCMEM 'm'
+#define MPROCDSK 'd'
+#define MPROCNET 'n'
+#define MPROCGPU 'e'
+#define MPROCSCH 's'
+#define MPROCVAR 'v'
+#define MPROCARG 'c'
+#define MCGROUPS 'G'
+#define MPROCOWN 'o'
 
-#define	MCUMUSER	'u'
-#define	MCUMPROC	'p'
-#define	MCUMCONT	'j'
+#define MCUMUSER 'u'
+#define MCUMPROC 'p'
+#define MCUMCONT 'j'
 
-#define	MPERCCPU	'C'
-#define	MPERCDSK	'D'
-#define	MPERCMEM	'M'
-#define	MPERCNET	'N'
-#define MPERCGPU	'E'
-#define MPERCAUTO	'A'	// autofocus
+#define MPERCCPU 'C'
+#define MPERCDSK 'D'
+#define MPERCMEM 'M'
+#define MPERCNET 'N'
+#define MPERCGPU 'E'
+#define MPERCAUTO 'A' // autofocus
 
-#define	MTHREAD		'y'
-#define	MTHRSORT	'Y'
-#define	MCALCPSS	'R'
-#define	MGETWCHAN	'W'
-#define	MSUPEXITS	'X'
-#define	MCOLORS		'x'
-#define	MSYSFIXED	'f'
-#define	MSYSNOSORT	'F'
-#define	MSYSLIMIT	'l'
-#define MRMSPACES	'Z'
+#define MTHREAD 'y'
+#define MTHRSORT 'Y'
+#define MCALCPSS 'R'
+#define MGETWCHAN 'W'
+#define MSUPEXITS 'X'
+#define MCOLORS 'x'
+#define MSYSFIXED 'f'
+#define MSYSNOSORT 'F'
+#define MSYSLIMIT 'l'
+#define MRMSPACES 'Z'
 
-#define	MSELUSER	'U'
-#define	MSELPROC	'P'
-#define	MSELCONT	'J'
-#define	MSELPID		'I'
-#define	MSELARG		'/'
-#define	MSELSTATE	'Q'
-#define	MSELSYS		'S'
+#define MSELUSER 'U'
+#define MSELPROC 'P'
+#define MSELCONT 'J'
+#define MSELPID 'I'
+#define MSELARG '/'
+#define MSELSTATE 'Q'
+#define MSELSYS 'S'
 
-#define	MALLACTIVE	'a'
+#define MALLACTIVE 'a'
 
-#define	MORDERPROC	'O'
-#define	MKILLPROC	'k'
-#define	MLISTFW		0x06
-#define	MLISTBW		0x02
-#define MREDRAW         0x0c
-#define	MINTERVAL	'i'
-#define	MPAUSE		'z'
-#define	MQUIT		'q'
-#define	MRESET		'r'
-#define	MEND		'Z'
-#define	MSAMPNEXT	't'
-#define	MSAMPPREV	'T'
-#define	MSAMPBRANCH	'b'
-#define	MVERSION	'V'
-#define	MAVGVAL		'1'
-#define	MHELP1		'?'
-#define	MHELP2		'h'
+#define MORDERPROC 'O'
+#define MKILLPROC 'k'
+#define MLISTFW 0x06
+#define MLISTBW 0x02
+#define MREDRAW 0x0c
+#define MINTERVAL 'i'
+#define MPAUSE 'z'
+#define MQUIT 'q'
+#define MRESET 'r'
+#define MEND 'Z'
+#define MSAMPNEXT 't'
+#define MSAMPPREV 'T'
+#define MSAMPBRANCH 'b'
+#define MVERSION 'V'
+#define MAVGVAL '1'
+#define MHELP1 '?'
+#define MHELP2 'h'
 
-#define MBARGRAPH	'B'
-#define	MBARLOWER	'L'
-#define	MBARMONO	'H'
+#define MBARGRAPH 'B'
+#define MBARLOWER 'L'
+#define MBARMONO 'H'
 
 /*
 ** extern values for globals
@@ -247,52 +248,49 @@ extern int cgroupdepth;
 /*
 ** general function prototypes
 */
-void	totalcap   (struct syscap *, struct sstat *, struct tstat **, int);
-void	pricumproc (struct sstat *,  struct devtstat *,
-				int, unsigned int, int, int);
+void totalcap(struct syscap *, struct sstat *, struct tstat **, int);
+void pricumproc(struct sstat *, struct devtstat *, int, unsigned int, int, int);
 
-void	showgenproc(struct tstat *, double, int, int);
-void	showmemproc(struct tstat *, double, int, int);
-void	showdskproc(struct tstat *, double, int, int);
-void	shownetproc(struct tstat *, double, int, int);
-void	showvarproc(struct tstat *, double, int, int);
-void	showschproc(struct tstat *, double, int, int);
-void	showtotproc(struct tstat *, double, int, int);
-void	showcmdproc(struct tstat *, double, int, int);
+void showgenproc(struct tstat *, double, int, int);
+void showmemproc(struct tstat *, double, int, int);
+void showdskproc(struct tstat *, double, int, int);
+void shownetproc(struct tstat *, double, int, int);
+void showvarproc(struct tstat *, double, int, int);
+void showschproc(struct tstat *, double, int, int);
+void showtotproc(struct tstat *, double, int, int);
+void showcmdproc(struct tstat *, double, int, int);
 
-void	printg(const char *, ...);
-int	prisyst(struct sstat  *, int, int, int, int, struct sselection *,
-			int, int, int, int, int, int, int, int, int, int, int);
-void	prihead(int, int, struct procview *, count_t);
+void printg(const char *, ...);
+int prisyst(struct sstat *, int, int, int, int, struct sselection *, int, int, int, int, int, int,
+            int, int, int, int, int);
+void prihead(int, int, struct procview *, count_t);
 
 struct cglinesel;
 
-int	pricgroup(struct cglinesel *, int, int, int, int, int,
-	        struct syscap *, int, int);
+int pricgroup(struct cglinesel *, int, int, int, int, int, struct syscap *, int, int);
 
-int	priproc(struct tstat  **, int, int, int, int, int, struct procview *,
-	        struct syscap *, int, int);
+int priproc(struct tstat **, int, int, int, int, int, struct procview *, struct syscap *, int, int);
 
-char	draw_samp(time_t, int, struct sstat *, char, char);
+char draw_samp(time_t, int, struct sstat *, char, char);
 
-void	do_username(char *, char *);
-void	do_procname(char *, char *);
-void	do_maxcpu(char *, char *);
-void	do_maxgpu(char *, char *);
-void	do_maxdisk(char *, char *);
-void	do_maxmdd(char *, char *);
-void	do_maxlvm(char *, char *);
-void	do_maxintf(char *, char *);
-void	do_maxifb(char *, char *);
-void	do_maxnfsm(char *, char *);
-void	do_maxcont(char *, char *);
-void	do_maxnuma(char *, char *);
-void	do_maxllc(char *, char *);
-void	do_colinfo(char *, char *);
-void	do_colalmost(char *, char *);
-void	do_colcrit(char *, char *);
-void	do_colthread(char *, char *);
-void	do_twindir(char *, char *);
-void	do_flags(char *, char *);
+void do_username(char *, char *);
+void do_procname(char *, char *);
+void do_maxcpu(char *, char *);
+void do_maxgpu(char *, char *);
+void do_maxdisk(char *, char *);
+void do_maxmdd(char *, char *);
+void do_maxlvm(char *, char *);
+void do_maxintf(char *, char *);
+void do_maxifb(char *, char *);
+void do_maxnfsm(char *, char *);
+void do_maxcont(char *, char *);
+void do_maxnuma(char *, char *);
+void do_maxllc(char *, char *);
+void do_colinfo(char *, char *);
+void do_colalmost(char *, char *);
+void do_colcrit(char *, char *);
+void do_colthread(char *, char *);
+void do_twindir(char *, char *);
+void do_flags(char *, char *);
 
 #endif

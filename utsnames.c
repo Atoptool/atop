@@ -1,9 +1,9 @@
 /*
-** ATOP - System & Process Monitor 
+** ATOP - System & Process Monitor
 **
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
-** 
+**
 ** This source-file contains functions to retrieve the hostname of a
 ** containerized process by associating to its UTS namespace.
 ** ==========================================================================
@@ -30,23 +30,23 @@
 */
 
 #define _GNU_SOURCE
-#include <sys/types.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <sched.h>
 
 #include <atop.h>
 #include <photoproc.h>
 
-#define	BASEPATH	"/proc/1/ns/uts"
-#define	UTSPATH		"/proc/%d/ns/uts"
+#define BASEPATH "/proc/1/ns/uts"
+#define UTSPATH "/proc/%d/ns/uts"
 
-static	int		mypidfd, foreignuts;
+static int mypidfd, foreignuts;
 
-// Function that fills the host name (container/pod name) of 
+// Function that fills the host name (container/pod name) of
 // a specific process.
 // When the process has a different UTS namespace compared to systemd,
 // the process' UTS namespace will be temporarily associated with atop
@@ -58,142 +58,136 @@ static	int		mypidfd, foreignuts;
 // 	0 -	no container/pod detected
 // 	1 -	container/pod detected
 //
-int
-getutsname(struct tstat *curtask)
+int getutsname(struct tstat *curtask)
 {
-	static char	firstcall = 1, basepath[64], basehost[32];
+        static char firstcall = 1, basepath[64], basehost[32];
 
-	int		pidfd;
-	ssize_t		destlen;
-	char		srcpath[64], destpath[64], tmphost[70];
+        int pidfd;
+        ssize_t destlen;
+        char srcpath[64], destpath[64], tmphost[70];
 
-	// regain root privs in case of setuid root executable
-	//
-	regainrootprivs();
+        // regain root privs in case of setuid root executable
+        //
+        regainrootprivs();
 
-	// function initialization
-	//
-	if (firstcall)
-	{
-		firstcall = 0;
+        // function initialization
+        //
+        if (firstcall) {
+                firstcall = 0;
 
-		// determine the UTS namespace of systemd and the hostname
-		// related to systemd
-		//
-		if ( (destlen = readlink(BASEPATH, basepath, sizeof basepath)) == -1)
-			goto drop_and_return;
+                // determine the UTS namespace of systemd and the hostname
+                // related to systemd
+                //
+                if ((destlen = readlink(BASEPATH, basepath, sizeof basepath)) == -1)
+                        goto drop_and_return;
 
-		basepath[destlen] = '\0';	// guarantee delimeter
+                basepath[destlen] = '\0'; // guarantee delimeter
 
-		if ( (pidfd = open(BASEPATH, O_RDONLY)) == -1)
-			goto drop_and_return;
+                if ((pidfd = open(BASEPATH, O_RDONLY)) == -1)
+                        goto drop_and_return;
 
-		if (setns(pidfd, CLONE_NEWUTS) == -1)
-		{
-			close(pidfd);
-			goto drop_and_return;
-		}
+                if (setns(pidfd, CLONE_NEWUTS) == -1) {
+                        close(pidfd);
+                        goto drop_and_return;
+                }
 
-		foreignuts = 1;
-		close(pidfd);
+                foreignuts = 1;
+                close(pidfd);
 
-		gethostname(basehost, sizeof basehost);
+                gethostname(basehost, sizeof basehost);
 
-		// determine the UTS namespace of atop itself
-		// and open that namespace for reassociation via
-		// function resetutsname()
-		//
-		snprintf(srcpath, sizeof srcpath, UTSPATH, getpid());
+                // determine the UTS namespace of atop itself
+                // and open that namespace for reassociation via
+                // function resetutsname()
+                //
+                snprintf(srcpath, sizeof srcpath, UTSPATH, getpid());
 
-		if ( (mypidfd = open(srcpath, O_RDONLY)) == -1)
-			basepath[0] = '\0';
+                if ((mypidfd = open(srcpath, O_RDONLY)) == -1)
+                        basepath[0] = '\0';
 
-		resetutsname();
-	}
+                resetutsname();
+        }
 
-	// no root privileges?
-	//
-	if (!basepath[0])
-		goto drop_and_return;
+        // no root privileges?
+        //
+        if (!basepath[0])
+                goto drop_and_return;
 
-	// check if this pid is related to myself (atop)
-	//
-	if (curtask->gen.pid == getpid())
-		goto drop_and_return;
+        // check if this pid is related to myself (atop)
+        //
+        if (curtask->gen.pid == getpid())
+                goto drop_and_return;
 
-	// base path is known
-	// verify if this process is native, i.e. does it share the 
- 	// UTS namespace of systemd
-	//
-	snprintf(srcpath, sizeof srcpath, UTSPATH, curtask->gen.pid);
+        // base path is known
+        // verify if this process is native, i.e. does it share the
+        // UTS namespace of systemd
+        //
+        snprintf(srcpath, sizeof srcpath, UTSPATH, curtask->gen.pid);
 
-	destlen = readlink(srcpath, destpath, sizeof destpath);
-	destpath[destlen] = '\0';
+        destlen = readlink(srcpath, destpath, sizeof destpath);
+        destpath[destlen] = '\0';
 
-	if (strcmp(basepath, destpath) == 0)	// equal?
-		goto drop_and_return;
+        if (strcmp(basepath, destpath) == 0) // equal?
+                goto drop_and_return;
 
-	// UTS namespace deviates from base UTS namespace
-	// 
-	// get hostname related to this UTS namespace by associating
-	// atop to that namespace
-	//
-	if ( (pidfd = open(srcpath, O_RDONLY)) == -1)
-		goto drop_and_return;
+        // UTS namespace deviates from base UTS namespace
+        //
+        // get hostname related to this UTS namespace by associating
+        // atop to that namespace
+        //
+        if ((pidfd = open(srcpath, O_RDONLY)) == -1)
+                goto drop_and_return;
 
-	if (setns(pidfd, CLONE_NEWUTS) == -1)
-	{
-		close(pidfd);
-		goto drop_and_return;
-	}
+        if (setns(pidfd, CLONE_NEWUTS) == -1) {
+                close(pidfd);
+                goto drop_and_return;
+        }
 
-	foreignuts = 1;		// set boolean
-	close(pidfd);
+        foreignuts = 1; // set boolean
+        close(pidfd);
 
-	gethostname(tmphost, sizeof tmphost);
+        gethostname(tmphost, sizeof tmphost);
 
-	// check if the hostname is the same as the hostname of
-	// systemd (PID 1), because some systemd-related processes have
-	// their own UTS namespace with the same hostname
-	// also the hostname 'localhost' might be used by various daemons
-	// and will be skipped as well
-	//
-	if ( strcmp(tmphost, basehost) == 0 || strcmp(tmphost, "localhost") == 0)
-		goto drop_and_return;
+        // check if the hostname is the same as the hostname of
+        // systemd (PID 1), because some systemd-related processes have
+        // their own UTS namespace with the same hostname
+        // also the hostname 'localhost' might be used by various daemons
+        // and will be skipped as well
+        //
+        if (strcmp(tmphost, basehost) == 0 || strcmp(tmphost, "localhost") == 0)
+                goto drop_and_return;
 
-	// this process really seems to be container/pod related
-	//
-	safe_strcpy(curtask->gen.utsname, tmphost, UTSLEN);	// copy (truncated) host name
+        // this process really seems to be container/pod related
+        //
+        safe_strcpy(curtask->gen.utsname, tmphost, UTSLEN); // copy (truncated) host name
 
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
+        if (!droprootprivs())
+                mcleanstop(42, "failed to drop root privs\n");
 
-	return 1;
+        return 1;
 
-    drop_and_return:
-	if (! droprootprivs())
-		mcleanstop(42, "failed to drop root privs\n");
+drop_and_return:
+        if (!droprootprivs())
+                mcleanstop(42, "failed to drop root privs\n");
 
         return 0;
 }
 
 // Reassociate atop with its own UTS namespace
 //
-void
-resetutsname(void)
+void resetutsname(void)
 {
-	// switch back to my own original UTS namespace
-	//
-	if (foreignuts)
-	{
-		foreignuts = 0;
+        // switch back to my own original UTS namespace
+        //
+        if (foreignuts) {
+                foreignuts = 0;
 
-		regainrootprivs();
+                regainrootprivs();
 
-		if (setns(mypidfd, CLONE_NEWUTS) == -1)
-			;
+                if (setns(mypidfd, CLONE_NEWUTS) == -1)
+                        ;
 
-		if (! droprootprivs())
-			mcleanstop(42, "failed to drop root privs\n");
-	}
+                if (!droprootprivs())
+                        mcleanstop(42, "failed to drop root privs\n");
+        }
 }

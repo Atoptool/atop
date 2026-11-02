@@ -25,8 +25,9 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ** --------------------------------------------------------------------------
 */
-int 	jsondef(char *);
-char	jsonout(time_t, int,
-                 struct devtstat *, struct sstat *,
-		 struct cgchainer *, int, int,
-                 int, unsigned int, char);
+
+#include "atoptypes.h"
+
+int jsondef(char *);
+char jsonout(time_t, int, struct devtstat *, struct sstat *, struct cgchainer *, int, int, int,
+             unsigned int, char);

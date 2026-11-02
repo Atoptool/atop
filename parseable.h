@@ -1,7 +1,7 @@
 /*
 ** ATOP - System & Process Monitor
 **
-** The program 'atop' offers the possibility to view the activity of 
+** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
 ** ==========================================================================
 ** Author:      Gerlof Langeveld
@@ -28,10 +28,10 @@
 #ifndef __PARSEABLE__
 #define __PARSEABLE__
 
-int 	parsedef(char *);
-char	parseout(time_t, int,
-		struct devtstat *, struct sstat *,
-		struct cgchainer *, int, int,
-		int, unsigned int, char);
+#include "atoptypes.h"
+
+int parsedef(char *);
+char parseout(time_t, int, struct devtstat *, struct sstat *, struct cgchainer *, int, int, int,
+              unsigned int, char);
 
 #endif

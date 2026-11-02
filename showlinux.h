@@ -1,5 +1,5 @@
 /*
-** ATOP - System & Process Monitor 
+** ATOP - System & Process Monitor
 **
 ** The program 'atop' offers the possibility to view the activity of
 ** the system on system-level as well as process-level.
@@ -31,32 +31,34 @@
 #ifndef __SHOWLINUX__
 #define __SHOWLINUX__
 
-#define MAXITEMS 80    /* The maximum number of items per line */
+#include "atoptypes.h"
+
+#define MAXITEMS 80 /* The maximum number of items per line */
 
 /*
  * structure for extra parameters for system related data
-*/
+ */
 typedef struct {
-        count_t		totut;
-        count_t		totst;
-        int		nact; 
-        int		nproc;
-        int		ntrun;
-        int		ntslpi;
-        int		ntslpu;
-        int		ntidle;
-        int		nzomb;
-        int		nexit;
-        int		noverflow;
-        int		avgval;
-        int		nsecs;
-        count_t		mstot;
-        count_t		iotot;
-	struct perdsk	*perdsk;
-        int		index;
-        count_t		cputot;
-        count_t		pernumacputot;
-        count_t		percputot;
+        count_t totut;
+        count_t totst;
+        int nact;
+        int nproc;
+        int ntrun;
+        int ntslpi;
+        int ntslpu;
+        int ntidle;
+        int nzomb;
+        int nexit;
+        int noverflow;
+        int avgval;
+        int nsecs;
+        count_t mstot;
+        count_t iotot;
+        struct perdsk *perdsk;
+        int index;
+        count_t cputot;
+        count_t pernumacputot;
+        count_t percputot;
 } extraparam;
 
 /***************************************************************
@@ -67,77 +69,70 @@ typedef struct {
  * 		the print line
  * doformat	pointer to function that formats this field into a
  * 		string of 12 positions, to be returned as char pointer
- * dovalidate	pointer to function that determines if this is a 
+ * dovalidate	pointer to function that determines if this is a
  * 		valid (i.e. relevant) field on this system, returning
  * 		0 (false) or non-zero (true)
  * 		when this function pointer is NULL, true is considered
-*/
+ */
 typedef struct {
         char *configname;
-        char* (*doformat)(struct sstat *, extraparam *, int, int *);
-        int   (*dovalidate)(struct sstat *);
+        char *(*doformat)(struct sstat *, extraparam *, int, int *);
+        int (*dovalidate)(struct sstat *);
 } sys_printdef;
-
 
 /*
  * structure for system print-list with priority
  * in case of lack of screen space, lowest priority items will be
- * removed first 
-*/
-typedef struct
-{
-        sys_printdef    *f;
-        int             prio;
+ * removed first
+ */
+typedef struct {
+        sys_printdef *f;
+        int prio;
 } sys_printpair;
 
-void showsysline(sys_printpair* elemptr, 
-                 struct sstat* sstat, extraparam *extra,
-                 char *labeltext, unsigned int badness);
-
+void showsysline(sys_printpair *elemptr, struct sstat *sstat, extraparam *extra, char *labeltext,
+                 unsigned int badness);
 
 /*
 ** structure for process and cgroup print list
 */
-typedef struct 
-{
-	int  elementnr;                  // element number in alldetaildefs[]
-        char *head;                      // column header
-        char *configname;                // name as used to config print line
+typedef struct {
+        int elementnr;    // element number in alldetaildefs[]
+        char *head;       // column header
+        char *configname; // name as used to config print line
 
-	union {
-        	char *(*doactiveconverts)(struct tstat *, int, int);
-        	char *(*doactiveconvertc)(struct cgchainer *, struct tstat *,
-                			int, int, count_t, int, int *);
-	} ac;                            // pointer to conv function
-                                         // for active process
+        union {
+                char *(*doactiveconverts)(struct tstat *, int, int);
+                char *(*doactiveconvertc)(struct cgchainer *, struct tstat *, int, int, count_t,
+                                          int, int *);
+        } ac; // pointer to conv function
+              // for active process
 
-	char *(*doexitconvert)(struct tstat *, int, int);        
-			                 // pointer to conv function
-                                         // for exited process
+        char *(*doexitconvert)(struct tstat *, int, int);
+        // pointer to conv function
+        // for exited process
 
-	int (*sortfunc)(const void *, const void *, void *);
-			                 // pointer to sort function
+        int (*sortfunc)(const void *, const void *, void *);
+        // pointer to sort function
 
-	int ascdesc;                     // suggested sort direction: 1=asc, -1=desc
+        int ascdesc; // suggested sort direction: 1=asc, -1=desc
 
-        int width;                       // required width
-        int varwidth;                    // width may grow (eg cmd params)
+        int width;    // required width
+        int varwidth; // width may grow (eg cmd params)
 } detail_printdef;
 
-typedef struct 
-{
-       	detail_printdef	*pf;
-        int 		prio;
+typedef struct {
+        detail_printdef *pf;
+        int prio;
 } detail_printpair;
 
 void showprochead(detail_printpair *, int, int, struct procview *);
 void showprocline(detail_printpair *, struct tstat *, double, int, int);
 
 void showcgrouphead(detail_printpair *, int, int, struct procview *);
-void showcgroupline(detail_printpair *, struct cgchainer *, struct tstat *,
-					int, int, count_t, int);
+void showcgroupline(detail_printpair *, struct cgchainer *, struct tstat *, int, int, count_t, int);
 
-int  viewhascolumn(unsigned char, unsigned char);
+int viewhascolumn(unsigned char, unsigned char);
 
 void do_cpucritperc(char *, char *);
 void do_gpucritperc(char *, char *);
@@ -165,7 +160,7 @@ void do_ownnetinterfaceline(char *, char *);
 void do_owninfinibandline(char *, char *);
 void do_ownprocline(char *, char *);
 
-int  get_posval(char *, char *);
+int get_posval(char *, char *);
 
 extern sys_printdef *prcsyspdefs[];
 extern sys_printdef *cpusyspdefs[];
@@ -397,7 +392,6 @@ extern sys_printdef syspdef_IFBLANES;
 extern sys_printdef syspdef_IFBSPEEDIN;
 extern sys_printdef syspdef_IFBSPEEDOUT;
 extern sys_printdef syspdef_BLANKBOX;
-
 
 /*
 ** functions that print ???? for unavailable data
