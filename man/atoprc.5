@@ -195,6 +195,14 @@ pinned to that number of columns, with one column of white
 space in between the bars.
 .PP
 .TP 4
+.B nohighprio
+Avoid that
+.I atop
+increases its CPU priority ('c'), locks its memory ('m') or lowers
+its OOM score ('s') by specifying one of these characters, or
+a combination of the 'c', 'm' or 's' characters ('a' means all).
+.PP
+.TP 4
 .B colorinfo
 Definition of color name for information messages (default: green)
 in text mode.

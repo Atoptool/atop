@@ -4494,10 +4494,6 @@ do_flags(char *name, char *val)
 		   case 'I':
 			idnamesuppress++;
 			break;
-
-		   case 'Q':
-			highpriosuppress++;
-			break;
 		}
 	}
 }

@@ -179,7 +179,6 @@ char		irawname[RAWNAMESZ];
 char		orawname[RAWNAMESZ];
 char		rawreadflag;
 char		idnamesuppress;	/* suppress UID/GID to name translation */
-char		highpriosuppress; /* suppress high priority for atop    */
 char		idnamemaximum;	/* UID/GID to maximum  name translation */
 time_t		begintime, endtime, cursortime;	// epoch or time in day
 
@@ -201,6 +200,12 @@ char		prependenv  = 0; /* boolean: prepend selected            */
 
 char		connectgpud    = 0; /* boolean: connect to atopgpud      */
 char		connectnetatop = 0; /* boolean: connect to netatop(bpf)  */
+
+char		highpriosuppress; /* suppress high priority for atop    */
+
+#define	NOCPUPRIO	1	// bit value for highpriosuppress
+#define	NOMEMLOCK	2	// bit value for highpriosuppress
+#define	NOLOWSCORE	4	// bit value for highpriosuppress
 
 regex_t		envregex;
 
@@ -231,6 +236,16 @@ static char		jsonoutflag;
 static char		screenoutflag;
 
 char			twinmodeflag;
+
+/*
+** internal prototypes
+*/
+static void	engine(void);
+static void	twinprepare(void);
+static void	twinclean(void);
+static int	Qhandle(char *);
+static void     do_nohighprio(char *, char *);
+
 
 /*
 ** interpretation of defaults-file /etc/atoprc and $HOME/.atop
@@ -293,20 +308,14 @@ static struct {
 	{	"almostcrit",		do_almostcrit,		0, },
 	{	"atopsarflags",		do_atopsarflags,	0, },
 	{	"perfevents",		do_perfevents,		0, },
+	{	"nohighprio",		do_nohighprio,		0, },
 	{	"pacctdir",		do_pacctdir,		1, },
 };
 
 /*
-** internal prototypes
-*/
-static void	engine(void);
-static void	twinprepare(void);
-static void	twinclean(void);
-
-/*
 ** table defining all flags and corresponding long options
 **
-** used flags: 123456789aBb:CcDdEe:FfGgHhIiJ:jKkL:lMmNnoP:pQRr::Sst::uVvWw:XxYyZz:
+** used flags: 123456789aBb:CcDdEe:FfGgHhIiJ:jKkL:lMmNnoP:pQ:Rr::Sst::uVvWw:XxYyZz:
 */
 #define	PHSHOWGPU (PHBASEVAL+1)
 
@@ -489,8 +498,9 @@ static struct pardef paramdef[] = {
 	{ { "noexits",    no_argument,       0, MSUPEXITS  }, // 'X'
 		"suppress terminated processes in output", ' ' },
 
-	{ { "nohighpri",  no_argument,       0,                  'Q' },
-		"suppress higher CPU priority and memory locking for atop", ' ' },
+	{ { "nohighpri",  required_argument, 0,                  'Q' },
+		"suppress higher CPU priority (c), memory locking (m) or\n"
+		"lower oom score (s) for atop itself when running with root privs", ' ' },
 
 	{ { "linelen",    required_argument, 0,                  'L' },
 		"alternate line length (default 80) in case of\n"
@@ -662,8 +672,9 @@ main(int argc, char *argv[])
 			idnamesuppress++;
 			break;
 
-		   case 'Q':		/* suppress high priority?    */
-			highpriosuppress++;
+		   case 'Q':		/* suppress higher priority?  */
+			if ( !Qhandle(optarg) )
+				prusage(argv[0]);
 			break;
 
 		   case 'b':		/* begin time ?               */
@@ -862,7 +873,18 @@ main(int argc, char *argv[])
 	*/
 	regainrootprivs();
 
-	if ( !highpriosuppress )
+	if ( !(highpriosuppress&NOCPUPRIO) )
+	{
+		/*
+		** increment CPU scheduling-priority to get reliable samples (also
+		** during heavy CPU load);
+		** ignored if not running under superuser privileges!
+		*/
+		if ( nice(-20) == -1)
+			;
+	}
+
+	if ( !(highpriosuppress&NOMEMLOCK) )
 	{
 		/*
 		** lock ATOP in memory to get reliable samples (also when
@@ -874,15 +896,10 @@ main(int argc, char *argv[])
 
 		if (setrlimit(RLIMIT_MEMLOCK, &rlim) == 0)
 			(void) mlockall(MCL_CURRENT|MCL_FUTURE);
-	
-		/*
-		** increment CPU scheduling-priority to get reliable samples (also
-		** during heavy CPU load);
-		** ignored if not running under superuser privileges!
-		*/
-		if ( nice(-20) == -1)
-			;
+	}
 
+	if ( !(highpriosuppress&NOLOWSCORE) )
+	{
 		set_oom_score_adj();
 	}
 
@@ -1713,4 +1730,51 @@ twinclean(void)
 		kill(twinpid, SIGTERM);
 
 	(void) unlink(tempname);
+}
+
+/*
+** interpret the additional characters that are
+** passed to the -Q flag to suppress priority in case
+** of root privileges
+*/
+static int
+Qhandle(char *val)
+{
+	char *p;
+
+	for (p=val; *p; p++)
+	{
+		switch(*p)
+		{
+		   case 'c':
+			highpriosuppress |= NOCPUPRIO;
+			break;
+		   case 'm':
+			highpriosuppress |= NOMEMLOCK;
+			break;
+		   case 's':
+			highpriosuppress |= NOLOWSCORE;
+			break;
+		   case 'a':
+			highpriosuppress |= NOCPUPRIO;
+			highpriosuppress |= NOMEMLOCK;
+			highpriosuppress |= NOLOWSCORE;
+			break;
+		   default:
+			fprintf(stderr, "option '%c' for -Q not supported!\n", *p);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static void
+do_nohighprio(char *name, char *val)
+{
+        if ( !Qhandle(val) )
+        {
+                fprintf(stderr, "atoprc - invalid option(s) '%s' for %s\n", val, name);
+                exit(1);
+        }
 }

@@ -933,22 +933,23 @@ regainrootprivs(void)
 }
 
 /*
-** try to set the highest OOM priority
+** try to get a lower OOM score
 */
 void
 set_oom_score_adj(void)
 {
 	int fd;
-	char val[] = "-999";	/* suggested by Gerlof, always set -999 */
+	char val[] = "-100";
 
 	/*
-	 ** set OOM score adj to avoid to lost necessary log of system.
-	 ** ignored if not running under superuser privileges!
-	 */
+	** set OOM score adj to avoid that we lose necessary logging
+	** at the moment that memory gets tight
+	** ignored if not running under superuser privileges!
+	*/
 	fd = open("/proc/self/oom_score_adj", O_RDWR);
-	if ( fd < 0 ) {
+
+	if ( fd < 0 )
 		return;
-	}
 
 	if ( write(fd, val, strlen(val)) < 0 )
 		;

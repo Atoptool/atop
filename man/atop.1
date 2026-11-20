@@ -354,15 +354,19 @@ Since
 .I atop
 is a program that analyzes situations with overloaded CPU or memory resources,
 .I atop
-tries to run with a higher CPU priority (lower nice value) and with
-its memory locked. This will only succeed when
+tries to run with a higher CPU priority (lower nice value), with a lower OOM score
+and with its memory locked. This will only succeed when
 .I atop
 runs with superuser privileges (i.e. has the proper capabilities).
 With the
 .I -Q
-flag
+flag a string can be passed consisting of one or more characters
+to avoid that
 .I atop
-will not try to increase its CPU priority or lock its memory.
+tries to increase its CPU priority (character 'c'),
+lower its OOM score (character 's')
+or lock its memory (character 'm'). The string 'a' (all) is equivalent
+to 'cms'.
 
 .SH PROCESS ACCOUNTING
 With every interval,
