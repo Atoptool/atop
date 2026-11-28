@@ -223,8 +223,6 @@ int jsondef(char *pd)
 		pd = p+1;
 	}
 
-	setbuf(stdout, (char *)0);
-
 	return 1;
 }
 
@@ -287,7 +285,14 @@ char jsonout(time_t curtime, int numsecs,
 				devchain, ncgroups);
 	}
 
+        /*
+        ** print terminating curly brace and flush stdout instead of a
+	** live measurement to make the data available for further processing
+        */
 	printf("}\n");
+
+        if (!rawreadflag)
+                fflush(stdout);
 
 	return '\0';
 }

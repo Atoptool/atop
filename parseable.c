@@ -212,8 +212,6 @@ parsedef(char *pd)
 		pd = p+1;
 	}
 
-	setbuf(stdout, (char *)0);
-
 	return 1;
 }
 
@@ -275,9 +273,13 @@ parseout(time_t curtime, int numsecs,
 	}
 
 	/*
-	** print separator
+	** print separator and flush stdout instead of a live measurement
+	** to make the data available for further processing
 	*/
 	printf("SEP\n");
+
+	if (!rawreadflag)
+		fflush(stdout);
 
 	return '\0';
 }
